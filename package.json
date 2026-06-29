@@ -1,0 +1,33 @@
+{
+    "name": "zero-meeting-system",
+    "version": "0.0.1-SNAPSHOT",
+    "description": "Zero Meeting System",
+    "type": "module",
+    "scripts": {
+        "preinstall": "npx only-allow pnpm",
+        "zms": "pnpm --filter @zms/scripts zms --",
+        "lint": "markdownlint-cli2 --fix '**/*.md'",
+        "format": "prettier --write '**/*.{md, json, toml, yaml, yml, sh}'",
+        "openapi:user-management": "./services/gradlew -p services/user-management generateOpenApiDocsFromTests",
+        "openapi:meeting-management": "./services/gradlew -p services/meeting-management generateOpenApiDocsFromTests",
+        "openapi:chat-management": "./services/gradlew -p services/chat-management generateOpenApiDocsFromTests",
+        "openapi:services": "pnpm run openapi:user-management && pnpm run openapi:meeting-management && pnpm run openapi:chat-management",
+        "openapi:join": "redocly join services/user-management/build/openapi/openapi.yaml services/meeting-management/build/openapi/openapi.yaml services/chat-management/build/openapi/openapi.yaml --prefix-components-with-info-prop title -o openapi/unified-openapi.yaml",
+        "openapi:lint": "redocly lint openapi/unified-openapi.yaml",
+        "openapi:unified": "pnpm run openapi:services && pnpm run openapi:join && pnpm run openapi:lint"
+    },
+    "keywords": [],
+    "author": "",
+    "license": "Apache-2.0",
+    "packageManager": "pnpm@10.28.1",
+    "devDependencies": {
+        "@commitlint/cli": "^20.5.3",
+        "@commitlint/config-conventional": "^20.5.3",
+        "@redocly/cli": "^2.31.3",
+        "markdownlint-cli2": "^0.21.0",
+        "only-allow": "^1.2.2",
+        "prettier": "^3.8.3",
+        "prettier-plugin-sh": "^0.18.1",
+        "prettier-plugin-toml": "^2.0.6"
+    }
+}

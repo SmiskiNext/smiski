@@ -1,0 +1,28 @@
+title = "Gitleaks Configuration"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Global allowlist"
+paths = [
+    '''(.*?)(jpg|gif|doc|pdf|bin|png|svg|woff|woff2|ttf|eot|ico)$''',
+    '''pnpm-lock\.yaml''',
+    '''gradlew''',
+    '''gradlew\.bat''',
+    '''gradle/wrapper/gradle-wrapper\.jar''',
+]
+
+[[rules]]
+id = "spring-datasource-password"
+description = "Spring datasource password in config"
+regex = '''(?i)spring\.datasource\.password\s*=\s*[^\s]{6,}'''
+path = '''application(-\w+)?\.properties'''
+tags = ["spring", "config"]
+
+[[rules]]
+id = "spring-datasource-password-yaml"
+description = "Spring datasource password in YAML config"
+regex = '''(?i)password:\s+[^\s$\{]{6,}'''
+path = '''application(-\w+)?\.ya?ml'''
+tags = ["spring", "config"]

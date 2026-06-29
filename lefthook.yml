@@ -1,0 +1,47 @@
+pre-commit:
+    parallel: true
+    commands:
+        # ── Secret scanning ────────────────────────────────────────────
+        secret-scan:
+            run: >
+                command -v gitleaks >/dev/null 2>&1 && gitleaks protect --staged
+                --config .gitleaks.toml || echo "[secret-scan] gitleaks not
+                found, skipping (install via:
+                https://github.com/gitleaks/gitleaks)"
+
+        # ── Java, Kotlin, XML (all services via root) ─────────────────
+        services-format:
+            glob: 'services/**/*.{java,kts,xml}'
+            exclude:
+                - 'services/**/.idea/**'
+                - 'services/**/.gradle/**'
+            run: ./gradlew spotlessApply
+            stage_fixed: true
+
+        # ── Proto ──────────────────────────────────────────────────────
+        proto-format:
+            root: services/proto
+            glob: '**/*.proto'
+            run: ./gradlew bufFormatApply
+            stage_fixed: true
+
+        # ── Web (biome lint + format auto-fix) ─────────────────────────
+        web-fix:
+            root: frontends/web
+            glob: '**/*.{ts,tsx,js,jsx,json,css}'
+            run: pnpm biome check --fix
+            stage_fixed: true
+
+        # ── General (md, json, yaml, toml, sh) ─────────────────────────
+        general-format:
+            glob: '**/*.{md,json,toml,yaml,yml,sh}'
+            exclude:
+                - 'frontends/web/**'
+                - '**/node_modules/**'
+            run: pnpm format
+            stage_fixed: true
+
+commit-msg:
+    commands:
+        commitlint:
+            run: node_modules/.bin/commitlint --edit {1}

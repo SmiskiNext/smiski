@@ -1,0 +1,8 @@
+[tools]
+java = "25"
+node = "22"
+pnpm = "10.28.1"
+gitleaks = "latest"
+lefthook = "latest"
+buf = "latest"
+"npm:mongosh" = "latest"

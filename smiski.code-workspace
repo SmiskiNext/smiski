@@ -1,0 +1,53 @@
+{
+	"folders": [
+		{
+			"path": "."
+		},
+		{
+			"path": "services/shared"
+		},
+		{
+			"path": "services/user-management"
+		},
+		{
+			"path": "services/meeting-management"
+		},
+		{
+			"path": "services/k8s"
+		},
+		{
+			"path": "build-logic"
+		},
+		{
+			"path": "frontends/web"
+		}
+	],
+	"settings": {
+		"files.exclude": {
+			"**/.git": true,
+			"**/.svn": true,
+			"**/.hg": true,
+			"**/.DS_Store": true,
+			"**/Thumbs.db": true,
+			"**/node_modules": true,
+			"**/dist": true,
+			"**/build": true,
+			"**/out": true,
+			"**/target": true,
+			"**/bin": true,
+			"**/obj": true,
+			"**/.idea": true,
+			"**/.ace-tool": true,
+			"**/.cache": true,
+			"**/.gradle": true,
+			"**/.settings": true,
+			"**/.next": true,
+			"build-logic": true,
+			"frontends": true,
+			"services": true,
+			"**.classpath": true,
+			"**.factory": true,
+			"**.project": true,
+		}
+	}
+}

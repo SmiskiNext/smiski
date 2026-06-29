@@ -1,0 +1,62 @@
+.ace-tool/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Environment
+.env
+.env*.locali
+
+# Logs
+*.log
+
+# Docker
+docker-compose.override.yml
+
+# cache
+.cache/
+
+# Ignore Gradle project-specific cache directory
+.gradle/
+
+# Ignore Gradle build output directory
+build/
+
+# Ignore Kotlin plugin data
+.kotlin/
+
+# bin and obj
+bin/
+obj/
+
+# node modules
+node_modules/
+
+# turbo
+.turbo/
+
+# generate files
+dist/
+.classpath
+.project
+.settings/
+
+# opencode
+.opencode/
+
+# hprof
+*.hprof
+.gitnexus
+
+# CI local secrets
+.secrets/
+
+# local properties
+local.properties
