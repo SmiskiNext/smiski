@@ -5,7 +5,7 @@
     "type": "module",
     "scripts": {
         "preinstall": "npx only-allow pnpm",
-        "zms": "pnpm --filter @zms/scripts zms --",
+        "smiski": "pnpm --filter @smiski/scripts smiski --",
         "lint": "markdownlint-cli2 --fix '**/*.md'",
         "format": "prettier --write '**/*.{md, json, toml, yaml, yml, sh}'",
         "openapi:user-management": "./services/gradlew -p services/user-management generateOpenApiDocsFromTests",

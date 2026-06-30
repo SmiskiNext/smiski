@@ -45,23 +45,23 @@ notifications)
 
 ## Build Commands
 
-### Convenience CLI (`pnpm zms`)
+### Convenience CLI (`pnpm smiski`)
 
 A TypeScript CLI under `scripts/` (citty + tsx + zx) wraps the common dev
 workflows. Prefer it over invoking `gradlew` / `pnpm --dir` directly.
 
 ```sh
-pnpm zms --help                       # list all groups
-pnpm zms setup                        # all-in-one bootstrap (mise tools + pnpm deps + git hooks + .env)
-pnpm zms setup --env-only             # only copy services/docker/.env from .env.example
-pnpm zms doctor                       # report tool status (mise, java, node, docker, android-sdk, ...)
-pnpm zms dev                          # infra up + 4 backend services in parallel
-pnpm zms infra <up|down|reset|logs|ps>
-pnpm zms svc <all|user|meeting|chat|notification>
-pnpm zms web                          # Next.js dev server
-pnpm zms android <build|install|build:full|test|format>
-pnpm zms adb <devices|pair|connect|disconnect|logcat|uninstall>
-pnpm zms <build|test|format|lint|openapi|clean>
+pnpm smiski --help                       # list all groups
+pnpm smiski setup                        # all-in-one bootstrap (mise tools + pnpm deps + git hooks + .env)
+pnpm smiski setup --env-only             # only copy services/docker/.env from .env.example
+pnpm smiski doctor                       # report tool status (mise, java, node, docker, android-sdk, ...)
+pnpm smiski dev                          # infra up + 4 backend services in parallel
+pnpm smiski infra <up|down|reset|logs|ps>
+pnpm smiski svc <all|user|meeting|chat|notification>
+pnpm smiski web                          # Next.js dev server
+pnpm smiski android <build|install|build:full|test|format>
+pnpm smiski adb <devices|pair|connect|disconnect|logcat|uninstall>
+pnpm smiski <build|test|format|lint|openapi|clean>
 ```
 
 The CLI loads only allowlisted secrets from `services/docker/.env` before
