@@ -1,7 +1,7 @@
 [tools]
 java = "25"
-node = "22"
-pnpm = "10.28.1"
+node = "latest"
+pnpm = "latest"
 gitleaks = "latest"
 lefthook = "latest"
 buf = "latest"
