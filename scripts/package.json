@@ -1,0 +1,24 @@
+{
+    "name": "@smiski/scripts",
+    "version": "0.0.0",
+    "private": true,
+    "type": "module",
+    "description": "Developer CLI for the Zero Meeting System monorepo",
+    "bin": {
+        "smiski": "./src/index.ts"
+    },
+    "scripts": {
+        "smiski": "tsx src/index.ts",
+        "typecheck": "tsc --noEmit"
+    },
+    "dependencies": {
+        "citty": "^0.1.6",
+        "dotenv": "^16.4.7",
+        "zx": "^8.2.4"
+    },
+    "devDependencies": {
+        "@types/node": "^22.10.2",
+        "tsx": "^4.19.2",
+        "typescript": "^5.7.2"
+    }
+}

@@ -54,13 +54,11 @@ workflows. Prefer it over invoking `gradlew` / `pnpm --dir` directly.
 pnpm smiski --help                       # list all groups
 pnpm smiski setup                        # all-in-one bootstrap (mise tools + pnpm deps + git hooks + .env)
 pnpm smiski setup --env-only             # only copy services/docker/.env from .env.example
-pnpm smiski doctor                       # report tool status (mise, java, node, docker, android-sdk, ...)
+pnpm smiski doctor                       # report tool status (mise, java, node, docker, ...)
 pnpm smiski dev                          # infra up + 4 backend services in parallel
 pnpm smiski infra <up|down|reset|logs|ps>
 pnpm smiski svc <all|user|meeting|chat|notification>
 pnpm smiski web                          # Next.js dev server
-pnpm smiski android <build|install|build:full|test|format>
-pnpm smiski adb <devices|pair|connect|disconnect|logcat|uninstall>
 pnpm smiski <build|test|format|lint|openapi|clean>
 ```
 
