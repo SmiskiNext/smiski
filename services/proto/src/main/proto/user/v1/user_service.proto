@@ -1,0 +1,62 @@
+syntax = "proto3";
+
+package user.v1;
+
+import "google/protobuf/struct.proto";
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/wrappers.proto";
+
+option java_multiple_files = true;
+option java_outer_classname = "UserServiceProto";
+option java_package = "io.github.phunguy65.zms.proto.user.v1";
+
+// UserService exposes user lookup for cross-service communication.
+service UserService {
+  // BatchGetUser resolves a batch of users by email.
+  // Returns a map of email -> UserSnapshot for resolved users only.
+  // Missing emails are absent from the response map (partial results).
+  rpc BatchGetUser(BatchGetUserRequest) returns (BatchGetUserResponse);
+
+  // BatchGetUserById resolves a batch of users by user ID.
+  // Returns a map of user ID -> UserSnapshot for resolved users only.
+  // Missing IDs are absent from the response map (partial results).
+  rpc BatchGetUserById(BatchGetUserByIdRequest) returns (BatchGetUserByIdResponse);
+}
+
+message BatchGetUserRequest {
+  // Email addresses to resolve (may be empty).
+  repeated string emails = 1;
+}
+
+message BatchGetUserResponse {
+  // Map of email -> UserSnapshot.
+  // Only resolved, active (non-deleted) users are included.
+  map<string, UserSnapshot> users = 1;
+}
+
+message BatchGetUserByIdRequest {
+  // User IDs to resolve (may be empty).
+  repeated string user_ids = 1;
+}
+
+message BatchGetUserByIdResponse {
+  // Map of user ID -> UserSnapshot.
+  // Only resolved, active (non-deleted) users are included.
+  map<string, UserSnapshot> users = 1;
+}
+
+// UserSnapshot is a full point-in-time capture of user state.
+// Mirrors UserResponse.java — excludes sensitive fields (hashedPassword, googleUid, deletedAt).
+message UserSnapshot {
+  string id = 1;
+  string email = 2;
+  string full_name = 3;
+  google.protobuf.StringValue username = 4;
+  google.protobuf.StringValue avatar_url = 5;
+  // AUTH_PROVIDER values: "EMAIL", "GOOGLE", "BOTH"
+  string auth_provider = 6;
+  // Free-form JSON preferences — use google.protobuf.Struct for Map<String, Object>.
+  google.protobuf.Struct preferences = 7;
+  google.protobuf.Timestamp created_at = 8;
+  google.protobuf.Timestamp updated_at = 9;
+}
