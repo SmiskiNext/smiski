@@ -12,6 +12,9 @@ LiveKit (`docs.livekit.io`).
 - [4. Custom Layout Recording (Egress)](#4-custom-layout-recording-egress)
 - [Nguồn](#nguồn)
 
+> Tối ưu hiệu năng streaming (client / backend / SFU): xem
+> [`optimize-perf.md`](./optimize-perf.md).
+
 ---
 
 ## 1. Permission (VideoGrant)
