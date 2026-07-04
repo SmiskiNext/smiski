@@ -1,0 +1,22 @@
+server:
+    port: 8181
+
+spring:
+    datasource:
+        url: jdbc:postgresql://localhost:8281/zms_users
+        username: ${POSTGRES_USER:zms_user}
+        password: ${POSTGRES_PASSWORD:zms_secret}
+
+    kafka:
+        bootstrap-servers: localhost:9094
+
+    data:
+        redis:
+            host: localhost
+            port: 8284
+            password:
+
+app:
+    firebase:
+        project-id: ${ZMS_FIREBASE_PROJECT_ID:}
+        credentials-path: ${ZMS_GOOGLE_APPLICATION_CREDENTIALS:}

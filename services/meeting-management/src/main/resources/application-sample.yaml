@@ -1,0 +1,28 @@
+spring:
+    datasource:
+        url: jdbc:postgresql://<DB_HOST>:5432/zms_meetings
+        username: <DB_USER>
+        password: <DB_PASSWORD>
+
+    kafka:
+        bootstrap-servers: <KAFKA_HOST>:9092
+
+    data:
+        redis:
+            host: <REDIS_HOST>
+            port: 6379
+            password: <REDIS_PASSWORD>
+
+app:
+    livekit:
+        url: https://<LIVEKIT_HOST>
+        ws-url: wss://<LIVEKIT_HOST>
+        api-key: <LIVEKIT_API_KEY>
+        api-secret: <LIVEKIT_API_SECRET>
+    cursor:
+        secret: <CURSOR_SECRET>
+
+zms:
+    invite:
+        token-secret: <INVITE_TOKEN_SECRET>
+        token-expiry-days: 7

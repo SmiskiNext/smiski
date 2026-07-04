@@ -1,0 +1,6 @@
+server:
+    port: 8184
+
+spring:
+    kafka:
+        bootstrap-servers: localhost:9094

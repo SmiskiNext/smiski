@@ -1,0 +1,98 @@
+schema: spec-driven
+
+# Project context (optional)
+# This is shown to AI when creating artifacts.
+# Add your tech stack, conventions, style guides, domain knowledge, etc.
+# Example:
+context: |
+    Domain: Meeting system
+    Tech stack:
+    =============================================================
+    - Services: Spring Boot, Java 25
+    Codebase conventions: Clean Architecture (Hexagonal/Ports & Adapters), RESTful API design, Jsend response format.
+    - Frontend:
+      - Android Native App (Java 25, XML)
+      - Web App (Next.js, TypeScript)
+rules:
+    design:
+        - |
+            Service directory structure (Spring Boot):
+            =============================================================
+            services/{service-name}/
+              src/
+                main/
+                  java/io/github/phunguy65/zms/{service-name}/
+                    domain/
+                      model/          # Aggregates (extends AggregateRoot<UUID>) & Value Objects (records implementing ValueObject)
+                        valueobject/     # Subpackage for Value Objects (e.g. Email, Password, etc.)
+                      port/           # Outbound port interfaces (Repository, PasswordHasher, TokenProvider, external service contracts)
+                      event/          # Domain events (implements PublishableEvent for Kafka-publishable events, or DomainEvent for internal)
+                      projection/       # Read models for queries (if using CQRS; otherwise can be in domain/model)
+                      {Feature}Error.java      # Sealed interface with error records (domain errors, used in Result<T, {Feature}Error>)
+                      {Feature}ErrorCode.java  # Enum implementing ErrorCode (machine-readable API error codes, used in JsendResponse)
+                      EventPublisher.java      # Outbound port for publishing domain events externally
+                      PublishableEvent.java    # Interface for Kafka-publishable events (extends DomainEvent); internal-only events use DomainEvent directly
+                    application/
+                      usecase/        # Use cases (@Service, @Transactional), return Result<T, {Feature}Error>
+                      command/        # Command records (input DTOs, no validation — validation happens at presentation boundary)
+                      query/          # Query records (input DTOs for queries, if using CQRS)
+                      response/       # Response records (output DTOs)
+                    infrastructure/
+                      persistence/    # {Entity}JpaEntity, {Entity}JpaRepository, {Entity}RepositoryAdapter (implements domain port)
+                                      # OutboxEventEntity + OutboxEventRepository for transactional outbox pattern
+                      security/       # SecurityConfig, JwtTokenProvider (implements TokenProvider), JwtAuthFilter, Argon2PasswordHasher
+                                      # FirebaseTokenVerifier (implements GoogleAuthVerifier), FirebaseTokenClaims
+                      messaging/      # KafkaEventPublisher (implements EventPublisher), NoOpEventPublisher (test fallback)
+                                      # OutboxEventListener (@TransactionalEventListener), OutboxEventPublisher (@Scheduled poller)
+                      config/         # Framework config beans: FirebaseConfig, KafkaConfig
+                      web/            # WebConfig (adds /api prefix), ApiVersionParser
+                    presentation/
+                      request/        # Request DTOs (Java records + Jakarta validation); each has toCommand() method
+                      {Feature}Controller.java  # @RestController, extends BaseController, maps Result<> to JsendResponse<>
+                      BaseController.java       # Abstract base: centralizes {Feature}Error → HTTP status + JsendResponse mapping via pattern matching
+                    {ServiceName}Application.java  # @SpringBootApplication entry point
+                  resources/
+                    application.yaml
+                    db/migration/     # Flyway: V{N}__{description}.sql (PostgreSQL)
+                test/
+                  java/io/github/phunguy65/zms/{service-name}/
+                    application/usecase/   # Unit tests per use case
+                    domain/                # Domain model & event tests
+                    infrastructure/        # Infrastructure/adapter tests (messaging, security, persistence)
+                    presentation/          # @SpringBootTest integration tests
+                    config/                # TestcontainersConfiguration for integration tests
+                  resources/
+                    application-test.yaml
+                    db/h2-migration/       # H2-compatible Flyway migrations for tests
+              compose.yaml                 # Docker Compose for local dev (PostgreSQL, Kafka, etc.)
+
+            Key patterns:
+            - Domain entities use static factory methods: register() / registerWithGoogle() for new, reconstitute() from DB
+            - Value Objects: Java records, validate in compact constructor, implement ValueObject marker
+            - Error handling: Result<T, {Feature}Error> (no exceptions across layer boundaries); {Feature}Error is a sealed interface
+            - Dual error representation: {Feature}Error (sealed interface, domain layer) mapped to {Feature}ErrorCode (enum, API layer) in BaseController
+            - Request-Command-Response: request DTOs (presentation, @Valid) call toCommand() → command records (application, no validation) → response records
+            - Repository adapters contain private toDomain() / toEntity() mappers
+            - API versioning: /{version}/resource path prefix, resolved by ApiVersionParser; WebConfig adds /api prefix
+            - Shared module (io.github.phunguy65.zms.shared): AggregateRoot, ValueObject, DomainEvent, Result, PageResult,
+              JsendResponse, ErrorCode, CommonErrorCode, FailData, Violation, GlobalExceptionHandler, JacksonConfig
+            - Main app scans both service and shared packages via scanBasePackages
+            - Primary keys: UUIDv7 (UuidCreator.getTimeOrderedEpoch()) for time-ordered, sortable IDs
+            - Domain events: registered via registerEvent() on AggregateRoot, cleared after publishing in use case
+            - Event publishing: use cases filter domain events by instanceof PublishableEvent before publishing to ApplicationEventPublisher
+            - Event format: CloudEvents 1.0 (binary content mode over Kafka); PublishableEvent interface defines metadata
+            - Controllers: extend BaseController, pattern-match on Result<> to map domain errors to HTTP status + JsendResponse (success/fail)
+            - NoOpEventPublisher: test-only fallback implementation of EventPublisher (logs and discards events)
+        - |
+            If task related to Android Application, always reference
+            ./zero-meeting-system/frontends/android-app/app/codemap.md
+
+# Per-artifact rules (optional)
+# Add custom rules for specific artifacts.
+# Example:
+#   rules:
+#     proposal:
+#       - Keep proposals under 500 words
+#       - Always include a "Non-goals" section
+#     tasks:
+#       - Break tasks into chunks of max 2 hours

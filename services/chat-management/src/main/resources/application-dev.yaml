@@ -1,0 +1,13 @@
+server:
+    port: 8183
+
+spring:
+    data:
+        mongodb:
+            uri: mongodb://localhost:8283/chat_management?replicaSet=rs0&directConnection=true
+    kafka:
+        bootstrap-servers: localhost:9094
+
+app:
+    livekit:
+        url: http://localhost:7880

@@ -1,0 +1,80 @@
+spring:
+    application:
+        name: user-management
+
+    mvc:
+        apiversion:
+            use:
+                path-segment: 1
+            default: 1.0
+            supported: 1.0
+
+    datasource:
+        url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/zms_users}
+        username: zms_user
+        password: zms_secret
+        driver-class-name: org.postgresql.Driver
+
+    jpa:
+        hibernate:
+            ddl-auto: validate
+        open-in-view: false
+        properties:
+            hibernate:
+                dialect: org.hibernate.dialect.PostgreSQLDialect
+
+    flyway:
+        enabled: true
+        locations: classpath:db/migration
+
+    kafka:
+        bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+        producer:
+            acks: all
+            retries: 3
+            properties:
+                enable.idempotence: true
+            key-serializer: org.apache.kafka.common.serialization.StringSerializer
+            value-serializer: io.cloudevents.kafka.CloudEventSerializer
+
+    data:
+        redis:
+            host: ${REDIS_HOST:localhost}
+            port: ${REDIS_PORT:6379}
+            password: ${REDIS_PASSWORD:}
+
+    threads:
+        virtual:
+            enabled: true
+
+    grpc:
+        server:
+            port: ${GRPC_PORT:9090}
+
+app:
+    jwt:
+        secret: ${JWT_SECRET:change-me-in-production-must-be-at-least-64-chars-for-hs512-algorithm-requirement}
+        access-token-expiry-seconds: 900
+        refresh-token-expiry-seconds: 2592000
+    cursor:
+        secret: ${CURSOR_SECRET}
+    firebase:
+        project-id: ${ZMS_FIREBASE_PROJECT_ID:}
+        credentials-path: ${ZMS_GOOGLE_APPLICATION_CREDENTIALS:}
+    recaptcha:
+        enabled: ${RECAPTCHA_ENABLED:false}
+        site-key: ${RECAPTCHA_SITE_KEY:}
+        secret-key: ${RECAPTCHA_SECRET_KEY:}
+
+logging:
+    aspect:
+        include-args: false
+
+springdoc:
+    api-docs:
+        enabled: true
+    swagger-ui:
+        enabled: false
+    servers:
+        - url: ${GATEWAY_URL:http://localhost:8080}
+          description: API Gateway
