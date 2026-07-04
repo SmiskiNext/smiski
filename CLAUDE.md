@@ -5,16 +5,14 @@ code in this repository.
 
 ## Architecture Overview
 
-Monorepo with mixed stack: Java/Spring microservices + Android + Next.js web
-app. API-first: backend services generate OpenAPI specs, a root script merges
-them into `openapi/unified-openapi.yaml`, and clients are generated for web and
-Android.
+Monorepo with mixed stack: Java/Spring microservices + Next.js web app.
+API-first: backend services generate OpenAPI specs, a root script merges them
+into `openapi/unified-openapi.yaml`, and clients are generated for the web.
 
 **Components:**
 
 - `services/` — Spring Boot 4 / Java 25 backend microservices (hexagonal
   architecture)
-- `frontends/android-app/` — Native Android (MVVM + Clean Architecture)
 - `frontends/web/` — Next.js 16 / React 19 web client
 - `services/k8s/` — Kubernetes manifests (Kong gateway, Kafka, DBs, LiveKit,
   Valkey)
@@ -75,15 +73,6 @@ running services in parallel.
 ./services/gradlew bufFormatApply                      # format proto
 ```
 
-### Android app
-
-```sh
-./frontends/android-app/gradlew -p frontends/android-app :app:assembleDebug
-./frontends/android-app/gradlew -p frontends/android-app :app:installDebug # build + install on connected device
-./frontends/android-app/gradlew -p frontends/android-app build
-./frontends/android-app/gradlew -p frontends/android-app spotlessApply
-```
-
 ### Web app
 
 ```sh
@@ -121,19 +110,12 @@ pnpm format # prettier for md/json/toml/yaml/sh
 ./services/gradlew -p services/ < service-name > generateOpenApiDocsFromTests
 ```
 
-### Android
-
-```sh
-./frontends/android-app/gradlew -p frontends/android-app :app:testDebugUnitTest
-./frontends/android-app/gradlew -p frontends/android-app :app:connectedDebugAndroidTest
-```
-
 ## Pre-commit Hooks (lefthook)
 
 Configured in `lefthook.yml`. Runs in parallel on staged files:
 
 - `gitleaks protect --staged` — secret scan
-- Spotless — Java/KTS/XML for `services/**` and Android XML
+- Spotless — Java/KTS/XML for `services/**`
 - Buf — proto formatting (`services/proto`)
 - Biome `check --fix` — web (`frontends/web`)
 - `bun run format` (Prettier) — md/json/yaml/toml/sh outside `frontends/web`
@@ -143,9 +125,7 @@ Configured in `lefthook.yml`. Runs in parallel on staged files:
 ## Code Conventions
 
 - Backend: JSend envelope pattern for HTTP responses; interceptors on
-  web/Android clients unwrap envelopes automatically.
-- Android: Hilt DI, Retrofit/OkHttp with auth + JSend interceptors in
-  `NetworkModule`.
+  the web client unwrap envelopes automatically.
 - Web: generated SDK lives in `frontends/web/src/generated`; do not edit
   manually.
 - Biome is the formatter/linter for web (not ESLint/Prettier per-file).
