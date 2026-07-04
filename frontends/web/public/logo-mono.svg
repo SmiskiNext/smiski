@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" role="img" aria-label="Zero Meet">
+    <title>Zero Meet</title>
+    <path d="M20 8h18c7.732 0 14 6.268 14 14v12 M52 42v2c0 7.732-6.268 14-14 14H20c-7.732 0-14-6.268-14-14V22c0-7.732 6.268-14 14-14" stroke="#ffffff" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+    <circle cx="32" cy="34" r="5" fill="#ffffff"/>
+</svg>

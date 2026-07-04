@@ -1,0 +1,75 @@
+{
+    "$schema": "https://biomejs.dev/schemas/latest/schema.json",
+    "files": {
+        "includes": ["src/**/*.{ts,tsx,js,jsx,json,css}", "!src/generated/**/*"]
+    },
+    "vcs": {
+        "enabled": false
+    },
+    "formatter": {
+        "indentStyle": "space",
+        "lineWidth": 80,
+        "lineEnding": "lf",
+        "bracketSpacing": true,
+        "indentWidth": 4,
+        "bracketSameLine": false
+    },
+    "linter": {
+        "enabled": true,
+        "domains": {
+            "next": "all"
+        },
+        "rules": {
+            "recommended": true,
+            "suspicious": {
+                "noArrayIndexKey": "off"
+            },
+            "correctness": {
+                "useImportExtensions": {
+                    "level": "error",
+                    "options": {
+                        "extensionMappings": {
+                            "ts": "ts",
+                            "tsx": "tsx"
+                        }
+                    }
+                },
+                "noUnusedVariables": "error",
+                "noUnusedImports": "error"
+            }
+        }
+    },
+    "javascript": {
+        "parser": {
+            "unsafeParameterDecoratorsEnabled": true
+        },
+        "formatter": {
+            "arrowParentheses": "always",
+            "jsxQuoteStyle": "single",
+            "quoteStyle": "single",
+            "quoteProperties": "preserve",
+            "trailingCommas": "all",
+            "operatorLinebreak": "before"
+        }
+    },
+    "json": {
+        "formatter": {
+            "bracketSpacing": true,
+            "trailingCommas": "none"
+        },
+        "parser": {
+            "allowTrailingCommas": false
+        }
+    },
+    "css": {
+        "formatter": {
+            "quoteStyle": "single"
+        },
+        "parser": {
+            "tailwindDirectives": true
+        }
+    },
+    "html": {
+        "experimentalFullSupportEnabled": true
+    }
+}
