@@ -1,0 +1,107 @@
+# user-management Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+    name: user-management
+    namespace: default
+    labels:
+        app: user-management
+spec:
+    replicas: 1
+    selector:
+        matchLabels:
+            app: user-management
+    template:
+        metadata:
+            labels:
+                app: user-management
+        spec:
+            containers:
+                - name: user-management
+                  image: ghcr.io/phunguy65/zms/user-management:0.0.1-SNAPSHOT
+                  imagePullPolicy: IfNotPresent
+                  ports:
+                      - name: http
+                        containerPort: 8080
+                      - name: grpc
+                        containerPort: 9090
+                  env:
+                      - name: SPRING_PROFILES_ACTIVE
+                        value: 'k8s'
+                      - name: JWT_SECRET
+                        valueFrom:
+                            secretKeyRef:
+                                name: user-management-secrets
+                                key: jwt-secret
+                      - name: CURSOR_SECRET
+                        valueFrom:
+                            secretKeyRef:
+                                name: user-management-secrets
+                                key: cursor-secret
+                      - name: SPRING_DATASOURCE_URL
+                        value: 'jdbc:postgresql://user-management-postgres:5432/zms_users'
+                      - name: SPRING_DATASOURCE_USERNAME
+                        valueFrom:
+                            secretKeyRef:
+                                name: user-management-secrets
+                                key: db-username
+                      - name: SPRING_DATASOURCE_PASSWORD
+                        valueFrom:
+                            secretKeyRef:
+                                name: user-management-secrets
+                                key: db-password
+                      - name: KAFKA_BOOTSTRAP_SERVERS
+                        value: 'zms-kafka-kafka-bootstrap.kafka.svc.cluster.local:9092'
+                      - name: REDIS_HOST
+                        value: 'valkey-service.default.svc.cluster.local'
+                      - name: REDIS_PORT
+                        value: '6379'
+                      - name: RECAPTCHA_ENABLED
+                        value: 'false'
+                      - name: RECAPTCHA_SITE_KEY
+                        value: ''
+                      - name: RECAPTCHA_SECRET_KEY
+                        valueFrom:
+                            secretKeyRef:
+                                name: user-management-secrets
+                                key: recaptcha-secret-key
+                  readinessProbe:
+                      httpGet:
+                          path: /actuator/health/readiness
+                          port: 8080
+                      initialDelaySeconds: 30
+                      periodSeconds: 10
+                      failureThreshold: 3
+                  livenessProbe:
+                      httpGet:
+                          path: /actuator/health/liveness
+                          port: 8080
+                      initialDelaySeconds: 60
+                      periodSeconds: 20
+                      failureThreshold: 3
+                  resources:
+                      requests:
+                          cpu: 200m
+                          memory: 512Mi
+                      limits:
+                          cpu: 500m
+                          memory: 1Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+    name: user-management
+    namespace: default
+    labels:
+        app: user-management
+spec:
+    type: ClusterIP
+    selector:
+        app: user-management
+    ports:
+        - name: http
+          port: 8080
+          targetPort: 8080
+        - name: grpc
+          port: 9090
+          targetPort: 9090

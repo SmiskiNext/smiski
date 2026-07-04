@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+    name: rustfs-data-pvc
+    namespace: rustfs-system
+spec:
+    accessModes:
+        - ReadWriteOnce
+    storageClassName: standard # Use local-path for k3s, standard for minikube/kind
+    resources:
+        requests:
+            storage: 20Gi

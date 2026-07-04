@@ -1,0 +1,31 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+    - ../../base
+    - secrets/user-management-secrets.yaml
+    - secrets/meeting-management-secrets.yaml
+    - secrets/chat-management-secrets.yaml
+    - secrets/notification-secrets.yaml
+    - secrets/livekit-secrets.yaml
+    - secrets/rustfs-secrets.yaml
+
+patches:
+    - path: patches/dev-resources.yaml
+    - path: patches/dev-storage.yaml
+    # StatefulSet volumeClaimTemplates require JSON patches
+    - target:
+          kind: StatefulSet
+          name: valkey
+      patch: |
+          - op: replace
+            path: /spec/volumeClaimTemplates/0/spec/storageClassName
+            value: local-path
+    - target:
+          kind: StatefulSet
+          name: chat-mongo
+          namespace: default
+      patch: |
+          - op: replace
+            path: /spec/volumeClaimTemplates/0/spec/storageClassName
+            value: local-path

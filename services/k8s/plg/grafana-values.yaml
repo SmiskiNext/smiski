@@ -1,0 +1,26 @@
+# Grafana Helm values — grafana/grafana
+# https://grafana.com/docs/grafana/latest/setup-grafana/installation/helm/
+
+adminPassword: 'change-me-in-production'
+
+persistence:
+    enabled: true
+    size: 1Gi
+    storageClassName: standard
+
+service:
+    type: ClusterIP
+    port: 80
+
+# Pre-configure Loki as a datasource
+datasources:
+    datasources.yaml:
+        apiVersion: 1
+        datasources:
+            - name: Loki
+              type: loki
+              url: http://loki:3100
+              access: proxy
+              isDefault: true
+              jsonData:
+                  maxLines: 1000

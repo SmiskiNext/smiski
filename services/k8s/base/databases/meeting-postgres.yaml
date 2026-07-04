@@ -1,0 +1,94 @@
+# meeting-postgres — PostgreSQL for meeting-management service
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+    name: meeting-postgres
+    namespace: default
+    labels:
+        app: meeting-postgres
+spec:
+    replicas: 1
+    selector:
+        matchLabels:
+            app: meeting-postgres
+    template:
+        metadata:
+            labels:
+                app: meeting-postgres
+        spec:
+            containers:
+                - name: postgres
+                  image: postgres:18-alpine
+                  ports:
+                      - containerPort: 5432
+                  env:
+                      - name: POSTGRES_DB
+                        value: zms_meetings
+                      - name: POSTGRES_USER
+                        valueFrom:
+                            secretKeyRef:
+                                name: meeting-management-secrets
+                                key: db-username
+                      - name: POSTGRES_PASSWORD
+                        valueFrom:
+                            secretKeyRef:
+                                name: meeting-management-secrets
+                                key: db-password
+                  volumeMounts:
+                      - name: data
+                        mountPath: /var/lib/postgresql
+                  readinessProbe:
+                      exec:
+                          command:
+                              - pg_isready
+                              - -d
+                              - zms_meetings
+                      initialDelaySeconds: 5
+                      periodSeconds: 10
+                  livenessProbe:
+                      exec:
+                          command:
+                              - pg_isready
+                              - -d
+                              - zms_meetings
+                      initialDelaySeconds: 15
+                      periodSeconds: 20
+                  resources:
+                      requests:
+                          cpu: 50m
+                          memory: 128Mi
+                      limits:
+                          cpu: 200m
+                          memory: 256Mi
+            volumes:
+                - name: data
+                  persistentVolumeClaim:
+                      claimName: meeting-postgres-data
+---
+apiVersion: v1
+kind: Service
+metadata:
+    name: meeting-management-postgres
+    namespace: default
+    labels:
+        app: meeting-postgres
+spec:
+    type: ClusterIP
+    selector:
+        app: meeting-postgres
+    ports:
+        - port: 5432
+          targetPort: 5432
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+    name: meeting-postgres-data
+    namespace: default
+spec:
+    accessModes:
+        - ReadWriteOnce
+    storageClassName: standard
+    resources:
+        requests:
+            storage: 1Gi

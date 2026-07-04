@@ -1,0 +1,51 @@
+# Flyway migration Job for chat-management's MongoDB
+# Runs once per `kubectl apply`; Kustomize hashes the ConfigMap so that updates to
+# migration scripts produce a new ConfigMap name and re-trigger this Job.
+apiVersion: batch/v1
+kind: Job
+metadata:
+    name: chat-flyway-migrate
+    namespace: default
+spec:
+    backoffLimit: 3
+    template:
+        spec:
+            restartPolicy: OnFailure
+            initContainers:
+                - name: wait-for-mongo
+                  image: mongo:7.0-jammy
+                  command:
+                      - sh
+                      - -c
+                      - |
+                          for i in $(seq 1 60); do
+                            if mongosh --quiet --host chat-mongo-0.chat-mongo:27017 \
+                                 --eval "rs.status().ok" | grep -q 1; then
+                              echo "chat-mongo replica set is ready"; exit 0
+                            fi
+                            echo "Waiting for chat-mongo replica set..."; sleep 3
+                          done
+                          echo "chat-mongo did not become ready in time"; exit 1
+            containers:
+                - name: flyway
+                  image: redgate/flyway:12.6-alpine-mongo
+                  env:
+                      - name: FLYWAY_URL
+                        value: 'mongodb://chat-mongo-0.chat-mongo:27017/zms_chat?replicaSet=rs0'
+                      - name: FLYWAY_LOCATIONS
+                        value: 'filesystem:/flyway/sql'
+                      - name: FLYWAY_SQL_MIGRATION_SUFFIXES
+                        value: '.js'
+                      - name: FLYWAY_BASELINE_ON_MIGRATE
+                        value: 'true'
+                      - name: FLYWAY_CONNECT_RETRIES
+                        value: '30'
+                  args: ['migrate']
+                  volumeMounts:
+                      - name: migrations
+                        mountPath: /flyway/sql
+                        readOnly: true
+            volumes:
+                - name: migrations
+                  configMap:
+                      name: chat-flyway-migrations

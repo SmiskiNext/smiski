@@ -1,0 +1,113 @@
+# chat-mongo — MongoDB for chat-management service (single-node ReplicaSet)
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+    name: chat-mongo
+    namespace: default
+    labels:
+        app: chat-mongo
+spec:
+    serviceName: chat-mongo
+    replicas: 1
+    selector:
+        matchLabels:
+            app: chat-mongo
+    template:
+        metadata:
+            labels:
+                app: chat-mongo
+        spec:
+            containers:
+                - name: mongo
+                  image: mongo:7.0-jammy
+                  command:
+                      - mongod
+                      - --replSet
+                      - rs0
+                      - --bind_ip_all
+                      - --wiredTigerCacheSizeGB
+                      - '0.25'
+                  ports:
+                      - containerPort: 27017
+                  volumeMounts:
+                      - name: data
+                        mountPath: /data/db
+                  lifecycle:
+                      postStart:
+                          exec:
+                              command:
+                                  - /bin/bash
+                                  - -c
+                                  - |
+                                      # Wait for mongod to accept connections
+                                      for i in $(seq 1 30); do
+                                        mongosh --quiet --eval "db.runCommand({ping:1})" && break
+                                        sleep 2
+                                      done
+                                      # Initiate replica set (idempotent — no-op if already initiated)
+                                      mongosh --quiet --eval '
+                                        try {
+                                          rs.status();
+                                        } catch(e) {
+                                          rs.initiate({
+                                            _id: "rs0",
+                                            members: [{_id: 0, host: "chat-mongo-0.chat-mongo:27017"}]
+                                          });
+                                        }
+                                      '
+                                      # Wait for RS to be ready
+                                      for i in $(seq 1 30); do
+                                        if mongosh --quiet --eval "rs.status().ok" | grep -q 1; then break; fi
+                                        sleep 2
+                                      done
+                  readinessProbe:
+                      exec:
+                          command:
+                              - mongosh
+                              - --quiet
+                              - --eval
+                              - 'db.runCommand({ping:1}).ok'
+                      initialDelaySeconds: 10
+                      periodSeconds: 10
+                  livenessProbe:
+                      exec:
+                          command:
+                              - mongosh
+                              - --quiet
+                              - --eval
+                              - 'db.runCommand({ping:1}).ok'
+                      initialDelaySeconds: 30
+                      periodSeconds: 20
+                  resources:
+                      requests:
+                          cpu: 100m
+                          memory: 128Mi
+                      limits:
+                          cpu: 300m
+                          memory: 256Mi
+    volumeClaimTemplates:
+        - metadata:
+              name: data
+          spec:
+              accessModes:
+                  - ReadWriteOnce
+              storageClassName: standard
+              resources:
+                  requests:
+                      storage: 2Gi
+---
+# Headless Service for StatefulSet DNS (chat-mongo-0.chat-mongo)
+apiVersion: v1
+kind: Service
+metadata:
+    name: chat-mongo
+    namespace: default
+    labels:
+        app: chat-mongo
+spec:
+    clusterIP: None
+    selector:
+        app: chat-mongo
+    ports:
+        - port: 27017
+          targetPort: 27017

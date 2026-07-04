@@ -1,0 +1,92 @@
+# chat-management Deployment (WebFlux + MongoDB)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+    name: chat-management
+    namespace: default
+    labels:
+        app: chat-management
+spec:
+    replicas: 1
+    selector:
+        matchLabels:
+            app: chat-management
+    template:
+        metadata:
+            labels:
+                app: chat-management
+        spec:
+            containers:
+                - name: chat-management
+                  image: ghcr.io/phunguy65/zms/chat-management:0.0.1-SNAPSHOT
+                  imagePullPolicy: IfNotPresent
+                  ports:
+                      - name: http
+                        containerPort: 8080
+                  env:
+                      - name: SPRING_PROFILES_ACTIVE
+                        value: 'k8s'
+                      - name: SPRING_DATA_MONGODB_URI
+                        value: 'mongodb://chat-mongo-0.chat-mongo:27017/zms_chat?replicaSet=rs0'
+                      - name: SPRING_DATA_MONGODB_DATABASE
+                        value: 'zms_chat'
+                      - name: KAFKA_BOOTSTRAP_SERVERS
+                        value: 'zms-kafka-kafka-bootstrap.kafka.svc.cluster.local:9092'
+                      - name: REDIS_HOST
+                        value: 'valkey-service.default.svc.cluster.local'
+                      - name: REDIS_PORT
+                        value: '6379'
+                      - name: LIVEKIT_URL
+                        value: 'http://livekit-server.livekit-system.svc.cluster.local:7880'
+                      - name: LIVEKIT_API_KEY
+                        valueFrom:
+                            secretKeyRef:
+                                name: chat-management-secrets
+                                key: livekit-api-key
+                      - name: LIVEKIT_API_SECRET
+                        valueFrom:
+                            secretKeyRef:
+                                name: chat-management-secrets
+                                key: livekit-api-secret
+                      - name: CHAT_JWT_SECRET
+                        valueFrom:
+                            secretKeyRef:
+                                name: chat-management-secrets
+                                key: chat-jwt-secret
+                  readinessProbe:
+                      httpGet:
+                          path: /actuator/health/readiness
+                          port: 8080
+                      initialDelaySeconds: 30
+                      periodSeconds: 10
+                      failureThreshold: 3
+                  livenessProbe:
+                      httpGet:
+                          path: /actuator/health/liveness
+                          port: 8080
+                      initialDelaySeconds: 60
+                      periodSeconds: 20
+                      failureThreshold: 3
+                  resources:
+                      requests:
+                          cpu: 200m
+                          memory: 512Mi
+                      limits:
+                          cpu: 500m
+                          memory: 1Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+    name: chat-management
+    namespace: default
+    labels:
+        app: chat-management
+spec:
+    type: ClusterIP
+    selector:
+        app: chat-management
+    ports:
+        - name: http
+          port: 8080
+          targetPort: 8080

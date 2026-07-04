@@ -1,0 +1,37 @@
+# Loki Helm values — grafana/loki
+# https://grafana.com/docs/loki/latest/setup/install/helm/
+
+deploymentMode: SingleBinary
+
+loki:
+    commonConfig:
+        replication_factor: 1
+    storage:
+        type: filesystem
+    auth_enabled: false
+
+singleBinary:
+    replicas: 1
+    persistence:
+        enabled: true
+        size: 2Gi
+        storageClass: standard
+
+# Disable components not needed in SingleBinary mode
+read:
+    replicas: 0
+write:
+    replicas: 0
+backend:
+    replicas: 0
+
+gateway:
+    enabled: false
+
+monitoring:
+    selfMonitoring:
+        enabled: false
+        grafanaAgent:
+            installOperator: false
+    lokiCanary:
+        enabled: false

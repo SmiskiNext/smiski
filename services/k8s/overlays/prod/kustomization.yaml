@@ -1,0 +1,17 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+    - ../../base
+    - metallb-pool.yaml
+    - secrets/user-management-secrets.yaml
+    - secrets/meeting-management-secrets.yaml
+    - secrets/chat-management-secrets.yaml
+    - secrets/notification-secrets.yaml
+    - secrets/livekit-secrets.yaml
+    - secrets/rustfs-secrets.yaml
+
+patches:
+    - path: patches/prod-resources.yaml
+    - path: patches/prod-replicas.yaml
+    - path: patches/prod-images.yaml

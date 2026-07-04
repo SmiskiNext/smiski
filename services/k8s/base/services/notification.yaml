@@ -1,0 +1,62 @@
+# notification — Kafka consumer service (actuator only, no public routes)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+    name: notification
+    namespace: default
+    labels:
+        app: notification
+spec:
+    replicas: 1
+    selector:
+        matchLabels:
+            app: notification
+    template:
+        metadata:
+            labels:
+                app: notification
+        spec:
+            containers:
+                - name: notification
+                  image: ghcr.io/phunguy65/zms/notification:0.0.1-SNAPSHOT
+                  imagePullPolicy: IfNotPresent
+                  ports:
+                      - name: http
+                        containerPort: 8080
+                  env:
+                      - name: SPRING_PROFILES_ACTIVE
+                        value: 'k8s'
+                      - name: KAFKA_BOOTSTRAP_SERVERS
+                        value: 'zms-kafka-kafka-bootstrap.kafka.svc.cluster.local:9092'
+                      - name: ZMS_RESEND_API_KEY
+                        valueFrom:
+                            secretKeyRef:
+                                name: notification-secrets
+                                key: resend-api-key
+                      - name: ZMS_RESEND_FROM_EMAIL
+                        value: 'notifications@example.com'
+                      - name: ZMS_RESEND_FROM_NAME
+                        value: 'Zero Meeting System'
+                      - name: INVITATION_JOIN_BASE_URL
+                        value: 'https://app.example.com/join'
+                  readinessProbe:
+                      httpGet:
+                          path: /actuator/health/readiness
+                          port: 8080
+                      initialDelaySeconds: 30
+                      periodSeconds: 10
+                      failureThreshold: 3
+                  livenessProbe:
+                      httpGet:
+                          path: /actuator/health/liveness
+                          port: 8080
+                      initialDelaySeconds: 60
+                      periodSeconds: 20
+                      failureThreshold: 3
+                  resources:
+                      requests:
+                          cpu: 50m
+                          memory: 128Mi
+                      limits:
+                          cpu: 200m
+                          memory: 384Mi

@@ -1,0 +1,75 @@
+# Production resource requests and limits for all four stateless service Deployments.
+# Adjust these values to match actual profiling data and cluster node capacity
+# before applying to production.
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+    name: user-management
+    namespace: default
+spec:
+    template:
+        spec:
+            containers:
+                - name: user-management
+                  resources:
+                      requests:
+                          cpu: 500m
+                          memory: 512Mi
+                      limits:
+                          cpu: 2000m
+                          memory: 2Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+    name: meeting-management
+    namespace: default
+spec:
+    template:
+        spec:
+            containers:
+                - name: meeting-management
+                  resources:
+                      requests:
+                          cpu: 500m
+                          memory: 512Mi
+                      limits:
+                          cpu: 2000m
+                          memory: 2Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+    name: chat-management
+    namespace: default
+spec:
+    template:
+        spec:
+            containers:
+                - name: chat-management
+                  resources:
+                      requests:
+                          cpu: 500m
+                          memory: 512Mi
+                      limits:
+                          cpu: 2000m
+                          memory: 2Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+    name: notification
+    namespace: default
+spec:
+    template:
+        spec:
+            containers:
+                - name: notification
+                  resources:
+                      requests:
+                          cpu: 150m
+                          memory: 256Mi
+                      limits:
+                          cpu: 500m
+                          memory: 768Mi

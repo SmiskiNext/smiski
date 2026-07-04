@@ -1,0 +1,77 @@
+# Dedicated Redis for LiveKit — separate from app Valkey (DB 0)
+# Both livekit-server and livekit-egress MUST share this same Redis instance.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+    name: livekit-redis
+    namespace: livekit-system
+    labels:
+        app: livekit-redis
+spec:
+    replicas: 1
+    selector:
+        matchLabels:
+            app: livekit-redis
+    template:
+        metadata:
+            labels:
+                app: livekit-redis
+        spec:
+            containers:
+                - name: redis
+                  image: redis:7-alpine
+                  ports:
+                      - containerPort: 6379
+                  args: ['--save', '60', '1', '--loglevel', 'warning']
+                  resources:
+                      requests:
+                          cpu: 50m
+                          memory: 64Mi
+                      limits:
+                          cpu: 200m
+                          memory: 256Mi
+                  volumeMounts:
+                      - name: data
+                        mountPath: /data
+                  readinessProbe:
+                      exec:
+                          command: ['redis-cli', 'ping']
+                      initialDelaySeconds: 5
+                      periodSeconds: 10
+                  livenessProbe:
+                      exec:
+                          command: ['redis-cli', 'ping']
+                      initialDelaySeconds: 15
+                      periodSeconds: 20
+            volumes:
+                - name: data
+                  persistentVolumeClaim:
+                      claimName: livekit-redis-pvc
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+    name: livekit-redis-pvc
+    namespace: livekit-system
+spec:
+    accessModes:
+        - ReadWriteOnce
+    storageClassName: standard
+    resources:
+        requests:
+            storage: 1Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+    name: livekit-redis
+    namespace: livekit-system
+    labels:
+        app: livekit-redis
+spec:
+    type: ClusterIP
+    selector:
+        app: livekit-redis
+    ports:
+        - port: 6379
+          targetPort: 6379

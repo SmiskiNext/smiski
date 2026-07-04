@@ -1,0 +1,24 @@
+# Network policy — only livekit-system pods can reach each other internally
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+    name: livekit-internal
+    namespace: livekit-system
+spec:
+    podSelector: {}
+    policyTypes:
+        - Ingress
+    ingress:
+        # Allow intra-namespace traffic (server ↔ egress ↔ redis)
+        - from:
+              - namespaceSelector:
+                    matchLabels:
+                        name: livekit-system
+        # Allow meeting-management to call LiveKit API
+        - from:
+              - namespaceSelector:
+                    matchLabels:
+                        name: default
+            ports:
+                - port: 7880
+                  protocol: TCP

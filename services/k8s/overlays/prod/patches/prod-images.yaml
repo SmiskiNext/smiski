@@ -1,0 +1,50 @@
+# Production image pull policy for all four service Deployments.
+# Always ensures rolling updates reliably pick up newly pushed images.
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+    name: user-management
+    namespace: default
+spec:
+    template:
+        spec:
+            containers:
+                - name: user-management
+                  imagePullPolicy: Always
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+    name: meeting-management
+    namespace: default
+spec:
+    template:
+        spec:
+            containers:
+                - name: meeting-management
+                  imagePullPolicy: Always
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+    name: chat-management
+    namespace: default
+spec:
+    template:
+        spec:
+            containers:
+                - name: chat-management
+                  imagePullPolicy: Always
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+    name: notification
+    namespace: default
+spec:
+    template:
+        spec:
+            containers:
+                - name: notification
+                  imagePullPolicy: Always

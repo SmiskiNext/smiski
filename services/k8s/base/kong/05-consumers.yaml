@@ -1,0 +1,24 @@
+# KongConsumer + JWT credential for user-management service tokens
+# The `key` here must match the `kid` header in JWTs issued by user-management.
+# Update JwtTokenProvider to set .header("kid", "zms-user-management") when building tokens.
+apiVersion: configuration.konghq.com/v1
+kind: KongConsumer
+metadata:
+    name: zms-users
+    namespace: kong-system
+    annotations:
+        kubernetes.io/ingress.class: kong
+username: zms-users
+---
+# JWT credential — secret must match app.jwt.secret in user-management
+apiVersion: configuration.konghq.com/v1
+kind: KongCredential
+metadata:
+    name: zms-users-jwt
+    namespace: kong-system
+consumerRef: zms-users
+type: jwt
+config:
+    key: 'zms-user-management' # matches `kid` JWT header
+    secret: 'change-me-in-production-must-be-at-least-32-chars' # matches app.jwt.secret
+    algorithm: HS256

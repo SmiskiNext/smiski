@@ -1,0 +1,70 @@
+# LiveKit Server Helm values for local K8s (hostNetwork mode)
+# Install:
+#   helm repo add livekit https://helm.livekit.io && helm repo update
+#   helm upgrade --install livekit-server livekit/livekit-server \
+#     -n livekit-system --create-namespace -f 03-livekit-values.yaml
+
+livekit:
+    # API keys — must match livekit-secrets Secret
+    keys:
+        zms-livekit-key: 'change-me-livekit-secret-must-be-at-least-32-chars'
+
+    # Deliver server-side events through Kong so meeting-management can verify
+    # HMAC signatures on the raw webhook body.
+    webhook:
+        api_key: 'zms-livekit-key'
+        urls:
+            - 'http://kong-gateway-kong-proxy.kong-system.svc.cluster.local/api/v1/webhook/livekit'
+
+    # Redis — dedicated instance in livekit-system namespace
+    redis:
+        address: 'livekit-redis.livekit-system.svc.cluster.local:6379'
+
+    # RTC configuration for local K8s
+    rtc:
+        # Use node's external IP for ICE candidates
+        # Set to your K8s node IP (minikube ip / kind node IP)
+        use_external_ip: false
+        # Uncomment and set if clients are on a different network:
+        # external_ip: "192.168.1.100"
+        tcp_port: 7881
+        udp_port: 0 # 0 = use port range below
+        port_range_start: 50000
+        port_range_end: 60000
+
+    # Logging
+    logging:
+        level: info
+        json: true
+
+    # Embedded TURN — not needed for local (same network), enable for cloud
+    turn:
+        enabled: false
+
+# Pod configuration — hostNetwork for direct UDP access
+deploymentConfig:
+    hostNetwork: true
+    dnsPolicy: ClusterFirstWithHostNet
+
+# Service — NodePort for signaling (HTTP/WS)
+# With hostNetwork, pods bind directly to node ports
+service:
+    type: NodePort
+    annotations: {}
+
+# Ports
+ports:
+    http: 7880
+    https: 7881
+
+# Resources
+resources:
+    requests:
+        cpu: 500m
+        memory: 512Mi
+    limits:
+        cpu: 2000m
+        memory: 2Gi
+
+# Single replica for local (hostNetwork = 1 pod per node)
+replicaCount: 1

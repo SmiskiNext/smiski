@@ -1,0 +1,47 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+    name: valkey
+    labels:
+        app: valkey
+spec:
+    serviceName: valkey-service
+    replicas: 1
+    selector:
+        matchLabels:
+            app: valkey
+    template:
+        metadata:
+            labels:
+                app: valkey
+        spec:
+            containers:
+                - name: valkey
+                  image: bitnami/valkey:8.0
+                  ports:
+                      - containerPort: 6379
+                  env:
+                      - name: ALLOW_EMPTY_PASSWORD
+                        value: 'yes'
+                  volumeMounts:
+                      - name: data
+                        mountPath: /bitnami/valkey/data
+                  readinessProbe:
+                      exec:
+                          command: ['valkey-cli', 'ping']
+                      initialDelaySeconds: 5
+                      periodSeconds: 10
+                  livenessProbe:
+                      exec:
+                          command: ['valkey-cli', 'ping']
+                      initialDelaySeconds: 15
+                      periodSeconds: 20
+    volumeClaimTemplates:
+        - metadata:
+              name: data
+          spec:
+              accessModes: ['ReadWriteOnce']
+              storageClassName: standard
+              resources:
+                  requests:
+                      storage: 1Gi

@@ -1,0 +1,94 @@
+# ─── JWT Auth Plugin ──────────────────────────────────────────────────────────
+# Validates HS256 tokens issued by user-management (JJWT, no `iss` claim set).
+# Kong JWT plugin matches consumer by the `kid` header or key_claim_name.
+# Since user-management tokens use `sub` (userId) and `email` claims only,
+# we use the request-transformer approach: services trust X-User-ID header.
+# Kong validates the signature; downstream services read X-User-ID.
+apiVersion: configuration.konghq.com/v1
+kind: KongPlugin
+metadata:
+    name: jwt-auth
+    namespace: kong-system
+plugin: jwt
+config:
+    key_claim_name: kid # JWT header `kid` maps to KongConsumer credential key
+    claims_to_verify:
+        - exp
+    header_names:
+        - Authorization
+    cookie_names: []
+    anonymous: null # Reject unauthenticated requests
+---
+# ─── Request Transformer — inject X-User-ID from JWT sub claim ───────────────
+apiVersion: configuration.konghq.com/v1
+kind: KongPlugin
+metadata:
+    name: inject-user-id
+    namespace: kong-system
+plugin: request-transformer
+config:
+    add:
+        headers:
+            - 'X-User-ID:$(authenticated_jwt_token.claims.sub)'
+            - 'X-User-Email:$(authenticated_jwt_token.claims.email)'
+---
+# ─── Rate Limiting — standard (uses Valkey) ───────────────────────────────────
+apiVersion: configuration.konghq.com/v1
+kind: KongPlugin
+metadata:
+    name: rate-limit-standard
+    namespace: kong-system
+plugin: rate-limiting
+config:
+    minute: 120
+    policy: redis
+    redis_host: valkey-service.default.svc.cluster.local
+    redis_port: 6379
+    redis_database: 1 # DB 1 — separate from app cache (DB 0)
+    limit_by: ip
+    error_code: 429
+    error_message: 'Rate limit exceeded'
+---
+# ─── Rate Limiting — strict for meetings ─────────────────────────────────────
+apiVersion: configuration.konghq.com/v1
+kind: KongPlugin
+metadata:
+    name: rate-limit-strict
+    namespace: kong-system
+plugin: rate-limiting
+config:
+    minute: 30
+    policy: redis
+    redis_host: valkey-service.default.svc.cluster.local
+    redis_port: 6379
+    redis_database: 1
+    limit_by: ip
+    error_code: 429
+    error_message: 'Rate limit exceeded'
+---
+# ─── CORS — local dev origins ─────────────────────────────────────────────────
+apiVersion: configuration.konghq.com/v1
+kind: KongPlugin
+metadata:
+    name: cors-local
+    namespace: kong-system
+plugin: cors
+config:
+    origins:
+        - 'http://localhost:3000'
+        - 'http://localhost:5173'
+        - 'http://localhost:8080'
+    methods:
+        - GET
+        - POST
+        - PUT
+        - PATCH
+        - DELETE
+        - OPTIONS
+    headers:
+        - Content-Type
+        - Authorization
+        - X-Requested-With
+    credentials: true
+    max_age: 3600
+    preflight_continue: false

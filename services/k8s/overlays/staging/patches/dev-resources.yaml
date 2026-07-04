@@ -1,0 +1,181 @@
+# Dev resource limits — reduced for local k3s (~4.5Gi RAM budget)
+# Applied as strategic merge patches via Kustomize
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+    name: user-management
+    namespace: default
+spec:
+    template:
+        spec:
+            containers:
+                - name: user-management
+                  resources:
+                      requests:
+                          cpu: 100m
+                          memory: 256Mi
+                      limits:
+                          cpu: 300m
+                          memory: 768Mi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+    name: meeting-management
+    namespace: default
+spec:
+    template:
+        spec:
+            containers:
+                - name: meeting-management
+                  resources:
+                      requests:
+                          cpu: 100m
+                          memory: 256Mi
+                      limits:
+                          cpu: 300m
+                          memory: 768Mi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+    name: chat-management
+    namespace: default
+spec:
+    template:
+        spec:
+            containers:
+                - name: chat-management
+                  resources:
+                      requests:
+                          cpu: 100m
+                          memory: 256Mi
+                      limits:
+                          cpu: 300m
+                          memory: 768Mi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+    name: notification
+    namespace: default
+spec:
+    template:
+        spec:
+            containers:
+                - name: notification
+                  resources:
+                      requests:
+                          cpu: 50m
+                          memory: 128Mi
+                      limits:
+                          cpu: 200m
+                          memory: 384Mi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+    name: user-postgres
+    namespace: default
+spec:
+    template:
+        spec:
+            containers:
+                - name: postgres
+                  resources:
+                      requests:
+                          cpu: 50m
+                          memory: 128Mi
+                      limits:
+                          cpu: 200m
+                          memory: 256Mi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+    name: meeting-postgres
+    namespace: default
+spec:
+    template:
+        spec:
+            containers:
+                - name: postgres
+                  resources:
+                      requests:
+                          cpu: 50m
+                          memory: 128Mi
+                      limits:
+                          cpu: 200m
+                          memory: 256Mi
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+    name: chat-mongo
+    namespace: default
+spec:
+    template:
+        spec:
+            containers:
+                - name: mongo
+                  resources:
+                      requests:
+                          cpu: 100m
+                          memory: 128Mi
+                      limits:
+                          cpu: 300m
+                          memory: 256Mi
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+    name: valkey
+spec:
+    template:
+        spec:
+            containers:
+                - name: valkey
+                  resources:
+                      requests:
+                          cpu: 25m
+                          memory: 32Mi
+                      limits:
+                          cpu: 100m
+                          memory: 128Mi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+    name: livekit-redis
+    namespace: livekit-system
+spec:
+    template:
+        spec:
+            containers:
+                - name: redis
+                  resources:
+                      requests:
+                          cpu: 25m
+                          memory: 32Mi
+                      limits:
+                          cpu: 100m
+                          memory: 128Mi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+    name: rustfs
+    namespace: rustfs-system
+spec:
+    template:
+        spec:
+            containers:
+                - name: rustfs
+                  resources:
+                      requests:
+                          cpu: 50m
+                          memory: 64Mi
+                      limits:
+                          cpu: 200m
+                          memory: 256Mi

@@ -1,0 +1,28 @@
+# Consolidated namespace definitions for Kustomize base
+apiVersion: v1
+kind: Namespace
+metadata:
+    name: kong-system
+    labels:
+        name: kong-system
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+    name: livekit-system
+    labels:
+        name: livekit-system
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+    name: rustfs-system
+    labels:
+        name: rustfs-system
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+    name: kafka
+    labels:
+        name: kafka

@@ -1,0 +1,35 @@
+# Production replica counts for all four stateless service Deployments.
+# 2 replicas provides basic high availability.
+# Adjust to match cluster node capacity and actual workload requirements.
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+    name: user-management
+    namespace: default
+spec:
+    replicas: 2
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+    name: meeting-management
+    namespace: default
+spec:
+    replicas: 2
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+    name: chat-management
+    namespace: default
+spec:
+    replicas: 2
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+    name: notification
+    namespace: default
+spec:
+    replicas: 2

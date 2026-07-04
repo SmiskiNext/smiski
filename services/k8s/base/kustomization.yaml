@@ -1,0 +1,44 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+    # Namespaces
+    - namespaces.yaml
+
+    # Databases
+    - databases/user-postgres.yaml
+    - databases/meeting-postgres.yaml
+    - databases/chat-mongo.yaml
+    - databases/chat-mongo-migrate-job.yaml
+
+    # Application services
+    - services/user-management.yaml
+    - services/meeting-management.yaml
+    - services/chat-management.yaml
+    - services/notification.yaml
+
+    # Valkey (Redis-compatible)
+    - valkey/statefulset.yaml
+    - valkey/service.yaml
+
+    # RustFS (S3-compatible object storage)
+    - rustfs/02-pvc.yaml
+    - rustfs/03-deployment.yaml
+    - rustfs/04-service.yaml
+    - rustfs/05-init-buckets-job.yaml
+
+    # LiveKit supporting resources (server/egress installed via Helm)
+    - livekit/01-redis.yaml
+    - livekit/05-network-policy.yaml
+
+    # Kong Gateway API resources (operator installed via Helm)
+    - kong/03-gateway.yaml
+    - kong/04-plugins.yaml
+    - kong/05-consumers.yaml
+    - kong/06-routes.yaml
+
+configMapGenerator:
+    - name: chat-flyway-migrations
+      namespace: default
+      files:
+          - ../../chat-management/src/main/resources/db/migration/V1__init_indexes.js

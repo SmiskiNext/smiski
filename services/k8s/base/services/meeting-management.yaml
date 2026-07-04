@@ -1,0 +1,128 @@
+# meeting-management Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+    name: meeting-management
+    namespace: default
+    labels:
+        app: meeting-management
+spec:
+    replicas: 1
+    selector:
+        matchLabels:
+            app: meeting-management
+    template:
+        metadata:
+            labels:
+                app: meeting-management
+        spec:
+            containers:
+                - name: meeting-management
+                  image: ghcr.io/phunguy65/zms/meeting-management:0.0.1-SNAPSHOT
+                  imagePullPolicy: IfNotPresent
+                  ports:
+                      - name: http
+                        containerPort: 8080
+                  env:
+                      - name: SPRING_PROFILES_ACTIVE
+                        value: 'k8s'
+                      - name: CURSOR_SECRET
+                        valueFrom:
+                            secretKeyRef:
+                                name: meeting-management-secrets
+                                key: cursor-secret
+                      - name: SPRING_DATASOURCE_URL
+                        value: 'jdbc:postgresql://meeting-management-postgres:5432/zms_meetings'
+                      - name: SPRING_DATASOURCE_USERNAME
+                        valueFrom:
+                            secretKeyRef:
+                                name: meeting-management-secrets
+                                key: db-username
+                      - name: SPRING_DATASOURCE_PASSWORD
+                        valueFrom:
+                            secretKeyRef:
+                                name: meeting-management-secrets
+                                key: db-password
+                      - name: KAFKA_BOOTSTRAP_SERVERS
+                        value: 'zms-kafka-kafka-bootstrap.kafka.svc.cluster.local:9092'
+                      - name: REDIS_HOST
+                        value: 'valkey-service.default.svc.cluster.local'
+                      - name: REDIS_PORT
+                        value: '6379'
+                      - name: LIVEKIT_URL
+                        value: 'http://livekit-server.livekit-system.svc.cluster.local:7880'
+                      - name: LIVEKIT_WS_URL
+                        value: 'ws://livekit-server.livekit-system.svc.cluster.local:7880'
+                      - name: LIVEKIT_API_KEY
+                        valueFrom:
+                            secretKeyRef:
+                                name: meeting-management-secrets
+                                key: livekit-api-key
+                      - name: LIVEKIT_API_SECRET
+                        valueFrom:
+                            secretKeyRef:
+                                name: meeting-management-secrets
+                                key: livekit-api-secret
+                      - name: LIVEKIT_WEBHOOK_URL
+                        value: 'http://kong-gateway-kong-proxy.kong-system.svc.cluster.local/api/v1/webhook/livekit'
+                      - name: LIVEKIT_RECORDING_LAYOUT
+                        value: 'speaker'
+                      - name: LIVEKIT_RECORDING_BUCKET
+                        value: 'recordings'
+                      - name: LIVEKIT_RECORDING_REGION
+                        value: 'us-east-1'
+                      - name: LIVEKIT_RECORDING_ENDPOINT
+                        value: 'http://rustfs.rustfs-system.svc.cluster.local:9000'
+                      - name: LIVEKIT_RECORDING_FORCE_PATH_STYLE
+                        value: 'true'
+                      - name: LIVEKIT_RECORDING_ACCESS_KEY
+                        valueFrom:
+                            secretKeyRef:
+                                name: meeting-management-secrets
+                                key: recording-s3-access-key
+                      - name: LIVEKIT_RECORDING_SECRET_KEY
+                        valueFrom:
+                            secretKeyRef:
+                                name: meeting-management-secrets
+                                key: recording-s3-secret-key
+                      - name: USER_MANAGEMENT_GRPC_HOST
+                        value: 'user-management.default.svc.cluster.local'
+                      - name: USER_MANAGEMENT_GRPC_PORT
+                        value: '9090'
+                  readinessProbe:
+                      httpGet:
+                          path: /actuator/health/readiness
+                          port: 8080
+                      initialDelaySeconds: 30
+                      periodSeconds: 10
+                      failureThreshold: 3
+                  livenessProbe:
+                      httpGet:
+                          path: /actuator/health/liveness
+                          port: 8080
+                      initialDelaySeconds: 60
+                      periodSeconds: 20
+                      failureThreshold: 3
+                  resources:
+                      requests:
+                          cpu: 200m
+                          memory: 512Mi
+                      limits:
+                          cpu: 500m
+                          memory: 1Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+    name: meeting-management
+    namespace: default
+    labels:
+        app: meeting-management
+spec:
+    type: ClusterIP
+    selector:
+        app: meeting-management
+    ports:
+        - name: http
+          port: 8080
+          targetPort: 8080

@@ -1,0 +1,22 @@
+# Strimzi Kafka Operator — install via Helm
+# https://strimzi.io/docs/operators/latest/deploying.html
+
+# Option A: Helm (recommended)
+#
+#   helm repo add strimzi https://strimzi.io/charts/
+#   helm repo update
+#   helm install strimzi-kafka-operator strimzi/strimzi-kafka-operator \
+#     --namespace kafka \
+#     --create-namespace \
+#     --set watchNamespaces="{kafka}"
+#
+# Option B: kubectl apply (single-namespace install)
+#
+#   kubectl create namespace kafka
+#   kubectl apply -f https://strimzi.io/install/latest?namespace=kafka -n kafka
+#
+# Pin the Strimzi version to match your Kubernetes version:
+#   Strimzi 0.45.x → K8s 1.27–1.32
+#   Strimzi 0.46.x → K8s 1.28–1.33
+#
+# After the operator is running, apply kafka-cluster.yaml and kafka-topics.yaml.

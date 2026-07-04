@@ -1,0 +1,43 @@
+# LiveKit Egress Helm values for local K8s
+# Egress records rooms and uploads to RustFS (S3-compatible)
+# Install:
+#   helm repo add livekit https://helm.livekit.io && helm repo update
+#   helm upgrade --install livekit-egress livekit/egress \
+#     -n livekit-system -f 04-egress-values.yaml
+
+livekit_url: 'ws://livekit-server.livekit-system.svc.cluster.local:7880'
+
+# Required for non-TLS WebSocket connection to LiveKit server
+insecure: true
+
+# Supply API credentials from environment or secret-backed Helm overrides at deploy time.
+api_key: ''
+api_secret: ''
+
+# Same Redis as livekit-server (job queue communication)
+redis:
+    address: 'livekit-redis.livekit-system.svc.cluster.local:6379'
+
+# Default S3 output — RustFS endpoint
+s3:
+    access_key: ''
+    secret: ''
+    region: 'us-east-1' # RustFS ignores region but SDK requires it
+    endpoint: 'http://rustfs.rustfs-system.svc.cluster.local:9000'
+    bucket: 'recordings'
+    force_path_style: true # Required for non-AWS S3 endpoints
+
+logging:
+    level: info
+    json: true
+
+# Egress is CPU-heavy (transcoding via headless Chromium)
+resources:
+    requests:
+        cpu: '1000m'
+        memory: '2Gi'
+    limits:
+        cpu: '2000m'
+        memory: '4Gi'
+
+replicaCount: 1

@@ -1,0 +1,167 @@
+# ─── Public routes: /api/v1/auth/* (no JWT required) ─────────────────────────
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+    name: auth-public
+    namespace: default
+    annotations:
+        konghq.com/plugins: cors-local
+spec:
+    parentRefs:
+        - name: kong-gateway
+          namespace: kong-system
+    rules:
+        - matches:
+              - path:
+                    type: PathPrefix
+                    value: /api/v1/auth
+          backendRefs:
+              - name: user-management
+                port: 8080
+---
+# ─── Protected routes: /api/v1/users/* ───────────────────────────────────────
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+    name: users-protected
+    namespace: default
+    annotations:
+        konghq.com/plugins: cors-local,jwt-auth,inject-user-id,rate-limit-standard
+spec:
+    parentRefs:
+        - name: kong-gateway
+          namespace: kong-system
+    rules:
+        - matches:
+              - path:
+                    type: PathPrefix
+                    value: /api/v1/users
+          backendRefs:
+              - name: user-management
+                port: 8080
+---
+# ─── Protected routes: /api/v1/me/* ──────────────────────────────────────────
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+    name: me-protected
+    namespace: default
+    annotations:
+        konghq.com/plugins: cors-local,jwt-auth,inject-user-id,rate-limit-standard
+spec:
+    parentRefs:
+        - name: kong-gateway
+          namespace: kong-system
+    rules:
+        - matches:
+              - path:
+                    type: PathPrefix
+                    value: /api/v1/me
+          backendRefs:
+              - name: user-management
+                port: 8080
+---
+# ─── Public route: /api/v1/meetings:byShortCode (guest lookup) ───────────────
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+    name: meetings-byshortcode-public
+    namespace: default
+    annotations:
+        konghq.com/plugins: cors-local,rate-limit-strict
+spec:
+    parentRefs:
+        - name: kong-gateway
+          namespace: kong-system
+    rules:
+        - matches:
+              - path:
+                    type: Exact
+                    value: /api/v1/meetings:byShortCode
+                method: GET
+          backendRefs:
+              - name: meeting-management
+                port: 8080
+---
+# ─── Public route: /api/v1/meetings/invite-tokens:validate ───────────────────
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+    name: meetings-invite-tokens-public
+    namespace: default
+    annotations:
+        konghq.com/plugins: cors-local,rate-limit-strict
+spec:
+    parentRefs:
+        - name: kong-gateway
+          namespace: kong-system
+    rules:
+        - matches:
+              - path:
+                    type: Exact
+                    value: /api/v1/meetings/invite-tokens:validate
+                method: POST
+          backendRefs:
+              - name: meeting-management
+                port: 8080
+---
+# ─── Protected routes: /api/v1/meetings/* ────────────────────────────────────
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+    name: meetings-protected
+    namespace: default
+    annotations:
+        konghq.com/plugins: cors-local,jwt-auth,inject-user-id,rate-limit-strict
+spec:
+    parentRefs:
+        - name: kong-gateway
+          namespace: kong-system
+    rules:
+        - matches:
+              - path:
+                    type: PathPrefix
+                    value: /api/v1/meetings
+          backendRefs:
+              - name: meeting-management
+                port: 8080
+---
+# ─── Public route: /api/v1/webhook/livekit ────────────────────────────────────
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+    name: livekit-webhook-public
+    namespace: default
+spec:
+    parentRefs:
+        - name: kong-gateway
+          namespace: kong-system
+    rules:
+        - matches:
+              - path:
+                    type: PathPrefix
+                    value: /api/v1/webhook/livekit
+          backendRefs:
+              - name: meeting-management
+                port: 8080
+---
+# ─── Protected routes: /api/v1/chat/* ────────────────────────────────────────
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+    name: chat-protected
+    namespace: default
+    annotations:
+        konghq.com/plugins: cors-local,jwt-auth,inject-user-id,rate-limit-standard
+spec:
+    parentRefs:
+        - name: kong-gateway
+          namespace: kong-system
+    rules:
+        - matches:
+              - path:
+                    type: PathPrefix
+                    value: /api/v1/chat
+          backendRefs:
+              - name: chat-management
+                port: 8080

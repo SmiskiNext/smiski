@@ -1,0 +1,33 @@
+# Dev storage patches — change storageClassName from standard to local-path (k3s)
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+    name: user-postgres-data
+    namespace: default
+spec:
+    storageClassName: local-path
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+    name: meeting-postgres-data
+    namespace: default
+spec:
+    storageClassName: local-path
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+    name: rustfs-data-pvc
+    namespace: rustfs-system
+spec:
+    storageClassName: local-path
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+    name: livekit-redis-pvc
+    namespace: livekit-system
+spec:
+    storageClassName: local-path

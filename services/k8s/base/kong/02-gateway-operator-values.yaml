@@ -1,0 +1,62 @@
+# Kong Gateway Operator 2.x Helm values for local K8s (DB-less mode)
+# Install:
+#   helm repo add kong https://charts.konghq.com && helm repo update
+#   helm upgrade --install kong-operator kong/kong-operator \
+#     -n kong-system --create-namespace -f 02-gateway-operator-values.yaml
+
+# Enable CRD management
+crds:
+    enabled: true
+
+# Kong control plane (DB-less)
+controlPlane:
+    enabled: true
+    deployment:
+        replicas: 1
+        pod:
+            containers:
+                manager:
+                    env:
+                        CONTROLLER_PUBLISH_SERVICE: kong-system/kong-proxy
+
+# Kong data plane (proxy)
+dataPlane:
+    enabled: true
+    deployment:
+        replicas: 1
+        pod:
+            containers:
+                proxy:
+                    env:
+                        KONG_DATABASE: 'off'
+                        KONG_PROXY_ACCESS_LOG: /dev/stdout
+                        KONG_ADMIN_ACCESS_LOG: /dev/stdout
+                        KONG_PROXY_ERROR_LOG: /dev/stderr
+                        KONG_ADMIN_ERROR_LOG: /dev/stderr
+                        KONG_ADMIN_LISTEN: '0.0.0.0:8001'
+                    resources:
+                        requests:
+                            cpu: 100m
+                            memory: 256Mi
+                        limits:
+                            cpu: 500m
+                            memory: 512Mi
+
+# Proxy service — LoadBalancer via MetalLB
+proxy:
+    type: LoadBalancer
+    externalTrafficPolicy: Local
+    http:
+        enabled: true
+        servicePort: 80
+        containerPort: 8000
+    tls:
+        enabled: false # Enable when cert-manager is ready
+
+# Admin API — ClusterIP only (use kubectl port-forward for local access)
+admin:
+    type: ClusterIP
+    http:
+        enabled: true
+        servicePort: 8001
+        containerPort: 8001
