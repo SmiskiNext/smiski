@@ -1,0 +1,160 @@
+[versions]
+# ─── Java ─────────────────────────────────────────────────────────────────
+firebaseAdmin = "9.9.0"
+java = "25"
+# ─── Backend ─────────────────────────────────────────────────────────────────
+springBoot = "4.1.0"
+springGrpc = "1.1.0"
+springDependencyManagement = "1.1.7"
+flyway = "12.9.0"
+hibernateOrm = "7.4.2.Final"
+graalvmNative = "1.1.2"
+spotless = "8.7.0"
+jspecify = "1.0.0"
+jjwt = "0.13.0"
+bouncycastle = "1.84"
+uuidCreator = "6.1.1"
+cloudevents = "4.1.1"
+awsSdk = "2.46.17"
+resend = "4.13.0"
+palantirJavaFormat = "2.94.0"
+testcontainers = "2.0.5"
+archunit = "1.4.2"
+springdocOpenapi = "3.0.3"
+openapiGenerator = "7.23.0"
+protobuf = "0.10.0"
+protoc = "4.35.1"
+protocGenGrpcJava = "1.82.1"
+buildBuf = "0.11.0"
+swaggerAnnotations = "2.2.52"
+jsr305 = "3.0.2"
+gson = "2.14.0"
+gsonFire = "1.9.0"
+javaxAnnotation = "1.3.2"
+jacksonDatabindNullable = "0.2.10"
+jacksonDatabind = "2.15.2"
+jacksonJsr310 = "2.15.2"
+livekit = "0.13.0"
+livekitAndroid = "2.26.1"
+
+# Utilities
+ktlint = "1.8.0"
+
+[libraries]
+# ─── Backend ─────────────────────────────────────────────────────────────────
+
+# Protobuf
+firebase-admin = { module = "com.google.firebase:firebase-admin", version.ref = "firebaseAdmin" }
+protoc = { module = "com.google.protobuf:protoc", version.ref = "protoc" }
+protoc-gen-grpc-java = { module = "io.grpc:protoc-gen-grpc-java", version.ref = "protocGenGrpcJava" }
+protobuf-java-util = { module = "com.google.protobuf:protobuf-java-util", version.ref = "protoc" }
+protobuf-java = { module = "com.google.protobuf:protobuf-java", version.ref = "protoc" }
+# gRPC runtime
+grpc-stub = { module = "io.grpc:grpc-stub", version.ref = "protocGenGrpcJava" }
+grpc-protobuf = { module = "io.grpc:grpc-protobuf", version.ref = "protocGenGrpcJava" }
+
+# jjwt dependencies (version managed by jjwt BOM)
+jjwt-api = { module = "io.jsonwebtoken:jjwt-api", version.ref = "jjwt" }
+jjwt-jackson = { module = "io.jsonwebtoken:jjwt-jackson", version.ref = "jjwt" }
+jjwt-impl = { module = "io.jsonwebtoken:jjwt-impl", version.ref = "jjwt" }
+swagger-annotations = { module = "io.swagger.core.v3:swagger-annotations", version.ref = "swaggerAnnotations" }
+jsr305 = { module = "com.google.code.findbugs:jsr305", version.ref = "jsr305" }
+gson = { module = "com.google.code.gson:gson", version.ref = "gson" }
+gson-fire = { module = "io.gsonfire:gson-fire", version.ref = "gsonFire" }
+javax-annotation-api = { module = "javax.annotation:javax.annotation-api", version.ref = "javaxAnnotation" }
+
+# Jspecify
+jspecify = { module = "org.jspecify:jspecify", version.ref = "jspecify" }
+
+# UUID Creator
+uuid-creator = { module = "com.github.f4b6a3:uuid-creator", version.ref = "uuidCreator" }
+
+# Flyway
+flyway-core = { module = "org.flywaydb:flyway-core" }
+flyway-database-postgresql = { module = "org.flywaydb:flyway-database-postgresql" }
+flyway-database-mongodb = { module = "org.flywaydb:flyway-database-nc-mongodb", version.ref = "flyway" }
+
+# Spring Kafka (version managed by Spring Boot BOM)
+spring-kafka = { module = "org.springframework.kafka:spring-kafka" }
+
+# CloudEvents
+cloudevents-core = { module = "io.cloudevents:cloudevents-core", version.ref = "cloudevents" }
+cloudevents-kafka = { module = "io.cloudevents:cloudevents-kafka", version.ref = "cloudevents" }
+aws-s3 = { module = "software.amazon.awssdk:s3", version.ref = "awsSdk" }
+resend-java = { module = "com.resend:resend-java", version.ref = "resend" }
+
+# Spring Boot Starters (version managed by Spring Boot BOM)
+spring-boot-starter-aspectj = { module = "org.springframework.boot:spring-boot-starter-aspectj" }
+spring-boot-starter-data-redis = { module = "org.springframework.boot:spring-boot-starter-data-redis" }
+shared = { module = "io.github.smiskinext.services:shared" }
+proto = { module = "io.github.smiskinext.services:proto" }
+spring-boot-starter-actuator = { module = "org.springframework.boot:spring-boot-starter-actuator" }
+spring-boot-starter-data-mongodb = { module = "org.springframework.boot:spring-boot-starter-data-mongodb" }
+spring-boot-starter-data-jpa = { module = "org.springframework.boot:spring-boot-starter-data-jpa" }
+spring-boot-starter-flyway = { module = "org.springframework.boot:spring-boot-starter-flyway" }
+spring-boot-starter-integration = { module = "org.springframework.boot:spring-boot-starter-integration" }
+spring-boot-starter-security = { module = "org.springframework.boot:spring-boot-starter-security" }
+spring-boot-starter-webmvc = { module = "org.springframework.boot:spring-boot-starter-webmvc" }
+spring-boot-starter-validation = { module = "org.springframework.boot:spring-boot-starter-validation" }
+spring-boot-starter-logging = { module = "org.springframework.boot:spring-boot-starter-logging" }
+spring-boot-starter-log4j2 = { module = "org.springframework.boot:spring-boot-starter-log4j2" }
+spring-boot-starter-server-grpc = { module = "org.springframework.boot:spring-boot-starter-grpc-server" }
+spring-boot-starter-client-grpc = { module = "org.springframework.boot:spring-boot-starter-grpc-client" }
+log4j-layout-template-json = { module = "org.apache.logging.log4j:log4j-layout-template-json" }
+spring-boot-devtools = { module = "org.springframework.boot:spring-boot-devtools" }
+spring-boot-configuration-processor = { module = "org.springframework.boot:spring-boot-configuration-processor" }
+
+# Spring Integration
+spring-integration-http = { module = "org.springframework.integration:spring-integration-http" }
+spring-integration-jpa = { module = "org.springframework.integration:spring-integration-jpa" }
+spring-integration-test = { module = "org.springframework.integration:spring-integration-test" }
+
+# Spring Security
+spring-security-messaging = { module = "org.springframework.security:spring-security-messaging" }
+
+# PostgreSQL
+postgresql = { module = "org.postgresql:postgresql" }
+
+# BouncyCastle (required by Spring Security Argon2PasswordEncoder)
+bouncycastle = { module = "org.bouncycastle:bcprov-jdk18on", version.ref = "bouncycastle" }
+
+# JUnit Platform
+junit-platform-launcher = { module = "org.junit.platform:junit-platform-launcher" }
+spring-boot-starter-test = { module = "org.springframework.boot:spring-boot-starter-test" }
+spring-boot-webmvc-test = { module = "org.springframework.boot:spring-boot-webmvc-test" }
+spring-boot-data-mongodb-test = { module = "org.springframework.boot:spring-boot-starter-data-mongodb" }
+spring-boot-data-jpa-test = { module = "org.springframework.boot:spring-boot-data-jpa-test" }
+spring-boot-jdbc-test = { module = "org.springframework.boot:spring-boot-jdbc-test" }
+spring-boot-starter-security-test = { module = "org.springframework.security:spring-security-test" }
+
+# Testcontainers (version managed by Spring Boot BOM)
+spring-boot-testcontainers = { module = "org.springframework.boot:spring-boot-testcontainers" }
+spring-boot-grpc-test = { module = "org.springframework.boot:spring-boot-starter-grpc-server-test" }
+testcontainers-junit-jupiter = { module = "org.testcontainers:junit-jupiter", version.ref = "testcontainers" }
+testcontainers-postgresql = { module = "org.testcontainers:postgresql", version.ref = "testcontainers" }
+testcontainers-mongodb = { module = "org.testcontainers:mongodb", version.ref = "testcontainers" }
+
+# ArchUnit
+archunit-junit5 = { module = "com.tngtech.archunit:archunit-junit5", version.ref = "archunit" }
+
+# springdoc OpenAPI
+springdoc-openapi-starter-webmvc-api = { module = "org.springdoc:springdoc-openapi-starter-webmvc-api", version.ref = "springdocOpenapi" }
+
+# ─── Backend – LiveKit ───────────────────────────────────────────────────────
+livekit-server = { module = "io.livekit:livekit-server", version.ref = "livekit" }
+livekit-android = { module = "io.livekit:livekit-android", version.ref = "livekitAndroid" }
+
+[plugins]
+# ─── Backend ─────────────────────────────────────────────────────────────────
+springBoot = { id = "org.springframework.boot", version.ref = "springBoot" }
+springDependencyManagement = { id = "io.spring.dependency-management", version.ref = "springDependencyManagement" }
+hibernateOrm = { id = "org.hibernate.orm", version.ref = "hibernateOrm" }
+graalvmNative = { id = "org.graalvm.buildtools.native", version.ref = "graalvmNative" }
+spotless = { id = "com.diffplug.spotless", version.ref = "spotless" }
+protobuf = { id = "com.google.protobuf", version.ref = "protobuf" }
+buildBuf = { id = "build.buf", version.ref = "buildBuf" }
+
+# ─── Custom Plugin ─────────────────────────────────────────────────────────────
+springdocOpenapi = { id = "org.springdoc.openapi-gradle-plugin", version = "1.9.0" }
+openapiGenerator = { id = "org.openapi.generator", version.ref = "openapiGenerator" }
+spotlessConvention = { id = "io.github.smiskinext.plugin.spotless" }

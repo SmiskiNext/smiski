@@ -1,0 +1,2133 @@
+openapi: 3.1.0
+info:
+  title: UserManagement
+  version: 1.0.0
+tags:
+  - name: Me
+    description: Current user profile and preferences
+    x-displayName: Me
+  - name: Auth
+    description: Authentication and registration
+    x-displayName: Auth
+  - name: Users
+    description: User lookup and search
+    x-displayName: Users
+  - name: Invite Tokens
+    description: Invite token validation (public, no auth required)
+    x-displayName: Invite Tokens
+  - name: Recordings
+    description: Meeting recording management
+    x-displayName: Recordings
+  - name: User Meetings
+    description: User participated meetings
+    x-displayName: User Meetings
+  - name: Join Requests
+    description: Meeting join request management
+    x-displayName: Join Requests
+  - name: Participants
+    description: Meeting participant management
+    x-displayName: Participants
+  - name: Meetings
+    description: Meeting lifecycle management
+    x-displayName: Meetings
+  - name: Invitee Responses
+    description: Invitation response endpoints
+    x-displayName: Invitee Responses
+  - name: Invite Management
+    description: Manage meeting invitees and invite tokens
+    x-displayName: Invite Management
+  - name: Chat
+    description: Chat room messages and rooms
+    x-displayName: Chat
+paths:
+  /api/v1/me:
+    servers:
+      - url: http://localhost:39179
+        description: Generated server url
+    get:
+      tags:
+        - Me
+      summary: Get current user profile
+      operationId: getMe
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/UserManagement_UserResponse'
+    put:
+      tags:
+        - Me
+      summary: Replace current user profile
+      operationId: putMe
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserManagement_PutUserRequest'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/UserManagement_UserResponse'
+    delete:
+      tags:
+        - Me
+      summary: Delete current user account
+      operationId: deleteMe
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/UserManagement_DeleteAccountResponse'
+  /api/v1/me/preferences:
+    servers:
+      - url: http://localhost:39179
+        description: Generated server url
+    get:
+      tags:
+        - Me
+      summary: Get current user preferences
+      operationId: getPreferences
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/UserManagement_UserPreferencesResponse'
+    put:
+      tags:
+        - Me
+      summary: Replace current user preferences
+      operationId: putPreferences
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: {}
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/UserManagement_UserPreferencesResponse'
+  /api/v1/auth/verify-otp:
+    servers:
+      - url: http://localhost:39179
+        description: Generated server url
+    post:
+      tags:
+        - Auth
+      summary: Verify OTP and get temporary token
+      operationId: verifyOtp
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserManagement_VerifyOtpRequest'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/UserManagement_VerifyOtpResponse'
+  /api/v1/auth/reset-password:
+    servers:
+      - url: http://localhost:39179
+        description: Generated server url
+    post:
+      tags:
+        - Auth
+      summary: Reset password using OTP
+      operationId: resetPassword
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserManagement_ResetPasswordRequest'
+        required: true
+      responses:
+        '200':
+          description: OK
+  /api/v1/auth/register:
+    servers:
+      - url: http://localhost:39179
+        description: Generated server url
+    post:
+      tags:
+        - Auth
+      summary: Register a new user account
+      operationId: register
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserManagement_RegisterRequest'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/UserManagement_RegisterResponse'
+  /api/v1/auth/refresh:
+    servers:
+      - url: http://localhost:39179
+        description: Generated server url
+    post:
+      tags:
+        - Auth
+      summary: Refresh access token
+      operationId: refresh
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserManagement_RefreshTokenRequest'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/UserManagement_LoginResponse'
+  /api/v1/auth/logout:
+    servers:
+      - url: http://localhost:39179
+        description: Generated server url
+    post:
+      tags:
+        - Auth
+      summary: Logout and revoke refresh token
+      operationId: logout
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserManagement_LogoutRequest'
+        required: true
+      responses:
+        '200':
+          description: OK
+  /api/v1/auth/login:
+    servers:
+      - url: http://localhost:39179
+        description: Generated server url
+    post:
+      tags:
+        - Auth
+      summary: Login with email and password
+      operationId: login
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserManagement_LoginRequest'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/UserManagement_LoginResponse'
+  /api/v1/auth/google-login:
+    servers:
+      - url: http://localhost:39179
+        description: Generated server url
+    post:
+      tags:
+        - Auth
+      summary: Login or register with Google
+      operationId: googleLogin
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserManagement_GoogleLoginRequest'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/UserManagement_LoginResponse'
+  /api/v1/auth/forgot-password:
+    servers:
+      - url: http://localhost:39179
+        description: Generated server url
+    post:
+      tags:
+        - Auth
+      summary: Request password reset OTP
+      operationId: forgotPassword
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserManagement_ForgotPasswordRequest'
+        required: true
+      responses:
+        '200':
+          description: OK
+  /api/v1/users:search:
+    servers:
+      - url: http://localhost:39179
+        description: Generated server url
+    get:
+      tags:
+        - Users
+      summary: Search users with cursor pagination
+      operationId: searchUsers
+      parameters:
+        - name: request
+          in: query
+          required: true
+          schema:
+            $ref: '#/components/schemas/UserManagement_SearchUsersRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: >-
+                  #/components/schemas/UserManagement_CursorScrollResponseUserResponse
+  /api/v1/users/{id}:
+    servers:
+      - url: http://localhost:39179
+        description: Generated server url
+    get:
+      tags:
+        - Users
+      summary: Get user by ID
+      operationId: getUserById
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/UserManagement_UserResponse'
+  /api/v1/meetings/{id}/settings:
+    servers:
+      - url: http://localhost:41607
+        description: Generated server url
+    put:
+      tags:
+        - Meetings
+      summary: Replace meeting settings
+      operationId: putMeetingSettings
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MeetingManagement_MeetingSettingsRequest'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/MeetingManagement_MeetingSettingsResponse'
+  /api/v1/meetings:schedule:
+    servers:
+      - url: http://localhost:41607
+        description: Generated server url
+    post:
+      tags:
+        - Meetings
+      summary: Schedule a future meeting
+      operationId: scheduleMeeting
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MeetingManagement_ScheduleMeetingRequest'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/MeetingManagement_MeetingResponse'
+  /api/v1/meetings:instant:
+    servers:
+      - url: http://localhost:41607
+        description: Generated server url
+    post:
+      tags:
+        - Meetings
+      summary: Create an instant meeting
+      operationId: createInstantMeeting
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: >-
+                #/components/schemas/MeetingManagement_CreateInstantMeetingRequest
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/MeetingManagement_MeetingResponse'
+  /api/v1/meetings/{meetingId}/invitees:
+    servers:
+      - url: http://localhost:41607
+        description: Generated server url
+    get:
+      tags:
+        - Invite Management
+      summary: List all invitees for a meeting
+      operationId: getInvitees
+      parameters:
+        - name: meetingId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/MeetingManagement_InviteeListResponse'
+    post:
+      tags:
+        - Invite Management
+      summary: Add a new invitee to a meeting
+      operationId: addInvitee
+      parameters:
+        - name: meetingId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MeetingManagement_AddInviteeRequest'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/MeetingManagement_InviteeListResponse'
+  /api/v1/meetings/{meetingId}/invitees/{inviteeId}/resend:
+    servers:
+      - url: http://localhost:41607
+        description: Generated server url
+    post:
+      tags:
+        - Invite Management
+      summary: >-
+        Resend an invite to an existing invitee (revokes old token, issues new
+        one)
+      operationId: resendInvite
+      parameters:
+        - name: meetingId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: inviteeId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/MeetingManagement_InviteeListResponse'
+  /api/v1/meetings/{id}:requestJoin:
+    servers:
+      - url: http://localhost:41607
+        description: Generated server url
+    post:
+      tags:
+        - Join Requests
+      summary: Request to join a meeting
+      operationId: requestJoin
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MeetingManagement_JoinRequestRequest'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/MeetingManagement_RequestJoinResponse'
+  /api/v1/meetings/{id}:end:
+    servers:
+      - url: http://localhost:41607
+        description: Generated server url
+    post:
+      tags:
+        - Meetings
+      summary: End a meeting
+      operationId: endMeeting
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: OK
+  /api/v1/meetings/{id}:cancel:
+    servers:
+      - url: http://localhost:41607
+        description: Generated server url
+    post:
+      tags:
+        - Meetings
+      summary: Cancel a meeting
+      operationId: cancelMeeting
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: OK
+  /api/v1/meetings/{id}/recordings:stop:
+    servers:
+      - url: http://localhost:41607
+        description: Generated server url
+    post:
+      tags:
+        - Recordings
+      summary: Stop recording a meeting
+      operationId: stopRecording
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: OK
+  /api/v1/meetings/{id}/recordings:start:
+    servers:
+      - url: http://localhost:41607
+        description: Generated server url
+    post:
+      tags:
+        - Recordings
+      summary: Start recording a meeting
+      operationId: startRecording
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/MeetingManagement_RecordingResponse'
+  /api/v1/meetings/{id}/participants:muteAll:
+    servers:
+      - url: http://localhost:41607
+        description: Generated server url
+    post:
+      tags:
+        - Participants
+      summary: Mute all participant microphones
+      operationId: muteAllParticipants
+      parameters:
+        - name: id
+          in: path
+          description: Meeting UUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: OK
+  /api/v1/meetings/{id}/participants:kick:
+    servers:
+      - url: http://localhost:41607
+        description: Generated server url
+    post:
+      tags:
+        - Participants
+      summary: Kick a participant from a meeting
+      operationId: kickParticipant
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: userId
+          in: query
+          required: false
+          schema:
+            type: string
+            format: uuid
+        - name: displayName
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+  /api/v1/meetings/{id}/participants/{identity}:muteTrack:
+    servers:
+      - url: http://localhost:41607
+        description: Generated server url
+    post:
+      tags:
+        - Participants
+      summary: Mute a participant's track
+      operationId: muteParticipantTrack
+      parameters:
+        - name: id
+          in: path
+          description: Meeting UUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: identity
+          in: path
+          description: LiveKit participant identity
+          required: true
+          schema:
+            type: string
+        - name: source
+          in: query
+          description: 'Track source: microphone or camera'
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+  /api/v1/meetings/{id}/joinRequests:approveAll:
+    servers:
+      - url: http://localhost:41607
+        description: Generated server url
+    post:
+      tags:
+        - Join Requests
+      summary: Approve all pending join requests
+      operationId: approveAllJoinRequests
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/MeetingManagement_ApproveAllResponse'
+  /api/v1/meetings/{id}/joinRequests/{requestId}:deny:
+    servers:
+      - url: http://localhost:41607
+        description: Generated server url
+    post:
+      tags:
+        - Join Requests
+      summary: Deny a join request
+      operationId: denyJoinRequest
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: requestId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: OK
+  /api/v1/meetings/{id}/joinRequests/{requestId}:approve:
+    servers:
+      - url: http://localhost:41607
+        description: Generated server url
+    post:
+      tags:
+        - Join Requests
+      summary: Approve a join request
+      operationId: approveJoinRequest
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: requestId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: OK
+  /api/v1/meetings/invite-tokens:validate:
+    servers:
+      - url: http://localhost:41607
+        description: Generated server url
+    post:
+      tags:
+        - Invite Tokens
+      summary: Validate an invite token
+      description: >-
+        Validates a raw invite token from the meeting invite link. On success
+        the token is marked as USED and cannot be reused. Returns meeting
+        details needed to join.
+      operationId: validateToken
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: >-
+                #/components/schemas/MeetingManagement_ValidateInviteTokenRequest
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: >-
+                  #/components/schemas/MeetingManagement_ValidateInviteTokenResponse
+  /api/v1/meetings/{meetingId}/invitees/me:
+    servers:
+      - url: http://localhost:41607
+        description: Generated server url
+    patch:
+      tags:
+        - Invitee Responses
+      summary: Accept or decline a meeting invitation
+      operationId: respondInvite
+      parameters:
+        - name: meetingId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MeetingManagement_RespondInviteRequest'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/MeetingManagement_InviteeRespondResponse'
+  /api/v1/users/{userId}/meetings:filter:
+    servers:
+      - url: http://localhost:41607
+        description: Generated server url
+    get:
+      tags:
+        - User Meetings
+      summary: List participated meetings with optional status filter
+      operationId: listParticipatedMeetings
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: pageSize
+          in: query
+          required: false
+          schema:
+            type: integer
+            format: int32
+            default: 20
+        - name: pageToken
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: >-
+                  #/components/schemas/MeetingManagement_CursorScrollResponseMeetingResponse
+  /api/v1/users/{userId}/meetings/{meetingId}:
+    servers:
+      - url: http://localhost:41607
+        description: Generated server url
+    get:
+      tags:
+        - User Meetings
+      summary: Get participated meeting detail
+      operationId: getParticipatedMeetingDetail
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: meetingId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/MeetingManagement_MeetingDetailResponse'
+  /api/v1/users/{userId}/invitations:pending:
+    servers:
+      - url: http://localhost:41607
+        description: Generated server url
+    get:
+      tags:
+        - User Meetings
+      summary: List pending meeting invitations
+      operationId: listPendingInvitations
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: >-
+                    #/components/schemas/MeetingManagement_PendingInvitationResponse
+  /api/v1/recordings/{id}:
+    servers:
+      - url: http://localhost:41607
+        description: Generated server url
+    get:
+      tags:
+        - Recordings
+      summary: Get recording by ID
+      operationId: getRecording
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/MeetingManagement_RecordingResponse'
+  /api/v1/meetings:
+    servers:
+      - url: http://localhost:41607
+        description: Generated server url
+    get:
+      tags:
+        - Meetings
+      summary: List host meetings with cursor pagination
+      operationId: listHostMeetings
+      parameters:
+        - name: pageSize
+          in: query
+          required: false
+          schema:
+            type: integer
+            format: int32
+            default: 20
+        - name: pageToken
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: >-
+                  #/components/schemas/MeetingManagement_CursorScrollResponseMeetingResponse
+  /api/v1/meetings:byShortCode:
+    servers:
+      - url: http://localhost:41607
+        description: Generated server url
+    get:
+      tags:
+        - Meetings
+      summary: Get meeting by short code
+      operationId: getMeetingByShortCode
+      parameters:
+        - name: code
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/MeetingManagement_MeetingResponse'
+  /api/v1/meetings/{id}:
+    servers:
+      - url: http://localhost:41607
+        description: Generated server url
+    get:
+      tags:
+        - Meetings
+      summary: Get meeting detail by ID
+      operationId: getMeeting
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/MeetingManagement_MeetingResponse'
+  /api/v1/meetings/{id}/recordings:
+    servers:
+      - url: http://localhost:41607
+        description: Generated server url
+    get:
+      tags:
+        - Recordings
+      summary: List recordings for a meeting
+      operationId: listMeetingRecordings
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: pageSize
+          in: query
+          required: false
+          schema:
+            type: integer
+            format: int32
+            default: 20
+        - name: pageToken
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: >-
+                  #/components/schemas/MeetingManagement_CursorScrollResponseRecordingResponse
+  /api/v1/meetings/{id}/participants:
+    servers:
+      - url: http://localhost:41607
+        description: Generated server url
+    get:
+      tags:
+        - Participants
+      summary: List participants of a meeting
+      operationId: getParticipants
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: >-
+                    #/components/schemas/MeetingManagement_ParticipantListItemResponse
+  /api/v1/meetings/{id}/joinRequests:
+    servers:
+      - url: http://localhost:41607
+        description: Generated server url
+    get:
+      tags:
+        - Join Requests
+      summary: List join requests for a meeting
+      operationId: listJoinRequests
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: pageSize
+          in: query
+          required: false
+          schema:
+            type: integer
+            format: int32
+            default: 20
+        - name: offset
+          in: query
+          required: false
+          schema:
+            type: integer
+            format: int32
+            default: 0
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: >-
+                  #/components/schemas/MeetingManagement_OffsetScrollResponseJoinRequestResponse
+  /api/v1/meetings/{id}/events:
+    servers:
+      - url: http://localhost:41607
+        description: Generated server url
+    get:
+      tags:
+        - Join Requests
+      summary: Subscribe to meeting events (SSE, host only)
+      operationId: subscribeToEvents
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            text/event-stream:
+              schema:
+                $ref: '#/components/schemas/MeetingManagement_SseEmitter'
+  /api/v1/joinRequests/{requestId}/events:
+    servers:
+      - url: http://localhost:41607
+        description: Generated server url
+    get:
+      tags:
+        - Join Requests
+      summary: Subscribe to join request events (SSE)
+      operationId: subscribeGuestToEvents
+      parameters:
+        - name: requestId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            text/event-stream:
+              schema:
+                $ref: '#/components/schemas/MeetingManagement_SseEmitter'
+  /api/v1/meetings/{meetingId}/invitees/{inviteeId}:
+    servers:
+      - url: http://localhost:41607
+        description: Generated server url
+    delete:
+      tags:
+        - Invite Management
+      summary: Revoke an invitee and their pending invite token
+      operationId: revokeInvite
+      parameters:
+        - name: meetingId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: inviteeId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/MeetingManagement_InviteeListResponse'
+  /api/v1/chat/rooms/{roomId}/messages:
+    servers:
+      - url: http://localhost:37123
+        description: Generated server url
+    get:
+      tags:
+        - Chat
+      summary: Get messages from a chat room with cursor pagination
+      operationId: getMessages
+      parameters:
+        - name: roomId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: size
+          in: query
+          required: false
+          schema:
+            type: integer
+            format: int32
+            default: 20
+        - name: beforeSeqNum
+          in: query
+          required: false
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: >-
+                  #/components/schemas/ChatManagement_CursorScrollResponseChatMessageResponse
+    post:
+      tags:
+        - Chat
+      summary: Send a message to a chat room
+      operationId: sendMessage
+      parameters:
+        - name: roomId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChatManagement_SendMessageRequest'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ChatManagement_ChatMessageResponse'
+  /api/v1/chat/rooms/{roomId}:
+    servers:
+      - url: http://localhost:37123
+        description: Generated server url
+    get:
+      tags:
+        - Chat
+      summary: Get chat room info
+      operationId: getRoom
+      parameters:
+        - name: roomId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ChatManagement_ChatRoomResponse'
+components:
+  schemas:
+    UserManagement_PutUserRequest:
+      type: object
+      properties:
+        fullName:
+          type: string
+          maxLength: 255
+          minLength: 0
+        username:
+          type: string
+          maxLength: 30
+          minLength: 3
+          pattern: ^[a-zA-Z0-9_-]+$
+        avatarUrl:
+          type: string
+          maxLength: 2048
+          minLength: 0
+      required:
+        - fullName
+        - username
+    UserManagement_UserPreferencesResponse:
+      type: object
+      properties:
+        settings:
+          type: object
+          additionalProperties: {}
+    UserManagement_UserResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          type: string
+        fullName:
+          type: string
+        username:
+          type: string
+        avatarUrl:
+          type: string
+        authProvider:
+          type: string
+        preferences:
+          $ref: '#/components/schemas/UserManagement_UserPreferencesResponse'
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    UserManagement_VerifyOtpRequest:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+          minLength: 1
+        otp:
+          type: string
+          minLength: 1
+          pattern: ^\d{6}$
+      required:
+        - email
+        - otp
+    UserManagement_VerifyOtpResponse:
+      type: object
+      properties:
+        temporaryToken:
+          type: string
+    UserManagement_ResetPasswordRequest:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+          minLength: 1
+        otp:
+          type: string
+          pattern: ^\d{6}$
+        temporaryToken:
+          type: string
+        newPassword:
+          type: string
+          maxLength: 2147483647
+          minLength: 8
+      required:
+        - email
+        - newPassword
+    UserManagement_RegisterRequest:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+          minLength: 1
+        password:
+          type: string
+          maxLength: 128
+          minLength: 8
+        fullName:
+          type: string
+          maxLength: 255
+          minLength: 0
+        username:
+          type: string
+          maxLength: 30
+          minLength: 3
+          pattern: ^[a-zA-Z0-9_-]+$
+      required:
+        - email
+        - fullName
+        - password
+        - username
+    UserManagement_RegisterResponse:
+      type: object
+      properties:
+        userId:
+          type: string
+          format: uuid
+        email:
+          type: string
+        fullName:
+          type: string
+        username:
+          type: string
+    UserManagement_RefreshTokenRequest:
+      type: object
+      properties:
+        refreshToken:
+          type: string
+          minLength: 1
+      required:
+        - refreshToken
+    UserManagement_LoginResponse:
+      type: object
+      properties:
+        accessToken:
+          type: string
+        refreshToken:
+          type: string
+        expiresIn:
+          type: integer
+          format: int64
+        preferences:
+          $ref: '#/components/schemas/UserManagement_UserPreferencesResponse'
+    UserManagement_LogoutRequest:
+      type: object
+      properties:
+        refreshToken:
+          type: string
+          minLength: 1
+      required:
+        - refreshToken
+    UserManagement_LoginRequest:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+          minLength: 1
+        password:
+          type: string
+          minLength: 1
+      required:
+        - email
+        - password
+    UserManagement_GoogleLoginRequest:
+      type: object
+      properties:
+        idToken:
+          type: string
+          minLength: 1
+      required:
+        - idToken
+    UserManagement_ForgotPasswordRequest:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+          minLength: 1
+        captchaToken:
+          type: string
+      required:
+        - email
+    UserManagement_SearchUsersRequest:
+      type: object
+      properties:
+        size:
+          type: integer
+          format: int32
+          maximum: 100
+          minimum: 1
+        pageTokenRaw:
+          type: string
+        queryRaw:
+          type: string
+    UserManagement_CursorScrollResponseUserResponse:
+      type: object
+      properties:
+        content:
+          type: array
+          items:
+            $ref: '#/components/schemas/UserManagement_UserResponse'
+        size:
+          type: integer
+          format: int32
+        nextPageToken:
+          type: string
+    UserManagement_DeleteAccountResponse:
+      type: object
+      properties:
+        userId:
+          type: string
+          format: uuid
+        email:
+          type: string
+        fullName:
+          type: string
+        deletedAt:
+          type: string
+          format: date-time
+    MeetingManagement_MeetingSettingsRequest:
+      type: object
+      properties:
+        admissionPolicy:
+          type: string
+          minLength: 1
+          pattern: ALLOW_ALL|MANUAL_APPROVAL
+        allowGuest:
+          type: boolean
+        maxParticipants:
+          type: integer
+          format: int32
+          maximum: 1000
+          minimum: 1
+        allowScreenShare:
+          type: boolean
+        chatEnabled:
+          type: boolean
+        allowMicrophone:
+          type: boolean
+        allowVideo:
+          type: boolean
+        password:
+          type: string
+          maxLength: 128
+          minLength: 0
+          pattern: .*\S.*
+      required:
+        - admissionPolicy
+        - allowGuest
+        - allowMicrophone
+        - allowScreenShare
+        - allowVideo
+        - chatEnabled
+        - maxParticipants
+    MeetingManagement_MeetingSettingsResponse:
+      type: object
+      description: Meeting settings with optional invite token invalidation metadata
+      properties:
+        admissionPolicy:
+          type: string
+          description: Admission policy name (e.g. WAITING_ROOM, OPEN)
+        allowGuest:
+          type: boolean
+          description: Whether unauthenticated guests may join
+        maxParticipants:
+          type: integer
+          format: int32
+          description: Maximum concurrent participants
+        allowScreenShare:
+          type: boolean
+          description: Whether screen sharing is enabled
+        chatEnabled:
+          type: boolean
+          description: Whether in-meeting chat is enabled
+        allowMicrophone:
+          type: boolean
+          description: Whether participants may unmute their microphone
+        allowVideo:
+          type: boolean
+          description: Whether participants may enable their camera
+        requirePassword:
+          type: boolean
+          description: Whether a password is required to join
+        invalidatedInviteCount:
+          type: integer
+          format: int32
+          description: >-
+            Number of invite tokens revoked due to a password change; 0 when no
+            invalidation occurred
+        resendInvitesRecommended:
+          type: boolean
+          description: >-
+            True when the host should resend invite links because tokens were
+            revoked
+    MeetingManagement_InviteeRequest:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+          minLength: 1
+      required:
+        - email
+    MeetingManagement_ScheduleMeetingRequest:
+      type: object
+      properties:
+        title:
+          type: string
+          maxLength: 255
+          minLength: 0
+        description:
+          type: string
+          maxLength: 2000
+          minLength: 0
+        startTime:
+          type: string
+          format: date-time
+        endTime:
+          type: string
+          format: date-time
+        settings:
+          $ref: '#/components/schemas/MeetingManagement_MeetingSettingsRequest'
+        invitees:
+          type: array
+          items:
+            $ref: '#/components/schemas/MeetingManagement_InviteeRequest'
+          maxItems: 100
+          minItems: 0
+      required:
+        - endTime
+        - settings
+        - startTime
+    MeetingManagement_MeetingResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        hostId:
+          type: string
+          format: uuid
+        shortCode:
+          type: string
+        title:
+          type: string
+        description:
+          type: string
+        startTime:
+          type: string
+          format: date-time
+        endTime:
+          type: string
+          format: date-time
+        type:
+          type: string
+          enum:
+            - INSTANT
+            - SCHEDULED
+        status:
+          type: string
+          enum:
+            - SCHEDULED
+            - LIVE
+            - ENDED
+            - CANCELLED
+        settings:
+          $ref: '#/components/schemas/MeetingManagement_MeetingSettingsResponse'
+        createdAt:
+          type: string
+          format: date-time
+    MeetingManagement_CreateInstantMeetingRequest:
+      type: object
+      properties:
+        title:
+          type: string
+        settings:
+          $ref: '#/components/schemas/MeetingManagement_MeetingSettingsRequest'
+      required:
+        - settings
+    MeetingManagement_AddInviteeRequest:
+      type: object
+      description: Request body for adding an invitee to a scheduled meeting
+      properties:
+        email:
+          type: string
+          format: email
+          description: Invitee email address
+          maxLength: 255
+          minLength: 0
+        displayName:
+          type: string
+          description: Optional display name for the invitee
+          maxLength: 128
+          minLength: 0
+      required:
+        - email
+    MeetingManagement_InviteeListResponse:
+      type: object
+      description: Invitee details including current invite token status
+      properties:
+        inviteeId:
+          type: string
+          format: uuid
+          description: The invitee UUID
+        userId:
+          type: string
+          format: uuid
+          description: Registered user ID, null for external email invitees
+        email:
+          type: string
+          description: Invitee email address
+        displayName:
+          type: string
+          description: Invitee display name if available
+        status:
+          type: string
+          description: Invitee RSVP status
+          enum:
+            - PENDING
+            - ACCEPTED
+            - DECLINED
+        invitedAt:
+          type: string
+          format: date-time
+          description: When the invite was sent
+        respondedAt:
+          type: string
+          format: date-time
+          description: When the invitee responded, null if not yet responded
+        tokenStatus:
+          type: string
+          description: 'Current invite token status: PENDING, USED, REVOKED, or EXPIRED'
+    MeetingManagement_JoinRequestRequest:
+      type: object
+      properties:
+        displayName:
+          type: string
+          maxLength: 100
+          minLength: 0
+        deviceId:
+          type: string
+          minLength: 1
+        password:
+          type: string
+          maxLength: 128
+          minLength: 0
+      required:
+        - deviceId
+        - displayName
+    MeetingManagement_RequestJoinResponse:
+      type: object
+      properties:
+        requestId:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum:
+            - PENDING
+            - APPROVED
+            - DENIED
+            - EXPIRED
+        token:
+          type: string
+        roomName:
+          type: string
+    MeetingManagement_RecordingResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        meetingId:
+          type: string
+          format: uuid
+        fileUrl:
+          type: string
+        thumbnailUrl:
+          type: string
+        status:
+          type: string
+          enum:
+            - PENDING
+            - RECORDING
+            - COMPLETED
+            - FAILED
+        startedAt:
+          type: string
+          format: date-time
+        endedAt:
+          type: string
+          format: date-time
+        durationSeconds:
+          type: integer
+          format: int32
+        fileSizeBytes:
+          type: integer
+          format: int64
+        createdAt:
+          type: string
+          format: date-time
+    MeetingManagement_ApproveAllResponse:
+      type: object
+      properties:
+        approvedCount:
+          type: integer
+          format: int32
+    MeetingManagement_ValidateInviteTokenRequest:
+      type: object
+      description: Request body for validating a raw invite token from a meeting join link
+      properties:
+        token:
+          type: string
+          description: The raw invite token string extracted from the join link URL
+          minLength: 1
+      required:
+        - token
+    MeetingManagement_ValidateInviteTokenResponse:
+      type: object
+      description: >-
+        Result of a successful invite token validation, containing meeting join
+        details
+      properties:
+        meetingId:
+          type: string
+          format: uuid
+          description: The meeting UUID
+        shortCode:
+          type: string
+          description: The meeting short code for joining via WebRTC signalling
+        preApproved:
+          type: boolean
+          description: >-
+            True when the invitee can join directly without waiting-room
+            approval
+    MeetingManagement_RespondInviteRequest:
+      type: object
+      description: Invitation response request
+      properties:
+        response:
+          type: string
+          description: 'Invitation response: ACCEPTED or DECLINED'
+          enum:
+            - ACCEPTED
+            - DECLINED
+      required:
+        - response
+    MeetingManagement_InviteeRespondResponse:
+      type: object
+      description: Invitee response status after accepting or declining an invitation
+      properties:
+        meetingId:
+          type: string
+          format: uuid
+          description: Meeting ID
+        userId:
+          type: string
+          format: uuid
+          description: Registered invitee user ID
+        status:
+          type: string
+          description: Invitee RSVP status
+          enum:
+            - PENDING
+            - ACCEPTED
+            - DECLINED
+        respondedAt:
+          type: string
+          format: date-time
+          description: When the invitee responded
+    MeetingManagement_CursorScrollResponseMeetingResponse:
+      type: object
+      properties:
+        content:
+          type: array
+          items:
+            $ref: '#/components/schemas/MeetingManagement_MeetingResponse'
+        size:
+          type: integer
+          format: int32
+        nextPageToken:
+          type: string
+    MeetingManagement_InviteeResponse:
+      type: object
+      properties:
+        userId:
+          type: string
+          format: uuid
+        email:
+          type: string
+        displayName:
+          type: string
+        status:
+          type: string
+          enum:
+            - PENDING
+            - ACCEPTED
+            - DECLINED
+        invitedAt:
+          type: string
+          format: date-time
+        respondedAt:
+          type: string
+          format: date-time
+    MeetingManagement_MeetingDetailResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        hostId:
+          type: string
+          format: uuid
+        shortCode:
+          type: string
+        title:
+          type: string
+        description:
+          type: string
+        startTime:
+          type: string
+          format: date-time
+        endTime:
+          type: string
+          format: date-time
+        type:
+          type: string
+          enum:
+            - INSTANT
+            - SCHEDULED
+        status:
+          type: string
+          enum:
+            - SCHEDULED
+            - LIVE
+            - ENDED
+            - CANCELLED
+        settings:
+          $ref: '#/components/schemas/MeetingManagement_MeetingSettingsResponse'
+        createdAt:
+          type: string
+          format: date-time
+        participants:
+          type: array
+          items:
+            $ref: '#/components/schemas/MeetingManagement_MeetingParticipantResponse'
+        recordings:
+          type: array
+          items:
+            $ref: '#/components/schemas/MeetingManagement_RecordingResponse'
+        invitees:
+          type: array
+          items:
+            $ref: '#/components/schemas/MeetingManagement_InviteeResponse'
+    MeetingManagement_MeetingParticipantResponse:
+      type: object
+      properties:
+        meetingId:
+          type: string
+          format: uuid
+        userId:
+          type: string
+          format: uuid
+        displayName:
+          type: string
+        avatarUrl:
+          type: string
+        role:
+          type: string
+          enum:
+            - HOST
+            - PARTICIPANT
+            - GUEST
+        joinedAt:
+          type: string
+          format: date-time
+        leftAt:
+          type: string
+          format: date-time
+    MeetingManagement_PendingInvitationResponse:
+      type: object
+      description: Pending invitation visible to an invitee
+      properties:
+        inviteeId:
+          type: string
+          format: uuid
+          description: Invitee ID
+        meetingId:
+          type: string
+          format: uuid
+          description: Meeting ID
+        meetingTitle:
+          type: string
+          description: Meeting title
+        meetingShortCode:
+          type: string
+          description: Meeting short code
+        startTime:
+          type: string
+          format: date-time
+          description: Meeting start time
+        hostDisplayName:
+          type: string
+          description: Meeting host display name
+        invitedAt:
+          type: string
+          format: date-time
+          description: When the invitation was sent
+    MeetingManagement_CursorScrollResponseRecordingResponse:
+      type: object
+      properties:
+        content:
+          type: array
+          items:
+            $ref: '#/components/schemas/MeetingManagement_RecordingResponse'
+        size:
+          type: integer
+          format: int32
+        nextPageToken:
+          type: string
+    MeetingManagement_ParticipantListItemResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        meetingId:
+          type: string
+          format: uuid
+        userId:
+          type: string
+          format: uuid
+        displayName:
+          type: string
+        avatarUrl:
+          type: string
+        role:
+          type: string
+          enum:
+            - HOST
+            - PARTICIPANT
+            - GUEST
+        joinedAt:
+          type: string
+          format: date-time
+        leftAt:
+          type: string
+          format: date-time
+    MeetingManagement_JoinRequestResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        meetingId:
+          type: string
+          format: uuid
+        userId:
+          type: string
+          format: uuid
+        displayName:
+          type: string
+        avatarUrl:
+          type: string
+        status:
+          type: string
+          enum:
+            - PENDING
+            - APPROVED
+            - DENIED
+            - EXPIRED
+        requestedAt:
+          type: string
+          format: date-time
+        expiresAt:
+          type: string
+          format: date-time
+    MeetingManagement_OffsetScrollResponseJoinRequestResponse:
+      type: object
+      properties:
+        content:
+          type: array
+          items:
+            $ref: '#/components/schemas/MeetingManagement_JoinRequestResponse'
+        size:
+          type: integer
+          format: int32
+        nextOffset:
+          type: integer
+          format: int32
+    MeetingManagement_SseEmitter:
+      type: object
+      properties:
+        timeout:
+          type: integer
+          format: int64
+    ChatManagement_SendMessageRequest:
+      type: object
+      properties:
+        senderName:
+          type: string
+        content:
+          type: string
+        replyToSeqNum:
+          type: integer
+          format: int64
+    ChatManagement_ChatMessageResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        seqNum:
+          type: integer
+          format: int64
+        roomId:
+          type: string
+        senderId:
+          type: string
+        senderName:
+          type: string
+        content:
+          type: string
+        type:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+    ChatManagement_ChatRoomResponse:
+      type: object
+      properties:
+        roomId:
+          type: string
+        meetingId:
+          type: string
+        status:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+    ChatManagement_CursorScrollResponseChatMessageResponse:
+      type: object
+      properties:
+        content:
+          type: array
+          items:
+            $ref: '#/components/schemas/ChatManagement_ChatMessageResponse'
+        size:
+          type: integer
+          format: int32
+        nextPageToken:
+          type: string
+x-tagGroups:
+  - name: UserManagement
+    tags:
+      - Me
+      - Auth
+      - Users
+  - name: MeetingManagement
+    tags:
+      - Invite Tokens
+      - Recordings
+      - User Meetings
+      - Join Requests
+      - Participants
+      - Meetings
+      - Invitee Responses
+      - Invite Management
+  - name: ChatManagement
+    tags:
+      - Chat
