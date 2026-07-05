@@ -9,12 +9,6 @@ pre-commit:
                 (install via: https://github.com/gitleaks/gitleaks)"
 
         # ── format ─────────────────────────────────────────────────────
-        format-web:
-            root: frontends/web
-            glob: '**/*.{ts,tsx,js,jsx,json,jsonc,css}'
-            run: pnpm biome check --write --no-errors-on-unmatched --files-ignore-unknown=true {staged_files}
-            stage_fixed: true
-
         format-java:
             glob: 'services/**/*.{java,kts,xml}'
             exclude:
@@ -32,7 +26,6 @@ pre-commit:
         format-general:
             glob: '**/*.{md,json,toml,yaml,yml,sh}'
             exclude:
-                - 'frontends/web/**'
                 - '**/node_modules/**'
             run: pnpm format
             stage_fixed: true
@@ -44,22 +37,12 @@ pre-commit:
             stage_fixed: true
 
         # ── lint ───────────────────────────────────────────────────────
-        lint-web:
-            root: frontends/web
-            glob: '**/*.{ts,tsx,js,jsx}'
-            run: pnpm biome lint --no-errors-on-unmatched --files-ignore-unknown=true {staged_files}
-
         lint-scripts:
             root: scripts
             glob: '**/*.{ts,js}'
             run: pnpm biome lint --no-errors-on-unmatched --files-ignore-unknown=true {staged_files}
 
         # ── typecheck ──────────────────────────────────────────────────
-        typecheck-web:
-            root: frontends/web
-            glob: '**/*.{ts,tsx}'
-            run: pnpm exec tsc --noEmit
-
         typecheck-scripts:
             root: scripts
             glob: '**/*.ts'
@@ -95,12 +78,6 @@ pre-push:
                 (install via: https://github.com/gitleaks/gitleaks)"
 
         # ── format (verify all) ────────────────────────────────────────
-        format-web:
-            priority: 3
-            root: frontends/web
-            glob: '**/*.{ts,tsx,js,jsx,json,jsonc,css}'
-            run: pnpm biome check --no-errors-on-unmatched --files-ignore-unknown=true {push_files}
-
         format-scripts:
             priority: 3
             root: scripts
@@ -112,12 +89,6 @@ pre-push:
             run: ./services/gradlew spotlessCheck
 
         # ── lint (all) ─────────────────────────────────────────────────
-        lint-web:
-            priority: 3
-            root: frontends/web
-            glob: '**/*.{ts,tsx,js,jsx}'
-            run: pnpm biome lint --no-errors-on-unmatched --files-ignore-unknown=true {push_files}
-
         lint-scripts:
             priority: 3
             root: scripts
@@ -125,11 +96,6 @@ pre-push:
             run: pnpm biome lint --no-errors-on-unmatched --files-ignore-unknown=true {push_files}
 
         # ── typecheck (all) ────────────────────────────────────────────
-        typecheck-web:
-            priority: 3
-            root: frontends/web
-            run: pnpm exec tsc --noEmit
-
         typecheck-scripts:
             priority: 3
             root: scripts

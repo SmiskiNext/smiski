@@ -5,7 +5,6 @@ import {
     DOCKER_ENV,
     DOCKER_ENV_EXAMPLE,
     REPO_ROOT,
-    WEB_DIR,
 } from "../lib/paths.js";
 
 async function ensureMiseAvailable(): Promise<void> {
@@ -27,7 +26,6 @@ async function installMiseTools(): Promise<void> {
 async function installPnpmDeps(): Promise<void> {
     console.log("→ Installing pnpm dependencies (root + workspace)");
     await $({ cwd: REPO_ROOT })`pnpm install --recursive`;
-    await $({ cwd: WEB_DIR })`pnpm install`;
 }
 
 async function installLefthookHooks(): Promise<void> {

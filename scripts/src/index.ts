@@ -6,7 +6,6 @@ import { infra, infraDown, infraUp } from "./commands/infra.js";
 import { setup } from "./commands/setup.js";
 import { svc, svcAll } from "./commands/svc.js";
 import { quality } from "./commands/quality.js";
-import { web } from "./commands/web.js";
 import { applyIpConfig } from "./lib/ip.js";
 
 $.verbose = true;
@@ -72,7 +71,6 @@ const main = defineCommand({
         clean,
         infra,
         svc,
-        web,
         build: quality.build,
         test: quality.test,
         format: quality.format,

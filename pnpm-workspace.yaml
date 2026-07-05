@@ -1,5 +1,4 @@
 packages:
-  - frontends/web
   - scripts
 allowBuilds:
   '@firebase/util': set this to true or false

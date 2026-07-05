@@ -12,9 +12,6 @@ export const DOCKER_ENV_EXAMPLE = resolve(DOCKER_DIR, ".env.example");
 export const SERVICES_DIR = resolve(REPO_ROOT, "services");
 export const GRADLEW = resolve(SERVICES_DIR, "gradlew");
 
-export const WEB_DIR = resolve(REPO_ROOT, "frontends", "web");
-export const WEB_ENV = resolve(WEB_DIR, ".env.local");
-
 export const BACKEND_SERVICES = [
     "user-management",
     "meeting-management",

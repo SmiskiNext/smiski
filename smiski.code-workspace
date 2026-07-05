@@ -17,9 +17,6 @@
 		},
 		{
 			"path": "build-logic"
-		},
-		{
-			"path": "frontends/web"
 		}
 	],
 	"settings": {

@@ -1,5 +1,5 @@
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
-import { DOCKER_ENV, WEB_ENV } from "./paths.js";
+import { DOCKER_ENV } from "./paths.js";
 
 const DOCKER_ENV_REPLACEMENTS: Record<string, (ip: string) => string> = {
     ZMS_HOST_IP: (ip) => ip,
@@ -8,11 +8,6 @@ const DOCKER_ENV_REPLACEMENTS: Record<string, (ip: string) => string> = {
     GATEWAY_URL: (ip) => `http://${ip}:30000`,
     INVITATION_JOIN_BASE_URL: (ip) => `http://${ip}:3000/join`,
     LIVEKIT_RECORDING_PUBLIC_ENDPOINT: (ip) => `http://${ip}:9000`,
-};
-
-const WEB_ENV_REPLACEMENTS: Record<string, (ip: string) => string> = {
-    NEXT_PUBLIC_API_BASE_URL: (ip) => `http://${ip}:30000`,
-    NEXT_PUBLIC_LIVEKIT_URL: (ip) => `ws://${ip}:30000/livekit`,
 };
 
 function updateEnvFile(
@@ -41,5 +36,4 @@ function updateEnvFile(
 export function applyIpConfig(ip: string): void {
     console.log(`[ip] Applying IP ${ip} to dev config files...`);
     updateEnvFile(DOCKER_ENV, DOCKER_ENV_REPLACEMENTS, ip);
-    updateEnvFile(WEB_ENV, WEB_ENV_REPLACEMENTS, ip);
 }

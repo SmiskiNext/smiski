@@ -4,7 +4,6 @@ import {
     GRADLEW,
     REPO_ROOT,
     SERVICES_DIR,
-    WEB_DIR,
 } from "../lib/paths.js";
 
 const build = defineCommand({
@@ -24,36 +23,31 @@ const test = defineCommand({
 const format = defineCommand({
     meta: {
         name: "format",
-        description: "Format Java/KTS/XML, proto, web, and root files.",
+        description: "Format Java/KTS/XML, proto, and root files.",
     },
     async run() {
         await $({ cwd: SERVICES_DIR })`${GRADLEW} spotlessApply`;
         await $({
             cwd: SERVICES_DIR,
         })`${GRADLEW} -p services/proto bufFormatApply`;
-        await $({ cwd: REPO_ROOT })`pnpm --dir ${WEB_DIR} format`;
         await $({ cwd: REPO_ROOT })`pnpm format`;
     },
 });
 
 const lint = defineCommand({
-    meta: { name: "lint", description: "Lint markdown and web" },
+    meta: { name: "lint", description: "Lint markdown" },
     async run() {
         await $({ cwd: REPO_ROOT })`pnpm lint`;
-        await $({ cwd: REPO_ROOT })`pnpm --dir ${WEB_DIR} lint`;
     },
 });
 
 const openapi = defineCommand({
     meta: {
         name: "openapi",
-        description: "Regenerate unified OpenAPI spec and web SDK",
+        description: "Regenerate unified OpenAPI spec",
     },
     async run() {
         await $({ cwd: REPO_ROOT })`pnpm run openapi:unified`;
-        await $({
-            cwd: REPO_ROOT,
-        })`pnpm --dir ${WEB_DIR} run generate:sdk`;
     },
 });
 
