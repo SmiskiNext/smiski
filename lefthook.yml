@@ -1,39 +1,35 @@
 pre-commit:
     parallel: true
     commands:
-        # ── Secret scanning ────────────────────────────────────────────
-        secret-scan:
+        # ── gitleaks ───────────────────────────────────────────────────
+        gitleaks:
             run: >
                 command -v gitleaks >/dev/null 2>&1 && gitleaks protect --staged
-                --config .gitleaks.toml || echo "[secret-scan] gitleaks not
-                found, skipping (install via:
-                https://github.com/gitleaks/gitleaks)"
+                --config .gitleaks.toml || echo "[gitleaks] not found, skipping
+                (install via: https://github.com/gitleaks/gitleaks)"
 
-        # ── Java, Kotlin, XML (all services via root) ─────────────────
-        services-format:
+        # ── format ─────────────────────────────────────────────────────
+        format-web:
+            root: frontends/web
+            glob: '**/*.{ts,tsx,js,jsx,json,jsonc,css}'
+            run: pnpm biome check --write --no-errors-on-unmatched --files-ignore-unknown=true {staged_files}
+            stage_fixed: true
+
+        format-java:
             glob: 'services/**/*.{java,kts,xml}'
             exclude:
                 - 'services/**/.idea/**'
                 - 'services/**/.gradle/**'
-            run: ./gradlew spotlessApply
+            run: ./services/gradlew spotlessApply
             stage_fixed: true
 
-        # ── Proto ──────────────────────────────────────────────────────
-        proto-format:
+        format-proto:
             root: services/proto
             glob: '**/*.proto'
             run: ./gradlew bufFormatApply
             stage_fixed: true
 
-        # ── Web (biome lint + format auto-fix) ─────────────────────────
-        web-fix:
-            root: frontends/web
-            glob: '**/*.{ts,tsx,js,jsx,json,css}'
-            run: pnpm biome check --fix
-            stage_fixed: true
-
-        # ── General (md, json, yaml, toml, sh) ─────────────────────────
-        general-format:
+        format-general:
             glob: '**/*.{md,json,toml,yaml,yml,sh}'
             exclude:
                 - 'frontends/web/**'
@@ -41,7 +37,71 @@ pre-commit:
             run: pnpm format
             stage_fixed: true
 
+        # ── lint ───────────────────────────────────────────────────────
+        lint-web:
+            root: frontends/web
+            glob: '**/*.{ts,tsx,js,jsx}'
+            run: pnpm biome lint --no-errors-on-unmatched --files-ignore-unknown=true {staged_files}
+
+        # ── typecheck ──────────────────────────────────────────────────
+        typecheck-web:
+            root: frontends/web
+            glob: '**/*.{ts,tsx}'
+            run: pnpm exec tsc --noEmit
+
+        typecheck-java:
+            glob: 'services/**/*.java'
+            run: ./services/gradlew compileJava
+
 commit-msg:
     commands:
         commitlint:
             run: node_modules/.bin/commitlint --edit {1}
+
+pre-push:
+    parallel: false
+    commands:
+        # ── block direct push to main ──────────────────────────────────
+        block-main:
+            priority: 1
+            run: >
+                branch="$(git rev-parse --abbrev-ref HEAD)";
+                if [ "$branch" = "main" ]; then
+                echo "[block-main] direct push to 'main' is not allowed";
+                exit 1; fi
+
+        # ── gitleaks (full scan) ───────────────────────────────────────
+        gitleaks:
+            priority: 2
+            run: >
+                command -v gitleaks >/dev/null 2>&1 && gitleaks detect
+                --config .gitleaks.toml || echo "[gitleaks] not found, skipping
+                (install via: https://github.com/gitleaks/gitleaks)"
+
+        # ── format (verify all) ────────────────────────────────────────
+        format-web:
+            priority: 3
+            root: frontends/web
+            glob: '**/*.{ts,tsx,js,jsx,json,jsonc,css}'
+            run: pnpm biome check --no-errors-on-unmatched --files-ignore-unknown=true {push_files}
+
+        format-java:
+            priority: 3
+            run: ./services/gradlew spotlessCheck
+
+        # ── lint (all) ─────────────────────────────────────────────────
+        lint-web:
+            priority: 3
+            root: frontends/web
+            glob: '**/*.{ts,tsx,js,jsx}'
+            run: pnpm biome lint --no-errors-on-unmatched --files-ignore-unknown=true {push_files}
+
+        # ── typecheck (all) ────────────────────────────────────────────
+        typecheck-web:
+            priority: 3
+            root: frontends/web
+            run: pnpm exec tsc --noEmit
+
+        typecheck-java:
+            priority: 3
+            run: ./services/gradlew compileJava
