@@ -37,16 +37,32 @@ pre-commit:
             run: pnpm format
             stage_fixed: true
 
+        format-scripts:
+            root: scripts
+            glob: '**/*.{ts,js}'
+            run: pnpm biome check --write --no-errors-on-unmatched --files-ignore-unknown=true {staged_files}
+            stage_fixed: true
+
         # ── lint ───────────────────────────────────────────────────────
         lint-web:
             root: frontends/web
             glob: '**/*.{ts,tsx,js,jsx}'
             run: pnpm biome lint --no-errors-on-unmatched --files-ignore-unknown=true {staged_files}
 
+        lint-scripts:
+            root: scripts
+            glob: '**/*.{ts,js}'
+            run: pnpm biome lint --no-errors-on-unmatched --files-ignore-unknown=true {staged_files}
+
         # ── typecheck ──────────────────────────────────────────────────
         typecheck-web:
             root: frontends/web
             glob: '**/*.{ts,tsx}'
+            run: pnpm exec tsc --noEmit
+
+        typecheck-scripts:
+            root: scripts
+            glob: '**/*.ts'
             run: pnpm exec tsc --noEmit
 
         typecheck-java:
@@ -85,6 +101,12 @@ pre-push:
             glob: '**/*.{ts,tsx,js,jsx,json,jsonc,css}'
             run: pnpm biome check --no-errors-on-unmatched --files-ignore-unknown=true {push_files}
 
+        format-scripts:
+            priority: 3
+            root: scripts
+            glob: '**/*.{ts,js}'
+            run: pnpm biome check --no-errors-on-unmatched --files-ignore-unknown=true {push_files}
+
         format-java:
             priority: 3
             run: ./services/gradlew spotlessCheck
@@ -96,10 +118,21 @@ pre-push:
             glob: '**/*.{ts,tsx,js,jsx}'
             run: pnpm biome lint --no-errors-on-unmatched --files-ignore-unknown=true {push_files}
 
+        lint-scripts:
+            priority: 3
+            root: scripts
+            glob: '**/*.{ts,js}'
+            run: pnpm biome lint --no-errors-on-unmatched --files-ignore-unknown=true {push_files}
+
         # ── typecheck (all) ────────────────────────────────────────────
         typecheck-web:
             priority: 3
             root: frontends/web
+            run: pnpm exec tsc --noEmit
+
+        typecheck-scripts:
+            priority: 3
+            root: scripts
             run: pnpm exec tsc --noEmit
 
         typecheck-java:

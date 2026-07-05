@@ -9,7 +9,10 @@
     },
     "scripts": {
         "smiski": "tsx src/index.ts",
-        "typecheck": "tsc --noEmit"
+        "typecheck": "tsc --noEmit",
+        "lint": "biome check",
+        "lint:fix": "biome check --fix",
+        "format": "biome format --write"
     },
     "dependencies": {
         "citty": "^0.1.6",
@@ -17,6 +20,7 @@
         "zx": "^8.2.4"
     },
     "devDependencies": {
+        "@biomejs/biome": "^2.4.15",
         "@types/node": "^22.10.2",
         "tsx": "^4.19.2",
         "typescript": "^5.7.2"
