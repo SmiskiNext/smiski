@@ -1,7 +1,7 @@
 package io.github.smiskinext.meetingmanagement.domain.model.valueobject;
 
 import io.github.smiskinext.meetingmanagement.domain.model.AdmissionPolicy;
-import io.github.phunguy65.zms.shared.domain.ValueObject;
+import io.github.smiskinext.shared.domain.ValueObject;
 import org.jspecify.annotations.Nullable;
 
 /**

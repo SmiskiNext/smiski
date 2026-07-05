@@ -26,6 +26,8 @@ import io.github.smiskinext.meetingmanagement.infrastructure.web.WebConfig;
 import io.github.smiskinext.meetingmanagement.presentation.JoinRequestController;
 import io.github.smiskinext.meetingmanagement.presentation.LiveKitWebhookController;
 import java.util.UUID;
+
+import io.github.smiskinext.shared.domain.Result;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
@@ -93,7 +95,7 @@ class PublicEndpointSecurityTest {
         UUID meetingId = UUID.randomUUID();
         UUID requestId = UUID.randomUUID();
         when(requestJoinUseCase.execute(any()))
-                .thenReturn(io.github.phunguy65.zms.shared.domain.Result.success(
+                .thenReturn(Result.success(
                         new RequestJoinResponse(requestId, JoinRequestStatus.PENDING, null, null)));
 
         mockMvc.perform(post(path, meetingId)

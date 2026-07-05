@@ -13,9 +13,9 @@ import io.github.smiskinext.meetingmanagement.domain.model.valueobject.LiveKitRo
 import io.github.smiskinext.meetingmanagement.domain.model.valueobject.LiveKitTokenRequest;
 import io.github.smiskinext.meetingmanagement.domain.model.valueobject.ParticipantAttributes;
 import io.github.phunguy65.zms.meetingmanagement.domain.port.*;
-import io.github.phunguy65.zms.shared.domain.Result;
-import io.github.phunguy65.zms.shared.domain.valueobject.MeetingId;
-import io.github.phunguy65.zms.shared.domain.valueobject.UserId;
+import io.github.smiskinext.shared.domain.Result;
+import io.github.smiskinext.shared.domain.valueobject.MeetingId;
+import io.github.smiskinext.shared.domain.valueobject.UserId;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Optional;

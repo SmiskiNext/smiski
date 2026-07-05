@@ -5,9 +5,9 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 import com.github.f4b6a3.uuid.UuidCreator;
-import io.github.phunguy65.zms.shared.domain.Result;
-import io.github.phunguy65.zms.shared.domain.valueobject.Email;
-import io.github.phunguy65.zms.shared.domain.valueobject.UserId;
+import io.github.smiskinext.shared.domain.Result;
+import io.github.smiskinext.shared.domain.valueobject.Email;
+import io.github.smiskinext.shared.domain.valueobject.UserId;
 import io.github.smiskinext.usermanagement.domain.AuthError;
 import io.github.smiskinext.usermanagement.domain.model.User;
 import io.github.smiskinext.usermanagement.domain.model.valueobject.FullName;

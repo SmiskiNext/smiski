@@ -12,7 +12,7 @@ import io.github.smiskinext.meetingmanagement.domain.model.RecordingStatus;
 import io.github.smiskinext.meetingmanagement.domain.model.valueobject.LiveKitRoomName;
 import io.github.smiskinext.meetingmanagement.domain.port.RecordingRepository;
 import io.github.smiskinext.meetingmanagement.infrastructure.config.LiveKitProperties;
-import io.github.phunguy65.zms.shared.domain.valueobject.MeetingId;
+import io.github.smiskinext.shared.domain.valueobject.MeetingId;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;

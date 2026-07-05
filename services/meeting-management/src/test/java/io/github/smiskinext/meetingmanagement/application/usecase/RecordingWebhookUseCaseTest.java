@@ -16,8 +16,8 @@ import io.github.smiskinext.meetingmanagement.domain.model.valueobject.LiveKitEg
 import io.github.smiskinext.meetingmanagement.domain.model.valueobject.LiveKitRoomName;
 import io.github.smiskinext.meetingmanagement.domain.port.LiveKitPort;
 import io.github.smiskinext.meetingmanagement.domain.port.RecordingRepository;
-import io.github.phunguy65.zms.shared.domain.Result;
-import io.github.phunguy65.zms.shared.domain.valueobject.MeetingId;
+import io.github.smiskinext.shared.domain.Result;
+import io.github.smiskinext.shared.domain.valueobject.MeetingId;
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
@@ -214,7 +214,7 @@ class RecordingWebhookUseCaseTest {
     private static Recording startedRecording(String egressId) {
         Recording recording = pendingRecording(egressId);
         assertThat(recording.activate(LiveKitEgressId.of(egressId)))
-                .isInstanceOf(io.github.phunguy65.zms.shared.domain.Result.Success.class);
+                .isInstanceOf(Result.Success.class);
         recording.clearDomainEvents();
         return recording;
     }
@@ -223,7 +223,7 @@ class RecordingWebhookUseCaseTest {
         Recording recording = startedRecording(egressId);
         assertThat(recording.complete(
                         "s3://recordings/meeting.mp4", "meetings/abc/egress.mp4", null, 42, 2048L))
-                .isInstanceOf(io.github.phunguy65.zms.shared.domain.Result.Success.class);
+                .isInstanceOf(Result.Success.class);
         recording.clearDomainEvents();
         return recording;
     }

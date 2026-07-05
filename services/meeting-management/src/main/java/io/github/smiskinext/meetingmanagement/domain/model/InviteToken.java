@@ -4,9 +4,9 @@ import com.github.f4b6a3.uuid.UuidCreator;
 import io.github.smiskinext.meetingmanagement.domain.MeetingError;
 import io.github.smiskinext.meetingmanagement.domain.model.valueobject.InviteTokenId;
 import io.github.smiskinext.meetingmanagement.domain.model.valueobject.InviteeId;
-import io.github.phunguy65.zms.shared.domain.AggregateRoot;
-import io.github.phunguy65.zms.shared.domain.Result;
-import io.github.phunguy65.zms.shared.domain.valueobject.MeetingId;
+import io.github.smiskinext.shared.domain.AggregateRoot;
+import io.github.smiskinext.shared.domain.Result;
+import io.github.smiskinext.shared.domain.valueobject.MeetingId;
 import java.time.Instant;
 
 /**

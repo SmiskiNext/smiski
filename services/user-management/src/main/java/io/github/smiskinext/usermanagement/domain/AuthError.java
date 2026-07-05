@@ -1,6 +1,6 @@
 package io.github.smiskinext.usermanagement.domain;
 
-import io.github.phunguy65.zms.shared.domain.DomainError;
+import io.github.smiskinext.shared.domain.DomainError;
 
 /**
  * Typed domain errors for all authentication and user-management failures.

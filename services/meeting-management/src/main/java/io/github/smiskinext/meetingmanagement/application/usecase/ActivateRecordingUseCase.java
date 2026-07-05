@@ -5,6 +5,7 @@ import io.github.smiskinext.meetingmanagement.domain.MeetingError;
 import io.github.smiskinext.meetingmanagement.domain.model.RecordingStatus;
 import io.github.smiskinext.meetingmanagement.domain.model.valueobject.LiveKitEgressId;
 import io.github.smiskinext.meetingmanagement.domain.port.RecordingRepository;
+import io.github.smiskinext.shared.domain.Result;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -46,7 +47,7 @@ public class ActivateRecordingUseCase {
 
         var activation = current.activate(egressId);
         if (activation
-                instanceof io.github.phunguy65.zms.shared.domain.Result.Failure<?, ?> failure) {
+                instanceof Result.Failure<?, ?> failure) {
             log.warn(
                     "egress_started: failed to activate recording '{}' for egress '{}': {}",
                     current.getId().value(),

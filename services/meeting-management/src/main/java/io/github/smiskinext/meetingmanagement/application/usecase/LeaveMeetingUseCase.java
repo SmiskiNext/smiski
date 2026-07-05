@@ -4,7 +4,7 @@ import io.github.smiskinext.meetingmanagement.application.command.LeaveMeetingCo
 import io.github.smiskinext.meetingmanagement.domain.MeetingError;
 import io.github.smiskinext.meetingmanagement.domain.model.valueobject.LiveKitParticipantSid;
 import io.github.smiskinext.meetingmanagement.domain.port.ParticipationLogRepository;
-import io.github.phunguy65.zms.shared.domain.Result;
+import io.github.smiskinext.shared.domain.Result;
 import java.time.Instant;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

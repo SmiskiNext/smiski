@@ -10,10 +10,10 @@ import io.github.smiskinext.chatmanagement.presentation.rest.request.GetMessages
 import io.github.smiskinext.chatmanagement.presentation.rest.request.SendMessageRequest;
 import io.github.smiskinext.chatmanagement.presentation.rest.response.ChatMessageResponse;
 import io.github.smiskinext.chatmanagement.presentation.rest.response.ChatRoomResponse;
-import io.github.phunguy65.zms.shared.domain.CursorPageResponse;
-import io.github.phunguy65.zms.shared.domain.Result;
-import io.github.phunguy65.zms.shared.infrastructure.web.CursorScrollResponse;
-import io.github.phunguy65.zms.shared.infrastructure.web.JsendResponse;
+import io.github.smiskinext.shared.domain.CursorPageResponse;
+import io.github.smiskinext.shared.domain.Result;
+import io.github.smiskinext.shared.infrastructure.web.CursorScrollResponse;
+import io.github.smiskinext.shared.infrastructure.web.JsendResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import java.util.List;

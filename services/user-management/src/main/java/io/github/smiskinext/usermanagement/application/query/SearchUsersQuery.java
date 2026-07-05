@@ -1,6 +1,6 @@
 package io.github.smiskinext.usermanagement.application.query;
 
-import io.github.phunguy65.zms.shared.domain.ScrollParams;
+import io.github.smiskinext.shared.domain.ScrollParams;
 import java.util.Optional;
 import org.jspecify.annotations.Nullable;
 

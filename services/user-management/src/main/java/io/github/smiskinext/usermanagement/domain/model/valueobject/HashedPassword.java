@@ -1,6 +1,6 @@
 package io.github.smiskinext.usermanagement.domain.model.valueobject;
 
-import io.github.phunguy65.zms.shared.domain.ValueObject;
+import io.github.smiskinext.shared.domain.ValueObject;
 
 /**
  * Value object wrapping an Argon2id password hash string.

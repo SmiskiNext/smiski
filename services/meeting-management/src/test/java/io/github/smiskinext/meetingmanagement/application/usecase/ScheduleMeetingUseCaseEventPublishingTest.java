@@ -23,7 +23,7 @@ import io.github.smiskinext.meetingmanagement.domain.port.MeetingRepository;
 import io.github.smiskinext.meetingmanagement.domain.port.PasswordHasher;
 import io.github.smiskinext.meetingmanagement.domain.port.UserGrpcServicePort;
 import io.github.smiskinext.meetingmanagement.domain.port.UserGrpcServicePort.ResolvedUser;
-import io.github.phunguy65.zms.shared.domain.Result;
+import io.github.smiskinext.shared.domain.Result;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;

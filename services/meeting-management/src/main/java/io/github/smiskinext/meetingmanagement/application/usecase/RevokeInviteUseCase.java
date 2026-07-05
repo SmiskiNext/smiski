@@ -7,7 +7,7 @@ import io.github.smiskinext.meetingmanagement.domain.model.valueobject.InviteeId
 import io.github.smiskinext.meetingmanagement.domain.port.InviteTokenRepository;
 import io.github.smiskinext.meetingmanagement.domain.port.MeetingInviteeRepository;
 import io.github.smiskinext.meetingmanagement.domain.port.MeetingRepository;
-import io.github.phunguy65.zms.shared.domain.Result;
+import io.github.smiskinext.shared.domain.Result;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;

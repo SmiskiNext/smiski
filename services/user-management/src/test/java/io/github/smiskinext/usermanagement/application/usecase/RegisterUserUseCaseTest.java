@@ -4,8 +4,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
-import io.github.phunguy65.zms.shared.domain.Result;
-import io.github.phunguy65.zms.shared.domain.valueobject.Email;
+import io.github.smiskinext.shared.domain.Result;
+import io.github.smiskinext.shared.domain.valueobject.Email;
 import io.github.smiskinext.usermanagement.application.command.RegisterCommand;
 import io.github.smiskinext.usermanagement.domain.AuthError;
 import io.github.smiskinext.usermanagement.domain.model.User;

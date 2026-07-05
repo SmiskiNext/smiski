@@ -7,7 +7,7 @@ import io.github.smiskinext.meetingmanagement.domain.model.valueobject.LiveKitPa
 import io.github.smiskinext.meetingmanagement.domain.model.valueobject.ParticipationLogId;
 import io.github.smiskinext.meetingmanagement.domain.port.ParticipationLogRepository;
 import io.github.smiskinext.meetingmanagement.domain.projection.ParticipantSummary;
-import io.github.phunguy65.zms.shared.domain.valueobject.MeetingId;
+import io.github.smiskinext.shared.domain.valueobject.MeetingId;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;

@@ -3,7 +3,7 @@ package io.github.smiskinext.usermanagement.domain.event;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.github.f4b6a3.uuid.UuidCreator;
-import io.github.phunguy65.zms.shared.domain.valueobject.UserId;
+import io.github.smiskinext.shared.domain.valueobject.UserId;
 import java.time.Instant;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;

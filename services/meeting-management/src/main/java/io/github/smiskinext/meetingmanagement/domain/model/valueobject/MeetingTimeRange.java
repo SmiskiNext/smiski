@@ -1,6 +1,6 @@
 package io.github.smiskinext.meetingmanagement.domain.model.valueobject;
 
-import io.github.phunguy65.zms.shared.domain.ValueObject;
+import io.github.smiskinext.shared.domain.ValueObject;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Objects;

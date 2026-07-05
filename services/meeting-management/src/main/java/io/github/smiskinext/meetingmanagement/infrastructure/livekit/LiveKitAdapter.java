@@ -10,8 +10,8 @@ import io.github.smiskinext.meetingmanagement.domain.model.valueobject.Participa
 import io.github.smiskinext.meetingmanagement.domain.model.valueobject.ParticipantGrants;
 import io.github.smiskinext.meetingmanagement.domain.port.LiveKitPort;
 import io.github.smiskinext.meetingmanagement.infrastructure.config.LiveKitProperties;
-import io.github.phunguy65.zms.shared.domain.Result;
-import io.github.phunguy65.zms.shared.domain.valueobject.MeetingId;
+import io.github.smiskinext.shared.domain.Result;
+import io.github.smiskinext.shared.domain.valueobject.MeetingId;
 import io.livekit.server.AccessToken;
 import io.livekit.server.CanPublish;
 import io.livekit.server.CanPublishData;

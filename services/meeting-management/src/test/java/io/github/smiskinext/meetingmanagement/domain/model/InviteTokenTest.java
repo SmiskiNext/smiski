@@ -4,8 +4,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import io.github.smiskinext.meetingmanagement.domain.MeetingError;
 import io.github.smiskinext.meetingmanagement.domain.model.valueobject.InviteeId;
-import io.github.phunguy65.zms.shared.domain.Result;
-import io.github.phunguy65.zms.shared.domain.valueobject.MeetingId;
+import io.github.smiskinext.shared.domain.Result;
+import io.github.smiskinext.shared.domain.valueobject.MeetingId;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.UUID;

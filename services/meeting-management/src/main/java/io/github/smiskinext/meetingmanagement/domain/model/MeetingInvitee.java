@@ -8,11 +8,11 @@ import io.github.smiskinext.meetingmanagement.domain.model.valueobject.InviteTok
 import io.github.smiskinext.meetingmanagement.domain.model.valueobject.InviteeDisplayName;
 import io.github.smiskinext.meetingmanagement.domain.model.valueobject.InviteeId;
 import io.github.smiskinext.meetingmanagement.domain.model.valueobject.InviterId;
-import io.github.phunguy65.zms.shared.domain.AggregateRoot;
-import io.github.phunguy65.zms.shared.domain.Result;
-import io.github.phunguy65.zms.shared.domain.valueobject.Email;
-import io.github.phunguy65.zms.shared.domain.valueobject.MeetingId;
-import io.github.phunguy65.zms.shared.domain.valueobject.UserId;
+import io.github.smiskinext.shared.domain.AggregateRoot;
+import io.github.smiskinext.shared.domain.Result;
+import io.github.smiskinext.shared.domain.valueobject.Email;
+import io.github.smiskinext.shared.domain.valueobject.MeetingId;
+import io.github.smiskinext.shared.domain.valueobject.UserId;
 import java.time.Instant;
 import java.util.Optional;
 import java.util.UUID;

@@ -2,7 +2,7 @@ package io.github.smiskinext.chatmanagement.application.port;
 
 import io.github.smiskinext.chatmanagement.domain.model.ChatError;
 import io.github.smiskinext.chatmanagement.domain.model.ChatMessage;
-import io.github.phunguy65.zms.shared.domain.Result;
+import io.github.smiskinext.shared.domain.Result;
 
 /** Outbound port: broadcasting a chat message to all LiveKit room participants. */
 public interface ChatLiveKitPort {

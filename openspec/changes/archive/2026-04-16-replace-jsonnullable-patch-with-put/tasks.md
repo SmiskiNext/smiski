@@ -49,7 +49,7 @@
       `services/user-management`, `services/meeting-management`, and
       `services/shared` and remove migrated endpoint dependencies on those types
 - [x] 4.2 Remove `JsonNullableJackson3Module` from
-      `services/shared/src/main/java/io/github/phunguy65/zms/shared/infrastructure/web/JacksonConfig.java`
+      `../../../../services/shared/src/main/java/io/github/smiskinext/shared/infrastructure/web/JacksonConfig.java`
 - [x] 4.3 Remove `jackson-databind-nullable` from affected Gradle modules and
       clean up imports, tests, and supporting code that no longer need it
 

@@ -6,8 +6,8 @@ import io.github.smiskinext.meetingmanagement.domain.model.valueobject.LiveKitEg
 import io.github.smiskinext.meetingmanagement.domain.model.valueobject.LiveKitRoomName;
 import io.github.smiskinext.meetingmanagement.domain.model.valueobject.LiveKitTokenRequest;
 import io.github.smiskinext.meetingmanagement.domain.model.valueobject.ParticipantGrants;
-import io.github.phunguy65.zms.shared.domain.Result;
-import io.github.phunguy65.zms.shared.domain.valueobject.MeetingId;
+import io.github.smiskinext.shared.domain.Result;
+import io.github.smiskinext.shared.domain.valueobject.MeetingId;
 import java.util.List;
 import org.jspecify.annotations.Nullable;
 

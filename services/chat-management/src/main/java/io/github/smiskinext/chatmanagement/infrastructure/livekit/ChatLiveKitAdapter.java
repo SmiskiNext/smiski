@@ -3,7 +3,7 @@ package io.github.smiskinext.chatmanagement.infrastructure.livekit;
 import io.github.smiskinext.chatmanagement.application.port.ChatLiveKitPort;
 import io.github.smiskinext.chatmanagement.domain.model.ChatError;
 import io.github.smiskinext.chatmanagement.domain.model.ChatMessage;
-import io.github.phunguy65.zms.shared.domain.Result;
+import io.github.smiskinext.shared.domain.Result;
 import io.livekit.server.RoomServiceClient;
 import kotlin.KotlinNullPointerException;
 import livekit.LivekitModels.DataPacket;

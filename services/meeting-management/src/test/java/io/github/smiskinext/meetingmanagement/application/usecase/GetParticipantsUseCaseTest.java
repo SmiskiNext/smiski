@@ -12,7 +12,7 @@ import io.github.smiskinext.meetingmanagement.domain.model.ParticipantRole;
 import io.github.smiskinext.meetingmanagement.domain.port.MeetingRepository;
 import io.github.smiskinext.meetingmanagement.domain.port.ParticipationLogRepository;
 import io.github.smiskinext.meetingmanagement.domain.projection.ParticipantSummary;
-import io.github.phunguy65.zms.shared.domain.Result;
+import io.github.smiskinext.shared.domain.Result;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;

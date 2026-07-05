@@ -2,7 +2,7 @@ package io.github.smiskinext.chatmanagement.application.usecase;
 
 import io.github.smiskinext.chatmanagement.application.port.ChatMessageRepository;
 import io.github.smiskinext.chatmanagement.application.port.ChatRoomRepository;
-import io.github.phunguy65.zms.shared.domain.CursorPageResponse;
+import io.github.smiskinext.shared.domain.CursorPageResponse;
 import java.util.Optional;
 
 import io.github.smiskinext.chatmanagement.domain.model.ChatMessage;

@@ -5,7 +5,7 @@ import io.github.smiskinext.meetingmanagement.application.service.InviteTokenSer
 import io.github.smiskinext.meetingmanagement.application.service.InviteTokenService.ValidationResult;
 import io.github.smiskinext.meetingmanagement.domain.MeetingError;
 import io.github.smiskinext.meetingmanagement.domain.port.InviteTokenRepository;
-import io.github.phunguy65.zms.shared.domain.Result;
+import io.github.smiskinext.shared.domain.Result;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 

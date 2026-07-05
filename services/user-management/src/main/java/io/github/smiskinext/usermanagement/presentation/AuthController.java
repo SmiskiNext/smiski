@@ -1,7 +1,7 @@
 package io.github.smiskinext.usermanagement.presentation;
 
-import io.github.phunguy65.zms.shared.domain.Result;
-import io.github.phunguy65.zms.shared.infrastructure.web.JsendResponse;
+import io.github.smiskinext.shared.domain.Result;
+import io.github.smiskinext.shared.infrastructure.web.JsendResponse;
 import io.github.smiskinext.usermanagement.application.response.LoginResponse;
 import io.github.smiskinext.usermanagement.application.response.RegisterResponse;
 import io.github.smiskinext.usermanagement.application.response.VerifyOtpResponse;

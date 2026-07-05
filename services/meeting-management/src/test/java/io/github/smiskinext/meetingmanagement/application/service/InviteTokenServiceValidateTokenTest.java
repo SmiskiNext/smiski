@@ -15,8 +15,8 @@ import io.github.smiskinext.meetingmanagement.domain.model.valueobject.MeetingTi
 import io.github.smiskinext.meetingmanagement.domain.model.valueobject.ShortCode;
 import io.github.smiskinext.meetingmanagement.domain.port.InviteTokenRepository;
 import io.github.smiskinext.meetingmanagement.domain.port.MeetingRepository;
-import io.github.phunguy65.zms.shared.domain.valueobject.MeetingId;
-import io.github.phunguy65.zms.shared.domain.valueobject.UserId;
+import io.github.smiskinext.shared.domain.valueobject.MeetingId;
+import io.github.smiskinext.shared.domain.valueobject.UserId;
 import java.time.Instant;
 import java.util.Optional;
 import java.util.UUID;

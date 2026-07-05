@@ -7,8 +7,8 @@ import io.github.smiskinext.meetingmanagement.domain.event.MeetingCancelledEvent
 import io.github.smiskinext.meetingmanagement.domain.model.InviteeStatus;
 import io.github.smiskinext.meetingmanagement.domain.port.MeetingInviteeRepository;
 import io.github.smiskinext.meetingmanagement.domain.port.MeetingRepository;
-import io.github.phunguy65.zms.shared.domain.Result;
-import io.github.phunguy65.zms.shared.domain.valueobject.UserId;
+import io.github.smiskinext.shared.domain.Result;
+import io.github.smiskinext.shared.domain.valueobject.UserId;
 import java.util.List;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;

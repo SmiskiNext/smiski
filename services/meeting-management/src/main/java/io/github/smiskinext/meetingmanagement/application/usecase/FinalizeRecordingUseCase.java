@@ -8,7 +8,7 @@ import io.github.smiskinext.meetingmanagement.domain.model.valueobject.LiveKitEg
 import io.github.smiskinext.meetingmanagement.domain.model.valueobject.LiveKitRoomName;
 import io.github.smiskinext.meetingmanagement.domain.port.LiveKitPort;
 import io.github.smiskinext.meetingmanagement.domain.port.RecordingRepository;
-import io.github.phunguy65.zms.shared.domain.Result;
+import io.github.smiskinext.shared.domain.Result;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationEventPublisher;

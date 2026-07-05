@@ -4,8 +4,8 @@ import io.github.smiskinext.meetingmanagement.application.response.ValidateInvit
 import io.github.smiskinext.meetingmanagement.application.usecase.ValidateInviteTokenUseCase;
 import io.github.smiskinext.meetingmanagement.domain.MeetingError;
 import io.github.smiskinext.meetingmanagement.presentation.request.ValidateInviteTokenRequest;
-import io.github.phunguy65.zms.shared.domain.Result;
-import io.github.phunguy65.zms.shared.infrastructure.web.JsendResponse;
+import io.github.smiskinext.shared.domain.Result;
+import io.github.smiskinext.shared.infrastructure.web.JsendResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;

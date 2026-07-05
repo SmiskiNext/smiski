@@ -8,7 +8,7 @@ import io.github.smiskinext.chatmanagement.domain.model.ChatError;
 import io.github.smiskinext.chatmanagement.domain.model.ChatMessage;
 import io.github.smiskinext.chatmanagement.domain.model.ChatRoom;
 import io.github.smiskinext.chatmanagement.domain.port.ChatLimitsPort;
-import io.github.phunguy65.zms.shared.domain.Result;
+import io.github.smiskinext.shared.domain.Result;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;

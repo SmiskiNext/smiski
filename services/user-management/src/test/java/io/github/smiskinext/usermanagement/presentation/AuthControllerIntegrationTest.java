@@ -8,6 +8,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 import static org.springframework.test.web.servlet.setup.MockMvcBuilders.webAppContextSetup;
 
+import io.github.smiskinext.shared.domain.valueobject.Email;
 import io.github.smiskinext.usermanagement.config.TestcontainersConfiguration;
 import io.github.smiskinext.usermanagement.domain.model.PasswordResetToken;
 import io.github.smiskinext.usermanagement.domain.port.OtpGenerator;
@@ -466,7 +467,7 @@ class AuthControllerIntegrationTest {
             // Create a valid token directly in DB for testing
             var user = userRepository
                     .findActiveByEmail(
-                            io.github.phunguy65.zms.shared.domain.valueobject.Email.of(email))
+                            Email.of(email))
                     .orElseThrow();
             String otp = "123456";
             String otpHash = otpHasher.hash(otp);
@@ -506,7 +507,7 @@ class AuthControllerIntegrationTest {
             // Create a valid token with known OTP
             var user = userRepository
                     .findActiveByEmail(
-                            io.github.phunguy65.zms.shared.domain.valueobject.Email.of(email))
+                            Email.of(email))
                     .orElseThrow();
             String otpHash = otpHasher.hash("123456");
             PasswordResetToken token = PasswordResetToken.issue(
@@ -538,7 +539,7 @@ class AuthControllerIntegrationTest {
             // Create an expired token
             var user = userRepository
                     .findActiveByEmail(
-                            io.github.phunguy65.zms.shared.domain.valueobject.Email.of(email))
+                            Email.of(email))
                     .orElseThrow();
             String otp = "123456";
             String otpHash = otpHasher.hash(otp);
@@ -605,7 +606,7 @@ class AuthControllerIntegrationTest {
             // Create a valid password reset token
             var user = userRepository
                     .findActiveByEmail(
-                            io.github.phunguy65.zms.shared.domain.valueobject.Email.of(email))
+                            Email.of(email))
                     .orElseThrow();
             String otp = "123456";
             PasswordResetToken token = PasswordResetToken.issue(
@@ -642,7 +643,7 @@ class AuthControllerIntegrationTest {
 
             var user = userRepository
                     .findActiveByEmail(
-                            io.github.phunguy65.zms.shared.domain.valueobject.Email.of(email))
+                            Email.of(email))
                     .orElseThrow();
             String otp = "123456";
             PasswordResetToken token = PasswordResetToken.issue(
@@ -668,7 +669,7 @@ class AuthControllerIntegrationTest {
 
             var user = userRepository
                     .findActiveByEmail(
-                            io.github.phunguy65.zms.shared.domain.valueobject.Email.of(email))
+                            Email.of(email))
                     .orElseThrow();
             String correctOtp = "123456";
             PasswordResetToken token = PasswordResetToken.issue(
@@ -694,7 +695,7 @@ class AuthControllerIntegrationTest {
 
             var user = userRepository
                     .findActiveByEmail(
-                            io.github.phunguy65.zms.shared.domain.valueobject.Email.of(email))
+                            Email.of(email))
                     .orElseThrow();
             String otp = "123456";
             PasswordResetToken token = PasswordResetToken.issue(
@@ -720,7 +721,7 @@ class AuthControllerIntegrationTest {
 
             var user = userRepository
                     .findActiveByEmail(
-                            io.github.phunguy65.zms.shared.domain.valueobject.Email.of(email))
+                            Email.of(email))
                     .orElseThrow();
             String otp = "123456";
             PasswordResetToken token = PasswordResetToken.reconstitute(
@@ -761,7 +762,7 @@ class AuthControllerIntegrationTest {
 
             var user = userRepository
                     .findActiveByEmail(
-                            io.github.phunguy65.zms.shared.domain.valueobject.Email.of(email))
+                            Email.of(email))
                     .orElseThrow();
             String otp = "123456";
             PasswordResetToken token = PasswordResetToken.issue(
@@ -862,7 +863,7 @@ class AuthControllerIntegrationTest {
 
             var user = userRepository
                     .findActiveByEmail(
-                            io.github.phunguy65.zms.shared.domain.valueobject.Email.of(email))
+                            Email.of(email))
                     .orElseThrow();
             var tokenOpt = tokenRepository.findValidByUserId(user.getId());
             assertThat(tokenOpt).isPresent();

@@ -1,10 +1,10 @@
 package io.github.smiskinext.meetingmanagement.infrastructure.web;
 
 import io.github.smiskinext.meetingmanagement.domain.model.valueobject.ParticipatedMeetingCursor;
-import io.github.phunguy65.zms.shared.domain.CursorErrorCode;
-import io.github.phunguy65.zms.shared.domain.CursorTokenEncoder;
-import io.github.phunguy65.zms.shared.domain.Result;
-import io.github.phunguy65.zms.shared.domain.ScrollCursor;
+import io.github.smiskinext.shared.domain.CursorErrorCode;
+import io.github.smiskinext.shared.domain.CursorTokenEncoder;
+import io.github.smiskinext.shared.domain.Result;
+import io.github.smiskinext.shared.domain.ScrollCursor;
 import org.springframework.stereotype.Component;
 
 @Component

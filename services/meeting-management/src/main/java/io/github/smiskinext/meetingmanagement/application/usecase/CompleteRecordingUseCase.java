@@ -4,7 +4,7 @@ import io.github.smiskinext.meetingmanagement.application.command.CompleteRecord
 import io.github.smiskinext.meetingmanagement.domain.MeetingError;
 import io.github.smiskinext.meetingmanagement.domain.PublishableEvent;
 import io.github.smiskinext.meetingmanagement.domain.port.RecordingRepository;
-import io.github.phunguy65.zms.shared.domain.Result;
+import io.github.smiskinext.shared.domain.Result;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;

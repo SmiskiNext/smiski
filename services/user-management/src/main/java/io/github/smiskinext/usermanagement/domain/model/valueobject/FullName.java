@@ -1,6 +1,6 @@
 package io.github.smiskinext.usermanagement.domain.model.valueobject;
 
-import io.github.phunguy65.zms.shared.domain.ValueObject;
+import io.github.smiskinext.shared.domain.ValueObject;
 
 /**
  * Value object representing a user's full name (non-blank, max 255 chars).

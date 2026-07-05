@@ -1,6 +1,6 @@
 package io.github.smiskinext.usermanagement.presentation.request;
 
-import io.github.phunguy65.zms.shared.domain.ScrollParams;
+import io.github.smiskinext.shared.domain.ScrollParams;
 import io.github.smiskinext.usermanagement.application.query.SearchUsersQuery;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;

@@ -3,7 +3,7 @@ package io.github.smiskinext.meetingmanagement.application.helper;
 import io.github.smiskinext.meetingmanagement.domain.MeetingError;
 import io.github.smiskinext.meetingmanagement.domain.model.valueobject.ShortCode;
 import io.github.smiskinext.meetingmanagement.domain.port.MeetingRepository;
-import io.github.phunguy65.zms.shared.domain.Result;
+import io.github.smiskinext.shared.domain.Result;
 import org.springframework.stereotype.Service;
 
 /**

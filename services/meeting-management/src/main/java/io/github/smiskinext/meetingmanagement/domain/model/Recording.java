@@ -8,9 +8,9 @@ import io.github.smiskinext.meetingmanagement.domain.event.RecordingStartedEvent
 import io.github.smiskinext.meetingmanagement.domain.model.valueobject.LiveKitEgressId;
 import io.github.smiskinext.meetingmanagement.domain.model.valueobject.LiveKitRoomName;
 import io.github.smiskinext.meetingmanagement.domain.model.valueobject.RecordingId;
-import io.github.phunguy65.zms.shared.domain.AggregateRoot;
-import io.github.phunguy65.zms.shared.domain.Result;
-import io.github.phunguy65.zms.shared.domain.valueobject.MeetingId;
+import io.github.smiskinext.shared.domain.AggregateRoot;
+import io.github.smiskinext.shared.domain.Result;
+import io.github.smiskinext.shared.domain.valueobject.MeetingId;
 import java.time.Instant;
 import java.util.Optional;
 import java.util.UUID;

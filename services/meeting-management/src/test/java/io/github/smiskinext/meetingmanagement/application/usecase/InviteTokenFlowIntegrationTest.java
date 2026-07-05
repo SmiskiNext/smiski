@@ -22,7 +22,7 @@ import io.github.smiskinext.meetingmanagement.domain.port.InviteTokenRepository;
 import io.github.smiskinext.meetingmanagement.domain.port.MeetingInviteeRepository;
 import io.github.smiskinext.meetingmanagement.domain.port.UserGrpcServicePort;
 import io.github.smiskinext.meetingmanagement.domain.port.UserGrpcServicePort.ResolvedUser;
-import io.github.phunguy65.zms.shared.domain.Result;
+import io.github.smiskinext.shared.domain.Result;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;

@@ -1,6 +1,8 @@
 package io.github.smiskinext.meetingmanagement.domain.model.valueobject;
 
-import io.github.phunguy65.zms.shared.domain.ValueObject;
+import io.github.smiskinext.shared.domain.ValueObject;
+import io.github.smiskinext.shared.domain.valueobject.MeetingId;
+
 import java.util.Objects;
 import java.util.UUID;
 
@@ -8,7 +10,7 @@ import java.util.UUID;
  * Strongly-typed wrapper for the {@code recordings.id} UUID primary key.
  *
  * <p>Prevents accidental mixing with other UUID-typed identifiers such as
- * {@link io.github.phunguy65.zms.shared.domain.valueobject.MeetingId}.
+ * {@link MeetingId}.
  */
 public record RecordingId(UUID value) implements ValueObject {
 

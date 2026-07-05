@@ -7,7 +7,7 @@ import io.github.smiskinext.meetingmanagement.domain.model.MeetingStatus;
 import io.github.smiskinext.meetingmanagement.domain.model.valueobject.LiveKitRoomName;
 import io.github.smiskinext.meetingmanagement.domain.port.LiveKitPort;
 import io.github.smiskinext.meetingmanagement.domain.port.MeetingRepository;
-import io.github.phunguy65.zms.shared.domain.Result;
+import io.github.smiskinext.shared.domain.Result;
 import org.springframework.stereotype.Service;
 
 /**

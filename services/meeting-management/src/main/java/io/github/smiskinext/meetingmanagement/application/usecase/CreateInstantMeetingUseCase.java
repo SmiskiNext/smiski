@@ -13,8 +13,8 @@ import io.github.smiskinext.meetingmanagement.domain.model.valueobject.MeetingTi
 import io.github.smiskinext.meetingmanagement.domain.model.valueobject.ShortCode;
 import io.github.smiskinext.meetingmanagement.domain.port.MeetingRepository;
 import io.github.smiskinext.meetingmanagement.domain.port.PasswordHasher;
-import io.github.phunguy65.zms.shared.domain.Result;
-import io.github.phunguy65.zms.shared.domain.valueobject.UserId;
+import io.github.smiskinext.shared.domain.Result;
+import io.github.smiskinext.shared.domain.valueobject.UserId;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;

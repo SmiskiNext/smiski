@@ -5,7 +5,7 @@ import io.github.smiskinext.meetingmanagement.domain.model.InviteTokenStatus;
 import io.github.smiskinext.meetingmanagement.domain.model.valueobject.InviteTokenId;
 import io.github.smiskinext.meetingmanagement.domain.model.valueobject.InviteeId;
 import io.github.smiskinext.meetingmanagement.domain.port.InviteTokenRepository;
-import io.github.phunguy65.zms.shared.domain.valueobject.MeetingId;
+import io.github.smiskinext.shared.domain.valueobject.MeetingId;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;

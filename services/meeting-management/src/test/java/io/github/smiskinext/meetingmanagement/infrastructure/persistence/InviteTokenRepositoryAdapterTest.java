@@ -6,8 +6,8 @@ import io.github.smiskinext.meetingmanagement.config.TestcontainersConfiguration
 import io.github.smiskinext.meetingmanagement.domain.model.InviteToken;
 import io.github.smiskinext.meetingmanagement.domain.model.InviteTokenStatus;
 import io.github.smiskinext.meetingmanagement.domain.model.valueobject.InviteeId;
-import io.github.phunguy65.zms.shared.domain.Result;
-import io.github.phunguy65.zms.shared.domain.valueobject.MeetingId;
+import io.github.smiskinext.shared.domain.Result;
+import io.github.smiskinext.shared.domain.valueobject.MeetingId;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.List;

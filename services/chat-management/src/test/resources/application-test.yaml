@@ -1,8 +1,0 @@
-app:
-    chat:
-        jwt-secret: test-chat-jwt-secret-must-be-at-least-32-chars
-    cursor:
-        secret: test-cursor-secret-fixed-value-for-tests
-    livekit:
-        api-key:
-        api-secret:

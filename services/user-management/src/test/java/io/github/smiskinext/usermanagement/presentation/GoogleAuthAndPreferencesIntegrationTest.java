@@ -8,7 +8,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 import static org.springframework.test.web.servlet.setup.MockMvcBuilders.webAppContextSetup;
 
-import io.github.phunguy65.zms.shared.domain.Result;
+import io.github.smiskinext.shared.domain.Result;
 import io.github.smiskinext.usermanagement.config.TestcontainersConfiguration;
 import io.github.smiskinext.usermanagement.domain.AuthError;
 import io.github.smiskinext.usermanagement.domain.model.valueobject.GoogleAuthClaims;

@@ -10,7 +10,7 @@ import io.github.smiskinext.meetingmanagement.domain.model.valueobject.LiveKitRo
 import io.github.smiskinext.meetingmanagement.domain.port.LiveKitPort;
 import io.github.smiskinext.meetingmanagement.domain.port.MeetingRepository;
 import io.github.smiskinext.meetingmanagement.domain.port.ParticipationLogRepository;
-import io.github.phunguy65.zms.shared.domain.Result;
+import io.github.smiskinext.shared.domain.Result;
 import java.util.List;
 import org.springframework.stereotype.Service;
 

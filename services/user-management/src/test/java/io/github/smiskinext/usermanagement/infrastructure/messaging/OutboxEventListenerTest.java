@@ -4,7 +4,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 
 import com.github.f4b6a3.uuid.UuidCreator;
-import io.github.phunguy65.zms.shared.domain.valueobject.UserId;
+import io.github.smiskinext.shared.domain.valueobject.UserId;
 import io.github.smiskinext.usermanagement.domain.event.UserRegisteredEvent;
 import io.github.smiskinext.usermanagement.infrastructure.persistence.OutboxEventJpaEntity;
 import io.github.smiskinext.usermanagement.infrastructure.persistence.OutboxEventRepository;

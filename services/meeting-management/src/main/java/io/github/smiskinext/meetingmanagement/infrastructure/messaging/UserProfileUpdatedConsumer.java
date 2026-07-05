@@ -6,6 +6,8 @@ import io.github.smiskinext.meetingmanagement.domain.model.valueobject.LiveKitRo
 import io.github.smiskinext.meetingmanagement.domain.port.LiveKitPort;
 import io.github.smiskinext.meetingmanagement.domain.port.ParticipationLogRepository;
 import java.util.UUID;
+
+import io.github.smiskinext.shared.domain.Result;
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -55,7 +57,7 @@ public class UserProfileUpdatedConsumer {
 
             if (result
                     instanceof
-                    io.github.phunguy65.zms.shared.domain.Result.Failure<Void, MeetingError>
+                    Result.Failure<Void, MeetingError>
                             failure) {
                 if (failure.error() instanceof MeetingError.LiveKitParticipantNotFound notFound) {
                     log.debug(

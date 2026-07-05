@@ -8,7 +8,7 @@ import io.github.smiskinext.meetingmanagement.application.response.ParticipatedM
 import io.github.smiskinext.meetingmanagement.domain.MeetingError;
 import io.github.smiskinext.meetingmanagement.domain.port.MeetingRepository;
 import io.github.smiskinext.meetingmanagement.domain.projection.ParticipatedMeetingSummary;
-import io.github.phunguy65.zms.shared.domain.Result;
+import io.github.smiskinext.shared.domain.Result;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 

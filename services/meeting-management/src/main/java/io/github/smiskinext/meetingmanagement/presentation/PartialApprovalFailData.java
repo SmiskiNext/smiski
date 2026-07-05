@@ -1,8 +1,9 @@
 package io.github.smiskinext.meetingmanagement.presentation;
 
-import io.github.phunguy65.zms.shared.domain.ErrorCode;
-import io.github.phunguy65.zms.shared.infrastructure.web.Violation;
+import io.github.smiskinext.shared.domain.ErrorCode;
+import io.github.smiskinext.shared.infrastructure.web.Violation;
 import io.github.smiskinext.meetingmanagement.domain.MeetingError;
+import io.github.smiskinext.shared.infrastructure.web.FailData;
 
 import java.util.List;
 import java.util.UUID;
@@ -11,7 +12,7 @@ import java.util.UUID;
  * Extended fail payload for {@link MeetingError.PartialApprovalFailure}.
  *
  * <p>Preserves the standard {@code message}/{@code code}/{@code errors} shape of
- * {@link io.github.phunguy65.zms.shared.infrastructure.web.FailData} while adding the
+ * {@link FailData} while adding the
  * domain-specific {@code approvedCount} and {@code failedIds} fields that clients need
  * to display which approvals succeeded and which failed.
  *

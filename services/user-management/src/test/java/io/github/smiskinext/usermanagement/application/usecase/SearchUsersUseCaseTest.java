@@ -7,7 +7,7 @@ import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.when;
 
 import com.github.f4b6a3.uuid.UuidCreator;
-import io.github.phunguy65.zms.shared.domain.CursorPageResponse;
+import io.github.smiskinext.shared.domain.CursorPageResponse;
 import io.github.smiskinext.usermanagement.application.helper.UserPreferencesParser;
 import io.github.smiskinext.usermanagement.application.query.SearchUsersQuery;
 import io.github.smiskinext.usermanagement.domain.port.UserRepository;

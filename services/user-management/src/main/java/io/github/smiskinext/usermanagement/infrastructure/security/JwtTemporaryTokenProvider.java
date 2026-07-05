@@ -1,6 +1,6 @@
 package io.github.smiskinext.usermanagement.infrastructure.security;
 
-import io.github.phunguy65.zms.shared.domain.valueobject.UserId;
+import io.github.smiskinext.shared.domain.valueobject.UserId;
 import io.github.smiskinext.usermanagement.domain.model.valueobject.TemporaryToken;
 import io.github.smiskinext.usermanagement.domain.model.valueobject.TemporaryTokenPurpose;
 import io.github.smiskinext.usermanagement.domain.port.TemporaryTokenProvider;

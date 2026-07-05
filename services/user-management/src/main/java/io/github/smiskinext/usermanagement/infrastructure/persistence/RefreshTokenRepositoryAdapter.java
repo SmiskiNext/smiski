@@ -1,6 +1,6 @@
 package io.github.smiskinext.usermanagement.infrastructure.persistence;
 
-import io.github.phunguy65.zms.shared.domain.valueobject.UserId;
+import io.github.smiskinext.shared.domain.valueobject.UserId;
 import io.github.smiskinext.usermanagement.domain.model.RefreshToken;
 import io.github.smiskinext.usermanagement.domain.model.valueobject.RefreshTokenId;
 import io.github.smiskinext.usermanagement.domain.port.RefreshTokenRepository;

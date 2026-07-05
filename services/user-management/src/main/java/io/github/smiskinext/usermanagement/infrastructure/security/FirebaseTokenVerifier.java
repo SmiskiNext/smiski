@@ -2,7 +2,7 @@ package io.github.smiskinext.usermanagement.infrastructure.security;
 
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseAuthException;
-import io.github.phunguy65.zms.shared.domain.Result;
+import io.github.smiskinext.shared.domain.Result;
 import io.github.smiskinext.usermanagement.domain.AuthError;
 import io.github.smiskinext.usermanagement.domain.model.valueobject.GoogleAuthClaims;
 import io.github.smiskinext.usermanagement.domain.port.GoogleAuthVerifier;

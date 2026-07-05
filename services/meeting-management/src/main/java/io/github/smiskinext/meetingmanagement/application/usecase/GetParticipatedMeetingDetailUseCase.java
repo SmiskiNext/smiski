@@ -17,7 +17,7 @@ import io.github.smiskinext.meetingmanagement.domain.port.RecordingRepository;
 import io.github.smiskinext.meetingmanagement.domain.projection.InviteeSummary;
 import io.github.smiskinext.meetingmanagement.domain.projection.ParticipantSummary;
 import io.github.smiskinext.meetingmanagement.domain.projection.RecordingSummary;
-import io.github.phunguy65.zms.shared.domain.Result;
+import io.github.smiskinext.shared.domain.Result;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;

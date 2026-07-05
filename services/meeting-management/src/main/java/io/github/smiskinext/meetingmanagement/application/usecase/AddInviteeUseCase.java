@@ -16,10 +16,10 @@ import io.github.smiskinext.meetingmanagement.domain.port.MeetingInviteeReposito
 import io.github.smiskinext.meetingmanagement.domain.port.MeetingRepository;
 import io.github.smiskinext.meetingmanagement.domain.port.UserGrpcServicePort;
 import io.github.smiskinext.meetingmanagement.domain.port.UserGrpcServicePort.ResolvedUser;
-import io.github.phunguy65.zms.shared.domain.Result;
-import io.github.phunguy65.zms.shared.domain.valueobject.Email;
-import io.github.phunguy65.zms.shared.domain.valueobject.MeetingId;
-import io.github.phunguy65.zms.shared.domain.valueobject.UserId;
+import io.github.smiskinext.shared.domain.Result;
+import io.github.smiskinext.shared.domain.valueobject.Email;
+import io.github.smiskinext.shared.domain.valueobject.MeetingId;
+import io.github.smiskinext.shared.domain.valueobject.UserId;
 import java.time.Instant;
 import java.util.HashMap;
 import java.util.List;

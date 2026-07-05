@@ -1,7 +1,7 @@
 package io.github.smiskinext.usermanagement.application.usecase;
 
-import io.github.phunguy65.zms.shared.domain.CursorPageResponse;
-import io.github.phunguy65.zms.shared.domain.ScrollCursor;
+import io.github.smiskinext.shared.domain.CursorPageResponse;
+import io.github.smiskinext.shared.domain.ScrollCursor;
 import io.github.smiskinext.usermanagement.application.helper.UserPreferencesParser;
 import io.github.smiskinext.usermanagement.application.query.SearchUsersQuery;
 import io.github.smiskinext.usermanagement.application.response.UserResponse;

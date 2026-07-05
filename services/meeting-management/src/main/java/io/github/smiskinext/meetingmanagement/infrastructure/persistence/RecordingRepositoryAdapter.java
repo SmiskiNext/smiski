@@ -7,9 +7,9 @@ import io.github.smiskinext.meetingmanagement.domain.model.valueobject.LiveKitRo
 import io.github.smiskinext.meetingmanagement.domain.model.valueobject.RecordingId;
 import io.github.smiskinext.meetingmanagement.domain.port.RecordingRepository;
 import io.github.smiskinext.meetingmanagement.domain.projection.RecordingSummary;
-import io.github.phunguy65.zms.shared.domain.CursorPageResponse;
-import io.github.phunguy65.zms.shared.domain.ScrollCursor;
-import io.github.phunguy65.zms.shared.domain.valueobject.MeetingId;
+import io.github.smiskinext.shared.domain.CursorPageResponse;
+import io.github.smiskinext.shared.domain.ScrollCursor;
+import io.github.smiskinext.shared.domain.valueobject.MeetingId;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;

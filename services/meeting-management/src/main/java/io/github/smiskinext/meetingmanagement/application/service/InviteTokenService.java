@@ -8,7 +8,7 @@ import io.github.smiskinext.meetingmanagement.domain.model.MeetingStatus;
 import io.github.smiskinext.meetingmanagement.domain.model.valueobject.InviteeId;
 import io.github.smiskinext.meetingmanagement.domain.port.InviteTokenRepository;
 import io.github.smiskinext.meetingmanagement.domain.port.MeetingRepository;
-import io.github.phunguy65.zms.shared.domain.valueobject.MeetingId;
+import io.github.smiskinext.shared.domain.valueobject.MeetingId;
 import java.nio.charset.StandardCharsets;
 import java.security.InvalidKeyException;
 import java.security.MessageDigest;

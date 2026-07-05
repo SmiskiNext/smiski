@@ -1,6 +1,6 @@
 package io.github.smiskinext.meetingmanagement.domain;
 
-import io.github.phunguy65.zms.shared.domain.ErrorCode;
+import io.github.smiskinext.shared.domain.ErrorCode;
 
 /**
  * Machine-readable error codes for JSend {@code fail} responses.

@@ -2,8 +2,8 @@ package io.github.smiskinext.chatmanagement.presentation.rest;
 
 import io.github.smiskinext.chatmanagement.domain.model.ChatError;
 import io.github.smiskinext.chatmanagement.domain.model.ChatErrorCode;
-import io.github.phunguy65.zms.shared.infrastructure.web.FailData;
-import io.github.phunguy65.zms.shared.infrastructure.web.JsendResponse;
+import io.github.smiskinext.shared.infrastructure.web.FailData;
+import io.github.smiskinext.shared.infrastructure.web.JsendResponse;
 import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;

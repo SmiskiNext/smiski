@@ -1,8 +1,8 @@
 package io.github.smiskinext.usermanagement.domain.model;
 
 import com.github.f4b6a3.uuid.UuidCreator;
-import io.github.phunguy65.zms.shared.domain.AggregateRoot;
-import io.github.phunguy65.zms.shared.domain.valueobject.UserId;
+import io.github.smiskinext.shared.domain.AggregateRoot;
+import io.github.smiskinext.shared.domain.valueobject.UserId;
 import io.github.smiskinext.usermanagement.domain.model.valueobject.RefreshTokenId;
 import java.time.Instant;
 import java.util.Optional;

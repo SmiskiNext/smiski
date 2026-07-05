@@ -8,8 +8,8 @@ import io.github.smiskinext.meetingmanagement.config.RedisTestcontainersConfigur
 import io.github.smiskinext.meetingmanagement.config.TestcontainersConfiguration;
 import io.github.smiskinext.meetingmanagement.domain.model.JoinRequest;
 import io.github.smiskinext.meetingmanagement.infrastructure.persistence.JoinRequestRedisRepositoryAdapter;
-import io.github.phunguy65.zms.shared.domain.valueobject.MeetingId;
-import io.github.phunguy65.zms.shared.domain.valueobject.UserId;
+import io.github.smiskinext.shared.domain.valueobject.MeetingId;
+import io.github.smiskinext.shared.domain.valueobject.UserId;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Properties;

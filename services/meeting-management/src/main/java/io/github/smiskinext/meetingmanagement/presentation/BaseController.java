@@ -2,8 +2,8 @@ package io.github.smiskinext.meetingmanagement.presentation;
 
 import io.github.smiskinext.meetingmanagement.domain.MeetingError;
 import io.github.smiskinext.meetingmanagement.domain.MeetingErrorCode;
-import io.github.phunguy65.zms.shared.infrastructure.web.FailData;
-import io.github.phunguy65.zms.shared.infrastructure.web.JsendResponse;
+import io.github.smiskinext.shared.infrastructure.web.FailData;
+import io.github.smiskinext.shared.infrastructure.web.JsendResponse;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;

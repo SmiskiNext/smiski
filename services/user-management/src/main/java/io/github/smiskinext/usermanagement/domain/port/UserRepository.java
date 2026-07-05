@@ -1,9 +1,9 @@
 package io.github.smiskinext.usermanagement.domain.port;
 
-import io.github.phunguy65.zms.shared.domain.CursorPageResponse;
-import io.github.phunguy65.zms.shared.domain.ScrollCursor;
-import io.github.phunguy65.zms.shared.domain.valueobject.Email;
-import io.github.phunguy65.zms.shared.domain.valueobject.UserId;
+import io.github.smiskinext.shared.domain.CursorPageResponse;
+import io.github.smiskinext.shared.domain.ScrollCursor;
+import io.github.smiskinext.shared.domain.valueobject.Email;
+import io.github.smiskinext.shared.domain.valueobject.UserId;
 import io.github.smiskinext.usermanagement.domain.model.User;
 import io.github.smiskinext.usermanagement.domain.model.valueobject.Username;
 import io.github.smiskinext.usermanagement.domain.projection.UserSummary;

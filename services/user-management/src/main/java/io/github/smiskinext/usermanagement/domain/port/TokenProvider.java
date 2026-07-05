@@ -1,6 +1,6 @@
 package io.github.smiskinext.usermanagement.domain.port;
 
-import io.github.phunguy65.zms.shared.domain.valueobject.UserId;
+import io.github.smiskinext.shared.domain.valueobject.UserId;
 
 public interface TokenProvider {
 

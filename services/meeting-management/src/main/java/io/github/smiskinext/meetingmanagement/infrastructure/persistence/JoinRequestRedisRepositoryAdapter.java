@@ -5,7 +5,7 @@ import io.github.smiskinext.meetingmanagement.domain.model.JoinRequestStatus;
 import io.github.smiskinext.meetingmanagement.domain.port.JoinRequestRepository;
 import io.github.smiskinext.meetingmanagement.domain.projection.JoinRequestSummary;
 import io.github.smiskinext.meetingmanagement.infrastructure.persistence.model.JoinRequestData;
-import io.github.phunguy65.zms.shared.domain.OffsetPageResponse;
+import io.github.smiskinext.shared.domain.OffsetPageResponse;
 import java.time.Duration;
 import java.util.*;
 import java.util.stream.Collectors;

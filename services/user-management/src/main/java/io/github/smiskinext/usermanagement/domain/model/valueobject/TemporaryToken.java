@@ -1,13 +1,14 @@
 package io.github.smiskinext.usermanagement.domain.model.valueobject;
 
-import io.github.phunguy65.zms.shared.domain.valueobject.UserId;
+import io.github.smiskinext.shared.domain.ValueObject;
+import io.github.smiskinext.shared.domain.valueobject.UserId;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Objects;
 
 public record TemporaryToken(
         String value, UserId userId, TemporaryTokenPurpose purpose, Instant expiresAt)
-        implements io.github.phunguy65.zms.shared.domain.ValueObject {
+        implements ValueObject {
 
     public TemporaryToken {
         Objects.requireNonNull(value, "TemporaryToken value must not be null");

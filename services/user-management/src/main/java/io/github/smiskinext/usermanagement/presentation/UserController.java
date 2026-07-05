@@ -1,13 +1,13 @@
 package io.github.smiskinext.usermanagement.presentation;
 
-import io.github.phunguy65.zms.shared.domain.CursorErrorCode;
-import io.github.phunguy65.zms.shared.domain.CursorTokenEncoder;
-import io.github.phunguy65.zms.shared.domain.Result;
-import io.github.phunguy65.zms.shared.domain.ScrollCursor;
-import io.github.phunguy65.zms.shared.domain.valueobject.UserId;
-import io.github.phunguy65.zms.shared.infrastructure.web.CursorScrollResponse;
-import io.github.phunguy65.zms.shared.infrastructure.web.FailData;
-import io.github.phunguy65.zms.shared.infrastructure.web.JsendResponse;
+import io.github.smiskinext.shared.domain.CursorErrorCode;
+import io.github.smiskinext.shared.domain.CursorTokenEncoder;
+import io.github.smiskinext.shared.domain.Result;
+import io.github.smiskinext.shared.domain.ScrollCursor;
+import io.github.smiskinext.shared.domain.valueobject.UserId;
+import io.github.smiskinext.shared.infrastructure.web.CursorScrollResponse;
+import io.github.smiskinext.shared.infrastructure.web.FailData;
+import io.github.smiskinext.shared.infrastructure.web.JsendResponse;
 import io.github.smiskinext.usermanagement.application.response.UserResponse;
 import io.github.smiskinext.usermanagement.application.usecase.GetUserUseCase;
 import io.github.smiskinext.usermanagement.application.usecase.SearchUsersUseCase;

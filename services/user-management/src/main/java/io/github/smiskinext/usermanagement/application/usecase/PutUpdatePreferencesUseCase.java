@@ -1,7 +1,7 @@
 package io.github.smiskinext.usermanagement.application.usecase;
 
-import io.github.phunguy65.zms.shared.domain.Result;
-import io.github.phunguy65.zms.shared.domain.valueobject.UserId;
+import io.github.smiskinext.shared.domain.Result;
+import io.github.smiskinext.shared.domain.valueobject.UserId;
 import io.github.smiskinext.usermanagement.application.command.PutPreferencesCommand;
 import io.github.smiskinext.usermanagement.application.helper.UserPreferencesSerializer;
 import io.github.smiskinext.usermanagement.application.response.UserPreferencesResponse;

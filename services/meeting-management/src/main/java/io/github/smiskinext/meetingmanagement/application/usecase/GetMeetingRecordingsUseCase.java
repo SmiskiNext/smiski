@@ -4,7 +4,7 @@ import io.github.smiskinext.meetingmanagement.application.RecordingResponseMappe
 import io.github.smiskinext.meetingmanagement.application.query.GetMeetingRecordingsQuery;
 import io.github.smiskinext.meetingmanagement.application.response.RecordingResponse;
 import io.github.smiskinext.meetingmanagement.domain.port.RecordingRepository;
-import io.github.phunguy65.zms.shared.domain.CursorPageResponse;
+import io.github.smiskinext.shared.domain.CursorPageResponse;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 

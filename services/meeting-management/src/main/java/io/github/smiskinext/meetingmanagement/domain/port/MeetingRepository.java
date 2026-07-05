@@ -6,8 +6,8 @@ import io.github.smiskinext.meetingmanagement.domain.model.valueobject.Participa
 import io.github.smiskinext.meetingmanagement.domain.model.valueobject.ShortCode;
 import io.github.smiskinext.meetingmanagement.domain.projection.MeetingSummary;
 import io.github.smiskinext.meetingmanagement.domain.projection.ParticipatedMeetingSummary;
-import io.github.phunguy65.zms.shared.domain.CursorPageResponse;
-import io.github.phunguy65.zms.shared.domain.ScrollCursor;
+import io.github.smiskinext.shared.domain.CursorPageResponse;
+import io.github.smiskinext.shared.domain.ScrollCursor;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;

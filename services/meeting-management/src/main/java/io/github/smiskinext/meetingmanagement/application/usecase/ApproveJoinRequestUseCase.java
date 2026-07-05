@@ -17,8 +17,8 @@ import io.github.smiskinext.meetingmanagement.domain.port.JoinRequestResultStore
 import io.github.smiskinext.meetingmanagement.domain.port.LiveKitPort;
 import io.github.smiskinext.meetingmanagement.domain.port.MeetingRepository;
 import io.github.smiskinext.meetingmanagement.domain.port.ParticipationLogRepository;
-import io.github.phunguy65.zms.shared.domain.Result;
-import io.github.phunguy65.zms.shared.domain.valueobject.UserId;
+import io.github.smiskinext.shared.domain.Result;
+import io.github.smiskinext.shared.domain.valueobject.UserId;
 import java.time.Instant;
 import java.util.UUID;
 import org.slf4j.Logger;

@@ -5,7 +5,7 @@ import io.github.smiskinext.meetingmanagement.domain.model.JoinRequestStatus;
 import io.github.smiskinext.meetingmanagement.domain.model.MeetingStatus;
 import io.github.smiskinext.meetingmanagement.domain.model.RecordingStatus;
 import io.github.smiskinext.meetingmanagement.domain.model.valueobject.RecordingId;
-import io.github.phunguy65.zms.shared.domain.DomainError;
+import io.github.smiskinext.shared.domain.DomainError;
 import java.util.List;
 import java.util.UUID;
 

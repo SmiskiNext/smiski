@@ -11,7 +11,7 @@ import io.github.smiskinext.meetingmanagement.infrastructure.messaging.OutboxEve
 import io.github.smiskinext.meetingmanagement.infrastructure.messaging.UserProfileUpdatedConsumer;
 import io.github.smiskinext.meetingmanagement.infrastructure.sse.MeetingSseManager;
 import io.github.phunguy65.zms.proto.user.v1.UserServiceGrpc;
-import io.github.phunguy65.zms.shared.domain.CursorTokenEncoder;
+import io.github.smiskinext.shared.domain.CursorTokenEncoder;
 import io.livekit.server.EgressServiceClient;
 import io.livekit.server.RoomServiceClient;
 import java.io.IOException;

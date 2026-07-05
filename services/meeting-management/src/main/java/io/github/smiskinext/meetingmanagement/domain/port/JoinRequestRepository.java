@@ -3,7 +3,7 @@ package io.github.smiskinext.meetingmanagement.domain.port;
 import io.github.smiskinext.meetingmanagement.domain.model.JoinRequest;
 import io.github.smiskinext.meetingmanagement.domain.model.JoinRequestStatus;
 import io.github.smiskinext.meetingmanagement.domain.projection.JoinRequestSummary;
-import io.github.phunguy65.zms.shared.domain.OffsetPageResponse;
+import io.github.smiskinext.shared.domain.OffsetPageResponse;
 import java.time.Duration;
 import java.util.List;
 import java.util.Optional;

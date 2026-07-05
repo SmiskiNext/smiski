@@ -1,7 +1,7 @@
 package io.github.smiskinext.chatmanagement.application.port;
 
 import io.github.smiskinext.chatmanagement.domain.model.ChatMessage;
-import io.github.phunguy65.zms.shared.domain.CursorPageResponse;
+import io.github.smiskinext.shared.domain.CursorPageResponse;
 import java.util.Optional;
 
 /** Outbound port: persistence operations for {@link ChatMessage}. */

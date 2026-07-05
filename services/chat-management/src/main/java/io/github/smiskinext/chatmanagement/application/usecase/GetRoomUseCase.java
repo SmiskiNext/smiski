@@ -3,7 +3,7 @@ package io.github.smiskinext.chatmanagement.application.usecase;
 import io.github.smiskinext.chatmanagement.application.port.ChatRoomRepository;
 import io.github.smiskinext.chatmanagement.domain.model.ChatError;
 import io.github.smiskinext.chatmanagement.domain.model.ChatRoom;
-import io.github.phunguy65.zms.shared.domain.Result;
+import io.github.smiskinext.shared.domain.Result;
 import org.springframework.stereotype.Service;
 
 /** Retrieves room info. */

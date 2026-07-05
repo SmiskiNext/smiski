@@ -2,7 +2,7 @@ package io.github.smiskinext.usermanagement.infrastructure.persistence;
 
 import static io.github.smiskinext.usermanagement.domain.model.PasswordResetToken.MAX_ATTEMPTS;
 
-import io.github.phunguy65.zms.shared.domain.valueobject.UserId;
+import io.github.smiskinext.shared.domain.valueobject.UserId;
 import io.github.smiskinext.usermanagement.domain.model.PasswordResetToken;
 import io.github.smiskinext.usermanagement.domain.model.valueobject.PasswordResetTokenId;
 import io.github.smiskinext.usermanagement.domain.port.PasswordResetTokenRepository;

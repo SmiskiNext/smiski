@@ -8,7 +8,7 @@ import static org.mockito.Mockito.when;
 
 import com.github.f4b6a3.uuid.UuidCreator;
 import io.cloudevents.CloudEvent;
-import io.github.phunguy65.zms.shared.domain.valueobject.UserId;
+import io.github.smiskinext.shared.domain.valueobject.UserId;
 import io.github.smiskinext.usermanagement.domain.event.UserRegisteredEvent;
 import java.time.Instant;
 import java.util.concurrent.CompletableFuture;

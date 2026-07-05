@@ -1,6 +1,6 @@
 package io.github.smiskinext.usermanagement.application.usecase.internal;
 
-import io.github.phunguy65.zms.shared.domain.valueobject.Email;
+import io.github.smiskinext.shared.domain.valueobject.Email;
 import io.github.smiskinext.usermanagement.domain.port.UserRepository;
 import io.github.smiskinext.usermanagement.domain.projection.UserSummary;
 import java.util.LinkedHashMap;

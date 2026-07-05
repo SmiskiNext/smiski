@@ -1,10 +1,10 @@
 package io.github.smiskinext.usermanagement.presentation;
 
-import io.github.phunguy65.zms.shared.infrastructure.web.CommonErrorCode;
-import io.github.phunguy65.zms.shared.infrastructure.web.FailData;
-import io.github.phunguy65.zms.shared.infrastructure.web.JsendResponse;
-import io.github.phunguy65.zms.shared.infrastructure.web.Violation;
-import io.github.phunguy65.zms.shared.infrastructure.web.ViolationCode;
+import io.github.smiskinext.shared.infrastructure.web.CommonErrorCode;
+import io.github.smiskinext.shared.infrastructure.web.FailData;
+import io.github.smiskinext.shared.infrastructure.web.JsendResponse;
+import io.github.smiskinext.shared.infrastructure.web.Violation;
+import io.github.smiskinext.shared.infrastructure.web.ViolationCode;
 import io.github.smiskinext.usermanagement.domain.AuthError;
 import io.github.smiskinext.usermanagement.domain.AuthErrorCode;
 import java.util.List;

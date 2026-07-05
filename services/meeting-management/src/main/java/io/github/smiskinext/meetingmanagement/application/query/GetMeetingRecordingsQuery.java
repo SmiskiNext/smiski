@@ -1,6 +1,6 @@
 package io.github.smiskinext.meetingmanagement.application.query;
 
-import io.github.phunguy65.zms.shared.domain.ScrollCursor;
+import io.github.smiskinext.shared.domain.ScrollCursor;
 import java.util.UUID;
 import org.jspecify.annotations.Nullable;
 

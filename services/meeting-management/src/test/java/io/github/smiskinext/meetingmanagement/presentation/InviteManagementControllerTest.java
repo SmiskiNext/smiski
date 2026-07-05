@@ -18,7 +18,7 @@ import io.github.smiskinext.meetingmanagement.application.usecase.RevokeInviteUs
 import io.github.smiskinext.meetingmanagement.domain.MeetingError;
 import io.github.smiskinext.meetingmanagement.domain.model.InviteeStatus;
 import io.github.smiskinext.meetingmanagement.infrastructure.web.WebConfig;
-import io.github.phunguy65.zms.shared.domain.Result;
+import io.github.smiskinext.shared.domain.Result;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;

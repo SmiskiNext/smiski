@@ -1,7 +1,7 @@
 package io.github.smiskinext.usermanagement.application.usecase;
 
-import io.github.phunguy65.zms.shared.domain.Result;
-import io.github.phunguy65.zms.shared.domain.valueobject.Email;
+import io.github.smiskinext.shared.domain.Result;
+import io.github.smiskinext.shared.domain.valueobject.Email;
 import io.github.smiskinext.usermanagement.application.command.VerifyOtpCommand;
 import io.github.smiskinext.usermanagement.application.response.VerifyOtpResponse;
 import io.github.smiskinext.usermanagement.domain.AuthError;

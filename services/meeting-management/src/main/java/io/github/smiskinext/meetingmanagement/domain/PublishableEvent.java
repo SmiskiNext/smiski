@@ -1,6 +1,6 @@
 package io.github.smiskinext.meetingmanagement.domain;
 
-import io.github.phunguy65.zms.shared.domain.DomainEvent;
+import io.github.smiskinext.shared.domain.DomainEvent;
 import java.time.Instant;
 import java.util.UUID;
 

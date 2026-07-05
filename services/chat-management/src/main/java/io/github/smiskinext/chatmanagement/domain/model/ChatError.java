@@ -1,6 +1,6 @@
 package io.github.smiskinext.chatmanagement.domain.model;
 
-import io.github.phunguy65.zms.shared.domain.DomainError;
+import io.github.smiskinext.shared.domain.DomainError;
 
 /**
  * Domain-level errors for the chat subsystem.

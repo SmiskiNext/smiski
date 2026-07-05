@@ -1,7 +1,7 @@
 package io.github.smiskinext.usermanagement.application.usecase;
 
 import com.github.f4b6a3.uuid.UuidCreator;
-import io.github.phunguy65.zms.shared.domain.Result;
+import io.github.smiskinext.shared.domain.Result;
 import io.github.smiskinext.usermanagement.application.command.LogoutCommand;
 import io.github.smiskinext.usermanagement.application.helper.RefreshTokenIssuer;
 import io.github.smiskinext.usermanagement.domain.AuthError;

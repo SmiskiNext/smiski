@@ -2,7 +2,7 @@ package io.github.smiskinext.usermanagement.domain.model;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import io.github.phunguy65.zms.shared.domain.valueobject.UserId;
+import io.github.smiskinext.shared.domain.valueobject.UserId;
 import io.github.smiskinext.usermanagement.domain.model.valueobject.PasswordResetTokenId;
 import java.time.Instant;
 import java.util.UUID;

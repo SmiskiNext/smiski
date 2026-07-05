@@ -2,7 +2,7 @@ package io.github.smiskinext.chatmanagement.infrastructure.persistence;
 
 import io.github.smiskinext.chatmanagement.application.port.ChatMessageRepository;
 import io.github.smiskinext.chatmanagement.domain.model.ChatMessage;
-import io.github.phunguy65.zms.shared.domain.CursorPageResponse;
+import io.github.smiskinext.shared.domain.CursorPageResponse;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.data.domain.Sort;

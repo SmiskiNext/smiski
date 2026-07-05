@@ -10,8 +10,8 @@ import io.github.smiskinext.meetingmanagement.application.usecase.KickParticipan
 import io.github.smiskinext.meetingmanagement.application.usecase.MuteAllParticipantsUseCase;
 import io.github.smiskinext.meetingmanagement.application.usecase.MuteParticipantTrackUseCase;
 import io.github.smiskinext.meetingmanagement.domain.MeetingError;
-import io.github.phunguy65.zms.shared.domain.Result;
-import io.github.phunguy65.zms.shared.infrastructure.web.JsendResponse;
+import io.github.smiskinext.shared.domain.Result;
+import io.github.smiskinext.shared.infrastructure.web.JsendResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;

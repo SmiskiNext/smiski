@@ -10,8 +10,8 @@ import io.github.smiskinext.meetingmanagement.domain.model.valueobject.MeetingSe
 import io.github.smiskinext.meetingmanagement.domain.model.valueobject.ParticipantGrants;
 import io.github.smiskinext.meetingmanagement.domain.port.LiveKitPort;
 import io.github.smiskinext.meetingmanagement.domain.port.ParticipationLogRepository;
-import io.github.phunguy65.zms.shared.domain.Result;
-import io.github.phunguy65.zms.shared.domain.valueobject.MeetingId;
+import io.github.smiskinext.shared.domain.Result;
+import io.github.smiskinext.shared.domain.valueobject.MeetingId;
 import java.util.List;
 import java.util.UUID;
 import org.slf4j.Logger;

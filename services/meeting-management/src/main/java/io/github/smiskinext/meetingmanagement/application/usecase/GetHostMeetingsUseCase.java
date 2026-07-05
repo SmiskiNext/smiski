@@ -5,7 +5,7 @@ import io.github.smiskinext.meetingmanagement.application.response.MeetingRespon
 import io.github.smiskinext.meetingmanagement.application.response.MeetingSettingsResponse;
 import io.github.smiskinext.meetingmanagement.domain.port.MeetingRepository;
 import io.github.smiskinext.meetingmanagement.domain.projection.MeetingSummary;
-import io.github.phunguy65.zms.shared.domain.CursorPageResponse;
+import io.github.smiskinext.shared.domain.CursorPageResponse;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 

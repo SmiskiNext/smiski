@@ -1,6 +1,6 @@
 package io.github.smiskinext.usermanagement.domain;
 
-import io.github.phunguy65.zms.shared.domain.ErrorCode;
+import io.github.smiskinext.shared.domain.ErrorCode;
 
 /**
  * Machine-readable error codes for all authentication and user-management failures.

@@ -1,6 +1,6 @@
 package io.github.smiskinext.usermanagement.application.usecase;
 
-import io.github.phunguy65.zms.shared.domain.Result;
+import io.github.smiskinext.shared.domain.Result;
 import io.github.smiskinext.usermanagement.application.command.RefreshTokenCommand;
 import io.github.smiskinext.usermanagement.application.helper.RefreshTokenIssuer;
 import io.github.smiskinext.usermanagement.application.helper.UserPreferencesParser;

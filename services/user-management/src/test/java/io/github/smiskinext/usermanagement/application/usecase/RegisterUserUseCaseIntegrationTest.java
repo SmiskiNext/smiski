@@ -2,7 +2,7 @@ package io.github.smiskinext.usermanagement.application.usecase;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import io.github.phunguy65.zms.shared.domain.Result;
+import io.github.smiskinext.shared.domain.Result;
 import io.github.smiskinext.usermanagement.application.command.RegisterCommand;
 import io.github.smiskinext.usermanagement.config.TestcontainersConfiguration;
 import io.github.smiskinext.usermanagement.infrastructure.messaging.KafkaEventPublisher;
