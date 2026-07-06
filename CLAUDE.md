@@ -124,10 +124,8 @@ Configured in `lefthook.yml`. Runs in parallel on staged files:
 
 ## Database Migrations (Flyway)
 
-Postgres services (`user-management`, `meeting-management`) manage schema with
-Flyway SQL under `src/main/resources/db/migration/`. `chat-management` uses a
-Flyway-for-MongoDB JS migration (`V1__init_indexes.js`), referenced by name in
-`k8s/base/kustomization.yaml` and `docker/compose.yaml` — do not rename it.
+Postgres services (`meet`, `record`) manage schema with Flyway SQL under
+`src/main/resources/db/migration/`.
 
 - Baseline: each Postgres service starts the current phase from a single
   `B1.0.0__baseline.sql` (Flyway `B` baseline prefix — applied only on a clean
@@ -141,6 +139,4 @@ Flyway-for-MongoDB JS migration (`V1__init_indexes.js`), referenced by name in
 
 - Backend: JSend envelope pattern for HTTP responses; interceptors on the web
   client unwrap envelopes automatically.
-- Web: generated SDK lives in `frontends/web/src/generated`; do not edit
-  manually.
-- Biome is the formatter/linter for web (not ESLint/Prettier per-file).
+- Biome is the formatter/linter for app.
