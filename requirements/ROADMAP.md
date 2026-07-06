@@ -9,13 +9,13 @@
 
 ## 1. Bối cảnh
 
-| | Hiện tại (ZMS) | Đích đến (BA.md) |
-| --- | --- | --- |
-| Hình thái | App họp độc lập (web + Android) | Module nhúng trong Jira qua Forge App |
-| Danh tính | Đăng nhập riêng (JWT + Firebase), Kong validate | Lấy context người dùng từ Jira (không tự login) |
-| Đơn vị nghiệp vụ | Meeting có `hostId`, `shortCode` | Meeting **gắn với Jira Issue** (UC01, 02, 07) |
-| Phạm vi | chat, recording, notification email, Android | Chỉ họp + liên kết Issue; phần còn lại **ngoài phạm vi** |
-| Hạ tầng media | LiveKit + RustFS | LiveKit (giữ), RustFS/recording bỏ |
+|                  | Hiện tại (ZMS)                                  | Đích đến (BA.md)                                         |
+| ---------------- | ----------------------------------------------- | -------------------------------------------------------- |
+| Hình thái        | App họp độc lập (web + Android)                 | Module nhúng trong Jira qua Forge App                    |
+| Danh tính        | Đăng nhập riêng (JWT + Firebase), Kong validate | Lấy context người dùng từ Jira (không tự login)          |
+| Đơn vị nghiệp vụ | Meeting có `hostId`, `shortCode`                | Meeting **gắn với Jira Issue** (UC01, 02, 07)            |
+| Phạm vi          | chat, recording, notification email, Android    | Chỉ họp + liên kết Issue; phần còn lại **ngoài phạm vi** |
+| Hạ tầng media    | LiveKit + RustFS                                | LiveKit (giữ), RustFS/recording bỏ                       |
 
 **Quyết định nền (đã chốt với chủ đề tài):**
 
@@ -41,8 +41,8 @@
 
 ### 2.2 Forge App — tầng UI mới
 
-- Chưa tồn tại. Cần một Forge app (Custom UI) hiển thị panel trong Issue:
-  nút "Tạo cuộc họp", danh sách cuộc họp của Issue, nút "Tham gia".
+- Chưa tồn tại. Cần một Forge app (Custom UI) hiển thị panel trong Issue: nút
+  "Tạo cuộc họp", danh sách cuộc họp của Issue, nút "Tham gia".
 - Forge app gọi Meeting Service qua HTTP (Forge `fetch` + remote backend).
 
 ### 2.3 Danh tính / Auth — cầu nối thay cho login riêng
@@ -52,8 +52,8 @@
 - `UserGrpcServicePort` gọi gRPC sang `user-management` để **resolve display
   name / avatar / email** của participant và invitee — đây là phụ thuộc **ngoài
   login**, nên không thể bỏ user-management một cách ngây thơ.
-- BA loại trừ "Atlassian OAuth Migration" ⇒ chỉ làm cầu nối danh tính, không
-  làm OAuth đầy đủ.
+- BA loại trừ "Atlassian OAuth Migration" ⇒ chỉ làm cầu nối danh tính, không làm
+  OAuth đầy đủ.
 
 ### 2.4 Phạm vi cần gỡ
 
@@ -63,15 +63,15 @@
 
 ### 2.5 Mapping Use Case → trạng thái hiện tại
 
-| UC | Mô tả | Hiện trạng | Việc cần làm |
-| --- | --- | --- | --- |
-| UC01 | Tạo họp từ Issue | Có `CreateInstantMeetingUseCase` | Thêm `issueId` vào lệnh tạo |
-| UC02 | DS họp theo Issue | Chưa có query theo issue | Thêm query + index |
-| UC03 | Tham gia từ Jira | LiveKit token đã có | Gọi từ Forge UI |
-| UC04 | DS người tham gia | `ParticipationLog` đã có | Hiển thị trong Forge |
-| UC05 | Kết thúc họp | `Meeting.end()` đã có | Nối nút trong Forge |
-| UC06 | Lịch sử họp | `add-web-meeting-history` đã xong (web) | Port sang Forge + lọc theo issue |
-| UC07 | Liên kết & truy vết | **Chưa có** | Hạng mục trung tâm Phase 1 |
+| UC   | Mô tả               | Hiện trạng                              | Việc cần làm                     |
+| ---- | ------------------- | --------------------------------------- | -------------------------------- |
+| UC01 | Tạo họp từ Issue    | Có `CreateInstantMeetingUseCase`        | Thêm `issueId` vào lệnh tạo      |
+| UC02 | DS họp theo Issue   | Chưa có query theo issue                | Thêm query + index               |
+| UC03 | Tham gia từ Jira    | LiveKit token đã có                     | Gọi từ Forge UI                  |
+| UC04 | DS người tham gia   | `ParticipationLog` đã có                | Hiển thị trong Forge             |
+| UC05 | Kết thúc họp        | `Meeting.end()` đã có                   | Nối nút trong Forge              |
+| UC06 | Lịch sử họp         | `add-web-meeting-history` đã xong (web) | Port sang Forge + lọc theo issue |
+| UC07 | Liên kết & truy vết | **Chưa có**                             | Hạng mục trung tâm Phase 1       |
 
 ---
 
@@ -105,7 +105,7 @@ UC02, UC07).
 - **Tiêu chí:** tạo họp kèm issueKey, truy vấn danh sách họp theo issueKey, test
   unit + integration cho domain và query.
 
-### Phase 2 — Cầu nối danh tính (Auth Bridge) — *spike trước, chốt sau*
+### Phase 2 — Cầu nối danh tính (Auth Bridge) — _spike trước, chốt sau_
 
 **Mục tiêu:** người dùng đã đăng nhập Jira không phải đăng nhập lại; backend
 biết "ai" đang gọi.
@@ -113,16 +113,17 @@ biết "ai" đang gọi.
 Hai phương án để mở (quyết sau spike):
 
 - **Phương án A — Giữ `user-management`, đổi vai (đề xuất):**
-  - Bỏ luồng login UI; thêm endpoint provision/map theo `accountId` Jira
-    (just-in-time provisioning).
-  - Giữ nguyên gRPC resolve display name/avatar.
-  - Kong/Spring Security Resource Server validate token Forge thay JWT tự ký.
-  - *Ưu:* ít vỡ nhất, giữ được resolve participant. *Nhược:* vẫn nuôi 1 service.
+    - Bỏ luồng login UI; thêm endpoint provision/map theo `accountId` Jira
+      (just-in-time provisioning).
+    - Giữ nguyên gRPC resolve display name/avatar.
+    - Kong/Spring Security Resource Server validate token Forge thay JWT tự ký.
+    - _Ưu:_ ít vỡ nhất, giữ được resolve participant. _Nhược:_ vẫn nuôi 1
+      service.
 - **Phương án B — Gỡ hẳn `user-management`, snapshot danh tính từ Jira:**
-  - Nhúng displayName/avatar vào token/payload từ Forge.
-  - Bỏ `UserGrpcServicePort`, lưu snapshot tên/avatar trực tiếp trên
-    `ParticipationLog` / invitee.
-  - *Ưu:* monorepo gọn đúng BA. *Nhược:* refactor gRPC + mọi chỗ resolve user.
+    - Nhúng displayName/avatar vào token/payload từ Forge.
+    - Bỏ `UserGrpcServicePort`, lưu snapshot tên/avatar trực tiếp trên
+      `ParticipationLog` / invitee.
+    - _Ưu:_ monorepo gọn đúng BA. _Nhược:_ refactor gRPC + mọi chỗ resolve user.
 
 - **Spike (chốt phương án):** dựng Forge app tối thiểu, xác minh cách lấy
   `accountId` + token và cách backend verify. Sau spike, cập nhật phase này
@@ -155,8 +156,8 @@ Hai phương án để mở (quyết sau spike):
 
 **Mục tiêu:** đóng gói Docker, demo end-to-end, đáp ứng mục 8–9 BA.
 
-- docker-compose tinh gọn: Meeting Service + Postgres + LiveKit + Redis
-  (+ user-management nếu chọn Phương án A).
+- docker-compose tinh gọn: Meeting Service + Postgres + LiveKit + Redis (+
+  user-management nếu chọn Phương án A).
 - Hướng dẫn deploy + script seed dữ liệu demo.
 - Kiểm thử tích hợp end-to-end theo UC01–UC07.
 - **Tiêu chí:** `docker compose up` chạy toàn hệ; demo full luồng từ Jira Issue.
@@ -187,8 +188,8 @@ Phase 2 (Auth spike) ─► Phase 3 (Forge UI) ─► Phase 4 (LiveKit) ─► P
   client phụ.
 - **Quyết định auth (Phase 2)** ảnh hưởng dây chuyền tới resolve participant và
   số service phải nuôi — ưu tiên spike trước khi code sâu.
-- **Gỡ service (Phase 0)** có thể làm vỡ Kafka/k8s/CI — làm trước, kiểm tra build
-  kỹ trước khi sang Phase 1.
+- **Gỡ service (Phase 0)** có thể làm vỡ Kafka/k8s/CI — làm trước, kiểm tra
+  build kỹ trước khi sang Phase 1.
 - **Ngoài phạm vi (giữ nguyên theo BA):** AI summary, recording, chat sync,
   mobile, Jira notification, marketplace, OAuth migration, calendar, email
   invite, multi-tenant, LiveKit cluster.

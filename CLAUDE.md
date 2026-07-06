@@ -139,8 +139,8 @@ Flyway-for-MongoDB JS migration (`V1__init_indexes.js`), referenced by name in
 
 ## Code Conventions
 
-- Backend: JSend envelope pattern for HTTP responses; interceptors on
-  the web client unwrap envelopes automatically.
+- Backend: JSend envelope pattern for HTTP responses; interceptors on the web
+  client unwrap envelopes automatically.
 - Web: generated SDK lives in `frontends/web/src/generated`; do not edit
   manually.
 - Biome is the formatter/linter for web (not ESLint/Prettier per-file).

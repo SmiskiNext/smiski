@@ -51,15 +51,15 @@ The auth bridge (how Forge identity reaches the backend) and the final role of
 
 **Tech stack summary:**
 
-| Layer                 | Technology                                                 |
-| --------------------- | ---------------------------------------------------------- |
-| Backend services      | Spring Boot 4 / Java 25, hexagonal architecture            |
-| Service communication | Kong HTTP gateway, gRPC, SSE + Valkey                      |
-| Persistence           | Postgres (Flyway), Valkey                                  |
-| Real-time media       | LiveKit (WebRTC)                                           |
-| Jira integration      | Atlassian Forge app (Custom UI, issue panel module)        |
-| Infrastructure        | Docker Compose (local), Kubernetes / k3s                   |
-| API-first             | OpenAPI 3.0 (generated from tests), unified spec           |
+| Layer                 | Technology                                          |
+| --------------------- | --------------------------------------------------- |
+| Backend services      | Spring Boot 4 / Java 25, hexagonal architecture     |
+| Service communication | Kong HTTP gateway, gRPC, SSE + Valkey               |
+| Persistence           | Postgres (Flyway), Valkey                           |
+| Real-time media       | LiveKit (WebRTC)                                    |
+| Jira integration      | Atlassian Forge app (Custom UI, issue panel module) |
+| Infrastructure        | Docker Compose (local), Kubernetes / k3s            |
+| API-first             | OpenAPI 3.0 (generated from tests), unified spec    |
 
 ---
 
@@ -127,9 +127,9 @@ smiski/
 ### OpenAPI / SDK generation
 
 ```bash
-pnpm run openapi:services  # generate per-service OpenAPI specs from tests
-pnpm run openapi:join      # merge specs into openapi/unified-openapi.yaml
-pnpm run openapi:unified   # full pipeline (generate + merge + lint)
+pnpm run openapi:services # generate per-service OpenAPI specs from tests
+pnpm run openapi:join     # merge specs into openapi/unified-openapi.yaml
+pnpm run openapi:unified  # full pipeline (generate + merge + lint)
 ```
 
 ---
