@@ -1,9 +1,10 @@
 packages:
-  - scripts
+    - scripts
+    - app
 allowBuilds:
-  '@firebase/util': set this to true or false
-  '@parcel/watcher': set this to true or false
-  '@swc/core': set this to true or false
-  esbuild: set this to true or false
-  protobufjs: set this to true or false
-  sharp: set this to true or false
+    '@firebase/util': set this to true or false
+    '@parcel/watcher': set this to true or false
+    '@swc/core': set this to true or false
+    esbuild: set this to true or false
+    protobufjs: set this to true or false
+    sharp: set this to true or false
