@@ -1,6 +1,7 @@
 package io.github.smiskinext.shared.domain.valueobject;
 
 import io.github.smiskinext.shared.domain.ValueObject;
+
 import java.util.Objects;
 import java.util.UUID;
 

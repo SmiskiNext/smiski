@@ -1,6 +1,7 @@
 package io.github.smiskinext.shared.infrastructure.web;
 
 import io.github.smiskinext.shared.domain.ErrorCode;
+
 import java.util.List;
 
 /**
