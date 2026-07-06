@@ -5,23 +5,20 @@ schema: spec-driven
 # Add your tech stack, conventions, style guides, domain knowledge, etc.
 # Example:
 context: |
-    Domain: Meeting system
+    Domain: Enterprise
+    Proposal: Develop a production-ready, scalable, maintainable, and secure Jira Forge App + Backend by Forge remote
     Tech stack:
-    =============================================================
     - Services: Spring Boot, Java 25
-    Codebase conventions: Clean Architecture (Hexagonal/Ports & Adapters), RESTful API design, Jsend response format.
-    - Frontend:
-      - Android Native App (Java 25, XML)
-      - Web App (Next.js, TypeScript)
+    - App: Nextjs, TypeScript
+
 rules:
     design:
         - |
             Service directory structure (Spring Boot):
-            =============================================================
             services/{service-name}/
               src/
                 main/
-                  java/io/github/phunguy65/zms/{service-name}/
+                  java/io/github/smiskinext/{service-name}/
                     domain/
                       model/          # Aggregates (extends AggregateRoot<UUID>) & Value Objects (records implementing ValueObject)
                         valueobject/     # Subpackage for Value Objects (e.g. Email, Password, etc.)
@@ -55,7 +52,7 @@ rules:
                     application.yaml
                     db/migration/     # Flyway: V{N}__{description}.sql (PostgreSQL)
                 test/
-                  java/io/github/phunguy65/zms/{service-name}/
+                  java/io/github/smiskinext/{service-name}/
                     application/usecase/   # Unit tests per use case
                     domain/                # Domain model & event tests
                     infrastructure/        # Infrastructure/adapter tests (messaging, security, persistence)
@@ -63,7 +60,6 @@ rules:
                     config/                # TestcontainersConfiguration for integration tests
                   resources/
                     application-test.yaml
-                    db/h2-migration/       # H2-compatible Flyway migrations for tests
               compose.yaml                 # Docker Compose for local dev (PostgreSQL, Kafka, etc.)
 
             Key patterns:
@@ -74,7 +70,7 @@ rules:
             - Request-Command-Response: request DTOs (presentation, @Valid) call toCommand() → command records (application, no validation) → response records
             - Repository adapters contain private toDomain() / toEntity() mappers
             - API versioning: /{version}/resource path prefix, resolved by ApiVersionParser; WebConfig adds /api prefix
-            - Shared module (io.github.phunguy65.zms.shared): AggregateRoot, ValueObject, DomainEvent, Result, PageResult,
+            - Shared module (io.github.smiskinext.shared): AggregateRoot, ValueObject, DomainEvent, Result, PageResult,
               JsendResponse, ErrorCode, CommonErrorCode, FailData, Violation, GlobalExceptionHandler, JacksonConfig
             - Main app scans both service and shared packages via scanBasePackages
             - Primary keys: UUIDv7 (UuidCreator.getTimeOrderedEpoch()) for time-ordered, sortable IDs
@@ -83,9 +79,6 @@ rules:
             - Event format: CloudEvents 1.0 (binary content mode over Kafka); PublishableEvent interface defines metadata
             - Controllers: extend BaseController, pattern-match on Result<> to map domain errors to HTTP status + JsendResponse (success/fail)
             - NoOpEventPublisher: test-only fallback implementation of EventPublisher (logs and discards events)
-        - |
-            If task related to Android Application, always reference
-            ./zero-meeting-system/frontends/android-app/app/codemap.md
 
 # Per-artifact rules (optional)
 # Add custom rules for specific artifacts.
