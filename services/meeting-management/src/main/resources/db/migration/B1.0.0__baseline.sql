@@ -138,9 +138,9 @@ CREATE TABLE participation_logs
     tenant_id               VARCHAR(255) NOT NULL,
     id                      UUID         NOT NULL DEFAULT uuidv7(),
     meeting_id              UUID         NOT NULL,
-    account_id              VARCHAR(128),              -- Jira accountId (null for guests)
+    account_id              VARCHAR(128) NOT NULL,     -- Jira accountId (required — no guests)
     display_name            VARCHAR(255) NOT NULL,
-    role                    VARCHAR(20)  NOT NULL CHECK (role IN ('HOST', 'PARTICIPANT', 'GUEST')),
+    role                    VARCHAR(20)  NOT NULL CHECK (role IN ('HOST', 'PARTICIPANT')),
     livekit_identity        VARCHAR(255) NOT NULL,
     livekit_participant_sid VARCHAR(50),
     joined_at               TIMESTAMPTZ  NOT NULL DEFAULT now(),
@@ -170,7 +170,7 @@ CREATE TABLE participation_logs_p15 PARTITION OF participation_logs FOR VALUES W
 CREATE INDEX idx_participation_meeting
     ON participation_logs (tenant_id, meeting_id, joined_at DESC);
 CREATE INDEX idx_participation_account
-    ON participation_logs (tenant_id, account_id, joined_at DESC) WHERE account_id IS NOT NULL;
+    ON participation_logs (tenant_id, account_id, joined_at DESC);
 CREATE INDEX idx_participation_active_identity
     ON participation_logs (tenant_id, meeting_id, livekit_identity) WHERE left_at IS NULL;
 CREATE UNIQUE INDEX uq_participation_active_sid
