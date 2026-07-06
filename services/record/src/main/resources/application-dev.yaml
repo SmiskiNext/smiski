@@ -1,0 +1,35 @@
+server:
+    port: 8184
+
+spring:
+    datasource:
+        url: jdbc:postgresql://localhost:8282/zms_recordings
+        username: ${POSTGRES_USER:zms_user}
+        password: ${POSTGRES_PASSWORD:zms_secret}
+
+    kafka:
+        bootstrap-servers: localhost:9094
+
+    data:
+        redis:
+            host: localhost
+            port: 8284
+            password:
+
+    grpc:
+        client:
+            channels:
+                user-management:
+                    address: static://localhost:8181
+
+app:
+    livekit:
+        url: http://localhost:7880
+        ws-url: ws://localhost:7880
+        webhook-url: http://localhost:30000/api/v1/webhook/livekit
+        recording:
+            egress-endpoint: http://rustfs:9000
+
+springdoc:
+    servers:
+        - url: http://localhost:30000
