@@ -1,2 +1,3 @@
 io.github.smiskinext.shared.infrastructure.logging.LoggingAutoConfiguration
 io.github.smiskinext.shared.infrastructure.tenancy.TenantAutoConfiguration
+io.github.smiskinext.shared.infrastructure.forge.ForgeSecurityAutoConfiguration

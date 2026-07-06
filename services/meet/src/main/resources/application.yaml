@@ -58,6 +58,11 @@ app:
     tenancy:
         header: X-Tenant-ID
         default-tenant: system
+    forge:
+        app-id: ${FORGE_APP_ID:ari:cloud:ecosystem::app/change-me}
+        jwks-uri: ${FORGE_JWKS_URI:https://forge.cdn.prod.atlassian-dev.net/.well-known/jwks.json}
+        environment-type: ${FORGE_ENVIRONMENT_TYPE:DEVELOPMENT}
+        clock-skew-seconds: ${FORGE_CLOCK_SKEW_SECONDS:10}
     livekit:
         url: ${LIVEKIT_URL:http://localhost:7880}
         ws-url: ${LIVEKIT_WS_URL:ws://localhost:7880}

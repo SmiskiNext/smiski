@@ -46,6 +46,7 @@ app:
         app-id: ${FORGE_APP_ID:ari:cloud:ecosystem::app/change-me}
         jwks-uri: ${FORGE_JWKS_URI:https://forge.cdn.prod.atlassian-dev.net/.well-known/jwks.json}
         environment-type: ${FORGE_ENVIRONMENT_TYPE:DEVELOPMENT}
+        clock-skew-seconds: ${FORGE_CLOCK_SKEW_SECONDS:10}
 
 logging:
     aspect:
