@@ -14,9 +14,6 @@ pre-commit:
             exclude:
                 - 'services/**/.idea/**'
                 - 'services/**/.gradle/**'
-                - 'services/user-management/**'
-                - 'services/meeting-management/**'
-                - 'services/chat-management/**'
             run: >
                 ./services/gradlew spotlessApply -PspotlessFiles="$(echo
                 {staged_files} | tr ' ' ',')"
@@ -84,11 +81,9 @@ pre-commit:
             glob: 'services/**/*.java'
             run: >
                 svcs=$(for f in {staged_files}; do case "$f" in
-                services/*/*) s=$(echo "$f" | cut -d/ -f2); case "$s" in
-                user-management|meeting-management|chat-management) ;; *) echo
-                "$s" ;; esac ;; esac; done | sort -u); [ -z "$svcs" ] && exit 0;
-                for s in $svcs; do ./services/gradlew -p "services/$s"
-                compileJava || exit 1; done
+                services/*/*) echo "$(echo "$f" | cut -d/ -f2)" ;; esac; done |
+                sort -u); [ -z "$svcs" ] && exit 0; for s in $svcs; do
+                ./services/gradlew -p "services/$s" compileJava || exit 1; done
 
 commit-msg:
     commands:
@@ -195,8 +190,6 @@ pre-push:
             glob: 'services/**/*.java'
             run: >
                 svcs=$(for f in {push_files}; do case "$f" in
-                services/*/*) s=$(echo "$f" | cut -d/ -f2); case "$s" in
-                user-management|meeting-management|chat-management) ;; *) echo
-                "$s" ;; esac ;; esac; done | sort -u); [ -z "$svcs" ] && exit 0;
-                for s in $svcs; do ./services/gradlew -p "services/$s"
-                compileJava || exit 1; done
+                services/*/*) echo "$(echo "$f" | cut -d/ -f2)" ;; esac; done |
+                sort -u); [ -z "$svcs" ] && exit 0; for s in $svcs; do
+                ./services/gradlew -p "services/$s" compileJava || exit 1; done
