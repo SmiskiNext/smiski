@@ -5,92 +5,69 @@ code in this repository.
 
 ## Architecture Overview
 
-Monorepo with mixed stack: Java/Spring microservices + Next.js web app.
-API-first: backend services generate OpenAPI specs, a root script merges them
-into `openapi/unified-openapi.yaml`, and clients are generated for the web.
+Monorepo: Spring Boot 4 / Java 25 backend microservices (hexagonal:
+`domain → application → infrastructure → presentation`) + an Atlassian Forge
+app. API-first: services emit OpenAPI via tests, merged into
+`openapi/unified-openapi.yaml`.
+
+The stack has migrated from the legacy Zero Meeting System into a focused Jira
+integration. The **legacy codebase is archived at `zms/`** (gitignored, full
+snapshot) — treat it as **read-only reference** and consult it only when asked
+or when porting behavior. Never extend or wire into it.
 
 **Components:**
 
-- `services/` — Spring Boot 4 / Java 25 backend microservices (hexagonal
-  architecture)
-- `frontends/web/` — Next.js 16 / React 19 web client
+- `services/` — Spring Boot 4 / Java 25 microservices
+- `app/` — Atlassian **Forge** app (Jira issue panel, UI Kit). Has its own
+  `app/AGENTS.md` with strict Forge rules — read it before editing.
 - `services/k8s/` — Kubernetes manifests (Kong gateway, Kafka, DBs, LiveKit,
   Valkey)
 - `openspec/` — Product specs and change artifacts
 - `build-logic/` — Shared Gradle convention plugins
 
-**Backend services** (`user-management`, `meeting-management`,
-`chat-management`, `notification`, `proto`, `shared`): each follows
-`domain → application → infrastructure → presentation` layering.
+**Current services** (`services/`, packages `io.github.smiskinext.<name>`):
 
-**Service communication:**
+- `tenant` — Postgres `tenants` (identity/tenancy; supersedes `user-management`)
+- `meet` — Postgres `meetings`, Kafka, LiveKit
+- `record` — Postgres `recordings`, LiveKit egress → RustFS (S3-compatible)
+- `notification` — Kafka consumer, Resend email (no DB)
+- `proto`, `shared` — shared proto + libs
 
-- External: Kong API gateway routes to each service
-- Sync: `meeting-management` → `user-management` via gRPC
-- Async: Kafka + CloudEvents for domain events (publishers in user/meeting,
-  consumers in chat/notification)
-- Real-time: SSE in `meeting-management` (`MeetingSseManager`), backed by Kafka
-  and Redis
+The legacy `user-management`, `meeting-management`, `chat-management` (MongoDB)
+and the Next.js `frontends/web` client no longer live in the tree — they exist
+only in `zms/`.
 
-**Persistence:**
-
-- Postgres + Flyway: `user-management`, `meeting-management`
-- MongoDB: `chat-management`
-- Redis/Valkey: join-request state in `meeting-management`
-
-**Key integrations:** LiveKit (video), Firebase (auth/storage), Resend (email
-notifications)
+**Wiring:** Kong gateway (external) · gRPC (`notification` → user identity
+service) · Kafka + CloudEvents (async, consumed by `notification`) · SSE +
+Valkey (real-time). Integrations: LiveKit (video), Firebase (auth/storage),
+Resend (email).
 
 ## Build Commands
 
 ### Convenience CLI (`pnpm smiski`)
 
-A TypeScript CLI under `scripts/` (citty + tsx + zx) wraps the common dev
-workflows. Prefer it over invoking `gradlew` / `pnpm --dir` directly.
+A TypeScript CLI under `scripts/` (citty + tsx + zx) wraps common dev workflows.
+It loads only allowlisted secrets from `services/docker/.env` before running
+Spring services and forwards SIGINT/SIGTERM to child processes in parallel runs.
 
 ```sh
 pnpm smiski --help                       # list all groups
-pnpm smiski setup                        # all-in-one bootstrap (mise tools + pnpm deps + git hooks + .env)
+pnpm smiski setup                        # bootstrap (mise tools + pnpm + hooks + .env)
 pnpm smiski setup --env-only             # only copy services/docker/.env from .env.example
-pnpm smiski doctor                       # report tool status (mise, java, node, docker, ...)
-pnpm smiski dev                          # infra up + 4 backend services in parallel
+pnpm smiski doctor                       # report tool status
+pnpm smiski dev                          # infra up + backend services in parallel
 pnpm smiski infra <up|down|reset|logs|ps>
-pnpm smiski svc <all|user|meeting|chat|notification>
-pnpm smiski web                          # Next.js dev server
-pnpm smiski <build|test|format|lint|openapi|clean>
 ```
-
-The CLI loads only allowlisted secrets from `services/docker/.env` before
-running Spring services and forwards SIGINT/SIGTERM to all child processes when
-running services in parallel.
 
 ### Backend services (Gradle)
 
 ```sh
-./services/gradlew build                               # all services
-./services/gradlew -p services/ < service-name > build # single service
-./services/gradlew spotlessApply                       # format Java/KTS/XML
-./services/gradlew bufFormatApply                      # format proto
-```
-
-### Web app
-
-```sh
-pnpm --dir frontends/web dev
-pnpm --dir frontends/web build
-pnpm --dir frontends/web lint
-pnpm --dir frontends/web lint:fix
-pnpm --dir frontends/web format
-```
-
-### OpenAPI / SDK generation
-
-```sh
-pnpm run openapi:services                 # generate per-service OpenAPI via tests
-pnpm run openapi:join                     # merge specs with Redocly
-pnpm run openapi:lint                     # lint unified spec
-pnpm run openapi:unified                  # full pipeline (services + join + lint)
-pnpm --dir frontends/web run sdk:generate # regenerate web SDK from unified spec
+./services/gradlew build                       # all services
+./services/gradlew -p services/ < name > build # build one
+./services/gradlew -p services/ < name > test  # test one
+./services/gradlew -p services/ < name > generateOpenApiDocsFromTests
+./services/gradlew spotlessApply  # format Java/KTS/XML
+./services/gradlew bufFormatApply # format proto
 ```
 
 ### Root-level formatting
@@ -100,27 +77,18 @@ pnpm lint   # markdownlint
 pnpm format # prettier for md/json/toml/yaml/sh
 ```
 
-## Test Commands
-
-### Backend services
-
-```sh
-./services/gradlew test                               # all services
-./services/gradlew -p services/ < service-name > test # single service
-./services/gradlew -p services/ < service-name > generateOpenApiDocsFromTests
-```
-
 ## Pre-commit Hooks (lefthook)
 
-Configured in `lefthook.yml`. Runs in parallel on staged files:
+Configured in `lefthook.yml`. Runs on staged files:
 
 - `gitleaks protect --staged` — secret scan
 - Spotless — Java/KTS/XML for `services/**`
 - Buf — proto formatting (`services/proto`)
-- Biome `check --fix` — web (`frontends/web`)
-- `bun run format` (Prettier) — md/json/yaml/toml/sh outside `frontends/web`
+- Biome `check --fix` — `scripts/` and `app/`
+- Prettier + markdownlint — md/json/yaml/toml/sh elsewhere
 
-`commit-msg` runs commitlint against `commitlint.config.js`.
+`commit-msg` runs commitlint against `commitlint.config.js`. `pre-push` blocks
+direct pushes to `main` and runs full-scan verification.
 
 ## Database Migrations (Flyway)
 
@@ -155,19 +123,19 @@ versioned path scheme configured in `spring.mvc.apiversion` +
 - **Always declare the full resource path at method level** — do not rely on a
   class-level `@RequestMapping` base path. Example:
 
-  ```java
-  @RestController
-  class MeetingController {
-      @GetMapping("/meetings/{id}")           // → /api/1/meetings/{id}
-      @PostMapping("/meetings")               // → /api/1/meetings
-  }
-  ```
+    ```java
+    @RestController
+    class MeetingController {
+        @GetMapping("/meetings/{id}")           // → /api/1/meetings/{id}
+        @PostMapping("/meetings")               // → /api/1/meetings
+    }
+    ```
 
 - **Standard RESTful methods** map to collection/resource paths
   (`GET/POST /meetings`, `GET/PUT/DELETE /meetings/{id}`,
   `GET/POST /meetings/{id}/participants`).
 - **Action endpoints** (operations outside the standard RESTful methods) use the
   `:action` suffix on the target resource:
-  `/meetings/{id}/participants/{id}:mute`,
-  `/meetings/{id}:end`. Keep actions as `POST`.
+  `/meetings/{id}/participants/{id}:mute`, `/meetings/{id}:end`. Keep actions as
+  `POST`.
 - Actuator and other non-`@RestController` endpoints stay unprefixed.

@@ -10,38 +10,31 @@ Monorepo: Spring Boot 4 / Java 25 microservices (hexagonal:
 app. API-first: services emit OpenAPI via tests, merged into
 `openapi/unified-openapi.yaml`.
 
-The stack is mid-migration from the legacy Zero Meeting System into a focused
-Jira integration. Prefer the **current** services; touch **legacy** only when
-migrating or fixing.
+The stack has migrated from the legacy Zero Meeting System into a focused Jira
+integration. The **legacy codebase is archived at `zms/`** (gitignored, full
+snapshot) — treat it as **read-only reference** and consult it only when asked
+or when porting behavior. Never extend or wire into it.
 
 **Current services** (`services/`, packages `io.github.smiskinext.<name>`):
 
-- `tenant` — Postgres `tenants` (identity/tenancy; supersedes
-  `user-management`)
-- `meet` — Postgres `meetings`, Kafka, LiveKit; gRPC client →
-  `user-management`
+- `tenant` — Postgres `tenants` (identity/tenancy; supersedes `user-management`)
+- `meet` — Postgres `meetings`, Kafka, LiveKit
 - `record` — Postgres `recordings`, LiveKit egress → RustFS (S3-compatible)
 - `notification` — Kafka consumer, Resend email (no DB)
 - `proto`, `shared` — shared proto + libs
 
-**Legacy** (migrate away, do not extend): `user-management`,
-`meeting-management`, `chat-management` (MongoDB).
+The legacy `user-management`, `meeting-management`, `chat-management` dirs no
+longer live under `services/` — they exist only in `zms/services/`.
 
 **Frontend:** `app/` is an Atlassian **Forge** app (Jira issue panel, UI Kit).
 It has its own `app/AGENTS.md` with strict Forge rules — read it before editing.
-The old `frontends/web` Next.js client is **removed**.
+The old `frontends/web` Next.js client is **removed** (present only in `zms/`).
 
-**Wiring:** Kong gateway (external) · gRPC (`meet` → `user-management`) ·
-Kafka + CloudEvents (async, consumed by `notification`) · SSE + Valkey
-(real-time). Integrations: LiveKit (WebRTC + egress), Firebase, Resend.
+**Wiring:** Kong gateway (external) · gRPC (`notification` → user identity
+service) · Kafka + CloudEvents (async, consumed by `notification`) · SSE +
+Valkey (real-time). Integrations: LiveKit (WebRTC + egress), Firebase, Resend.
 
-All builds registered in `services/settings.gradle.kts` via `includeBuild`.
-
-## Known drift (verify before trusting tooling)
-
-- `pnpm smiski svc` and `openapi:*` scripts (`package.json`) still target only
-  legacy `user/meeting/chat`. They do **not** cover `tenant/meet/record`. Invoke
-  new services with `./services/gradlew -p services/<name> ...` directly.
+Builds are registered in `services/settings.gradle.kts` via `includeBuild`.
 
 ## Commands
 
@@ -56,14 +49,13 @@ pnpm smiski setup --env-only       # copy services/docker/.env from .env.example
 pnpm smiski doctor                 # tool status
 pnpm smiski dev                    # infra up + backend services in parallel
 pnpm smiski infra <up|down|reset|logs|ps>
-pnpm smiski web                    # Next.js dev server (legacy; may be stale)
 ```
 
-Gradle (single service, works for all incl. new ones):
+Gradle:
 
 ```sh
-./services/gradlew build                       # all
-./services/gradlew -p services/ < name > build # one
+./services/gradlew build                       # all services
+./services/gradlew -p services/ < name > build # build one
 ./services/gradlew -p services/ < name > test  # test one
 ./services/gradlew -p services/ < name > generateOpenApiDocsFromTests
 ./services/gradlew spotlessApply  # format Java/KTS/XML
@@ -110,19 +102,19 @@ versioned path scheme configured in `spring.mvc.apiversion` +
 - **Always declare the full resource path at method level** — do not rely on a
   class-level `@RequestMapping` base path. Example:
 
-  ```java
-  @RestController
-  class MeetingController {
-      @GetMapping("/meetings/{id}")           // → /api/1/meetings/{id}
-      @PostMapping("/meetings")               // → /api/1/meetings
-  }
-  ```
+    ```java
+    @RestController
+    class MeetingController {
+        @GetMapping("/meetings/{id}")           // → /api/1/meetings/{id}
+        @PostMapping("/meetings")               // → /api/1/meetings
+    }
+    ```
 
 - **Standard RESTful methods** map to collection/resource paths
   (`GET/POST /meetings`, `GET/PUT/DELETE /meetings/{id}`,
   `GET/POST /meetings/{id}/participants`).
 - **Action endpoints** (operations outside the standard RESTful methods) use the
   `:action` suffix on the target resource:
-  `/meetings/{id}/participants/{id}:mute`,
-  `/meetings/{id}:end`. Keep actions as `POST`.
+  `/meetings/{id}/participants/{id}:mute`, `/meetings/{id}:end`. Keep actions as
+  `POST`.
 - Actuator and other non-`@RestController` endpoints stay unprefixed.
