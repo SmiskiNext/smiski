@@ -8,9 +8,5 @@ public enum ParticipantRole {
     /**
      * Authenticated user — can publish audio/video, can chat.
      */
-    PARTICIPANT,
-    /**
-     * Unauthenticated guest — subscribe-only, can chat, cannot publish media.
-     */
-    GUEST
+    PARTICIPANT
 }

@@ -15,13 +15,12 @@ import io.github.smiskinext.shared.domain.ValueObject;
  *   <li>{@code MeetingSettingsResponse} — API output</li>
  * </ul>
  *
- * <p>Simplified field set: {@code admissionPolicy}, {@code allowGuest},
- * {@code maxParticipants}, {@code allowScreenShare}, {@code chatEnabled},
- * {@code allowMicrophone}, and {@code allowVideo}.
+ * <p>Simplified field set: {@code admissionPolicy}, {@code maxParticipants},
+ * {@code allowScreenShare}, {@code chatEnabled}, {@code allowMicrophone},
+ * and {@code allowVideo}.
  */
 public record MeetingSettings(
         AdmissionPolicy admissionPolicy,
-        boolean allowGuest,
         int maxParticipants,
         boolean allowScreenShare,
         boolean chatEnabled,
@@ -33,11 +32,9 @@ public record MeetingSettings(
      * Default settings.
      *
      * <p>Defaults: {@code allowScreenShare=true}, {@code allowMicrophone=true},
-     * {@code allowVideo=true}, {@code chatEnabled=true}, {@code maxParticipants=100},
-     * {@code allowGuest=true}.
+     * {@code allowVideo=true}, {@code chatEnabled=true}, {@code maxParticipants=100}.
      */
     public static MeetingSettings defaults() {
-        return new MeetingSettings(
-                AdmissionPolicy.MANUAL_APPROVAL, true, 100, true, true, true, true);
+        return new MeetingSettings(AdmissionPolicy.MANUAL_APPROVAL, 100, true, true, true, true);
     }
 }

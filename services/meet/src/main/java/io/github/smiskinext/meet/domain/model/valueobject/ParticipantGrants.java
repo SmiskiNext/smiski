@@ -33,7 +33,6 @@ public record ParticipantGrants(
      * <p>Permission policy:
      * <ul>
      *   <li>HOST — full permissions regardless of meeting settings</li>
-     *   <li>GUEST — subscribe-only regardless of meeting settings</li>
      *   <li>PARTICIPANT — derived from meeting settings:
      *     <ul>
      *       <li>{@code canPublish} = true if any media source is enabled
@@ -52,10 +51,8 @@ public record ParticipantGrants(
             @Nullable MeetingSettings settings, ParticipantRole role) {
         return switch (role) {
             case HOST -> speaker();
-            case GUEST -> observer();
             case PARTICIPANT -> {
                 if (settings == null) {
-                    // Fallback for backwards compatibility — full permissions
                     yield speaker();
                 }
                 boolean anyMediaSourceEnabled = settings.allowMicrophone()
@@ -72,7 +69,6 @@ public record ParticipantGrants(
             @Nullable MeetingSettings settings, ParticipantRole role) {
         return switch (role) {
             case HOST -> speaker();
-            case GUEST -> observer();
             case PARTICIPANT -> {
                 if (settings == null) {
                     yield speaker();
@@ -116,12 +112,5 @@ public record ParticipantGrants(
      */
     public static ParticipantGrants viewer() {
         return new ParticipantGrants(false, true, true, List.of());
-    }
-
-    /**
-     * Grants for a fully muted observer: subscribe only, no publish of any kind.
-     */
-    public static ParticipantGrants observer() {
-        return new ParticipantGrants(false, false, true, List.of());
     }
 }

@@ -2,6 +2,7 @@ package io.github.smiskinext.meet.domain.port;
 
 import io.github.smiskinext.meet.domain.model.Meeting;
 import io.github.smiskinext.meet.domain.model.MeetingStatus;
+import io.github.smiskinext.meet.domain.model.valueobject.AccountId;
 import io.github.smiskinext.meet.domain.model.valueobject.ParticipatedMeetingCursor;
 import io.github.smiskinext.meet.domain.model.valueobject.ShortCode;
 import io.github.smiskinext.meet.domain.projection.MeetingSummary;
@@ -29,10 +30,10 @@ public interface MeetingRepository {
     boolean existsByShortCode(ShortCode shortCode);
 
     CursorPageResponse<MeetingSummary> findSummariesByHostId(
-            UUID hostId, @Nullable ScrollCursor cursor, int pageSize);
+            AccountId hostId, @Nullable ScrollCursor cursor, int pageSize);
 
-    CursorPageResponse<ParticipatedMeetingSummary> findParticipatedSummariesByUserId(
-            UUID userId,
+    CursorPageResponse<ParticipatedMeetingSummary> findParticipatedSummariesByAccountId(
+            AccountId accountId,
             Set<MeetingStatus> statuses,
             @Nullable ParticipatedMeetingCursor cursor,
             int pageSize);

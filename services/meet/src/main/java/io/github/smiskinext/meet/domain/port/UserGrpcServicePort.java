@@ -1,9 +1,9 @@
 package io.github.smiskinext.meet.domain.port;
 
 import io.github.smiskinext.meet.domain.MeetingError;
+import io.github.smiskinext.meet.domain.model.valueobject.AccountId;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 import org.jspecify.annotations.Nullable;
 
 /**
@@ -26,16 +26,16 @@ public interface UserGrpcServicePort {
     Map<String, ResolvedUser> resolveUsers(List<String> emails);
 
     /**
-     * Resolves users by ID.
+     * Resolves users by account ID.
      *
-     * <p>Returns a map of userId → {@link ResolvedUser} for all IDs that matched an active user.
+     * <p>Returns a map of accountId → {@link ResolvedUser} for all IDs that matched an active user.
      * Missing IDs are absent from the map.
      *
-     * @param userIds user IDs to resolve (may be empty)
-     * @return map of userId → resolved user
+     * @param accountIds account IDs to resolve (may be empty)
+     * @return map of accountId → resolved user
      * @throws UserServiceException if the user service is unreachable or times out
      */
-    Map<UUID, ResolvedUser> batchGetUsersByIds(List<UUID> userIds);
+    Map<AccountId, ResolvedUser> batchGetUsersByAccountIds(List<AccountId> accountIds);
 
     /**
      * Unchecked exception thrown when the user service is unavailable.
@@ -57,7 +57,7 @@ public interface UserGrpcServicePort {
     /**
      * A resolved user snapshot captured at invite time.
      *
-     * @param userId       the user's UUID
+     * @param accountId    the user's account ID
      * @param email        the user's email address
      * @param displayName  the user's full name
      * @param username     the user's username (nullable)
@@ -65,7 +65,7 @@ public interface UserGrpcServicePort {
      * @param authProvider the auth provider string ("EMAIL", "GOOGLE", "BOTH")
      */
     record ResolvedUser(
-            UUID userId,
+            AccountId accountId,
             String email,
             String displayName,
             @Nullable String username,

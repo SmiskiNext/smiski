@@ -16,8 +16,8 @@ public class ParticipationLogJpaEntity {
     @Column(name = "meeting_id", nullable = false, columnDefinition = "uuid")
     private UUID meetingId;
 
-    @Column(name = "user_id", columnDefinition = "uuid")
-    private @Nullable UUID userId;
+    @Column(name = "account_id", nullable = false, length = 128)
+    private String accountId;
 
     @Column(name = "display_name", nullable = false, length = 255)
     private String displayName;
@@ -41,7 +41,7 @@ public class ParticipationLogJpaEntity {
 
     public ParticipationLogJpaEntity(
             UUID meetingId,
-            @Nullable UUID userId,
+            String accountId,
             String displayName,
             String role,
             String livekitIdentity,
@@ -49,7 +49,7 @@ public class ParticipationLogJpaEntity {
             Instant joinedAt,
             @Nullable Instant leftAt) {
         this.meetingId = meetingId;
-        this.userId = userId;
+        this.accountId = accountId;
         this.displayName = displayName;
         this.role = role;
         this.livekitIdentity = livekitIdentity;
@@ -66,8 +66,8 @@ public class ParticipationLogJpaEntity {
         return meetingId;
     }
 
-    public @Nullable UUID getUserId() {
-        return userId;
+    public String getAccountId() {
+        return accountId;
     }
 
     public String getDisplayName() {

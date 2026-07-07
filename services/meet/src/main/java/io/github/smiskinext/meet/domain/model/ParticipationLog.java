@@ -1,5 +1,6 @@
 package io.github.smiskinext.meet.domain.model;
 
+import io.github.smiskinext.meet.domain.model.valueobject.AccountId;
 import io.github.smiskinext.meet.domain.model.valueobject.LiveKitIdentity;
 import io.github.smiskinext.meet.domain.model.valueobject.LiveKitParticipantSid;
 import io.github.smiskinext.meet.domain.model.valueobject.ParticipationLogId;
@@ -7,14 +8,13 @@ import io.github.smiskinext.shared.domain.AggregateRoot;
 import io.github.smiskinext.shared.domain.valueobject.MeetingId;
 import java.time.Instant;
 import java.util.Optional;
-import java.util.UUID;
 import org.jspecify.annotations.Nullable;
 
 /**
  * Participation log aggregate — append-only event log of join/leave events.
  *
  * <p>Each row represents one participation session (one device joining once).
- * A participant rejoining creates a new row. {@code user_id} is null for guest participants.
+ * A participant rejoining creates a new row.
  *
  * <p>Lifecycle:
  * <ol>
@@ -30,7 +30,7 @@ public class ParticipationLog extends AggregateRoot<ParticipationLogId> {
 
     private @Nullable ParticipationLogId id;
     private final MeetingId meetingId;
-    private final @Nullable UUID userId;
+    private final AccountId accountId;
     private final String displayName;
     private final ParticipantRole role;
     private final LiveKitIdentity livekitIdentity;
@@ -46,7 +46,7 @@ public class ParticipationLog extends AggregateRoot<ParticipationLogId> {
     private ParticipationLog(
             @Nullable ParticipationLogId id,
             MeetingId meetingId,
-            @Nullable UUID userId,
+            AccountId accountId,
             String displayName,
             ParticipantRole role,
             LiveKitIdentity livekitIdentity,
@@ -55,7 +55,7 @@ public class ParticipationLog extends AggregateRoot<ParticipationLogId> {
             @Nullable Instant leftAt) {
         this.id = id;
         this.meetingId = meetingId;
-        this.userId = userId;
+        this.accountId = accountId;
         this.displayName = displayName;
         this.role = role;
         this.livekitIdentity = livekitIdentity;
@@ -73,14 +73,14 @@ public class ParticipationLog extends AggregateRoot<ParticipationLogId> {
      */
     public static ParticipationLog join(
             MeetingId meetingId,
-            @Nullable UUID userId,
+            AccountId accountId,
             String displayName,
             ParticipantRole role,
             LiveKitIdentity livekitIdentity) {
         return new ParticipationLog(
                 null,
                 meetingId,
-                userId,
+                accountId,
                 displayName,
                 role,
                 livekitIdentity,
@@ -95,7 +95,7 @@ public class ParticipationLog extends AggregateRoot<ParticipationLogId> {
     public static ParticipationLog reconstitute(
             ParticipationLogId id,
             MeetingId meetingId,
-            @Nullable UUID userId,
+            AccountId accountId,
             String displayName,
             ParticipantRole role,
             LiveKitIdentity livekitIdentity,
@@ -105,7 +105,7 @@ public class ParticipationLog extends AggregateRoot<ParticipationLogId> {
         return new ParticipationLog(
                 id,
                 meetingId,
-                userId,
+                accountId,
                 displayName,
                 role,
                 livekitIdentity,
@@ -139,13 +139,6 @@ public class ParticipationLog extends AggregateRoot<ParticipationLogId> {
         this.leftAt = leftAt;
     }
 
-    /**
-     * Returns true if this is a guest participant (no registered user account).
-     */
-    public boolean isGuest() {
-        return userId == null;
-    }
-
     // -------------------------------------------------------------------------
     // Accessors
     // -------------------------------------------------------------------------
@@ -167,8 +160,8 @@ public class ParticipationLog extends AggregateRoot<ParticipationLogId> {
         return meetingId;
     }
 
-    public Optional<UUID> getUserId() {
-        return Optional.ofNullable(userId);
+    public AccountId getAccountId() {
+        return accountId;
     }
 
     public String getDisplayName() {

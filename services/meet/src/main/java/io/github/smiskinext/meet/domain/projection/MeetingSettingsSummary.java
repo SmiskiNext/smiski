@@ -7,7 +7,6 @@ package io.github.smiskinext.meet.domain.projection;
  */
 public record MeetingSettingsSummary(
         String admissionPolicy,
-        boolean allowGuest,
         int maxParticipants,
         boolean allowScreenShare,
         boolean chatEnabled,

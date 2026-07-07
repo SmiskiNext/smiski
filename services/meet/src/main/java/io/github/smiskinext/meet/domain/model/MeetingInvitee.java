@@ -4,6 +4,7 @@ import com.github.f4b6a3.uuid.UuidCreator;
 import io.github.smiskinext.meet.domain.MeetingError;
 import io.github.smiskinext.meet.domain.event.InviteeAcceptedEvent;
 import io.github.smiskinext.meet.domain.event.InviteeDeclinedEvent;
+import io.github.smiskinext.meet.domain.model.valueobject.AccountId;
 import io.github.smiskinext.meet.domain.model.valueobject.InviteTokenId;
 import io.github.smiskinext.meet.domain.model.valueobject.InviteeDisplayName;
 import io.github.smiskinext.meet.domain.model.valueobject.InviteeId;
@@ -12,7 +13,6 @@ import io.github.smiskinext.shared.domain.AggregateRoot;
 import io.github.smiskinext.shared.domain.Result;
 import io.github.smiskinext.shared.domain.valueobject.Email;
 import io.github.smiskinext.shared.domain.valueobject.MeetingId;
-import io.github.smiskinext.shared.domain.valueobject.UserId;
 import java.time.Instant;
 import java.util.Optional;
 import java.util.UUID;
@@ -22,7 +22,7 @@ import org.jspecify.annotations.Nullable;
  * Represents a pre-scheduled invitation for a meeting.
  *
  * <p>Created at scheduling time when the host provides an invitee list.
- * {@code userId} is populated from gRPC resolution; {@code email} is the stable invite key.
+ * {@code accountId} is populated from gRPC resolution; {@code email} is the stable invite key.
  *
  * <p>Status transitions: {@code PENDING → ACCEPTED}, {@code PENDING → DECLINED},
  * {@code ACCEPTED → DECLINED}.
@@ -32,7 +32,7 @@ public class MeetingInvitee extends AggregateRoot<InviteeId> {
     private final InviteeId id;
     private final MeetingId meetingId;
     private final InviterId inviterId;
-    private @Nullable UserId userId;
+    private @Nullable AccountId accountId;
     private final Email email;
     private final @Nullable InviteeDisplayName displayName;
     private InviteeStatus status;
@@ -44,7 +44,7 @@ public class MeetingInvitee extends AggregateRoot<InviteeId> {
             InviteeId id,
             MeetingId meetingId,
             InviterId inviterId,
-            @Nullable UserId userId,
+            @Nullable AccountId accountId,
             Email email,
             @Nullable InviteeDisplayName displayName,
             InviteeStatus status,
@@ -54,7 +54,7 @@ public class MeetingInvitee extends AggregateRoot<InviteeId> {
         this.id = id;
         this.meetingId = meetingId;
         this.inviterId = inviterId;
-        this.userId = userId;
+        this.accountId = accountId;
         this.email = email;
         this.displayName = displayName;
         this.status = status;
@@ -70,14 +70,14 @@ public class MeetingInvitee extends AggregateRoot<InviteeId> {
     public static MeetingInvitee create(
             MeetingId meetingId,
             InviterId inviterId,
-            @Nullable UserId userId,
+            @Nullable AccountId accountId,
             Email email,
             @Nullable InviteeDisplayName displayName) {
         return new MeetingInvitee(
                 InviteeId.of(UuidCreator.getTimeOrderedEpoch()),
                 meetingId,
                 inviterId,
-                userId,
+                accountId,
                 email,
                 displayName,
                 InviteeStatus.PENDING,
@@ -93,7 +93,7 @@ public class MeetingInvitee extends AggregateRoot<InviteeId> {
             InviteeId id,
             MeetingId meetingId,
             InviterId inviterId,
-            @Nullable UserId userId,
+            @Nullable AccountId accountId,
             Email email,
             @Nullable InviteeDisplayName displayName,
             InviteeStatus status,
@@ -104,7 +104,7 @@ public class MeetingInvitee extends AggregateRoot<InviteeId> {
                 id,
                 meetingId,
                 inviterId,
-                userId,
+                accountId,
                 email,
                 displayName,
                 status,
@@ -169,8 +169,8 @@ public class MeetingInvitee extends AggregateRoot<InviteeId> {
         return inviterId;
     }
 
-    public Optional<UserId> getUserId() {
-        return Optional.ofNullable(userId);
+    public Optional<AccountId> getAccountId() {
+        return Optional.ofNullable(accountId);
     }
 
     public Email getEmail() {

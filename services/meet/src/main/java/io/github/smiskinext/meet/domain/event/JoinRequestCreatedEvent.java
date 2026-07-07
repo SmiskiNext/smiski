@@ -1,9 +1,9 @@
 package io.github.smiskinext.meet.domain.event;
 
 import io.github.smiskinext.meet.domain.PublishableEvent;
+
 import java.time.Instant;
 import java.util.UUID;
-import org.jspecify.annotations.Nullable;
 
 /**
  * Published when a participant submits a join request for a meeting with MANUAL_APPROVAL policy.
@@ -12,7 +12,7 @@ public record JoinRequestCreatedEvent(
         UUID eventId,
         UUID meetingId,
         UUID joinRequestId,
-        @Nullable UUID userId,
+        String accountId,
         String displayName,
         String deviceId,
         Instant occurredAt)

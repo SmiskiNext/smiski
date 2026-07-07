@@ -7,7 +7,6 @@ import io.github.smiskinext.meet.domain.model.valueobject.*;
 import io.github.smiskinext.shared.domain.AggregateRoot;
 import io.github.smiskinext.shared.domain.Result;
 import io.github.smiskinext.shared.domain.valueobject.MeetingId;
-import io.github.smiskinext.shared.domain.valueobject.UserId;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
@@ -24,7 +23,7 @@ import org.jspecify.annotations.Nullable;
 public class Meeting extends AggregateRoot<MeetingId> {
 
     private final MeetingId id;
-    private final UserId hostId;
+    private final AccountId hostId;
     private final ShortCode shortCode;
     private final MeetingType type;
     private final Instant createdAt;
@@ -42,7 +41,7 @@ public class Meeting extends AggregateRoot<MeetingId> {
 
     private Meeting(
             MeetingId id,
-            UserId hostId,
+            AccountId hostId,
             ShortCode shortCode,
             @Nullable MeetingTitle title,
             @Nullable String description,
@@ -71,7 +70,7 @@ public class Meeting extends AggregateRoot<MeetingId> {
      * Creates a new SCHEDULED meeting. Registers {@code MeetingScheduledEvent}.
      */
     public static Meeting schedule(
-            UserId hostId,
+            AccountId hostId,
             @Nullable MeetingTitle title,
             @Nullable String description,
             MeetingTimeRange timeRange,
@@ -106,7 +105,7 @@ public class Meeting extends AggregateRoot<MeetingId> {
      * Registers {@code MeetingScheduledEvent}.
      */
     public static Meeting instant(
-            UserId hostId,
+            AccountId hostId,
             @Nullable MeetingTitle title,
             @Nullable String description,
             MeetingSettings settings,
@@ -140,7 +139,7 @@ public class Meeting extends AggregateRoot<MeetingId> {
      */
     public static Meeting reconstitute(
             MeetingId id,
-            UserId hostId,
+            AccountId hostId,
             ShortCode shortCode,
             @Nullable MeetingTitle title,
             @Nullable String description,
@@ -208,10 +207,11 @@ public class Meeting extends AggregateRoot<MeetingId> {
      * Registers {@code MeetingSettingsUpdatedEvent} with both old and new settings snapshots.
      *
      * @param newSettings the new settings to apply
-     * @param updatedBy   the user ID performing the update
+     * @param updatedBy   the account ID performing the update
      * @return success, or failure with {@code InvalidStatusTransition} if meeting is ENDED/CANCELLED
      */
-    public Result<Void, MeetingError> updateSettings(MeetingSettings newSettings, UUID updatedBy) {
+    public Result<Void, MeetingError> updateSettings(
+            MeetingSettings newSettings, String updatedBy) {
         if (status != MeetingStatus.SCHEDULED && status != MeetingStatus.LIVE) {
             return Result.failure(
                     new MeetingError.InvalidStatusTransition(status, MeetingStatus.SCHEDULED));
@@ -277,7 +277,7 @@ public class Meeting extends AggregateRoot<MeetingId> {
         return id;
     }
 
-    public UserId getHostId() {
+    public AccountId getHostId() {
         return hostId;
     }
 

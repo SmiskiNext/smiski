@@ -23,8 +23,6 @@ public interface LiveKitPort {
      *       canUpdateOwnMetadata</li>
      *   <li>{@link ParticipantRole#PARTICIPANT} — canPublish, canPublishData, canSubscribe,
      *       canUpdateOwnMetadata</li>
-     *   <li>{@link ParticipantRole#GUEST} — canSubscribe, canUpdateOwnMetadata (no media
-     *       publish)</li>
      * </ul>
      *
      * @param request token generation request, including identity, display name, role, and

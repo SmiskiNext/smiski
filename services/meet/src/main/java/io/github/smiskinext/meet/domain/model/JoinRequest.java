@@ -1,22 +1,22 @@
 package io.github.smiskinext.meet.domain.model;
 
 import com.github.f4b6a3.uuid.UuidCreator;
+
 import io.github.smiskinext.meet.domain.MeetingError;
+import io.github.smiskinext.meet.domain.model.valueobject.AccountId;
 import io.github.smiskinext.meet.domain.model.valueobject.JoinRequestId;
 import io.github.smiskinext.shared.domain.AggregateRoot;
 import io.github.smiskinext.shared.domain.Result;
 import io.github.smiskinext.shared.domain.valueobject.MeetingId;
-import io.github.smiskinext.shared.domain.valueobject.UserId;
+
 import java.time.Instant;
-import java.util.Optional;
-import org.jspecify.annotations.Nullable;
 
 /**
  * Represents a participant's request to join a meeting that requires manual approval.
  *
  * <p>Stored exclusively in Redis with a TTL. Not persisted to PostgreSQL.
- * Identified by {@code deviceId} for guests (unauthenticated users) and {@code userId}
- * for authenticated users.
+ * Identified by {@code accountId} for the requesting participant and {@code deviceId}
+ * for the specific device that initiated the request.
  *
  * <p>Status transitions:
  * <ul>
@@ -34,7 +34,7 @@ public class JoinRequest extends AggregateRoot<JoinRequestId> {
 
     private final JoinRequestId id;
     private final MeetingId meetingId;
-    private final @Nullable UserId userId;
+    private final AccountId accountId;
     private final String displayName;
     private final String deviceId;
     private JoinRequestStatus status;
@@ -44,7 +44,7 @@ public class JoinRequest extends AggregateRoot<JoinRequestId> {
     private JoinRequest(
             JoinRequestId id,
             MeetingId meetingId,
-            @Nullable UserId userId,
+            AccountId accountId,
             String displayName,
             String deviceId,
             JoinRequestStatus status,
@@ -52,7 +52,7 @@ public class JoinRequest extends AggregateRoot<JoinRequestId> {
             Instant expiresAt) {
         this.id = id;
         this.meetingId = meetingId;
-        this.userId = userId;
+        this.accountId = accountId;
         this.displayName = displayName;
         this.deviceId = deviceId;
         this.status = status;
@@ -65,14 +65,14 @@ public class JoinRequest extends AggregateRoot<JoinRequestId> {
      */
     public static JoinRequest create(
             MeetingId meetingId,
-            @Nullable UserId userId,
+            AccountId accountId,
             String displayName,
             String deviceId,
             Instant expiresAt) {
         return new JoinRequest(
                 JoinRequestId.of(UuidCreator.getTimeOrderedEpoch()),
                 meetingId,
-                userId,
+                accountId,
                 displayName,
                 deviceId,
                 JoinRequestStatus.PENDING,
@@ -86,14 +86,14 @@ public class JoinRequest extends AggregateRoot<JoinRequestId> {
     public static JoinRequest reconstitute(
             JoinRequestId id,
             MeetingId meetingId,
-            @Nullable UserId userId,
+            AccountId accountId,
             String displayName,
             String deviceId,
             JoinRequestStatus status,
             Instant requestedAt,
             Instant expiresAt) {
         return new JoinRequest(
-                id, meetingId, userId, displayName, deviceId, status, requestedAt, expiresAt);
+                id, meetingId, accountId, displayName, deviceId, status, requestedAt, expiresAt);
     }
 
     /**
@@ -154,8 +154,8 @@ public class JoinRequest extends AggregateRoot<JoinRequestId> {
         return meetingId;
     }
 
-    public Optional<UserId> getUserId() {
-        return Optional.ofNullable(userId);
+    public AccountId getAccountId() {
+        return accountId;
     }
 
     public String getDisplayName() {

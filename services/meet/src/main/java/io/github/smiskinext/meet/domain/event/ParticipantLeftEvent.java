@@ -1,16 +1,16 @@
 package io.github.smiskinext.meet.domain.event;
 
 import io.github.smiskinext.meet.domain.PublishableEvent;
+
 import java.time.Instant;
 import java.util.UUID;
-import org.jspecify.annotations.Nullable;
 
 /**
  * Published when a participant leaves a LiveKit room (webhook: {@code participant_left}).
  * Consumed by chat-management to create a system chat message.
  */
 public record ParticipantLeftEvent(
-        UUID eventId, UUID meetingId, @Nullable UUID userId, String displayName, Instant occurredAt)
+        UUID eventId, UUID meetingId, String accountId, String displayName, Instant occurredAt)
         implements PublishableEvent {
 
     @Override

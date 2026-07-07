@@ -1,6 +1,7 @@
 package io.github.smiskinext.meet.domain.port;
 
 import io.github.smiskinext.meet.domain.model.MeetingInvitee;
+import io.github.smiskinext.meet.domain.model.valueobject.AccountId;
 import io.github.smiskinext.meet.domain.model.valueobject.InviteeId;
 import io.github.smiskinext.meet.domain.projection.InviteeSummary;
 
@@ -34,14 +35,14 @@ public interface MeetingInviteeRepository {
     List<MeetingInvitee> findByMeetingId(UUID meetingId);
 
     /**
-     * Returns an invitee by meeting and registered user identity.
+     * Returns an invitee by meeting and registered account identity.
      */
-    Optional<MeetingInvitee> findByMeetingIdAndUserId(UUID meetingId, UUID userId);
+    Optional<MeetingInvitee> findByMeetingIdAndAccountId(UUID meetingId, AccountId accountId);
 
     /**
-     * Returns pending invitees for the given registered user.
+     * Returns pending invitees for the given registered account.
      */
-    List<MeetingInvitee> findPendingByUserId(UUID userId);
+    List<MeetingInvitee> findPendingByAccountId(AccountId accountId);
 
     /**
      * Returns the count of active (PENDING or ACCEPTED) invitees for the given meeting.

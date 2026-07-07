@@ -13,7 +13,6 @@ public enum MeetingErrorCode implements ErrorCode {
     NOT_OWNER,
     NOT_PARTICIPANT,
     PARTICIPATION_LOG_NOT_FOUND,
-    GUEST_NOT_ALLOWED,
     LIVEKIT_UNAVAILABLE,
     MEETING_FULL,
     INVITEE_NOT_FOUND,

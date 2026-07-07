@@ -41,24 +41,24 @@ public sealed interface MeetingError extends DomainError {
         }
     }
 
-    record NotAuthorized(UUID requesterId, UUID hostId) implements MeetingError {
+    record NotAuthorized(String requesterId, String hostId) implements MeetingError {
         @Override
         public String message() {
             return "Requester " + requesterId + " is not the host of this meeting";
         }
     }
 
-    record NotOwner(UUID requesterId, UUID ownerId) implements MeetingError {
+    record NotOwner(String requesterId, String ownerId) implements MeetingError {
         @Override
         public String message() {
             return "Requester " + requesterId + " does not own user scope " + ownerId;
         }
     }
 
-    record NotParticipant(UUID userId, UUID meetingId) implements MeetingError {
+    record NotParticipant(String accountId, UUID meetingId) implements MeetingError {
         @Override
         public String message() {
-            return "User " + userId + " has not participated in meeting " + meetingId;
+            return "Account " + accountId + " has not participated in meeting " + meetingId;
         }
     }
 
@@ -66,13 +66,6 @@ public sealed interface MeetingError extends DomainError {
         @Override
         public String message() {
             return "No active participation log for meeting " + meetingId + " device " + deviceId;
-        }
-    }
-
-    record GuestNotAllowed(UUID meetingId) implements MeetingError {
-        @Override
-        public String message() {
-            return "Guest access is not allowed for meeting: " + meetingId;
         }
     }
 
@@ -188,14 +181,14 @@ public sealed interface MeetingError extends DomainError {
     }
 
     /** The host attempted to kick themselves from their own meeting. */
-    record CanNotKickSelf(UUID meetingId, UUID hostId) implements MeetingError {
+    record CanNotKickSelf(UUID meetingId, String hostId) implements MeetingError {
         @Override
         public String message() {
             return "Host " + hostId + " cannot kick themselves from meeting " + meetingId;
         }
     }
 
-    /** The kick target (registered user or guest) has no active sessions in the meeting. */
+    /** The kick target has no active sessions in the meeting. */
     record UserNotInMeeting(UUID meetingId, String identifier) implements MeetingError {
         @Override
         public String message() {
@@ -203,7 +196,7 @@ public sealed interface MeetingError extends DomainError {
         }
     }
 
-    /** The kick request provided neither or both of userId and displayName. */
+    /** The kick request provided neither or both of accountId and displayName. */
     record InvalidKickTarget(String detail) implements MeetingError {
         @Override
         public String message() {

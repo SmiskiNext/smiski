@@ -1,6 +1,7 @@
 package io.github.smiskinext.meet.domain.port;
 
 import io.github.smiskinext.meet.domain.model.ParticipationLog;
+import io.github.smiskinext.meet.domain.model.valueobject.AccountId;
 import io.github.smiskinext.meet.domain.model.valueobject.LiveKitIdentity;
 import io.github.smiskinext.meet.domain.model.valueobject.LiveKitParticipantSid;
 import io.github.smiskinext.meet.domain.projection.ParticipantSummary;
@@ -38,27 +39,27 @@ public interface ParticipationLogRepository {
     List<ParticipationLog> findActiveByMeetingId(UUID meetingId);
 
     /**
-     * Returns all active (not yet left) participation logs for a registered user.
-     * Used by the user-profile sync consumer to update every connected session for the user.
+     * Returns all active (not yet left) participation logs for a registered account.
+     * Used by the user-profile sync consumer to update every connected session for the account.
      */
-    List<ParticipationLog> findActiveByUserId(UUID userId);
+    List<ParticipationLog> findActiveByAccountId(AccountId accountId);
 
     /**
-     * Returns all active sessions for a registered user within a specific meeting.
-     * Used by the host kick flow to remove all devices of a user at once.
+     * Returns all active sessions for a registered account within a specific meeting.
+     * Used by the host kick flow to remove all devices of an account at once.
      */
-    List<ParticipationLog> findActiveByMeetingIdAndUserId(UUID meetingId, UUID userId);
+    List<ParticipationLog> findActiveByMeetingIdAndAccountId(UUID meetingId, AccountId accountId);
 
     /**
-     * Returns all active sessions for a guest (identified by display name) within a specific meeting.
-     * Used by the host kick flow to remove all sessions matching the guest's display name.
+     * Returns all active sessions matching a display name within a specific meeting.
+     * Used by the host kick flow to remove all sessions matching a display name.
      */
     List<ParticipationLog> findActiveByMeetingIdAndDisplayName(UUID meetingId, String displayName);
 
     /** Returns read-only participant summaries for a meeting ordered by newest join first. */
     List<ParticipantSummary> findParticipantSummariesByMeetingId(UUID meetingId);
 
-    boolean existsByMeetingIdAndUserId(UUID meetingId, UUID userId);
+    boolean existsByMeetingIdAndAccountId(UUID meetingId, AccountId accountId);
 
     List<ParticipantSummary> findDistinctParticipantSummariesByMeetingId(UUID meetingId);
 }

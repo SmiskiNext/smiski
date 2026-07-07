@@ -9,7 +9,6 @@ package io.github.smiskinext.meet.infrastructure.persistence;
  */
 public record MeetingSettingsJson(
         String admissionPolicy,
-        boolean allowGuest,
         int maxParticipants,
         boolean allowScreenShare,
         boolean chatEnabled,

@@ -8,7 +8,7 @@ import java.util.UUID;
 /**
  * Published when a meeting transitions LIVE → ENDED.
  */
-public record MeetingEndedEvent(UUID eventId, UUID aggregateId, UUID hostId, Instant endedAt)
+public record MeetingEndedEvent(UUID eventId, UUID aggregateId, String hostId, Instant endedAt)
         implements PublishableEvent {
 
     @Override

@@ -18,8 +18,8 @@ public class MeetingJpaEntity {
     @Column(columnDefinition = "uuid")
     private UUID id;
 
-    @Column(name = "host_id", nullable = false, columnDefinition = "uuid")
-    private UUID hostId;
+    @Column(name = "host_id", nullable = false, length = 128)
+    private String hostId;
 
     @Column(name = "short_code", nullable = false, length = 15, unique = true)
     private String shortCode;
@@ -53,7 +53,7 @@ public class MeetingJpaEntity {
 
     public MeetingJpaEntity(
             UUID id,
-            UUID hostId,
+            String hostId,
             String shortCode,
             @Nullable String title,
             @Nullable String description,
@@ -80,7 +80,7 @@ public class MeetingJpaEntity {
         return id;
     }
 
-    public UUID getHostId() {
+    public String getHostId() {
         return hostId;
     }
 

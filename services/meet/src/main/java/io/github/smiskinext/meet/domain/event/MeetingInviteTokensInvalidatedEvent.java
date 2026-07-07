@@ -16,7 +16,7 @@ import org.jspecify.annotations.Nullable;
 public record MeetingInviteTokensInvalidatedEvent(
         UUID eventId,
         UUID aggregateId,
-        UUID hostId,
+        String hostId,
         @Nullable String meetingTitle,
         String meetingShortCode,
         List<AffectedInviteeInfo> affectedInvitees,
@@ -27,13 +27,13 @@ public record MeetingInviteTokensInvalidatedEvent(
      * Minimal info about an invitee whose invite token was invalidated.
      *
      * @param inviteeId   the ID of the MeetingInvitee record
-     * @param userId      the resolved user ID (may be null)
+     * @param accountId   the resolved account ID (may be null)
      * @param email       the invitee's email address
      * @param displayName the invitee's display name (may be null)
      */
     public record AffectedInviteeInfo(
             UUID inviteeId,
-            @Nullable UUID userId,
+            @Nullable String accountId,
             String email,
             @Nullable String displayName) {}
 

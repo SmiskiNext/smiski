@@ -11,7 +11,7 @@ import java.util.UUID;
  *
  * <p>Solves the race where the host approves/denies a join request before the requester finishes
  * opening the SSE stream and registering its emitter. The TTL of the persisted result is owned by
- * the implementation and aligned with the guest SSE timeout.
+ * the implementation and aligned with the join request SSE timeout.
  */
 public interface JoinRequestResultStore {
 

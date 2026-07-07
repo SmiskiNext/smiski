@@ -20,8 +20,8 @@ import org.jspecify.annotations.Nullable;
  * @param meetingShortCode short alphanumeric code for the meeting join URL
  * @param startTime        scheduled start time, or {@code null} for open-ended meetings
  * @param invitees         list of resolved invitees with display info
- * @param inviteeTokens    map of userId (resolved from gRPC, not the DB invitee record ID)
- *                         to raw invite token; consumers must look up tokens by userId
+ * @param inviteeTokens    map of accountId (resolved from gRPC, not the DB invitee record ID)
+ *                         to raw invite token; consumers must look up tokens by accountId
  * @param occurredAt       timestamp when the event occurred
  */
 public record MeetingInvitationsSentEvent(
@@ -31,19 +31,21 @@ public record MeetingInvitationsSentEvent(
         String meetingShortCode,
         @Nullable Instant startTime,
         List<InviteeInfo> invitees,
-        Map<UUID, String> inviteeTokens,
+        Map<String, String> inviteeTokens,
         Instant occurredAt)
         implements PublishableEvent {
 
     /**
      * Minimal invitee info needed by the notification service.
      *
-     * @param userId      resolved user ID (may be null if resolution was partial)
+     * @param accountId   resolved account ID (may be null if resolution was partial)
      * @param email       the invite target email
      * @param displayName the user's full name at invite time
      */
     public record InviteeInfo(
-            @Nullable UUID userId, String email, @Nullable String displayName) {}
+            @Nullable String accountId,
+            String email,
+            @Nullable String displayName) {}
 
     @Override
     public String aggregateType() {

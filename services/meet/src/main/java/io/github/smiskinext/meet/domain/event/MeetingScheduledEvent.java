@@ -11,7 +11,7 @@ import org.jspecify.annotations.Nullable;
 public record MeetingScheduledEvent(
         UUID eventId,
         UUID aggregateId,
-        UUID hostId,
+        String hostId,
         String shortCode,
         @Nullable String title,
         @Nullable Instant startTime,

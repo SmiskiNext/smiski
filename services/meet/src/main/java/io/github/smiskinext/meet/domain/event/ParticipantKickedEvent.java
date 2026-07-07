@@ -12,8 +12,8 @@ import org.jspecify.annotations.Nullable;
 public record ParticipantKickedEvent(
         UUID eventId,
         UUID meetingId,
-        UUID kickedBy,
-        @Nullable UUID kickedUserId,
+        String kickedBy,
+        @Nullable String kickedAccountId,
         @Nullable String kickedDisplayName,
         Instant occurredAt)
         implements PublishableEvent {

@@ -8,7 +8,7 @@ import org.jspecify.annotations.Nullable;
 
 public record MeetingSummary(
         UUID id,
-        UUID hostId,
+        String hostId,
         String shortCode,
         @Nullable String title,
         @Nullable String description,

@@ -1,21 +1,16 @@
 package io.github.smiskinext.meet.domain.model.valueobject;
 
 import io.github.smiskinext.shared.domain.ValueObject;
-import io.github.smiskinext.shared.domain.valueobject.UserId;
 
 import java.util.Objects;
 
 /**
  * LiveKit JWT {@code sub} (identity) claim for a participant.
  *
- * <p>Format:
- * <ul>
- *   <li>Authenticated user: {@code "<userId>:<deviceId>"}
- *   <li>Guest: {@code "guest:<deviceId>"}
- * </ul>
+ * <p>Format: {@code "<accountId>:<deviceId>"}.
  *
- * <p>The identity is unique per room per device. Using {@code userId:deviceId} allows the same
- * user to join from multiple devices simultaneously without triggering
+ * <p>The identity is unique per room per device. Using {@code accountId:deviceId} allows the same
+ * account to join from multiple devices simultaneously without triggering
  * {@code DUPLICATE_IDENTITY} disconnects.
  */
 public record LiveKitIdentity(String value) implements ValueObject {
@@ -31,23 +26,11 @@ public record LiveKitIdentity(String value) implements ValueObject {
     }
 
     /**
-     * Creates an identity for an authenticated user joining from a specific device.
+     * Creates an identity for an account joining from a specific device.
      */
-    public static LiveKitIdentity fromUser(UserId userId, String deviceId) {
-        Objects.requireNonNull(userId, "userId must not be null");
+    public static LiveKitIdentity fromAccount(AccountId accountId, String deviceId) {
+        Objects.requireNonNull(accountId, "accountId must not be null");
         Objects.requireNonNull(deviceId, "deviceId must not be null");
-        return new LiveKitIdentity(userId.value() + ":" + deviceId);
-    }
-
-    /**
-     * Creates an identity for a guest joining from a specific device.
-     */
-    public static LiveKitIdentity forGuest(String deviceId) {
-        Objects.requireNonNull(deviceId, "deviceId must not be null");
-        return new LiveKitIdentity("guest:" + deviceId);
-    }
-
-    public boolean isGuest() {
-        return value.startsWith("guest:");
+        return new LiveKitIdentity(accountId.value() + ":" + deviceId);
     }
 }
