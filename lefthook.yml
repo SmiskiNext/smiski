@@ -14,20 +14,27 @@ pre-commit:
             exclude:
                 - 'services/**/.idea/**'
                 - 'services/**/.gradle/**'
-            run: ./services/gradlew spotlessApply
+            run: ./services/gradlew spotlessApply -PspotlessFiles="$(echo {staged_files} | tr ' ' ',')"
             stage_fixed: true
 
         format-proto:
             root: services/proto
             glob: '**/*.proto'
-            run: ./gradlew bufFormatApply
+            run: for f in {staged_files}; do buf format -w --path "$f"; done
             stage_fixed: true
 
         format-general:
             glob: '**/*.{md,json,toml,yaml,yml,sh}'
             exclude:
                 - '**/node_modules/**'
-            run: pnpm format
+            run: pnpm exec prettier --write {staged_files}
+            stage_fixed: true
+
+        lint-markdown:
+            glob: '**/*.md'
+            exclude:
+                - '**/node_modules/**'
+            run: pnpm exec markdownlint-cli2 --fix {staged_files}
             stage_fixed: true
 
         format-scripts:
@@ -86,7 +93,24 @@ pre-push:
 
         format-java:
             priority: 3
-            run: ./services/gradlew spotlessCheck
+            glob: 'services/**/*.{java,kts,xml}'
+            exclude:
+                - 'services/**/.idea/**'
+                - 'services/**/.gradle/**'
+            run: ./services/gradlew spotlessCheck -PspotlessFiles="$(echo {push_files} | tr ' ' ',')"
+
+        format-proto:
+            priority: 3
+            root: services/proto
+            glob: '**/*.proto'
+            run: for f in {push_files}; do buf format --diff --exit-code --path "$f"; done
+
+        format-general:
+            priority: 3
+            glob: '**/*.{md,json,toml,yaml,yml,sh}'
+            exclude:
+                - '**/node_modules/**'
+            run: pnpm exec prettier --check {push_files}
 
         # ── lint (all) ─────────────────────────────────────────────────
         lint-scripts:
@@ -94,6 +118,13 @@ pre-push:
             root: scripts
             glob: '**/*.{ts,js}'
             run: pnpm biome lint --no-errors-on-unmatched --files-ignore-unknown=true {push_files}
+
+        lint-markdown:
+            priority: 3
+            glob: '**/*.md'
+            exclude:
+                - '**/node_modules/**'
+            run: pnpm exec markdownlint-cli2 {push_files}
 
         # ── typecheck (all) ────────────────────────────────────────────
         typecheck-scripts:
