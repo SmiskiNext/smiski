@@ -22,7 +22,7 @@ import org.jspecify.annotations.Nullable;
  * Represents a pre-scheduled invitation for a meeting.
  *
  * <p>Created at scheduling time when the host provides an invitee list.
- * {@code accountId} is populated from gRPC resolution; {@code email} is the stable invite key.
+ * {@code accountId} is the resolved account identifier; {@code email} is the stable invite key.
  *
  * <p>Status transitions: {@code PENDING → ACCEPTED}, {@code PENDING → DECLINED},
  * {@code ACCEPTED → DECLINED}.

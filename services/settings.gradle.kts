@@ -21,10 +21,7 @@ pluginManagement {
 }
 
 includeBuild("proto")
-includeBuild("user-management")
 includeBuild("tenant")
-includeBuild("meeting-management")
 includeBuild("meet")
 includeBuild("record")
-includeBuild("chat-management")
 includeBuild("notification")

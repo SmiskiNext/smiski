@@ -20,7 +20,7 @@ import org.jspecify.annotations.Nullable;
  * @param meetingShortCode short alphanumeric code for the meeting join URL
  * @param startTime        scheduled start time, or {@code null} for open-ended meetings
  * @param invitees         list of resolved invitees with display info
- * @param inviteeTokens    map of accountId (resolved from gRPC, not the DB invitee record ID)
+ * @param inviteeTokens    map of accountId (the resolved account identifier, not the DB invitee record ID)
  *                         to raw invite token; consumers must look up tokens by accountId
  * @param occurredAt       timestamp when the event occurred
  */

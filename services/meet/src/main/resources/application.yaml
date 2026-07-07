@@ -47,13 +47,6 @@ spring:
         virtual:
             enabled: true
 
-    grpc:
-        client:
-            channels:
-                user-management:
-                    address: static://${USER_MANAGEMENT_GRPC_HOST:localhost}:${USER_MANAGEMENT_GRPC_PORT:9090}
-                    negotiation-type: ${GRPC_NEGOTIATION_TYPE:plaintext}
-
 app:
     tenancy:
         header: X-Tenant-ID

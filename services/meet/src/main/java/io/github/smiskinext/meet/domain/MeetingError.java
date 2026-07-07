@@ -106,13 +106,6 @@ public sealed interface MeetingError extends DomainError {
         }
     }
 
-    record UserServiceUnavailable(String detail) implements MeetingError {
-        @Override
-        public String message() {
-            return "User service is unavailable: " + detail;
-        }
-    }
-
     record InvalidSettings(String detail) implements MeetingError {
         @Override
         public String message() {

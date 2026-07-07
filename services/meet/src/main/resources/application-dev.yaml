@@ -16,12 +16,6 @@ spring:
             port: 8284
             password:
 
-    grpc:
-        client:
-            channels:
-                user-management:
-                    address: static://localhost:8181
-
 app:
     livekit:
         url: http://localhost:7880
