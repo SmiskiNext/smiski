@@ -140,3 +140,34 @@ Postgres services (`meet`, `record`) manage schema with Flyway SQL under
 - Backend: JSend envelope pattern for HTTP responses; interceptors on the web
   client unwrap envelopes automatically.
 - Biome is the formatter/linter for app.
+
+## REST API Design
+
+Postgres/servlet services (`tenant`, `meet`, `record`, `notification`) share a
+versioned path scheme configured in `spring.mvc.apiversion` +
+`ApiPathPrefixAutoConfiguration` (`services/shared`). The URL shape is
+`/api/{version}/path/to/resource` where `{version}` is an integer (`1`, `2`,
+`3`, …) at path-segment index 1 (segment 0 is the literal `api`).
+
+- **The `/api/{version}` prefix is applied globally** to every `@RestController`
+  via `PathMatchConfigurer#addPathPrefix`. Never repeat `api` or the version in
+  controller mappings.
+- **Always declare the full resource path at method level** — do not rely on a
+  class-level `@RequestMapping` base path. Example:
+
+  ```java
+  @RestController
+  class MeetingController {
+      @GetMapping("/meetings/{id}")           // → /api/1/meetings/{id}
+      @PostMapping("/meetings")               // → /api/1/meetings
+  }
+  ```
+
+- **Standard RESTful methods** map to collection/resource paths
+  (`GET/POST /meetings`, `GET/PUT/DELETE /meetings/{id}`,
+  `GET/POST /meetings/{id}/participants`).
+- **Action endpoints** (operations outside the standard RESTful methods) use the
+  `:action` suffix on the target resource:
+  `/meetings/{id}/participants/{id}:mute`,
+  `/meetings/{id}:end`. Keep actions as `POST`.
+- Actuator and other non-`@RestController` endpoints stay unprefixed.
