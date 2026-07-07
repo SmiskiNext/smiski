@@ -1,6 +1,7 @@
 package io.github.smiskinext.notification.infrastructure.email;
 
 import io.github.smiskinext.notification.infrastructure.config.NotificationProperties;
+
 import org.springframework.stereotype.Component;
 import org.springframework.web.util.UriComponentsBuilder;
 

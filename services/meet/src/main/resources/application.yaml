@@ -6,8 +6,8 @@ spring:
         apiversion:
             use:
                 path-segment: 1
-            default: 1.0
-            supported: 1.0
+            default: 1
+            supported: 1
 
     datasource:
         url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/zms_meetings}

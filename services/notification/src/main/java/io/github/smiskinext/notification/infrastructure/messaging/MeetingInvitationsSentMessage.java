@@ -1,11 +1,10 @@
 package io.github.smiskinext.notification.infrastructure.messaging;
 
+import io.github.smiskinext.notification.infrastructure.email.MeetingInvitationLinkFactory;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-
-import io.github.smiskinext.notification.infrastructure.email.MeetingInvitationLinkFactory;
 import org.jspecify.annotations.Nullable;
 
 /**

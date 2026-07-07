@@ -3,6 +3,7 @@ package io.github.smiskinext.notification.application.usecase;
 import io.github.smiskinext.notification.domain.port.EmailSender;
 import io.github.smiskinext.notification.infrastructure.email.InviteUpdatedEmailRenderer;
 import io.github.smiskinext.notification.infrastructure.messaging.MeetingInviteTokensInvalidatedMessage;
+
 import org.springframework.stereotype.Service;
 
 /**

@@ -1,6 +1,7 @@
 package io.github.smiskinext.notification.infrastructure.config;
 
 import com.resend.Resend;
+
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 

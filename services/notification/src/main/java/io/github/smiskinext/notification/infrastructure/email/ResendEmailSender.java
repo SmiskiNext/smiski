@@ -2,8 +2,10 @@ package io.github.smiskinext.notification.infrastructure.email;
 
 import com.resend.Resend;
 import com.resend.services.emails.model.CreateEmailOptions;
+
 import io.github.smiskinext.notification.domain.port.EmailSender;
 import io.github.smiskinext.notification.infrastructure.config.NotificationProperties;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;

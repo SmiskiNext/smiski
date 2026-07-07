@@ -1,9 +1,9 @@
 package io.github.smiskinext.notification.infrastructure.grpc;
 
-import io.github.smiskinext.notification.domain.port.UserLookupPort;
 import io.github.phunguy65.zms.proto.user.v1.BatchGetUserByIdRequest;
 import io.github.phunguy65.zms.proto.user.v1.UserServiceGrpc;
 import io.github.phunguy65.zms.proto.user.v1.UserSnapshot;
+import io.github.smiskinext.notification.domain.port.UserLookupPort;
 import io.grpc.StatusRuntimeException;
 import java.util.HashMap;
 import java.util.List;

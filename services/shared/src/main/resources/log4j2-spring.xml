@@ -20,7 +20,7 @@
     <Loggers>
 
         <SpringProfile name="local | default | dev">
-            <Logger name="io.github.phunguy65.zms" level="DEBUG"
+            <Logger name="io.github.smiskinext" level="DEBUG"
                 additivity="false">
                 <AppenderRef ref="Console" />
             </Logger>
@@ -30,7 +30,7 @@
         </SpringProfile>
 
         <SpringProfile name="k8s">
-            <Logger name="io.github.phunguy65.zms" level="DEBUG"
+            <Logger name="io.github.smiskinext" level="DEBUG"
                 additivity="false">
                 <AppenderRef ref="ConsoleJson" />
             </Logger>

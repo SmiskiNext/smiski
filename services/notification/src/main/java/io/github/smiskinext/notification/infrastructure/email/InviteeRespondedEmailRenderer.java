@@ -2,6 +2,7 @@ package io.github.smiskinext.notification.infrastructure.email;
 
 import io.github.smiskinext.notification.domain.port.UserLookupPort;
 import io.github.smiskinext.notification.infrastructure.messaging.InviteeRespondedMessage;
+
 import org.springframework.stereotype.Component;
 import org.springframework.web.util.HtmlUtils;
 

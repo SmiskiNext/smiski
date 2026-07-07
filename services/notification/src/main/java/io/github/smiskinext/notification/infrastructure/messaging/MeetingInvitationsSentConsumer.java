@@ -2,11 +2,13 @@ package io.github.smiskinext.notification.infrastructure.messaging;
 
 import io.cloudevents.CloudEvent;
 import io.github.smiskinext.notification.application.usecase.SendMeetingInvitationEmailUseCase;
+
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
+
 import tools.jackson.databind.ObjectMapper;
 
 @Component
