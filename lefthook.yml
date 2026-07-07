@@ -14,40 +14,65 @@ pre-commit:
             exclude:
                 - 'services/**/.idea/**'
                 - 'services/**/.gradle/**'
-            run: ./services/gradlew spotlessApply -PspotlessFiles="$(echo {staged_files} | tr ' ' ',')"
+                - 'services/user-management/**'
+                - 'services/meeting-management/**'
+                - 'services/chat-management/**'
+            run: >
+                ./services/gradlew spotlessApply -PspotlessFiles="$(echo
+                {staged_files} | tr ' ' ',')"
             stage_fixed: true
 
         format-proto:
             root: services/proto
             glob: '**/*.proto'
-            run: for f in {staged_files}; do buf format -w --path "$f"; done
+            run: >
+                for f in {staged_files}; do buf format -w --path "$f"; done
             stage_fixed: true
 
         format-general:
             glob: '**/*.{md,json,toml,yaml,yml,sh}'
             exclude:
-                - '**/node_modules/**'
-            run: pnpm exec prettier --write {staged_files}
+                - 'jira-client/**'
+            run: >
+                pnpm exec prettier --write {staged_files}
             stage_fixed: true
 
         lint-markdown:
             glob: '**/*.md'
-            exclude:
-                - '**/node_modules/**'
-            run: pnpm exec markdownlint-cli2 --fix {staged_files}
+            run: >
+                pnpm exec markdownlint-cli2 --fix {staged_files}
             stage_fixed: true
 
         format-scripts:
             root: scripts
             glob: '**/*.{ts,js}'
-            run: pnpm biome check --write --no-errors-on-unmatched --files-ignore-unknown=true {staged_files}
+            run: >
+                pnpm biome check --write --no-errors-on-unmatched
+                --files-ignore-unknown=true {staged_files}
+            stage_fixed: true
+
+        format-app:
+            root: app
+            glob: 'app/src/**/*.{js,jsx,ts,tsx,json}'
+            run: >
+                pnpm biome check --write --no-errors-on-unmatched
+                --files-ignore-unknown=true {staged_files}
             stage_fixed: true
 
         # ── lint ───────────────────────────────────────────────────────
         lint-scripts:
             root: scripts
             glob: '**/*.{ts,js}'
-            run: pnpm biome lint --no-errors-on-unmatched --files-ignore-unknown=true {staged_files}
+            run: >
+                pnpm biome lint --no-errors-on-unmatched
+                --files-ignore-unknown=true {staged_files}
+
+        lint-app:
+            root: app
+            glob: 'app/src/**/*.{js,jsx,ts,tsx}'
+            run: >
+                pnpm biome lint --no-errors-on-unmatched
+                --files-ignore-unknown=true {staged_files}
 
         # ── typecheck ──────────────────────────────────────────────────
         typecheck-scripts:
@@ -71,25 +96,34 @@ pre-push:
         block-main:
             priority: 1
             run: >
-                branch="$(git rev-parse --abbrev-ref HEAD)";
-                if [ "$branch" = "main" ]; then
-                echo "[block-main] direct push to 'main' is not allowed";
-                exit 1; fi
+                branch="$(git rev-parse --abbrev-ref HEAD)"; if [ "$branch" =
+                "main" ]; then echo "[block-main] direct push to 'main' is not
+                allowed"; exit 1; fi
 
         # ── gitleaks (full scan) ───────────────────────────────────────
         gitleaks:
             priority: 2
             run: >
-                command -v gitleaks >/dev/null 2>&1 && gitleaks detect
-                --config .gitleaks.toml || echo "[gitleaks] not found, skipping
-                (install via: https://github.com/gitleaks/gitleaks)"
+                command -v gitleaks >/dev/null 2>&1 && gitleaks detect --config
+                .gitleaks.toml || echo "[gitleaks] not found, skipping (install
+                via: https://github.com/gitleaks/gitleaks)"
 
         # ── format (verify all) ────────────────────────────────────────
         format-scripts:
             priority: 3
             root: scripts
             glob: '**/*.{ts,js}'
-            run: pnpm biome check --no-errors-on-unmatched --files-ignore-unknown=true {push_files}
+            run: >
+                pnpm biome check --no-errors-on-unmatched
+                --files-ignore-unknown=true {push_files}
+
+        format-app:
+            priority: 3
+            root: app
+            glob: 'app/src/**/*.{js,jsx,ts,tsx,json}'
+            run: >
+                pnpm biome check --no-errors-on-unmatched
+                --files-ignore-unknown=true {push_files}
 
         format-java:
             priority: 3
@@ -97,27 +131,40 @@ pre-push:
             exclude:
                 - 'services/**/.idea/**'
                 - 'services/**/.gradle/**'
-            run: ./services/gradlew spotlessCheck -PspotlessFiles="$(echo {push_files} | tr ' ' ',')"
+            run: >
+                ./services/gradlew spotlessCheck -PspotlessFiles="$(echo
+                {push_files} | tr ' ' ',')"
 
         format-proto:
             priority: 3
             root: services/proto
             glob: '**/*.proto'
-            run: for f in {push_files}; do buf format --diff --exit-code --path "$f"; done
+            run: >
+                for f in {push_files}; do buf format --diff --exit-code --path
+                "$f"; done
 
         format-general:
             priority: 3
             glob: '**/*.{md,json,toml,yaml,yml,sh}'
-            exclude:
-                - '**/node_modules/**'
-            run: pnpm exec prettier --check {push_files}
+            run: >
+                pnpm exec prettier --check {push_files}
 
         # ── lint (all) ─────────────────────────────────────────────────
         lint-scripts:
             priority: 3
             root: scripts
             glob: '**/*.{ts,js}'
-            run: pnpm biome lint --no-errors-on-unmatched --files-ignore-unknown=true {push_files}
+            run: >
+                pnpm biome lint --no-errors-on-unmatched
+                --files-ignore-unknown=true {push_files}
+
+        lint-app:
+            priority: 3
+            root: app
+            glob: 'app/src/**/*.{js,jsx,ts,tsx}'
+            run: >
+                pnpm biome lint --no-errors-on-unmatched
+                --files-ignore-unknown=true {push_files}
 
         lint-markdown:
             priority: 3
@@ -130,6 +177,11 @@ pre-push:
         typecheck-scripts:
             priority: 3
             root: scripts
+            run: pnpm exec tsc --noEmit
+
+        typecheck-app:
+            priority: 3
+            root: app
             run: pnpm exec tsc --noEmit
 
         typecheck-java:
