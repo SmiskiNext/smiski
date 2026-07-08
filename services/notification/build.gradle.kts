@@ -10,5 +10,4 @@ description = "notification"
 
 dependencies {
     implementation(libs.cloudevents.kafka)
-    implementation(libs.resend.java)
 }

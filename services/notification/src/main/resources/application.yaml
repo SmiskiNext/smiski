@@ -16,25 +16,12 @@ spring:
         virtual:
             enabled: true
 
-    grpc:
-        client:
-            channels:
-                user-management:
-                    address: static://${USER_MANAGEMENT_GRPC_HOST:localhost}:${USER_MANAGEMENT_GRPC_PORT:9090}
-                    negotiation-type: ${GRPC_NEGOTIATION_TYPE:plaintext}
-
 logging:
     aspect:
         include-args: false
 
 app:
     notification:
-        resend:
-            api-key: ${ZMS_RESEND_API_KEY:}
-            from-email: ${ZMS_RESEND_FROM_EMAIL:notifications@example.com}
-            from-name: ${ZMS_RESEND_FROM_NAME:Zero Meeting System}
-        invitation:
-            join-base-url: ${INVITATION_JOIN_BASE_URL:http://localhost:3000/join}
         kafka:
             invitation-consumer-group: ${INVITATION_CONSUMER_GROUP:notification-meeting-invitations}
             invite-invalidated-consumer-group: ${INVITE_INVALIDATED_CONSUMER_GROUP:notification-meeting-invite-invalidated}
