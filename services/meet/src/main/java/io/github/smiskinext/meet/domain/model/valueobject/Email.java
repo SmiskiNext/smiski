@@ -1,4 +1,4 @@
-package io.github.smiskinext.shared.domain.valueobject;
+package io.github.smiskinext.meet.domain.model.valueobject;
 
 import io.github.smiskinext.shared.domain.ValueObject;
 
