@@ -1,7 +1,6 @@
 package io.github.smiskinext.meet.domain.model.valueobject;
 
 import io.github.smiskinext.shared.domain.ValueObject;
-import io.github.smiskinext.shared.domain.valueobject.MeetingId;
 
 import java.util.Objects;
 
