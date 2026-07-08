@@ -6,6 +6,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import java.time.Instant;
 import java.util.UUID;
+import org.hibernate.annotations.TenantId;
 import org.jspecify.annotations.Nullable;
 
 @Entity
@@ -15,6 +16,10 @@ public class MeetingInviteeJpaEntity {
     @Id
     @Column(columnDefinition = "uuid")
     private UUID id;
+
+    @TenantId
+    @Column(name = "tenant_id", nullable = false, length = 255, updatable = false)
+    private String tenantId;
 
     @Column(name = "meeting_id", nullable = false, columnDefinition = "uuid")
     private UUID meetingId;
@@ -70,6 +75,10 @@ public class MeetingInviteeJpaEntity {
 
     public UUID getId() {
         return id;
+    }
+
+    public String getTenantId() {
+        return tenantId;
     }
 
     public UUID getMeetingId() {

@@ -13,6 +13,7 @@ import io.github.smiskinext.meet.domain.model.valueobject.InviterId;
 import io.github.smiskinext.meet.domain.model.valueobject.MeetingId;
 import io.github.smiskinext.shared.domain.AggregateRoot;
 import io.github.smiskinext.shared.domain.Result;
+import io.github.smiskinext.shared.domain.valueobject.TenantId;
 import java.time.Instant;
 import java.util.Optional;
 import java.util.UUID;
@@ -29,6 +30,7 @@ import org.jspecify.annotations.Nullable;
  */
 public class MeetingInvitee extends AggregateRoot<InviteeId> {
 
+    private final TenantId tenantId;
     private final InviteeId id;
     private final MeetingId meetingId;
     private final InviterId inviterId;
@@ -41,6 +43,7 @@ public class MeetingInvitee extends AggregateRoot<InviteeId> {
     private @Nullable InviteTokenId inviteTokenId;
 
     private MeetingInvitee(
+            TenantId tenantId,
             InviteeId id,
             MeetingId meetingId,
             InviterId inviterId,
@@ -51,6 +54,7 @@ public class MeetingInvitee extends AggregateRoot<InviteeId> {
             Instant invitedAt,
             @Nullable Instant respondedAt,
             @Nullable InviteTokenId inviteTokenId) {
+        this.tenantId = tenantId;
         this.id = id;
         this.meetingId = meetingId;
         this.inviterId = inviterId;
@@ -68,12 +72,14 @@ public class MeetingInvitee extends AggregateRoot<InviteeId> {
      * Call {@link #assignInviteToken(InviteTokenId)} after token creation.
      */
     public static MeetingInvitee create(
+            TenantId tenantId,
             MeetingId meetingId,
             InviterId inviterId,
             @Nullable AccountId accountId,
             Email email,
             @Nullable InviteeDisplayName displayName) {
         return new MeetingInvitee(
+                tenantId,
                 InviteeId.of(UuidCreator.getTimeOrderedEpoch()),
                 meetingId,
                 inviterId,
@@ -90,6 +96,7 @@ public class MeetingInvitee extends AggregateRoot<InviteeId> {
      * Reconstitution factory used by the persistence adapter.
      */
     public static MeetingInvitee reconstitute(
+            TenantId tenantId,
             InviteeId id,
             MeetingId meetingId,
             InviterId inviterId,
@@ -101,6 +108,7 @@ public class MeetingInvitee extends AggregateRoot<InviteeId> {
             @Nullable Instant respondedAt,
             @Nullable InviteTokenId inviteTokenId) {
         return new MeetingInvitee(
+                tenantId,
                 id,
                 meetingId,
                 inviterId,
@@ -134,7 +142,12 @@ public class MeetingInvitee extends AggregateRoot<InviteeId> {
         status = InviteeStatus.ACCEPTED;
         respondedAt = Instant.now();
         registerEvent(new InviteeAcceptedEvent(
-                UUID.randomUUID(), id.value(), meetingId.value(), inviterId.value(), respondedAt));
+                UUID.randomUUID(),
+                tenantId.value(),
+                id.value(),
+                meetingId.value(),
+                inviterId.value(),
+                respondedAt));
         return Result.success();
     }
 
@@ -152,13 +165,22 @@ public class MeetingInvitee extends AggregateRoot<InviteeId> {
         status = InviteeStatus.DECLINED;
         respondedAt = Instant.now();
         registerEvent(new InviteeDeclinedEvent(
-                UUID.randomUUID(), id.value(), meetingId.value(), inviterId.value(), respondedAt));
+                UUID.randomUUID(),
+                tenantId.value(),
+                id.value(),
+                meetingId.value(),
+                inviterId.value(),
+                respondedAt));
         return Result.success();
     }
 
     @Override
     public InviteeId getId() {
         return id;
+    }
+
+    public TenantId getTenantId() {
+        return tenantId;
     }
 
     public MeetingId getMeetingId() {

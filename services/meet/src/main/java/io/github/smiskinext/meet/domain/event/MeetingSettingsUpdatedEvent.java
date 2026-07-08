@@ -16,6 +16,7 @@ import java.util.UUID;
  */
 public record MeetingSettingsUpdatedEvent(
         UUID eventId,
+        String tenantId,
         UUID aggregateId,
         String hostId,
         String updatedBy,

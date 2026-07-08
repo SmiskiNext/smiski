@@ -10,7 +10,12 @@ import java.util.UUID;
  * Consumed by chat-management to create a system chat message.
  */
 public record ParticipantLeftEvent(
-        UUID eventId, UUID meetingId, String accountId, String displayName, Instant occurredAt)
+        UUID eventId,
+        String tenantId,
+        UUID meetingId,
+        String accountId,
+        String displayName,
+        Instant occurredAt)
         implements PublishableEvent {
 
     @Override

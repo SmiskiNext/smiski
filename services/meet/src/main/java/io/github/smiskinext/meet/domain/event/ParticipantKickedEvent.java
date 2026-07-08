@@ -11,6 +11,7 @@ import org.jspecify.annotations.Nullable;
  */
 public record ParticipantKickedEvent(
         UUID eventId,
+        String tenantId,
         UUID meetingId,
         String kickedBy,
         @Nullable String kickedAccountId,

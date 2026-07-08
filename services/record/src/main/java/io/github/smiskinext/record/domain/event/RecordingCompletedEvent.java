@@ -10,6 +10,7 @@ import java.util.UUID;
  */
 public record RecordingCompletedEvent(
         UUID eventId,
+        String tenantId,
         UUID aggregateId,
         UUID meetingId,
         String fileUrl,

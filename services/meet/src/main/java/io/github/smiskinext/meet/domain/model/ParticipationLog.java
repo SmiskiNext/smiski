@@ -6,6 +6,7 @@ import io.github.smiskinext.meet.domain.model.valueobject.LiveKitParticipantSid;
 import io.github.smiskinext.meet.domain.model.valueobject.MeetingId;
 import io.github.smiskinext.meet.domain.model.valueobject.ParticipationLogId;
 import io.github.smiskinext.shared.domain.AggregateRoot;
+import io.github.smiskinext.shared.domain.valueobject.TenantId;
 import java.time.Instant;
 import java.util.Optional;
 import org.jspecify.annotations.Nullable;
@@ -28,6 +29,7 @@ import org.jspecify.annotations.Nullable;
  */
 public class ParticipationLog extends AggregateRoot<ParticipationLogId> {
 
+    private final TenantId tenantId;
     private @Nullable ParticipationLogId id;
     private final MeetingId meetingId;
     private final AccountId accountId;
@@ -44,6 +46,7 @@ public class ParticipationLog extends AggregateRoot<ParticipationLogId> {
     // -------------------------------------------------------------------------
 
     private ParticipationLog(
+            TenantId tenantId,
             @Nullable ParticipationLogId id,
             MeetingId meetingId,
             AccountId accountId,
@@ -53,6 +56,7 @@ public class ParticipationLog extends AggregateRoot<ParticipationLogId> {
             @Nullable LiveKitParticipantSid livekitParticipantSid,
             Instant joinedAt,
             @Nullable Instant leftAt) {
+        this.tenantId = tenantId;
         this.id = id;
         this.meetingId = meetingId;
         this.accountId = accountId;
@@ -72,12 +76,14 @@ public class ParticipationLog extends AggregateRoot<ParticipationLogId> {
      * Records a participant joining a meeting (token issued, not yet connected to LiveKit).
      */
     public static ParticipationLog join(
+            TenantId tenantId,
             MeetingId meetingId,
             AccountId accountId,
             String displayName,
             ParticipantRole role,
             LiveKitIdentity livekitIdentity) {
         return new ParticipationLog(
+                tenantId,
                 null,
                 meetingId,
                 accountId,
@@ -93,6 +99,7 @@ public class ParticipationLog extends AggregateRoot<ParticipationLogId> {
      * Reconstitutes from persistence.
      */
     public static ParticipationLog reconstitute(
+            TenantId tenantId,
             ParticipationLogId id,
             MeetingId meetingId,
             AccountId accountId,
@@ -103,6 +110,7 @@ public class ParticipationLog extends AggregateRoot<ParticipationLogId> {
             Instant joinedAt,
             @Nullable Instant leftAt) {
         return new ParticipationLog(
+                tenantId,
                 id,
                 meetingId,
                 accountId,
@@ -146,6 +154,10 @@ public class ParticipationLog extends AggregateRoot<ParticipationLogId> {
     @Override
     public ParticipationLogId getId() {
         return id;
+    }
+
+    public TenantId getTenantId() {
+        return tenantId;
     }
 
     /**

@@ -9,7 +9,7 @@ import java.util.UUID;
  * Published when a join request expires due to TTL elapsing.
  */
 public record JoinRequestExpiredEvent(
-        UUID eventId, UUID meetingId, UUID joinRequestId, Instant occurredAt)
+        UUID eventId, String tenantId, UUID meetingId, UUID joinRequestId, Instant occurredAt)
         implements PublishableEvent {
 
     @Override

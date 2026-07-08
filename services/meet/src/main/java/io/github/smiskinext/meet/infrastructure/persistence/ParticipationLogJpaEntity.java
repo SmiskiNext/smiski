@@ -3,6 +3,7 @@ package io.github.smiskinext.meet.infrastructure.persistence;
 import jakarta.persistence.*;
 import java.time.Instant;
 import java.util.UUID;
+import org.hibernate.annotations.TenantId;
 import org.jspecify.annotations.Nullable;
 
 @Entity
@@ -12,6 +13,10 @@ public class ParticipationLogJpaEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    @TenantId
+    @Column(name = "tenant_id", nullable = false, length = 255, updatable = false)
+    private String tenantId;
 
     @Column(name = "meeting_id", nullable = false, columnDefinition = "uuid")
     private UUID meetingId;
@@ -60,6 +65,10 @@ public class ParticipationLogJpaEntity {
 
     public Long getId() {
         return id;
+    }
+
+    public String getTenantId() {
+        return tenantId;
     }
 
     public UUID getMeetingId() {

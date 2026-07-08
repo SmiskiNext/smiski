@@ -10,6 +10,7 @@ import org.jspecify.annotations.Nullable;
  */
 public record JoinRequestDeniedEvent(
         UUID eventId,
+        String tenantId,
         UUID meetingId,
         UUID joinRequestId,
         @Nullable UUID deniedBy,

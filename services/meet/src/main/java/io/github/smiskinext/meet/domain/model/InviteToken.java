@@ -8,6 +8,7 @@ import io.github.smiskinext.meet.domain.model.valueobject.InviteeId;
 import io.github.smiskinext.meet.domain.model.valueobject.MeetingId;
 import io.github.smiskinext.shared.domain.AggregateRoot;
 import io.github.smiskinext.shared.domain.Result;
+import io.github.smiskinext.shared.domain.valueobject.TenantId;
 
 import java.time.Instant;
 
@@ -21,6 +22,7 @@ import java.time.Instant;
  */
 public class InviteToken extends AggregateRoot<InviteTokenId> {
 
+    private final TenantId tenantId;
     private final InviteTokenId id;
     private final MeetingId meetingId;
     private final InviteeId inviteeId;
@@ -31,6 +33,7 @@ public class InviteToken extends AggregateRoot<InviteTokenId> {
     private Instant updatedAt;
 
     private InviteToken(
+            TenantId tenantId,
             InviteTokenId id,
             MeetingId meetingId,
             InviteeId inviteeId,
@@ -39,6 +42,7 @@ public class InviteToken extends AggregateRoot<InviteTokenId> {
             Instant expiresAt,
             Instant createdAt,
             Instant updatedAt) {
+        this.tenantId = tenantId;
         this.id = id;
         this.meetingId = meetingId;
         this.inviteeId = inviteeId;
@@ -52,6 +56,7 @@ public class InviteToken extends AggregateRoot<InviteTokenId> {
     /**
      * Factory method — creates a new PENDING invite token.
      *
+     * @param tenantId   the tenant this token belongs to
      * @param meetingId  the meeting this token grants access to
      * @param inviteeId  the specific invitee this token belongs to
      * @param tokenHash  SHA-256 hash of the raw token string
@@ -60,13 +65,18 @@ public class InviteToken extends AggregateRoot<InviteTokenId> {
      * @throws IllegalArgumentException if {@code expiresAt} is not in the future
      */
     public static Result<InviteToken, MeetingError> create(
-            MeetingId meetingId, InviteeId inviteeId, String tokenHash, Instant expiresAt) {
+            TenantId tenantId,
+            MeetingId meetingId,
+            InviteeId inviteeId,
+            String tokenHash,
+            Instant expiresAt) {
         if (!expiresAt.isAfter(Instant.now())) {
             return Result.failure(new MeetingError.InvalidSettings(
                     "InviteToken expiresAt must be in the future"));
         }
         Instant now = Instant.now();
         return Result.success(new InviteToken(
+                tenantId,
                 InviteTokenId.of(UuidCreator.getTimeOrderedEpoch()),
                 meetingId,
                 inviteeId,
@@ -81,6 +91,7 @@ public class InviteToken extends AggregateRoot<InviteTokenId> {
      * Reconstitution factory used by the persistence adapter.
      */
     public static InviteToken reconstitute(
+            TenantId tenantId,
             InviteTokenId id,
             MeetingId meetingId,
             InviteeId inviteeId,
@@ -90,7 +101,8 @@ public class InviteToken extends AggregateRoot<InviteTokenId> {
             Instant createdAt,
             Instant updatedAt) {
         return new InviteToken(
-                id, meetingId, inviteeId, tokenHash, status, expiresAt, createdAt, updatedAt);
+                tenantId, id, meetingId, inviteeId, tokenHash, status, expiresAt, createdAt,
+                updatedAt);
     }
 
     /**
@@ -128,6 +140,10 @@ public class InviteToken extends AggregateRoot<InviteTokenId> {
     @Override
     public InviteTokenId getId() {
         return id;
+    }
+
+    public TenantId getTenantId() {
+        return tenantId;
     }
 
     public MeetingId getMeetingId() {

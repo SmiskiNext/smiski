@@ -9,7 +9,7 @@ import java.util.UUID;
  * Published when a recording starts (meeting goes LIVE and recording is initiated).
  */
 public record RecordingStartedEvent(
-        UUID eventId, UUID aggregateId, UUID meetingId, Instant startedAt)
+        UUID eventId, String tenantId, UUID aggregateId, UUID meetingId, Instant startedAt)
         implements PublishableEvent {
 
     @Override

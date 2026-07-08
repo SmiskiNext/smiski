@@ -9,7 +9,12 @@ import java.util.UUID;
  * Published when a meeting transitions SCHEDULED → LIVE.
  */
 public record MeetingStartedEvent(
-        UUID eventId, UUID aggregateId, String hostId, String liveKitRoomName, Instant startedAt)
+        UUID eventId,
+        String tenantId,
+        UUID aggregateId,
+        String hostId,
+        String liveKitRoomName,
+        Instant startedAt)
         implements PublishableEvent {
 
     @Override

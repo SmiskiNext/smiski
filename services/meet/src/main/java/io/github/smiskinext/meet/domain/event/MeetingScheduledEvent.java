@@ -10,6 +10,7 @@ import org.jspecify.annotations.Nullable;
  */
 public record MeetingScheduledEvent(
         UUID eventId,
+        String tenantId,
         UUID aggregateId,
         String hostId,
         String shortCode,

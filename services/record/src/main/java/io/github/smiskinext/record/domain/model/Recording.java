@@ -11,6 +11,7 @@ import io.github.smiskinext.record.domain.model.valueobject.MeetingId;
 import io.github.smiskinext.record.domain.model.valueobject.RecordingId;
 import io.github.smiskinext.shared.domain.AggregateRoot;
 import io.github.smiskinext.shared.domain.Result;
+import io.github.smiskinext.shared.domain.valueobject.TenantId;
 import java.time.Instant;
 import java.util.Optional;
 import java.util.UUID;
@@ -32,6 +33,7 @@ import org.jspecify.annotations.Nullable;
  */
 public class Recording extends AggregateRoot<RecordingId> {
 
+    private final TenantId tenantId;
     private final RecordingId id;
     private final MeetingId meetingId;
     private final LiveKitRoomName livekitRoomName;
@@ -53,6 +55,7 @@ public class Recording extends AggregateRoot<RecordingId> {
     // -------------------------------------------------------------------------
 
     private Recording(
+            TenantId tenantId,
             RecordingId id,
             MeetingId meetingId,
             LiveKitRoomName livekitRoomName,
@@ -67,6 +70,7 @@ public class Recording extends AggregateRoot<RecordingId> {
             int durationSeconds,
             long fileSizeBytes,
             Instant createdAt) {
+        this.tenantId = tenantId;
         this.id = id;
         this.meetingId = meetingId;
         this.livekitRoomName = livekitRoomName;
@@ -91,10 +95,12 @@ public class Recording extends AggregateRoot<RecordingId> {
      * Creates a new PENDING recording. Called by {@code StartRecordingUseCase} before
      * the LiveKit egress is confirmed. Registers {@code RecordingStartedEvent}.
      */
-    public static Recording startFor(MeetingId meetingId, LiveKitRoomName livekitRoomName) {
+    public static Recording startFor(
+            TenantId tenantId, MeetingId meetingId, LiveKitRoomName livekitRoomName) {
         RecordingId id = RecordingId.of(UuidCreator.getTimeOrderedEpoch());
         Instant now = Instant.now();
         Recording recording = new Recording(
+                tenantId,
                 id,
                 meetingId,
                 livekitRoomName,
@@ -109,8 +115,8 @@ public class Recording extends AggregateRoot<RecordingId> {
                 0,
                 0L,
                 now);
-        recording.registerEvent(
-                new RecordingStartedEvent(UUID.randomUUID(), id.value(), meetingId.value(), now));
+        recording.registerEvent(new RecordingStartedEvent(
+                UUID.randomUUID(), tenantId.value(), id.value(), meetingId.value(), now));
         return recording;
     }
 
@@ -118,6 +124,7 @@ public class Recording extends AggregateRoot<RecordingId> {
      * Reconstitutes a Recording from persistence. No domain events registered.
      */
     public static Recording reconstitute(
+            TenantId tenantId,
             RecordingId id,
             MeetingId meetingId,
             LiveKitRoomName livekitRoomName,
@@ -133,6 +140,7 @@ public class Recording extends AggregateRoot<RecordingId> {
             long fileSizeBytes,
             Instant createdAt) {
         return new Recording(
+                tenantId,
                 id,
                 meetingId,
                 livekitRoomName,
@@ -203,6 +211,7 @@ public class Recording extends AggregateRoot<RecordingId> {
         this.endedAt = Instant.now();
         registerEvent(new RecordingCompletedEvent(
                 UUID.randomUUID(),
+                tenantId.value(),
                 id.value(),
                 meetingId.value(),
                 fileUrl,
@@ -229,7 +238,7 @@ public class Recording extends AggregateRoot<RecordingId> {
         this.errorMessage = errorMessage;
         if (endedAt == null) endedAt = Instant.now();
         registerEvent(new RecordingFailedEvent(
-                UUID.randomUUID(), id.value(), meetingId.value(), Instant.now()));
+                UUID.randomUUID(), tenantId.value(), id.value(), meetingId.value(), Instant.now()));
         return Result.success();
     }
 
@@ -240,6 +249,10 @@ public class Recording extends AggregateRoot<RecordingId> {
     @Override
     public RecordingId getId() {
         return id;
+    }
+
+    public TenantId getTenantId() {
+        return tenantId;
     }
 
     public MeetingId getMeetingId() {

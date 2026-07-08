@@ -15,6 +15,7 @@ import org.jspecify.annotations.Nullable;
  */
 public record MeetingInviteTokensInvalidatedEvent(
         UUID eventId,
+        String tenantId,
         UUID aggregateId,
         String hostId,
         @Nullable String meetingTitle,

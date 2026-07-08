@@ -7,6 +7,7 @@ import io.github.smiskinext.meet.domain.model.valueobject.*;
 import io.github.smiskinext.meet.domain.model.valueobject.MeetingId;
 import io.github.smiskinext.shared.domain.AggregateRoot;
 import io.github.smiskinext.shared.domain.Result;
+import io.github.smiskinext.shared.domain.valueobject.TenantId;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
@@ -22,6 +23,7 @@ import org.jspecify.annotations.Nullable;
  */
 public class Meeting extends AggregateRoot<MeetingId> {
 
+    private final TenantId tenantId;
     private final MeetingId id;
     private final AccountId hostId;
     private final ShortCode shortCode;
@@ -40,6 +42,7 @@ public class Meeting extends AggregateRoot<MeetingId> {
     // -------------------------------------------------------------------------
 
     private Meeting(
+            TenantId tenantId,
             MeetingId id,
             AccountId hostId,
             ShortCode shortCode,
@@ -50,6 +53,7 @@ public class Meeting extends AggregateRoot<MeetingId> {
             MeetingStatus status,
             MeetingSettings settings,
             Instant createdAt) {
+        this.tenantId = tenantId;
         this.id = id;
         this.hostId = hostId;
         this.shortCode = shortCode;
@@ -70,6 +74,7 @@ public class Meeting extends AggregateRoot<MeetingId> {
      * Creates a new SCHEDULED meeting. Registers {@code MeetingScheduledEvent}.
      */
     public static Meeting schedule(
+            TenantId tenantId,
             AccountId hostId,
             @Nullable MeetingTitle title,
             @Nullable String description,
@@ -79,6 +84,7 @@ public class Meeting extends AggregateRoot<MeetingId> {
         MeetingId id = MeetingId.of(UuidCreator.getTimeOrderedEpoch());
         Instant now = Instant.now();
         Meeting meeting = new Meeting(
+                tenantId,
                 id,
                 hostId,
                 shortCode,
@@ -91,6 +97,7 @@ public class Meeting extends AggregateRoot<MeetingId> {
                 now);
         meeting.registerEvent(new MeetingScheduledEvent(
                 UUID.randomUUID(),
+                tenantId.value(),
                 id.value(),
                 hostId.value(),
                 shortCode.value(),
@@ -105,6 +112,7 @@ public class Meeting extends AggregateRoot<MeetingId> {
      * Registers {@code MeetingScheduledEvent}.
      */
     public static Meeting instant(
+            TenantId tenantId,
             AccountId hostId,
             @Nullable MeetingTitle title,
             @Nullable String description,
@@ -113,6 +121,7 @@ public class Meeting extends AggregateRoot<MeetingId> {
         MeetingId id = MeetingId.of(UuidCreator.getTimeOrderedEpoch());
         Instant now = Instant.now();
         Meeting meeting = new Meeting(
+                tenantId,
                 id,
                 hostId,
                 shortCode,
@@ -125,6 +134,7 @@ public class Meeting extends AggregateRoot<MeetingId> {
                 now);
         meeting.registerEvent(new MeetingScheduledEvent(
                 UUID.randomUUID(),
+                tenantId.value(),
                 id.value(),
                 hostId.value(),
                 shortCode.value(),
@@ -138,6 +148,7 @@ public class Meeting extends AggregateRoot<MeetingId> {
      * Reconstitutes a Meeting from persistence. No domain events are registered.
      */
     public static Meeting reconstitute(
+            TenantId tenantId,
             MeetingId id,
             AccountId hostId,
             ShortCode shortCode,
@@ -150,6 +161,7 @@ public class Meeting extends AggregateRoot<MeetingId> {
             MeetingSettings settings,
             Instant createdAt) {
         Meeting meeting = new Meeting(
+                tenantId,
                 id,
                 hostId,
                 shortCode,
@@ -180,6 +192,7 @@ public class Meeting extends AggregateRoot<MeetingId> {
         Instant now = Instant.now();
         registerEvent(new MeetingStartedEvent(
                 UUID.randomUUID(),
+                tenantId.value(),
                 id.value(),
                 hostId.value(),
                 LiveKitRoomName.fromMeetingId(id).value(),
@@ -198,7 +211,8 @@ public class Meeting extends AggregateRoot<MeetingId> {
         status = MeetingStatus.ENDED;
         Instant now = Instant.now();
         this.endTime = now;
-        registerEvent(new MeetingEndedEvent(UUID.randomUUID(), id.value(), hostId.value(), now));
+        registerEvent(new MeetingEndedEvent(
+                UUID.randomUUID(), tenantId.value(), id.value(), hostId.value(), now));
         return Result.success();
     }
 
@@ -221,6 +235,7 @@ public class Meeting extends AggregateRoot<MeetingId> {
         Instant now = Instant.now();
         registerEvent(new MeetingSettingsUpdatedEvent(
                 UUID.randomUUID(),
+                tenantId.value(),
                 id.value(),
                 hostId.value(),
                 updatedBy,
@@ -258,6 +273,7 @@ public class Meeting extends AggregateRoot<MeetingId> {
         Instant now = Instant.now();
         registerEvent(new MeetingCancelledEvent(
                 UUID.randomUUID(),
+                tenantId.value(),
                 id.value(),
                 hostId.value(),
                 meetingTitle,
@@ -275,6 +291,10 @@ public class Meeting extends AggregateRoot<MeetingId> {
     @Override
     public MeetingId getId() {
         return id;
+    }
+
+    public TenantId getTenantId() {
+        return tenantId;
     }
 
     public AccountId getHostId() {

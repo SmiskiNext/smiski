@@ -7,6 +7,7 @@ import jakarta.persistence.Table;
 import java.time.Instant;
 import java.util.UUID;
 import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.annotations.TenantId;
 import org.hibernate.type.SqlTypes;
 import org.jspecify.annotations.Nullable;
 
@@ -17,6 +18,10 @@ public class MeetingJpaEntity {
     @Id
     @Column(columnDefinition = "uuid")
     private UUID id;
+
+    @TenantId
+    @Column(name = "tenant_id", nullable = false, length = 255, updatable = false)
+    private String tenantId;
 
     @Column(name = "host_id", nullable = false, length = 128)
     private String hostId;
@@ -78,6 +83,10 @@ public class MeetingJpaEntity {
 
     public UUID getId() {
         return id;
+    }
+
+    public String getTenantId() {
+        return tenantId;
     }
 
     public String getHostId() {

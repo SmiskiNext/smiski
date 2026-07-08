@@ -10,6 +10,7 @@ import java.util.UUID;
  */
 public record JoinRequestCreatedEvent(
         UUID eventId,
+        String tenantId,
         UUID meetingId,
         UUID joinRequestId,
         String accountId,

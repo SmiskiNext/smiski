@@ -8,7 +8,8 @@ import java.util.UUID;
 /**
  * Published when a recording transitions to FAILED.
  */
-public record RecordingFailedEvent(UUID eventId, UUID aggregateId, UUID meetingId, Instant failedAt)
+public record RecordingFailedEvent(
+        UUID eventId, String tenantId, UUID aggregateId, UUID meetingId, Instant failedAt)
         implements PublishableEvent {
 
     @Override
