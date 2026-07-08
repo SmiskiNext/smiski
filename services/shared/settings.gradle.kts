@@ -25,3 +25,10 @@ pluginManagement {
         gradlePluginPortal()
     }
 }
+
+includeBuild("../proto") {
+    dependencySubstitution {
+        substitute(module("io.github.smiskinext.services:proto"))
+            .using(project(":"))
+    }
+}
