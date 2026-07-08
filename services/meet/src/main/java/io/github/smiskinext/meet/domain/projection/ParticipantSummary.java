@@ -9,7 +9,7 @@ public record ParticipantSummary(
         Long id,
         UUID meetingId,
         String accountId,
-        String displayName,
+        @Nullable String displayName,
         String role,
         Instant joinedAt,
         @Nullable Instant leftAt) {}

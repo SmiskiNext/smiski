@@ -69,7 +69,7 @@ CREATE TABLE meetings_p13 PARTITION OF meetings FOR VALUES WITH (MODULUS 16, REM
 CREATE TABLE meetings_p14 PARTITION OF meetings FOR VALUES WITH (MODULUS 16, REMAINDER 14);
 CREATE TABLE meetings_p15 PARTITION OF meetings FOR VALUES WITH (MODULUS 16, REMAINDER 15);
 
-CREATE INDEX idx_meetings_issue ON meetings (tenant_id, issue_key) WHERE issue_key IS NOT NULL;
+CREATE INDEX idx_meetings_issue ON meetings (tenant_id, issue_id) WHERE issue_id IS NOT NULL;
 CREATE INDEX idx_meetings_host ON meetings (tenant_id, host_id);
 CREATE INDEX idx_meetings_status ON meetings (tenant_id, status);
 CREATE INDEX idx_meetings_keyset ON meetings (tenant_id, created_at DESC, id DESC);
@@ -84,7 +84,8 @@ CREATE TABLE participation_logs
     id                      UUID         NOT NULL DEFAULT uuidv7(),
     meeting_id              UUID         NOT NULL,
     account_id              VARCHAR(128) NOT NULL,     -- Jira accountId (required — no guests)
-    display_name            VARCHAR(255) NOT NULL,
+    display_name            VARCHAR(255),
+    display_name_cached_at  TIMESTAMPTZ,
     role                    VARCHAR(20)  NOT NULL CHECK (role IN ('HOST', 'PARTICIPANT')),
     livekit_identity        VARCHAR(255) NOT NULL,
     livekit_participant_sid VARCHAR(50),
