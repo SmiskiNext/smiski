@@ -10,6 +10,20 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+/**
+ * Repository for participation session logs (append-only; one row per join session).
+ *
+ * <p><b>Rejoin / close-then-open contract.</b> The DB enforces at most one active
+ * (left_at IS NULL) row per (tenant, meeting, livekit_identity) via
+ * {@code uq_participation_active_identity}. When issuing a token the join flow MUST:
+ * <ol>
+ *   <li>look up the active session via {@link #findActiveByMeetingIdAndIdentity} and,
+ *       if present (orphaned by a lost participant_left webhook), call
+ *       {@code supersede(now)} and {@link #save} it before inserting the new session;</li>
+ *   <li>on a unique-violation from a concurrent rejoin, close the existing active row
+ *       then retry the insert exactly once (retry-on-conflict; no advisory lock).</li>
+ * </ol>
+ */
 public interface ParticipationLogRepository {
 
     ParticipationLog save(ParticipationLog log);

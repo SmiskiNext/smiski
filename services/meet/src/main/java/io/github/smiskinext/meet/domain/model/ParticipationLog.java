@@ -42,6 +42,7 @@ public class ParticipationLog extends AggregateRoot<ParticipationLogId> {
 
     private @Nullable LiveKitParticipantSid livekitParticipantSid;
     private @Nullable Instant leftAt;
+    private @Nullable CloseReason closeReason;
 
     // -------------------------------------------------------------------------
     // Private constructor
@@ -58,7 +59,8 @@ public class ParticipationLog extends AggregateRoot<ParticipationLogId> {
             LiveKitIdentity livekitIdentity,
             @Nullable LiveKitParticipantSid livekitParticipantSid,
             Instant joinedAt,
-            @Nullable Instant leftAt) {
+            @Nullable Instant leftAt,
+            @Nullable CloseReason closeReason) {
         this.tenantId = tenantId;
         this.id = id;
         this.meetingId = meetingId;
@@ -70,6 +72,7 @@ public class ParticipationLog extends AggregateRoot<ParticipationLogId> {
         this.livekitParticipantSid = livekitParticipantSid;
         this.joinedAt = joinedAt;
         this.leftAt = leftAt;
+        this.closeReason = closeReason;
     }
 
     // -------------------------------------------------------------------------
@@ -97,6 +100,7 @@ public class ParticipationLog extends AggregateRoot<ParticipationLogId> {
                 livekitIdentity,
                 null,
                 Instant.now(),
+                null,
                 null);
     }
 
@@ -114,7 +118,8 @@ public class ParticipationLog extends AggregateRoot<ParticipationLogId> {
             LiveKitIdentity livekitIdentity,
             @Nullable LiveKitParticipantSid livekitParticipantSid,
             Instant joinedAt,
-            @Nullable Instant leftAt) {
+            @Nullable Instant leftAt,
+            @Nullable CloseReason closeReason) {
         return new ParticipationLog(
                 tenantId,
                 id,
@@ -126,7 +131,8 @@ public class ParticipationLog extends AggregateRoot<ParticipationLogId> {
                 livekitIdentity,
                 livekitParticipantSid,
                 joinedAt,
-                leftAt);
+                leftAt,
+                closeReason);
     }
 
     // -------------------------------------------------------------------------
@@ -152,6 +158,17 @@ public class ParticipationLog extends AggregateRoot<ParticipationLogId> {
             throw new IllegalStateException("Participant already recorded as left");
         }
         this.leftAt = leftAt;
+        this.closeReason = CloseReason.LEFT;
+    }
+
+    /**
+     * Force-closes an orphaned active session when the same identity rejoins.
+     * Idempotent: if already closed, does nothing.
+     */
+    public void supersede(Instant at) {
+        if (this.leftAt != null) return;
+        this.leftAt = at;
+        this.closeReason = CloseReason.SUPERSEDED;
     }
 
     // -------------------------------------------------------------------------
@@ -201,5 +218,9 @@ public class ParticipationLog extends AggregateRoot<ParticipationLogId> {
 
     public Optional<Instant> getLeftAt() {
         return Optional.ofNullable(leftAt);
+    }
+
+    public Optional<CloseReason> getCloseReason() {
+        return Optional.ofNullable(closeReason);
     }
 }

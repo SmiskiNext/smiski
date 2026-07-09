@@ -48,6 +48,9 @@ public class ParticipationLogJpaEntity {
     @Column(name = "left_at")
     private @Nullable Instant leftAt;
 
+    @Column(name = "close_reason", length = 20)
+    private @Nullable String closeReason;
+
     protected ParticipationLogJpaEntity() {}
 
     public ParticipationLogJpaEntity(
@@ -60,7 +63,8 @@ public class ParticipationLogJpaEntity {
             @Nullable String livekitParticipantSid,
             Instant joinedAt,
             @Nullable Instant leftAt,
-            @Nullable Instant displayNameCachedAt) {
+            @Nullable Instant displayNameCachedAt,
+            @Nullable String closeReason) {
         this.id = id;
         this.meetingId = meetingId;
         this.accountId = accountId;
@@ -71,6 +75,7 @@ public class ParticipationLogJpaEntity {
         this.joinedAt = joinedAt;
         this.leftAt = leftAt;
         this.displayNameCachedAt = displayNameCachedAt;
+        this.closeReason = closeReason;
     }
 
     public UUID getId() {
@@ -123,5 +128,13 @@ public class ParticipationLogJpaEntity {
 
     public void setLivekitParticipantSid(String sid) {
         this.livekitParticipantSid = sid;
+    }
+
+    public @Nullable String getCloseReason() {
+        return closeReason;
+    }
+
+    public void setCloseReason(String closeReason) {
+        this.closeReason = closeReason;
     }
 }

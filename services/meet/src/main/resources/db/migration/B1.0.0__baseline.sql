@@ -91,6 +91,8 @@ CREATE TABLE participation_logs
     livekit_participant_sid VARCHAR(50),
     joined_at               TIMESTAMPTZ  NOT NULL DEFAULT now(),
     left_at                 TIMESTAMPTZ,
+    close_reason            VARCHAR(20),
+    CONSTRAINT ck_participation_close_reason CHECK (close_reason IS NULL OR close_reason IN ('LEFT', 'SUPERSEDED')),
     CONSTRAINT pk_participation_logs PRIMARY KEY (tenant_id, id),
     CONSTRAINT fk_participation_meeting
         FOREIGN KEY (tenant_id, meeting_id) REFERENCES meetings (tenant_id, id) ON DELETE CASCADE
@@ -117,7 +119,7 @@ CREATE INDEX idx_participation_meeting
     ON participation_logs (tenant_id, meeting_id, joined_at DESC);
 CREATE INDEX idx_participation_account
     ON participation_logs (tenant_id, account_id, joined_at DESC);
-CREATE INDEX idx_participation_active_identity
+CREATE UNIQUE INDEX uq_participation_active_identity
     ON participation_logs (tenant_id, meeting_id, livekit_identity) WHERE left_at IS NULL;
 CREATE UNIQUE INDEX uq_participation_active_sid
     ON participation_logs (tenant_id, livekit_participant_sid)
