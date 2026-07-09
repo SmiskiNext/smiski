@@ -32,6 +32,7 @@ public class Meeting extends AggregateRoot<MeetingId> {
 
     private @Nullable MeetingTitle title;
     private @Nullable String description;
+    private @Nullable JiraIssueLink issueLink;
     private @Nullable MeetingTimeRange timeRange;
     private @Nullable Instant endTime;
     private MeetingStatus status;
@@ -51,6 +52,7 @@ public class Meeting extends AggregateRoot<MeetingId> {
             ShortCode shortCode,
             @Nullable MeetingTitle title,
             @Nullable String description,
+            @Nullable JiraIssueLink issueLink,
             @Nullable MeetingTimeRange timeRange,
             MeetingType type,
             MeetingStatus status,
@@ -62,6 +64,7 @@ public class Meeting extends AggregateRoot<MeetingId> {
         this.shortCode = shortCode;
         this.title = title;
         this.description = description;
+        this.issueLink = issueLink;
         this.timeRange = timeRange;
         this.type = type;
         this.status = status;
@@ -81,6 +84,7 @@ public class Meeting extends AggregateRoot<MeetingId> {
             AccountId hostId,
             @Nullable MeetingTitle title,
             @Nullable String description,
+            @Nullable JiraIssueLink issueLink,
             MeetingTimeRange timeRange,
             MeetingSettings settings,
             ShortCode shortCode) {
@@ -93,6 +97,7 @@ public class Meeting extends AggregateRoot<MeetingId> {
                 shortCode,
                 title,
                 description,
+                issueLink,
                 timeRange,
                 MeetingType.SCHEDULED,
                 MeetingStatus.SCHEDULED,
@@ -119,6 +124,7 @@ public class Meeting extends AggregateRoot<MeetingId> {
             AccountId hostId,
             @Nullable MeetingTitle title,
             @Nullable String description,
+            @Nullable JiraIssueLink issueLink,
             MeetingSettings settings,
             ShortCode shortCode) {
         MeetingId id = MeetingId.of(UuidCreator.getTimeOrderedEpoch());
@@ -130,6 +136,7 @@ public class Meeting extends AggregateRoot<MeetingId> {
                 shortCode,
                 title,
                 description,
+                issueLink,
                 null,
                 MeetingType.INSTANT,
                 MeetingStatus.SCHEDULED,
@@ -157,6 +164,7 @@ public class Meeting extends AggregateRoot<MeetingId> {
             ShortCode shortCode,
             @Nullable MeetingTitle title,
             @Nullable String description,
+            @Nullable JiraIssueLink issueLink,
             @Nullable MeetingTimeRange timeRange,
             @Nullable Instant endTime,
             MeetingType type,
@@ -173,6 +181,7 @@ public class Meeting extends AggregateRoot<MeetingId> {
                 shortCode,
                 title,
                 description,
+                issueLink,
                 timeRange,
                 type,
                 status,
@@ -368,5 +377,9 @@ public class Meeting extends AggregateRoot<MeetingId> {
 
     public Optional<Instant> getPurgeAfter() {
         return Optional.ofNullable(purgeAfter);
+    }
+
+    public Optional<JiraIssueLink> getIssueLink() {
+        return Optional.ofNullable(issueLink);
     }
 }

@@ -69,6 +69,18 @@ public class RecordingJpaEntity {
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
+    @Column(length = 255)
+    private @Nullable String title;
+
+    @Column(columnDefinition = "text")
+    private @Nullable String notes;
+
+    @Column(name = "edited_by", length = 128)
+    private @Nullable String editedBy;
+
+    @Column(name = "edited_at")
+    private @Nullable Instant editedAt;
+
     protected RecordingJpaEntity() {}
 
     public RecordingJpaEntity(
@@ -88,7 +100,11 @@ public class RecordingJpaEntity {
             @Nullable Instant deletedAt,
             @Nullable String deletedBy,
             @Nullable Instant purgeAfter,
-            Instant createdAt) {
+            Instant createdAt,
+            @Nullable String title,
+            @Nullable String notes,
+            @Nullable String editedBy,
+            @Nullable Instant editedAt) {
         this.id = id;
         this.meetingId = meetingId;
         this.livekitEgressId = livekitEgressId;
@@ -106,6 +122,10 @@ public class RecordingJpaEntity {
         this.deletedBy = deletedBy;
         this.purgeAfter = purgeAfter;
         this.createdAt = createdAt;
+        this.title = title;
+        this.notes = notes;
+        this.editedBy = editedBy;
+        this.editedAt = editedAt;
     }
 
     public UUID getId() {
@@ -178,5 +198,21 @@ public class RecordingJpaEntity {
 
     public @Nullable Instant getPurgeAfter() {
         return purgeAfter;
+    }
+
+    public @Nullable String getTitle() {
+        return title;
+    }
+
+    public @Nullable String getNotes() {
+        return notes;
+    }
+
+    public @Nullable String getEditedBy() {
+        return editedBy;
+    }
+
+    public @Nullable Instant getEditedAt() {
+        return editedAt;
     }
 }

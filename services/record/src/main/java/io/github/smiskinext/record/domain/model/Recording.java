@@ -53,6 +53,10 @@ public class Recording extends AggregateRoot<RecordingId> {
     private @Nullable Instant deletedAt;
     private @Nullable AccountId deletedBy;
     private @Nullable Instant purgeAfter;
+    private @Nullable String title;
+    private @Nullable String notes;
+    private @Nullable AccountId editedBy;
+    private @Nullable Instant editedAt;
 
     // -------------------------------------------------------------------------
     // Private constructor
@@ -145,7 +149,11 @@ public class Recording extends AggregateRoot<RecordingId> {
             Instant createdAt,
             @Nullable Instant deletedAt,
             @Nullable AccountId deletedBy,
-            @Nullable Instant purgeAfter) {
+            @Nullable Instant purgeAfter,
+            @Nullable String title,
+            @Nullable String notes,
+            @Nullable AccountId editedBy,
+            @Nullable Instant editedAt) {
         Recording recording = new Recording(
                 tenantId,
                 id,
@@ -165,6 +173,10 @@ public class Recording extends AggregateRoot<RecordingId> {
         recording.deletedAt = deletedAt;
         recording.deletedBy = deletedBy;
         recording.purgeAfter = purgeAfter;
+        recording.title = title;
+        recording.notes = notes;
+        recording.editedBy = editedBy;
+        recording.editedAt = editedAt;
         return recording;
     }
 
@@ -328,5 +340,21 @@ public class Recording extends AggregateRoot<RecordingId> {
 
     public Optional<Instant> getPurgeAfter() {
         return Optional.ofNullable(purgeAfter);
+    }
+
+    public Optional<String> getTitle() {
+        return Optional.ofNullable(title);
+    }
+
+    public Optional<String> getNotes() {
+        return Optional.ofNullable(notes);
+    }
+
+    public Optional<AccountId> getEditedBy() {
+        return Optional.ofNullable(editedBy);
+    }
+
+    public Optional<Instant> getEditedAt() {
+        return Optional.ofNullable(editedAt);
     }
 }

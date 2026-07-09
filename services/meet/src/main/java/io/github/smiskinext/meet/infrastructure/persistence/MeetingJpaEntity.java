@@ -36,6 +36,15 @@ public class MeetingJpaEntity {
     @Column(columnDefinition = "TEXT")
     private @Nullable String description;
 
+    @Column(name = "issue_id", length = 64)
+    private @Nullable String issueId;
+
+    @Column(name = "issue_key", length = 64)
+    private @Nullable String issueKey;
+
+    @Column(name = "project_key", length = 64)
+    private @Nullable String projectKey;
+
     @Column(name = "start_time")
     private @Nullable Instant startTime;
 
@@ -72,6 +81,9 @@ public class MeetingJpaEntity {
             String shortCode,
             @Nullable String title,
             @Nullable String description,
+            @Nullable String issueId,
+            @Nullable String issueKey,
+            @Nullable String projectKey,
             @Nullable Instant startTime,
             @Nullable Instant endTime,
             String type,
@@ -86,6 +98,9 @@ public class MeetingJpaEntity {
         this.shortCode = shortCode;
         this.title = title;
         this.description = description;
+        this.issueId = issueId;
+        this.issueKey = issueKey;
+        this.projectKey = projectKey;
         this.startTime = startTime;
         this.endTime = endTime;
         this.type = type;
@@ -119,6 +134,18 @@ public class MeetingJpaEntity {
 
     public @Nullable String getDescription() {
         return description;
+    }
+
+    public @Nullable String getIssueId() {
+        return issueId;
+    }
+
+    public @Nullable String getIssueKey() {
+        return issueKey;
+    }
+
+    public @Nullable String getProjectKey() {
+        return projectKey;
     }
 
     public @Nullable Instant getStartTime() {
