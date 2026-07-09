@@ -16,13 +16,13 @@ for instructions to get set up.
 
 - Install top-level dependencies:
 
-```
+```bash
 npm install
 ```
 
 - Install dependencies inside of the `static/hello-world` directory:
 
-```
+```bash
 npm install
 ```
 
@@ -30,19 +30,19 @@ npm install
 
 - Build your app (inside of the `static/hello-world` directory):
 
-```
+```bash
 npm run build
 ```
 
 - Deploy your app by running:
 
-```
+```bash
 forge deploy
 ```
 
 - Install your app in an Atlassian site by running:
 
-```
+```bash
 forge install
 ```
 
