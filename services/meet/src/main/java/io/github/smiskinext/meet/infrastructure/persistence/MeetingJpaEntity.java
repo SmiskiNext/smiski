@@ -52,6 +52,15 @@ public class MeetingJpaEntity {
     @Column(columnDefinition = "jsonb", nullable = false)
     private MeetingSettings settings;
 
+    @Column(name = "deleted_at")
+    private @Nullable Instant deletedAt;
+
+    @Column(name = "deleted_by", length = 128)
+    private @Nullable String deletedBy;
+
+    @Column(name = "purge_after")
+    private @Nullable Instant purgeAfter;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
@@ -68,6 +77,9 @@ public class MeetingJpaEntity {
             String type,
             String status,
             MeetingSettings settings,
+            @Nullable Instant deletedAt,
+            @Nullable String deletedBy,
+            @Nullable Instant purgeAfter,
             Instant createdAt) {
         this.id = id;
         this.hostId = hostId;
@@ -79,6 +91,9 @@ public class MeetingJpaEntity {
         this.type = type;
         this.status = status;
         this.settings = settings;
+        this.deletedAt = deletedAt;
+        this.deletedBy = deletedBy;
+        this.purgeAfter = purgeAfter;
         this.createdAt = createdAt;
     }
 
@@ -128,5 +143,17 @@ public class MeetingJpaEntity {
 
     public Instant getCreatedAt() {
         return createdAt;
+    }
+
+    public @Nullable Instant getDeletedAt() {
+        return deletedAt;
+    }
+
+    public @Nullable String getDeletedBy() {
+        return deletedBy;
+    }
+
+    public @Nullable Instant getPurgeAfter() {
+        return purgeAfter;
     }
 }

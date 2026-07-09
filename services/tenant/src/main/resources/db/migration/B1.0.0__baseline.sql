@@ -22,12 +22,14 @@ CREATE TABLE tenants
     installed_at         TIMESTAMPTZ  NOT NULL DEFAULT now(),
     updated_at           TIMESTAMPTZ  NOT NULL DEFAULT now(),
     uninstalled_at       TIMESTAMPTZ,
+    purge_after          TIMESTAMPTZ,
     CONSTRAINT pk_tenants PRIMARY KEY (tenant_id),
     CONSTRAINT uq_tenants_installation UNIQUE (installation_id)
 );
 
 CREATE INDEX idx_tenants_status ON tenants (status);
 CREATE INDEX idx_tenants_app_id ON tenants (app_id);
+CREATE INDEX idx_tenants_purge ON tenants (purge_after) WHERE purge_after IS NOT NULL;
 
 CREATE TABLE outbox_event
 (

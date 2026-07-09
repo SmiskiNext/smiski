@@ -15,11 +15,13 @@
 
 CREATE TABLE tenants
 (
-    tenant_id  VARCHAR(255) NOT NULL,                 -- Jira cloudId
-    cloud_id   VARCHAR(255) NOT NULL,
-    status     VARCHAR(20)  NOT NULL DEFAULT 'ACTIVE'
+    tenant_id      VARCHAR(255) NOT NULL,                 -- Jira cloudId
+    cloud_id       VARCHAR(255) NOT NULL,
+    status         VARCHAR(20)  NOT NULL DEFAULT 'ACTIVE'
         CHECK (status IN ('ACTIVE', 'SUSPENDED', 'UNINSTALLED')),
-    updated_at TIMESTAMPTZ  NOT NULL DEFAULT now(),
+    updated_at     TIMESTAMPTZ  NOT NULL DEFAULT now(),
+    uninstalled_at TIMESTAMPTZ,
+    purge_after    TIMESTAMPTZ,
     CONSTRAINT pk_tenants PRIMARY KEY (tenant_id)
 );
 
@@ -46,9 +48,11 @@ CREATE TABLE meetings
     status      VARCHAR(20)  NOT NULL DEFAULT 'SCHEDULED'
         CHECK (status IN ('SCHEDULED', 'LIVE', 'ENDED', 'CANCELLED')),
     settings    JSONB        NOT NULL DEFAULT '{}',
+    deleted_at  TIMESTAMPTZ,
+    deleted_by  VARCHAR(128),
+    purge_after TIMESTAMPTZ,
     created_at  TIMESTAMPTZ  NOT NULL DEFAULT now(),
     CONSTRAINT pk_meetings PRIMARY KEY (tenant_id, id),
-    CONSTRAINT uq_meetings_short_code UNIQUE (tenant_id, short_code),
     CONSTRAINT fk_meetings_tenant FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id)
 ) PARTITION BY HASH (tenant_id);
 
@@ -69,10 +73,12 @@ CREATE TABLE meetings_p13 PARTITION OF meetings FOR VALUES WITH (MODULUS 16, REM
 CREATE TABLE meetings_p14 PARTITION OF meetings FOR VALUES WITH (MODULUS 16, REMAINDER 14);
 CREATE TABLE meetings_p15 PARTITION OF meetings FOR VALUES WITH (MODULUS 16, REMAINDER 15);
 
-CREATE INDEX idx_meetings_issue ON meetings (tenant_id, issue_id) WHERE issue_id IS NOT NULL;
-CREATE INDEX idx_meetings_host ON meetings (tenant_id, host_id);
-CREATE INDEX idx_meetings_status ON meetings (tenant_id, status);
-CREATE INDEX idx_meetings_keyset ON meetings (tenant_id, created_at DESC, id DESC);
+CREATE UNIQUE INDEX uq_meetings_short_code ON meetings (tenant_id, short_code) WHERE deleted_at IS NULL;
+CREATE INDEX idx_meetings_issue ON meetings (tenant_id, issue_id) WHERE issue_id IS NOT NULL AND deleted_at IS NULL;
+CREATE INDEX idx_meetings_host ON meetings (tenant_id, host_id) WHERE deleted_at IS NULL;
+CREATE INDEX idx_meetings_status ON meetings (tenant_id, status) WHERE deleted_at IS NULL;
+CREATE INDEX idx_meetings_keyset ON meetings (tenant_id, created_at DESC, id DESC) WHERE deleted_at IS NULL;
+CREATE INDEX idx_meetings_purge ON meetings (tenant_id, purge_after) WHERE deleted_at IS NOT NULL;
 
 -- ============================================================================
 -- participation_logs (UUIDv7 id — no global sequence)

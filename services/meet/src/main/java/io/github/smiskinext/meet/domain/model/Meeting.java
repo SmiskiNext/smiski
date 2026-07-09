@@ -36,6 +36,9 @@ public class Meeting extends AggregateRoot<MeetingId> {
     private @Nullable Instant endTime;
     private MeetingStatus status;
     private MeetingSettings settings;
+    private @Nullable Instant deletedAt;
+    private @Nullable AccountId deletedBy;
+    private @Nullable Instant purgeAfter;
 
     // -------------------------------------------------------------------------
     // Private constructor — use factory methods
@@ -159,7 +162,10 @@ public class Meeting extends AggregateRoot<MeetingId> {
             MeetingType type,
             MeetingStatus status,
             MeetingSettings settings,
-            Instant createdAt) {
+            Instant createdAt,
+            @Nullable Instant deletedAt,
+            @Nullable AccountId deletedBy,
+            @Nullable Instant purgeAfter) {
         Meeting meeting = new Meeting(
                 tenantId,
                 id,
@@ -173,6 +179,9 @@ public class Meeting extends AggregateRoot<MeetingId> {
                 settings,
                 createdAt);
         meeting.endTime = endTime;
+        meeting.deletedAt = deletedAt;
+        meeting.deletedBy = deletedBy;
+        meeting.purgeAfter = purgeAfter;
         return meeting;
     }
 
@@ -347,5 +356,17 @@ public class Meeting extends AggregateRoot<MeetingId> {
 
     public Instant getCreatedAt() {
         return createdAt;
+    }
+
+    public Optional<Instant> getDeletedAt() {
+        return Optional.ofNullable(deletedAt);
+    }
+
+    public Optional<AccountId> getDeletedBy() {
+        return Optional.ofNullable(deletedBy);
+    }
+
+    public Optional<Instant> getPurgeAfter() {
+        return Optional.ofNullable(purgeAfter);
     }
 }

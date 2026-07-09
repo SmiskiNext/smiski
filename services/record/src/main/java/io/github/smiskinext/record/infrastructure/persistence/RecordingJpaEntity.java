@@ -57,6 +57,15 @@ public class RecordingJpaEntity {
     @Column(name = "error_message", length = 1024)
     private @Nullable String errorMessage;
 
+    @Column(name = "deleted_at")
+    private @Nullable Instant deletedAt;
+
+    @Column(name = "deleted_by", length = 128)
+    private @Nullable String deletedBy;
+
+    @Column(name = "purge_after")
+    private @Nullable Instant purgeAfter;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
@@ -76,6 +85,9 @@ public class RecordingJpaEntity {
             int durationSeconds,
             long fileSizeBytes,
             @Nullable String errorMessage,
+            @Nullable Instant deletedAt,
+            @Nullable String deletedBy,
+            @Nullable Instant purgeAfter,
             Instant createdAt) {
         this.id = id;
         this.meetingId = meetingId;
@@ -90,6 +102,9 @@ public class RecordingJpaEntity {
         this.durationSeconds = durationSeconds;
         this.fileSizeBytes = fileSizeBytes;
         this.errorMessage = errorMessage;
+        this.deletedAt = deletedAt;
+        this.deletedBy = deletedBy;
+        this.purgeAfter = purgeAfter;
         this.createdAt = createdAt;
     }
 
@@ -151,5 +166,17 @@ public class RecordingJpaEntity {
 
     public Instant getCreatedAt() {
         return createdAt;
+    }
+
+    public @Nullable Instant getDeletedAt() {
+        return deletedAt;
+    }
+
+    public @Nullable String getDeletedBy() {
+        return deletedBy;
+    }
+
+    public @Nullable Instant getPurgeAfter() {
+        return purgeAfter;
     }
 }

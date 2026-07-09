@@ -5,6 +5,7 @@ import io.github.smiskinext.record.domain.RecordError;
 import io.github.smiskinext.record.domain.event.RecordingCompletedEvent;
 import io.github.smiskinext.record.domain.event.RecordingFailedEvent;
 import io.github.smiskinext.record.domain.event.RecordingStartedEvent;
+import io.github.smiskinext.record.domain.model.valueobject.AccountId;
 import io.github.smiskinext.record.domain.model.valueobject.LiveKitEgressId;
 import io.github.smiskinext.record.domain.model.valueobject.LiveKitRoomName;
 import io.github.smiskinext.record.domain.model.valueobject.MeetingId;
@@ -49,6 +50,9 @@ public class Recording extends AggregateRoot<RecordingId> {
     private @Nullable Instant endedAt;
     private int durationSeconds;
     private long fileSizeBytes;
+    private @Nullable Instant deletedAt;
+    private @Nullable AccountId deletedBy;
+    private @Nullable Instant purgeAfter;
 
     // -------------------------------------------------------------------------
     // Private constructor
@@ -138,8 +142,11 @@ public class Recording extends AggregateRoot<RecordingId> {
             @Nullable Instant endedAt,
             int durationSeconds,
             long fileSizeBytes,
-            Instant createdAt) {
-        return new Recording(
+            Instant createdAt,
+            @Nullable Instant deletedAt,
+            @Nullable AccountId deletedBy,
+            @Nullable Instant purgeAfter) {
+        Recording recording = new Recording(
                 tenantId,
                 id,
                 meetingId,
@@ -155,6 +162,10 @@ public class Recording extends AggregateRoot<RecordingId> {
                 durationSeconds,
                 fileSizeBytes,
                 createdAt);
+        recording.deletedAt = deletedAt;
+        recording.deletedBy = deletedBy;
+        recording.purgeAfter = purgeAfter;
+        return recording;
     }
 
     // -------------------------------------------------------------------------
@@ -305,5 +316,17 @@ public class Recording extends AggregateRoot<RecordingId> {
 
     public Instant getCreatedAt() {
         return createdAt;
+    }
+
+    public Optional<Instant> getDeletedAt() {
+        return Optional.ofNullable(deletedAt);
+    }
+
+    public Optional<AccountId> getDeletedBy() {
+        return Optional.ofNullable(deletedBy);
+    }
+
+    public Optional<Instant> getPurgeAfter() {
+        return Optional.ofNullable(purgeAfter);
     }
 }

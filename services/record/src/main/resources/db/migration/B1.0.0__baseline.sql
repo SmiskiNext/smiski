@@ -19,11 +19,13 @@
 
 CREATE TABLE tenants
 (
-    tenant_id  VARCHAR(255) NOT NULL,                 -- Jira cloudId
-    cloud_id   VARCHAR(255) NOT NULL,
-    status     VARCHAR(20)  NOT NULL DEFAULT 'ACTIVE'
+    tenant_id      VARCHAR(255) NOT NULL,                 -- Jira cloudId
+    cloud_id       VARCHAR(255) NOT NULL,
+    status         VARCHAR(20)  NOT NULL DEFAULT 'ACTIVE'
         CHECK (status IN ('ACTIVE', 'SUSPENDED', 'UNINSTALLED')),
-    updated_at TIMESTAMPTZ  NOT NULL DEFAULT now(),
+    updated_at     TIMESTAMPTZ  NOT NULL DEFAULT now(),
+    uninstalled_at TIMESTAMPTZ,
+    purge_after    TIMESTAMPTZ,
     CONSTRAINT pk_tenants PRIMARY KEY (tenant_id)
 );
 
@@ -47,7 +49,9 @@ CREATE TABLE recordings
         CHECK (status IN ('PENDING', 'RECORDING', 'COMPLETED', 'FAILED')),
     title             VARCHAR(255),                    -- user-editable
     notes             TEXT,                            -- user-editable
-    is_deleted        BOOLEAN      NOT NULL DEFAULT FALSE,
+    deleted_at        TIMESTAMPTZ,
+    deleted_by        VARCHAR(128),
+    purge_after       TIMESTAMPTZ,
     edited_by         VARCHAR(128),                    -- Jira accountId of last editor
     edited_at         TIMESTAMPTZ,
     started_at        TIMESTAMPTZ  NOT NULL DEFAULT now(),
@@ -77,10 +81,11 @@ CREATE TABLE recordings_p13 PARTITION OF recordings FOR VALUES WITH (MODULUS 16,
 CREATE TABLE recordings_p14 PARTITION OF recordings FOR VALUES WITH (MODULUS 16, REMAINDER 14);
 CREATE TABLE recordings_p15 PARTITION OF recordings FOR VALUES WITH (MODULUS 16, REMAINDER 15);
 
-CREATE INDEX idx_recordings_meeting ON recordings (tenant_id, meeting_id) WHERE is_deleted = FALSE;
+CREATE INDEX idx_recordings_meeting ON recordings (tenant_id, meeting_id) WHERE deleted_at IS NULL;
 CREATE INDEX idx_recordings_status ON recordings (tenant_id, status);
 CREATE UNIQUE INDEX uq_recordings_active_per_meeting
     ON recordings (tenant_id, meeting_id) WHERE status IN ('PENDING', 'RECORDING');
+CREATE INDEX idx_recordings_purge ON recordings (tenant_id, purge_after) WHERE deleted_at IS NOT NULL;
 
 -- ============================================================================
 -- outbox_event (UUIDv7 id; poller scans globally, tenant-scoped PK)
