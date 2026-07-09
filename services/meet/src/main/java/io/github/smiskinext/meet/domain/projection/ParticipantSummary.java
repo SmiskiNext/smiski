@@ -6,7 +6,7 @@ import org.jspecify.annotations.Nullable;
 
 /** Read-only projection for meeting participants list endpoints. */
 public record ParticipantSummary(
-        Long id,
+        UUID id,
         UUID meetingId,
         String accountId,
         @Nullable String displayName,

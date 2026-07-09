@@ -7,13 +7,7 @@ import io.github.smiskinext.shared.domain.ValueObject;
  * Meeting room settings stored as JSONB in the database.
  *
  * <p>Mapped via {@code @JdbcTypeCode(SqlTypes.JSON)} on the JPA entity.
- * This is a pure domain value object — it carries no Jackson or persistence
- * annotations. Serialization concerns are handled by dedicated DTOs:
- * <ul>
- *   <li>{@code MeetingSettingsJson} — persistence layer (JSONB)</li>
- *   <li>{@code MeetingSettingsRequest} — API input</li>
- *   <li>{@code MeetingSettingsResponse} — API output</li>
- * </ul>
+ * Jackson serializes the {@link AdmissionPolicy} enum to its name automatically.
  *
  * <p>Simplified field set: {@code admissionPolicy}, {@code maxParticipants},
  * {@code allowScreenShare}, {@code chatEnabled}, {@code allowMicrophone},

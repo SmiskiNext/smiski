@@ -13,7 +13,7 @@ public record InviteeAcceptedEvent(
         String tenantId,
         UUID aggregateId,
         UUID meetingId,
-        UUID inviterId,
+        String inviterId,
         Instant acceptedAt)
         implements PublishableEvent {
 

@@ -24,8 +24,8 @@ public class MeetingInviteeJpaEntity {
     @Column(name = "meeting_id", nullable = false, columnDefinition = "uuid")
     private UUID meetingId;
 
-    @Column(name = "inviter_id", nullable = false, columnDefinition = "uuid")
-    private UUID inviterId;
+    @Column(name = "inviter_id", nullable = false, length = 128)
+    private String inviterId;
 
     @Column(name = "account_id", length = 128)
     private @Nullable String accountId;
@@ -53,7 +53,7 @@ public class MeetingInviteeJpaEntity {
     public MeetingInviteeJpaEntity(
             UUID id,
             UUID meetingId,
-            UUID inviterId,
+            String inviterId,
             @Nullable String accountId,
             String email,
             @Nullable String displayName,
@@ -85,7 +85,7 @@ public class MeetingInviteeJpaEntity {
         return meetingId;
     }
 
-    public UUID getInviterId() {
+    public String getInviterId() {
         return inviterId;
     }
 

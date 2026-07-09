@@ -1,5 +1,6 @@
 package io.github.smiskinext.meet.domain.model;
 
+import com.github.f4b6a3.uuid.UuidCreator;
 import io.github.smiskinext.meet.domain.model.valueobject.AccountId;
 import io.github.smiskinext.meet.domain.model.valueobject.LiveKitIdentity;
 import io.github.smiskinext.meet.domain.model.valueobject.LiveKitParticipantSid;
@@ -30,7 +31,7 @@ import org.jspecify.annotations.Nullable;
 public class ParticipationLog extends AggregateRoot<ParticipationLogId> {
 
     private final TenantId tenantId;
-    private @Nullable ParticipationLogId id;
+    private final ParticipationLogId id;
     private final MeetingId meetingId;
     private final AccountId accountId;
     private final @Nullable String displayName;
@@ -48,7 +49,7 @@ public class ParticipationLog extends AggregateRoot<ParticipationLogId> {
 
     private ParticipationLog(
             TenantId tenantId,
-            @Nullable ParticipationLogId id,
+            ParticipationLogId id,
             MeetingId meetingId,
             AccountId accountId,
             @Nullable String displayName,
@@ -87,7 +88,7 @@ public class ParticipationLog extends AggregateRoot<ParticipationLogId> {
             LiveKitIdentity livekitIdentity) {
         return new ParticipationLog(
                 tenantId,
-                null,
+                ParticipationLogId.of(UuidCreator.getTimeOrderedEpoch()),
                 meetingId,
                 accountId,
                 displayName,
@@ -164,14 +165,6 @@ public class ParticipationLog extends AggregateRoot<ParticipationLogId> {
 
     public TenantId getTenantId() {
         return tenantId;
-    }
-
-    /**
-     * Called by the persistence adapter after insert to set the DB-generated id.
-     */
-    public void assignId(ParticipationLogId id) {
-        if (this.id != null) throw new IllegalStateException("Id already assigned");
-        this.id = id;
     }
 
     public MeetingId getMeetingId() {

@@ -1,5 +1,6 @@
 package io.github.smiskinext.meet.infrastructure.persistence;
 
+import io.github.smiskinext.meet.domain.model.valueobject.MeetingSettings;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
@@ -49,7 +50,7 @@ public class MeetingJpaEntity {
 
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(columnDefinition = "jsonb", nullable = false)
-    private MeetingSettingsJson settings;
+    private MeetingSettings settings;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
@@ -66,7 +67,7 @@ public class MeetingJpaEntity {
             @Nullable Instant endTime,
             String type,
             String status,
-            MeetingSettingsJson settings,
+            MeetingSettings settings,
             Instant createdAt) {
         this.id = id;
         this.hostId = hostId;
@@ -121,7 +122,7 @@ public class MeetingJpaEntity {
         return status;
     }
 
-    public MeetingSettingsJson getSettings() {
+    public MeetingSettings getSettings() {
         return settings;
     }
 
