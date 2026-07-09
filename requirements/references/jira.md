@@ -11,7 +11,7 @@
 
 Jira kiểm soát truy cập theo ba lớp độc lập, từ toàn cục đến từng công việc:
 
-```
+```text
 Global Permissions (toàn site / instance)
     ↓
 Project / Space Permissions (cấp project)
@@ -86,13 +86,13 @@ role riêng (ví dụ `atlassian-addons-project-access`).
 
 Một permission scheme là bộ quy tắc ánh xạ:
 
-```
+```text
 Permission → Holders (Roles / Groups / Users / Fields)
 ```
 
 Ví dụ:
 
-```
+```text
 Create Issues      → Members role
 Edit Issues        → Members role + Assignee field
 Administer Project → Administrators role
@@ -170,7 +170,7 @@ cho ngoại lệ. Tránh gán user trực tiếp vào scheme (khó audit, khó m
 
 Anti-pattern cần tránh:
 
-```
+```text
 # Sai — gán user trực tiếp
 Create Issues → user "john@example.com"
 
@@ -184,7 +184,7 @@ Create Issues → "Members" role   (project admin thêm john vào Members)
 
 **Permission schemes:**
 
-```
+```text
 GET    /rest/api/3/permissionscheme
 GET    /rest/api/3/permissionscheme/{id}
 POST   /rest/api/3/permissionscheme
@@ -194,7 +194,7 @@ DELETE /rest/api/3/permissionscheme/{id}
 
 **Permission grants (trong scheme):**
 
-```
+```text
 GET    /rest/api/3/permissionscheme/{id}/permission
 POST   /rest/api/3/permissionscheme/{id}/permission
 DELETE /rest/api/3/permissionscheme/{id}/permission/{permissionId}
@@ -202,7 +202,7 @@ DELETE /rest/api/3/permissionscheme/{id}/permission/{permissionId}
 
 **Project roles & actors:**
 
-```
+```text
 GET    /rest/api/3/project/{projectIdOrKey}/roles
 GET    /rest/api/3/project/{projectIdOrKey}/roles/{id}
 POST   /rest/api/3/project/{projectIdOrKey}/role/{id}      # thêm user/group
@@ -211,7 +211,7 @@ DELETE /rest/api/3/project/{projectIdOrKey}/role/{id}      # xóa actor
 
 **Kiểm tra quyền:**
 
-```
+```text
 GET /rest/api/3/permissions              # liệt kê tất cả quyền
 POST /rest/api/3/permissions/check       # kiểm tra quyền của user cho issue
 GET /rest/api/3/user/permissions/search  # tìm user theo quyền
@@ -343,38 +343,38 @@ POST /rest/api/3/permissions/check
 ## 12. Tham khảo
 
 - What are permission schemes in Jira? —
-  https://support.atlassian.com/jira-cloud-administration/docs/what-are-permission-schemes-in-jira/
+  <https://support.atlassian.com/jira-cloud-administration/docs/what-are-permission-schemes-in-jira/>
 - Types of permissions in Jira —
-  https://support.atlassian.com/jira-cloud-administration/docs/types-of-permissions-in-jira/
+  <https://support.atlassian.com/jira-cloud-administration/docs/types-of-permissions-in-jira/>
 - Global permissions —
-  https://support.atlassian.com/jira-cloud-administration/docs/what-are-global-permissions-and-what-do-they-do/
+  <https://support.atlassian.com/jira-cloud-administration/docs/what-are-global-permissions-and-what-do-they-do/>
 - How to use project/space roles —
-  https://support.atlassian.com/jira-cloud-administration/docs/how-to-use-space-roles/
+  <https://support.atlassian.com/jira-cloud-administration/docs/how-to-use-space-roles/>
 - Permissions for company-managed projects —
-  https://support.atlassian.com/jira-cloud-administration/docs/permissions-for-company-managed-projects/
+  <https://support.atlassian.com/jira-cloud-administration/docs/permissions-for-company-managed-projects/>
 - What are issue/work item security schemes? —
-  https://support.atlassian.com/jira-cloud-administration/docs/what-are-work-item-security-schemes/
+  <https://support.atlassian.com/jira-cloud-administration/docs/what-are-work-item-security-schemes/>
 - Team-managed vs company-managed projects —
-  https://support.atlassian.com/jira-software-cloud/docs/what-are-team-managed-and-company-managed-projects/
+  <https://support.atlassian.com/jira-software-cloud/docs/what-are-team-managed-and-company-managed-projects/>
 - Manage access to team-managed project —
-  https://support.atlassian.com/jira-software-cloud/docs/manage-how-people-access-your-team-managed-project/
+  <https://support.atlassian.com/jira-software-cloud/docs/manage-how-people-access-your-team-managed-project/>
 - Permission schemes (REST API v3) —
-  https://developer.atlassian.com/cloud/jira/platform/rest/v3/api-group-permission-schemes/
+  <https://developer.atlassian.com/cloud/jira/platform/rest/v3/api-group-permission-schemes/>
 - Project roles (REST API v3) —
-  https://developer.atlassian.com/cloud/jira/platform/rest/v3/api-group-project-roles/
+  <https://developer.atlassian.com/cloud/jira/platform/rest/v3/api-group-project-roles/>
 - Permissions (REST API v3) —
-  https://developer.atlassian.com/cloud/jira/platform/rest/v3/api-group-permissions/
+  <https://developer.atlassian.com/cloud/jira/platform/rest/v3/api-group-permissions/>
 - Get all permissions (REST API v3) —
-  https://developer.atlassian.com/cloud/jira/platform/rest/v3/api-group-permissions/#api-rest-api-3-permissions-get
+  <https://developer.atlassian.com/cloud/jira/platform/rest/v3/api-group-permissions/#api-rest-api-3-permissions-get>
 - Managing project permissions (Data Center) —
-  https://confluence.atlassian.com/adminjiraserver/managing-project-permissions-938847145.html
+  <https://confluence.atlassian.com/adminjiraserver/managing-project-permissions-938847145.html>
 - Managing global permissions (Data Center) —
-  https://confluence.atlassian.com/adminjiraserver/managing-global-permissions-938847142.html
+  <https://confluence.atlassian.com/adminjiraserver/managing-global-permissions-938847142.html>
 - Permissions overview (Jira Software DC) —
-  https://confluence.atlassian.com/jirasoftwareserver/permissions-overview-939938996.html
+  <https://confluence.atlassian.com/jirasoftwareserver/permissions-overview-939938996.html>
 - Administering Jira Data Center vs Cloud —
-  https://support.atlassian.com/migration/docs/differences-administering-jira-data-center-and-cloud/
+  <https://support.atlassian.com/migration/docs/differences-administering-jira-data-center-and-cloud/>
 - Permissions best practices —
-  https://confluence.atlassian.com/spaces/SECURITY/pages/1409093142/Permissions+best+practices
+  <https://confluence.atlassian.com/spaces/SECURITY/pages/1409093142/Permissions+best+practices>
 - Auditing in Jira —
-  https://confluence.atlassian.com/spaces/SECURITY/pages/1409092970/Auditing+in+Jira
+  <https://confluence.atlassian.com/spaces/SECURITY/pages/1409092970/Auditing+in+Jira>

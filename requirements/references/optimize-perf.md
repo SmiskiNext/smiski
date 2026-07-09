@@ -376,22 +376,23 @@ Bảng ưu tiên backend (theo effort/impact):
 
 ## Nguồn
 
-- Subscribing to tracks — https://docs.livekit.io/home/client/tracks/subscribe/
+- Subscribing to tracks —
+  <https://docs.livekit.io/home/client/tracks/subscribe/>
 - Publishing / advanced tracks —
-  https://docs.livekit.io/home/client/tracks/advanced/
-- WebRTC codecs guide — https://livekit.com/webrtc/codecs-guide
-- React quickstart — https://docs.livekit.io/transport/sdk-platforms/react/
-- LiveKit Components (React) — https://github.com/livekit/components-js
-- Server APIs (Twirp) — https://docs.livekit.io/reference/server/server-apis/
-- Server webhooks — https://docs.livekit.io/home/server/webhooks/
-- Managing rooms — https://docs.livekit.io/home/server/managing-rooms/
-- Tokens & grants — https://docs.livekit.io/frontends/reference/tokens-grants/
-- Deploying LiveKit — https://docs.livekit.io/home/self-hosting/deployment/
-- Distributed setup — https://docs.livekit.io/home/self-hosting/distributed/
-- Benchmarks — https://docs.livekit.io/home/self-hosting/benchmark/
+  <https://docs.livekit.io/home/client/tracks/advanced/>
+- WebRTC codecs guide — <https://livekit.com/webrtc/codecs-guide>
+- React quickstart — <https://docs.livekit.io/transport/sdk-platforms/react/>
+- LiveKit Components (React) — <https://github.com/livekit/components-js>
+- Server APIs (Twirp) — <https://docs.livekit.io/reference/server/server-apis/>
+- Server webhooks — <https://docs.livekit.io/home/server/webhooks/>
+- Managing rooms — <https://docs.livekit.io/home/server/managing-rooms/>
+- Tokens & grants — <https://docs.livekit.io/frontends/reference/tokens-grants/>
+- Deploying LiveKit — <https://docs.livekit.io/home/self-hosting/deployment/>
+- Distributed setup — <https://docs.livekit.io/home/self-hosting/distributed/>
+- Benchmarks — <https://docs.livekit.io/home/self-hosting/benchmark/>
 - config-sample.yaml —
-  https://github.com/livekit/livekit/blob/master/config-sample.yaml
+  <https://github.com/livekit/livekit/blob/master/config-sample.yaml>
 - Scaling WebRTC (blog) —
-  https://livekit.com/blog/scaling-webrtc-with-distributed-mesh
+  <https://livekit.com/blog/scaling-webrtc-with-distributed-mesh>
 - Spring task execution —
-  https://docs.spring.io/spring-boot/reference/features/task-execution-and-scheduling.html
+  <https://docs.spring.io/spring-boot/reference/features/task-execution-and-scheduling.html>

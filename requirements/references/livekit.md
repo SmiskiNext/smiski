@@ -185,7 +185,7 @@ turn:
 
 ### ICE fallback chain
 
-```
+```text
 UDP trực tiếp (host candidates)
   → TCP fallback (tcp_port 7881)
   → TURN/UDP relay (3478)
@@ -227,7 +227,7 @@ livekit-server --dev --bind 0.0.0.0 # cho phép máy khác trong LAN truy cập
 
 ### LiveKit Cloud — domain cần allow outbound
 
-```
+```text
 *.livekit.cloud        TCP 443     (signal WebSocket)
 *.turn.livekit.cloud   TCP 443     (TURN/TLS relay)
 *.host.livekit.cloud   UDP 3478    (TURN/UDP + STUN)
@@ -258,7 +258,7 @@ S3/Azure/GCP.
 
 ### URL params LiveKit truyền vào template
 
-```
+```text
 https://my-template.com/?url=wss://livekit.example.com&token=<JWT>&layout=grid
 ```
 
@@ -374,16 +374,16 @@ trigger egress; nhớ filter `kind=EGRESS` trong logic subscription động.
 
 ## Nguồn
 
-- Tokens & grants — https://docs.livekit.io/frontends/reference/tokens-grants/
+- Tokens & grants — <https://docs.livekit.io/frontends/reference/tokens-grants/>
 - Participant management —
-  https://docs.livekit.io/intro/basics/rooms-participants-tracks/participants/
-- Room service API — https://docs.livekit.io/reference/other/roomservice-api/
-- Deploying LiveKit — https://docs.livekit.io/home/self-hosting/deployment/
-- Ports & firewall — https://docs.livekit.io/home/self-hosting/ports-firewall/
-- Running locally — https://docs.livekit.io/transport/self-hosting/local/
-- Cloud firewall — https://docs.livekit.io/deploy/admin/firewall/
-- Egress overview — https://docs.livekit.io/home/egress/overview/
-- Room composite — https://docs.livekit.io/home/egress/room-composite/
-- Custom template — https://docs.livekit.io/home/egress/custom-template/
-- Egress examples — https://docs.livekit.io/home/egress/examples/
-- Egress GitHub — https://github.com/livekit/egress
+  <https://docs.livekit.io/intro/basics/rooms-participants-tracks/participants/>
+- Room service API — <https://docs.livekit.io/reference/other/roomservice-api/>
+- Deploying LiveKit — <https://docs.livekit.io/home/self-hosting/deployment/>
+- Ports & firewall — <https://docs.livekit.io/home/self-hosting/ports-firewall/>
+- Running locally — <https://docs.livekit.io/transport/self-hosting/local/>
+- Cloud firewall — <https://docs.livekit.io/deploy/admin/firewall/>
+- Egress overview — <https://docs.livekit.io/home/egress/overview/>
+- Room composite — <https://docs.livekit.io/home/egress/room-composite/>
+- Custom template — <https://docs.livekit.io/home/egress/custom-template/>
+- Egress examples — <https://docs.livekit.io/home/egress/examples/>
+- Egress GitHub — <https://github.com/livekit/egress>

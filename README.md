@@ -33,7 +33,7 @@ multi-tenant, LiveKit clustering.
 
 ## Architecture
 
-```
+```text
  Jira Issue Panel (Forge Custom UI)
           │  Forge fetch (+ Jira user token)
           ▼
@@ -96,7 +96,7 @@ pnpm smiski dev
 
 ## Project Structure
 
-```
+```text
 smiski/
 ├── services/
 │   ├── user-management/       # Identity bridge, gRPC name/avatar resolution

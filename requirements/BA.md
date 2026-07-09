@@ -1,9 +1,11 @@
+# Đề cương Đồ án Thực tập Tốt nghiệp
+
 **BỘ KHOA HỌC VÀ CÔNG NGHỆ**  
 **HỌC VIỆN CÔNG NGHỆ BƯU CHÍNH VIỄN THÔNG**
 
 \-----------------------------
 
-![][image1]
+![Logo Học viện][image1]
 
 **ĐỀ CƯƠNG**  
 **ĐỒ ÁN THỰC TẬP TỐT NGHIỆP**
@@ -27,7 +29,7 @@ DỰ ÁN JIRA SỬ DỤNG LIVEKIT**
 
 **TP.HCM, tháng 06/2026**
 
-# **GIỚI THIỆU ĐỀ TÀI**
+## **GIỚI THIỆU ĐỀ TÀI**
 
 ## **1\. Tên đề tài**
 
@@ -178,7 +180,7 @@ StackHolder:
 
 Chức năng cốt lõi UC07 \- Liên kết và truy vết cuộc họp theo Issue
 
-![][image2]
+![Sơ đồ liên kết và truy vết cuộc họp theo Issue][image2]
 
 ## **7\. Phạm vi đề tài**
 

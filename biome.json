@@ -2,7 +2,8 @@
     "$schema": "https://biomejs.dev/schemas/latest/schema.json",
     "root": true,
     "vcs": {
-        "enabled": false
+        "enabled": true,
+        "clientKind": "git"
     },
     "formatter": {
         "indentStyle": "space",

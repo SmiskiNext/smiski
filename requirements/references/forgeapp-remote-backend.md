@@ -33,7 +33,7 @@ Trường hợp sử dụng:
 
 ## 2. Kiến trúc & luồng hoạt động
 
-```
+```text
 Forge app (UI/resolver)  --invokeRemote-->  Backend tự host (Spring Boot)  --Bearer token-->  Jira Cloud API
 ```
 
@@ -175,7 +175,7 @@ public class FITValidator {
 Backend dùng token opaque từ header (`x-forge-oauth-system` hoặc
 `x-forge-oauth-user`) làm Bearer, gọi qua API gateway:
 
-```
+```text
 https://api.atlassian.com/ex/jira/{cloudId}/rest/api/3/...
 ```
 
@@ -293,40 +293,41 @@ Issue issue = new IssueApi(apiClient).createIssue(issueBody, false, null);
 
 **Forge Remote**
 
-- Forge Remote overview — https://developer.atlassian.com/platform/forge/remote/
+- Forge Remote overview —
+  <https://developer.atlassian.com/platform/forge/remote/>
 - Forge Remote essentials —
-  https://developer.atlassian.com/platform/forge/remote/essentials/
+  <https://developer.atlassian.com/platform/forge/remote/essentials/>
 - Calling product APIs from a remote —
-  https://developer.atlassian.com/platform/forge/remote/calling-product-apis/
+  <https://developer.atlassian.com/platform/forge/remote/calling-product-apis/>
 - Endpoint manifest reference —
-  https://developer.atlassian.com/platform/forge/manifest-reference/endpoint/
+  <https://developer.atlassian.com/platform/forge/manifest-reference/endpoint/>
 - Remotes manifest reference —
-  https://developer.atlassian.com/platform/forge/manifest-reference/remotes/
+  <https://developer.atlassian.com/platform/forge/manifest-reference/remotes/>
 - Jira product scopes —
-  https://developer.atlassian.com/platform/forge/manifest-reference/scopes-product-jira/
+  <https://developer.atlassian.com/platform/forge/manifest-reference/scopes-product-jira/>
 - Forge Remote Spring Boot reference app —
-  https://bitbucket.org/atlassian/forge-remote-spring-boot
+  <https://bitbucket.org/atlassian/forge-remote-spring-boot>
 - FIT clock skew discussion —
-  https://community.developer.atlassian.com/t/im-having-problems-validating-the-fit-in-forge-remote/80099
+  <https://community.developer.atlassian.com/t/im-having-problems-validating-the-fit-in-forge-remote/80099>
 
 **Jira REST API & type-safe client**
 
 - Jira Cloud Platform REST API v3 —
-  https://developer.atlassian.com/cloud/jira/platform/rest/v3/intro/
+  <https://developer.atlassian.com/cloud/jira/platform/rest/v3/intro/>
 - Jira Cloud OpenAPI spec —
-  https://developer.atlassian.com/cloud/jira/platform/swagger-v3.v3.json
+  <https://developer.atlassian.com/cloud/jira/platform/swagger-v3.v3.json>
 - Update to Jira Cloud's Swagger/OpenAPI docs —
-  https://www.atlassian.com/blog/development/update-to-jira-clouds-swagger-openapi-docs
+  <https://www.atlassian.com/blog/development/update-to-jira-clouds-swagger-openapi-docs>
 - Generating a REST client for Jira Cloud —
-  https://community.atlassian.com/forums/Jira-articles/Generating-a-REST-client-for-Jira-Cloud/ba-p/1307133
+  <https://community.atlassian.com/forums/Jira-articles/Generating-a-REST-client-for-Jira-Cloud/ba-p/1307133>
 - everit-org/atlassian-restclient-jiracloud —
-  https://github.com/everit-org/atlassian-restclient-jiracloud
+  <https://github.com/everit-org/atlassian-restclient-jiracloud>
 - OpenAPI Generator Java docs —
-  https://openapi-generator.tech/docs/generators/java/
+  <https://openapi-generator.tech/docs/generators/java/>
 
 **Connect (bối cảnh migration)**
 
 - Connect end-of-support timeline —
-  https://www.atlassian.com/blog/development/connect-end-of-support-what-it-means-for-custom-apps-and-how-to-migrate-to-forge
+  <https://www.atlassian.com/blog/development/connect-end-of-support-what-it-means-for-custom-apps-and-how-to-migrate-to-forge>
 - Adopting Forge from Connect —
-  https://developer.atlassian.com/platform/adopting-forge-from-connect/how-to-adopt/
+  <https://developer.atlassian.com/platform/adopting-forge-from-connect/how-to-adopt/>

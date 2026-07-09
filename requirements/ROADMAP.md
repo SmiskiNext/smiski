@@ -166,7 +166,7 @@ Hai phương án để mở (quyết sau spike):
 
 ## 4. Phụ thuộc giữa các phase
 
-```
+```text
 Phase 0 (cắt gọn)
    │
    ▼
