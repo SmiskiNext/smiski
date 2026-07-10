@@ -1,0 +1,15 @@
+spring:
+    kafka:
+        bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+
+app:
+    notification:
+        kafka:
+            invitation-consumer-group: test-notification-meeting-invitations
+            invite-invalidated-consumer-group: test-notification-meeting-invite-invalidated
+            invitee-responded-consumer-group: test-notification-invitee-responded
+    forge:
+        app-id: ari:cloud:ecosystem::app/test
+        jwks-uri: https://example.com/.well-known/jwks.json
+        environment-type: DEVELOPMENT
+        clock-skew-seconds: 10

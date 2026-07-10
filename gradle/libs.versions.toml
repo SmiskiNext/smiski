@@ -133,6 +133,8 @@ spring-boot-testcontainers = { module = "org.springframework.boot:spring-boot-te
 spring-boot-grpc-test = { module = "org.springframework.boot:spring-boot-starter-grpc-server-test" }
 testcontainers-junit-jupiter = { module = "org.testcontainers:junit-jupiter", version.ref = "testcontainers" }
 testcontainers-postgresql = { module = "org.testcontainers:postgresql", version.ref = "testcontainers" }
+testcontainers-kafka = { module = "org.testcontainers:kafka", version.ref = "testcontainers" }
+testcontainers-minio = { module = "org.testcontainers:minio", version.ref = "testcontainers" }
 testcontainers-mongodb = { module = "org.testcontainers:mongodb", version.ref = "testcontainers" }
 
 # ArchUnit

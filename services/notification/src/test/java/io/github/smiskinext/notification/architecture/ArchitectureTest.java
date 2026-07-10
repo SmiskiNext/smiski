@@ -1,0 +1,11 @@
+package io.github.smiskinext.notification.architecture;
+
+import com.tngtech.archunit.core.importer.ImportOption;
+import com.tngtech.archunit.junit.AnalyzeClasses;
+
+import io.github.smiskinext.shared.architecture.CleanArchitectureTest;
+
+@AnalyzeClasses(
+        packages = "io.github.smiskinext.notification",
+        importOptions = ImportOption.DoNotIncludeTests.class)
+class ArchitectureTest extends CleanArchitectureTest {}

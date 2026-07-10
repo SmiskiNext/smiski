@@ -23,6 +23,7 @@ dependencies {
     testImplementation(libs.spring.boot.webmvc.test)
     testImplementation(libs.spring.boot.data.jpa.test)
     testImplementation(libs.spring.boot.jdbc.test)
+    testImplementation(libs.testcontainers.minio)
     testImplementation(testFixtures(libs.shared))
 }
 

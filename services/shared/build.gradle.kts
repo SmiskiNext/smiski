@@ -18,7 +18,12 @@ dependencies {
     testFixturesImplementation(platform("org.springframework.boot:spring-boot-dependencies:${libs.versions.springBoot.get()}"))
     testFixturesImplementation(libs.spring.boot.starter.webmvc)
     testFixturesImplementation(libs.spring.boot.starter.data.jpa)
-    testFixturesImplementation(libs.spring.boot.starter.data.mongodb)
+    testFixturesImplementation(libs.spring.boot.testcontainers)
+    testFixturesImplementation(libs.testcontainers.junit.jupiter)
+    testFixturesImplementation(libs.testcontainers.postgresql)
+    testFixturesImplementation(libs.testcontainers.kafka)
+    testFixturesImplementation(libs.testcontainers.minio)
+    testFixturesImplementation("org.springframework:spring-test")
 }
 
 tasks.bootJar {
