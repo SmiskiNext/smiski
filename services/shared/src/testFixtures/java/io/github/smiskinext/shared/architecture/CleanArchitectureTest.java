@@ -7,6 +7,8 @@ import com.tngtech.archunit.base.DescribedPredicate;
 import com.tngtech.archunit.core.domain.JavaClass;
 import com.tngtech.archunit.junit.ArchTest;
 import com.tngtech.archunit.lang.ArchRule;
+import io.github.smiskinext.shared.domain.DomainError;
+import io.github.smiskinext.shared.domain.ErrorCode;
 import jakarta.persistence.Entity;
 import org.springframework.stereotype.Repository;
 import org.springframework.stereotype.Service;
@@ -271,4 +273,69 @@ public abstract class CleanArchitectureTest {
             .allowEmptyShould(true)
             .because("Domain classes must be framework-agnostic; Spring/JPA annotations"
                     + " must not appear in the domain layer");
+
+    // ─── Error-Handling Model Rules ──────────────────────────────────────────
+
+    /**
+     * The domain layer must stay framework-agnostic so error-handling primitives ({@code
+     * ErrorCategory}, {@code ErrorCode}, {@code DomainError}) remain usable without Spring or JPA on
+     * the classpath. HTTP/persistence coupling belongs in the infrastructure layer.
+     */
+    @ArchTest
+    static final ArchRule domain_must_not_depend_on_spring_or_jpa = noClasses()
+            .that()
+            .resideInAPackage("..domain..")
+            .should()
+            .dependOnClassesThat()
+            .resideInAnyPackage("org.springframework..", "jakarta.persistence..")
+            .allowEmptyShould(true)
+            .because("Domain error-handling primitives (ErrorCategory, ErrorCode, DomainError)"
+                    + " must be usable without Spring or JPA on the classpath");
+
+    /**
+     * Business errors returned via {@code Result} are domain concepts; every {@link DomainError}
+     * implementation must live in the domain layer, never in application/infrastructure/presentation.
+     */
+    @ArchTest
+    static final ArchRule domain_errors_must_reside_in_domain = classes()
+            .that()
+            .areAssignableTo(DomainError.class)
+            .and(NOT_SPRING_GENERATED)
+            .should()
+            .resideInAPackage("..domain..")
+            .allowEmptyShould(true)
+            .because("DomainError implementations are domain concepts and must live in the"
+                    + " domain layer");
+
+    /**
+     * Machine-readable {@link ErrorCode} enums are part of the domain vocabulary; service-scoped
+     * implementations must live in the domain layer.
+     */
+    @ArchTest
+    static final ArchRule error_codes_must_reside_in_domain = classes()
+            .that()
+            .areAssignableTo(ErrorCode.class)
+            .and(NOT_SPRING_GENERATED)
+            .should()
+            .resideInAPackage("..domain..")
+            .allowEmptyShould(true)
+            .because("ErrorCode implementations are part of the domain vocabulary and must live"
+                    + " in the domain layer");
+
+    /**
+     * {@link ErrorCode} implementations must be named {@code *ErrorCode} so their role is explicit
+     * at a glance (e.g. {@code MeetingErrorCode}, {@code RecordErrorCode}).
+     */
+    @ArchTest
+    static final ArchRule error_codes_must_have_ErrorCode_suffix = classes()
+            .that()
+            .areAssignableTo(ErrorCode.class)
+            .and()
+            .areTopLevelClasses()
+            .and(NOT_SPRING_GENERATED)
+            .should()
+            .haveSimpleNameEndingWith("ErrorCode")
+            .allowEmptyShould(true)
+            .because("ErrorCode implementations must be named *ErrorCode to make their role"
+                    + " explicit");
 }
