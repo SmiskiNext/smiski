@@ -14,71 +14,65 @@ context: |
 rules:
     design:
         - |
-            Service directory structure (Spring Boot):
-            services/{service-name}/
-              src/
-                main/
-                  java/io/github/smiskinext/{service-name}/
-                    domain/
-                      model/          # Aggregates (extends AggregateRoot<UUID>) & Value Objects (records implementing ValueObject)
-                        valueobject/     # Subpackage for Value Objects (e.g. Email, Password, etc.)
-                      port/           # Outbound port interfaces (Repository, PasswordHasher, TokenProvider, external service contracts)
-                      event/          # Domain events (implements PublishableEvent for Kafka-publishable events, or DomainEvent for internal)
-                      projection/       # Read models for queries (if using CQRS; otherwise can be in domain/model)
-                      {Feature}Error.java      # Sealed interface with error records (domain errors, used in Result<T, {Feature}Error>)
-                      {Feature}ErrorCode.java  # Enum implementing ErrorCode (machine-readable API error codes, used in JsendResponse)
-                      EventPublisher.java      # Outbound port for publishing domain events externally
-                      PublishableEvent.java    # Interface for Kafka-publishable events (extends DomainEvent); internal-only events use DomainEvent directly
-                    application/
-                      usecase/        # Use cases (@Service, @Transactional), return Result<T, {Feature}Error>
-                      command/        # Command records (input DTOs, no validation — validation happens at presentation boundary)
-                      query/          # Query records (input DTOs for queries, if using CQRS)
-                      response/       # Response records (output DTOs)
-                    infrastructure/
-                      persistence/    # {Entity}JpaEntity, {Entity}JpaRepository, {Entity}RepositoryAdapter (implements domain port)
-                                      # OutboxEventEntity + OutboxEventRepository for transactional outbox pattern
-                      security/       # SecurityConfig, JwtTokenProvider (implements TokenProvider), JwtAuthFilter, Argon2PasswordHasher
-                                      # FirebaseTokenVerifier (implements GoogleAuthVerifier), FirebaseTokenClaims
-                      messaging/      # KafkaEventPublisher (implements EventPublisher), NoOpEventPublisher (test fallback)
-                                      # OutboxEventListener (@TransactionalEventListener), OutboxEventPublisher (@Scheduled poller)
-                      config/         # Framework config beans: FirebaseConfig, KafkaConfig
-                      web/            # WebConfig (adds /api prefix), ApiVersionParser
-                    presentation/
-                      request/        # Request DTOs (Java records + Jakarta validation); each has toCommand() method
-                      {Feature}Controller.java  # @RestController, extends BaseController, maps Result<> to JsendResponse<>
-                      BaseController.java       # Abstract base: centralizes {Feature}Error → HTTP status + JsendResponse mapping via pattern matching
-                    {ServiceName}Application.java  # @SpringBootApplication entry point
-                  resources/
-                    application.yaml
-                    db/migration/     # Flyway: V{N}__{description}.sql (PostgreSQL)
-                test/
-                  java/io/github/smiskinext/{service-name}/
-                    application/usecase/   # Unit tests per use case
-                    domain/                # Domain model & event tests
-                    infrastructure/        # Infrastructure/adapter tests (messaging, security, persistence)
-                    presentation/          # @SpringBootTest integration tests
-                    config/                # TestcontainersConfiguration for integration tests
-                  resources/
-                    application-test.yaml
-              compose.yaml                 # Docker Compose for local dev (PostgreSQL, Kafka, etc.)
+            Hexagonal + DDD layering: domain → application → infrastructure → presentation.
+            Outer layers depend inward; domain knows nothing of outer layers. Enforced by
+            ArchUnit (shared testFixtures CleanArchitectureTest).
+
+            services/{service}/src/main/java/io/github/smiskinext/{service}/
+              domain/
+                model/                # Aggregates (extends AggregateRoot<UUID>), entities, enums
+                  valueobject/        # Value Objects: records implementing ValueObject
+                port/                 # Outbound ports (interfaces): {Entity}Repository, EventPublisher, external contracts
+                event/                # Domain events: PublishableEvent (Kafka) or DomainEvent (internal)
+                projection/           # Read models for queries (CQRS-lite)
+                {Feature}Error.java   # Sealed interface of error records, used in Result<T, {Feature}Error>
+                {Feature}ErrorCode.java  # Enum implementing ErrorCode (machine-readable API codes)
+              application/
+                usecase/              # Inbound ports: INTERFACES named *UseCase, extend shared UseCase<I,O,E>
+                service/              # @Service @Transactional IMPLS named *ApplicationService (implement *UseCase)
+                command/              # Write input records (implement shared Command); no validation
+                query/                # Read input records (implement shared Query)
+                response/             # Output DTO records
+                mapper/               # domain → response mappers (static or MapStruct; interface+@Component only if collaborators)
+                helper/               # Reusable orchestration helpers
+                handler/              # Internal domain-event handlers
+              infrastructure/
+                persistence/          # {Entity}JpaEntity, {Entity}JpaRepository (Spring Data),
+                                      # {Entity}RepositoryAdapter (@Repository, implements domain port),
+                                      # {Entity}PersistenceMapper (entity ⇄ domain); OutboxEvent* for outbox
+                messaging/            # KafkaEventPublisher (implements EventPublisher), consumers, outbox listener/poller
+                livekit/ storage/ email/ sse/  # External adapters (per-service: LiveKit, S3, Resend, SSE/Valkey)
+                config/               # Framework config beans (Kafka, LiveKit, Redis...)
+                web/                  # WebConfig, cursor codecs
+                security/             # SecurityConfig
+              presentation/
+                request/              # Request DTO records (Jakarta @Valid); each has toCommand()/toQuery()
+                {Feature}Controller.java  # @RestController; injects *UseCase interfaces; maps Result<> → JsendResponse
+              {Service}Application.java   # @SpringBootApplication (scanBasePackages = service + shared)
+              resources/application.yaml, db/migration/  # Flyway B1.0.0__baseline.sql then V{N}__*.sql (Postgres)
+
+            src/test/java/.../{service}/
+              architecture/ArchitectureTest.java  # extends CleanArchitectureTest + @AnalyzeClasses
+              config/TestcontainersConfiguration.java  # per-service containers via shared factories
+              {Service}ApplicationTests.java      # @SpringBootTest context-load
+            src/test/resources/application-test.yaml
+
+            Shared library (io.github.smiskinext.shared):
+            - domain/    AggregateRoot, ValueObject, DomainEvent, DomainError, ErrorCode, Result<T,E>, paging
+            - application/  UseCase<I,O,E>, Command, Query (reusable inbound-port contracts)
+            - infrastructure/  JsendResponse, FailData, Violation, GlobalExceptionHandler, ApiPathPrefix, tenancy, cache, logging
+            - testFixtures/  architecture/CleanArchitectureTest, testcontainers/{Postgres,Kafka,Valkey,Minio}ContainerSupport
 
             Key patterns:
-            - Domain entities use static factory methods: register() / registerWithGoogle() for new, reconstitute() from DB
-            - Value Objects: Java records, validate in compact constructor, implement ValueObject marker
-            - Error handling: Result<T, {Feature}Error> (no exceptions across layer boundaries); {Feature}Error is a sealed interface
-            - Dual error representation: {Feature}Error (sealed interface, domain layer) mapped to {Feature}ErrorCode (enum, API layer) in BaseController
-            - Request-Command-Response: request DTOs (presentation, @Valid) call toCommand() → command records (application, no validation) → response records
-            - Repository adapters contain private toDomain() / toEntity() mappers
-            - API versioning: /{version}/resource path prefix, resolved by ApiVersionParser; WebConfig adds /api prefix
-            - Shared module (io.github.smiskinext.shared): AggregateRoot, ValueObject, DomainEvent, Result, PageResult,
-              JsendResponse, ErrorCode, CommonErrorCode, FailData, Violation, GlobalExceptionHandler, JacksonConfig
-            - Main app scans both service and shared packages via scanBasePackages
-            - Primary keys: UUIDv7 (UuidCreator.getTimeOrderedEpoch()) for time-ordered, sortable IDs
-            - Domain events: registered via registerEvent() on AggregateRoot, cleared after publishing in use case
-            - Event publishing: use cases filter domain events by instanceof PublishableEvent before publishing to ApplicationEventPublisher
-            - Event format: CloudEvents 1.0 (binary content mode over Kafka); PublishableEvent interface defines metadata
-            - Controllers: extend BaseController, pattern-match on Result<> to map domain errors to HTTP status + JsendResponse (success/fail)
-            - NoOpEventPublisher: test-only fallback implementation of EventPublisher (logs and discards events)
+            - Use case = interface (inbound port) in application.usecase; impl = *ApplicationService in application.service. Controllers inject the interface (DI via abstraction).
+            - Domain entities: static factories (schedule()/create() for new, reconstitute() from DB). VOs validate in compact constructor.
+            - Error handling: Result<T, {Feature}Error> across boundaries (no exceptions for business rules); {Feature}Error is a sealed interface extending shared DomainError.
+            - Request → Command/Query → (usecase) → Response. Request DTOs validate + toCommand(); command/query records carry no validation.
+            - Mapping split: application.mapper (domain → response), infrastructure.persistence {Entity}PersistenceMapper (entity ⇄ domain).
+            - REST: global /api/{version} prefix (ApiPathPrefixAutoConfiguration); declare full path at method level; actions use :action suffix (POST). JSend envelope for responses.
+            - Primary keys: UUIDv7 (UuidCreator.getTimeOrderedEpoch()). ddl-auto: validate — JpaEntity must match migrations; never edit an applied migration.
+            - Events: registerEvent() on AggregateRoot, cleared after publishing; filter by PublishableEvent; CloudEvents 1.0 over Kafka.
+            - Naming (ArchUnit-enforced): *UseCase (usecase interfaces), *ApplicationService (service impls), *RepositoryAdapter, *JpaEntity, *Controller. @Service only in application, @Repository/@Entity only in infrastructure.persistence, @RestController only in presentation. Domain stays framework-agnostic.
 
 # Per-artifact rules (optional)
 # Add custom rules for specific artifacts.
