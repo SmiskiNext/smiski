@@ -1,17 +1,27 @@
 package io.github.smiskinext.shared.domain;
 
-import io.github.smiskinext.shared.infrastructure.web.FailData;
-
 /**
  * Shared contract for domain-level errors returned via {@link Result}.
  *
- * <p>Sealed interfaces (e.g. {@code AuthError}, {@code BookingError}) implement this interface so
- * that generic controller helpers can build a {@link
- * FailData} payload without knowing the
- * concrete error type.
+ * <p>Sealed interfaces (e.g. {@code MeetingError}, {@code RecordError}) implement this interface so
+ * that generic infrastructure helpers can build an {@code application/problem+json} body without
+ * knowing the concrete error type.
+ *
+ * <p>A domain error is a pure value: it exposes a stable {@link ErrorCode} and the positional
+ * arguments needed to interpolate its localized {@code detail} message. It deliberately carries no
+ * human-readable text — that is resolved from a locale-specific message bundle at the boundary,
+ * keeping the domain free of presentation and i18n concerns.
  */
 public interface DomainError {
 
-    /** Human-readable description suitable for a JSend {@code fail} data payload. */
-    String message();
+    /** The stable, machine-readable code identifying this error. */
+    ErrorCode errorCode();
+
+    /**
+     * Positional arguments used to interpolate the localized {@code detail} message
+     * (placeholders {@code {0}}, {@code {1}} …). Defaults to no arguments.
+     */
+    default Object[] messageArgs() {
+        return new Object[0];
+    }
 }

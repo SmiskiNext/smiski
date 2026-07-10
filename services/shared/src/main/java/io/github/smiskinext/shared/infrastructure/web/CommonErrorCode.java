@@ -1,23 +1,51 @@
 package io.github.smiskinext.shared.infrastructure.web;
 
+import io.github.smiskinext.shared.domain.ErrorCategory;
 import io.github.smiskinext.shared.domain.ErrorCode;
 
 /**
- * Shared error codes used across all services.
+ * Cross-cutting error codes not tied to any single domain.
  *
- * <p>Service-specific codes live in their own enums (e.g. {@code AuthErrorCode}). This enum holds
- * only codes that are infrastructure-level and not tied to any single domain.
+ * <p>Service-specific codes live in their own enums (e.g. {@code MeetingErrorCode}). This enum
+ * holds only infrastructure-level codes surfaced by {@link GlobalExceptionHandler} when translating
+ * framework exceptions into {@code application/problem+json} responses.
  */
 public enum CommonErrorCode implements ErrorCode {
 
-    /**
-     * Umbrella code for Bean Validation failures.
-     *
-     * <p>Used by {@link GlobalExceptionHandler} as the {@code code} field in {@link FailData} when
-     * one or more request fields fail {@code @Valid} constraints. Individual field details are
-     * carried in the {@code errors} list as {@link Violation} records.
-     */
-    VALIDATION_ERROR,
+    /** Umbrella code for Bean Validation failures; field details travel in the errors list. */
+    VALIDATION_ERROR(ErrorCategory.VALIDATION),
 
-    METHOD_NOT_ALLOWED
+    /** The request body could not be parsed (e.g. malformed JSON). */
+    MALFORMED_REQUEST(ErrorCategory.VALIDATION),
+
+    /** A required request parameter or path variable was missing. */
+    MISSING_PARAMETER(ErrorCategory.VALIDATION),
+
+    /** The HTTP method is not supported by the target resource. */
+    METHOD_NOT_ALLOWED(ErrorCategory.METHOD_NOT_ALLOWED),
+
+    /** The request payload media type is not supported. */
+    UNSUPPORTED_MEDIA_TYPE(ErrorCategory.UNSUPPORTED_MEDIA_TYPE),
+
+    /** No handler matched the requested resource. */
+    RESOURCE_NOT_FOUND(ErrorCategory.NOT_FOUND),
+
+    /** An unexpected, unclassified technical failure occurred. */
+    INTERNAL_ERROR(ErrorCategory.INTERNAL);
+
+    private final ErrorCategory category;
+
+    CommonErrorCode(ErrorCategory category) {
+        this.category = category;
+    }
+
+    @Override
+    public String code() {
+        return name();
+    }
+
+    @Override
+    public ErrorCategory category() {
+        return category;
+    }
 }

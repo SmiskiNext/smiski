@@ -5,71 +5,123 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication.Type;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpStatusCode;
+import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.web.HttpMediaTypeNotSupportedException;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
 
 /**
- * Handles validation errors and unexpected exceptions for servlet-based controllers, producing
- * JSend {@code fail} responses.
+ * Translates framework and unhandled exceptions into RFC 9457 ({@code application/problem+json})
+ * responses. Business errors are expected to travel through {@link
+ * io.github.smiskinext.shared.domain.Result} and be unwrapped by {@link ResultResponder}; this
+ * advice covers only exceptions raised by the servlet/validation stack and unexpected failures.
  *
- * <p>Only active when running in a SERVLET container (not Netty/WebFlux).
+ * <p>Extends {@link ResponseEntityExceptionHandler} so Spring's own status mapping is reused, while
+ * {@link ProblemDetailMapper} supplies the localized {@code title}/{@code detail} and the {@code
+ * code}/{@code traceId}/{@code errors} extension members. Active only in a SERVLET container.
  */
 @RestControllerAdvice
 @ConditionalOnWebApplication(type = Type.SERVLET)
-public class GlobalExceptionHandler {
+public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 
     private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
-    /**
-     * Maps Bean Validation failures to a JSend {@code fail} response with field-level violations.
-     */
-    @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<JsendResponse<FailData>> handleValidation(
-            MethodArgumentNotValidException ex) {
-        List<Violation> violations = ex.getBindingResult().getFieldErrors().stream()
-                .map(fe -> new Violation(
-                        fe.getField(), fe.getDefaultMessage(), resolveViolationCode(fe.getCode())))
-                .toList();
+    private final ProblemDetailMapper problemDetailMapper;
 
-        FailData body =
-                new FailData("Validation failed", CommonErrorCode.VALIDATION_ERROR, violations);
-        return ResponseEntity.badRequest().body(JsendResponse.fail(body));
+    public GlobalExceptionHandler(ProblemDetailMapper problemDetailMapper) {
+        this.problemDetailMapper = problemDetailMapper;
     }
 
-    @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
-    public ResponseEntity<JsendResponse<FailData>> handleMethodNotSupported(
-            HttpRequestMethodNotSupportedException ex) {
-        FailData body = new FailData(
-                "HTTP method not supported", CommonErrorCode.METHOD_NOT_ALLOWED, List.of());
-        return ResponseEntity.status(HttpStatus.METHOD_NOT_ALLOWED).body(JsendResponse.fail(body));
+    @Override
+    protected ResponseEntity<Object> handleMethodArgumentNotValid(
+            MethodArgumentNotValidException ex,
+            HttpHeaders headers,
+            HttpStatusCode status,
+            WebRequest request) {
+        List<Violation> violations = ex.getBindingResult().getFieldErrors().stream()
+                .map(fe -> new Violation(
+                        fe.getField(), resolveViolationCode(fe.getCode()), fe.getDefaultMessage()))
+                .toList();
+        ProblemDetail body = problemDetailMapper.forErrorCode(
+                CommonErrorCode.VALIDATION_ERROR, new Object[0], violations);
+        return problemResponse(body);
+    }
+
+    @Override
+    protected ResponseEntity<Object> handleHttpMessageNotReadable(
+            HttpMessageNotReadableException ex,
+            HttpHeaders headers,
+            HttpStatusCode status,
+            WebRequest request) {
+        return problemResponse(problemDetailMapper.forErrorCode(CommonErrorCode.MALFORMED_REQUEST));
+    }
+
+    @Override
+    protected ResponseEntity<Object> handleMissingServletRequestParameter(
+            MissingServletRequestParameterException ex,
+            HttpHeaders headers,
+            HttpStatusCode status,
+            WebRequest request) {
+        return problemResponse(problemDetailMapper.forErrorCode(CommonErrorCode.MISSING_PARAMETER));
+    }
+
+    @Override
+    protected ResponseEntity<Object> handleHttpRequestMethodNotSupported(
+            HttpRequestMethodNotSupportedException ex,
+            HttpHeaders headers,
+            HttpStatusCode status,
+            WebRequest request) {
+        return problemResponse(
+                problemDetailMapper.forErrorCode(CommonErrorCode.METHOD_NOT_ALLOWED));
+    }
+
+    @Override
+    protected ResponseEntity<Object> handleHttpMediaTypeNotSupported(
+            HttpMediaTypeNotSupportedException ex,
+            HttpHeaders headers,
+            HttpStatusCode status,
+            WebRequest request) {
+        return problemResponse(
+                problemDetailMapper.forErrorCode(CommonErrorCode.UNSUPPORTED_MEDIA_TYPE));
     }
 
     @ExceptionHandler(MethodArgumentTypeMismatchException.class)
-    public ResponseEntity<JsendResponse<FailData>> handleTypeMismatch(
-            MethodArgumentTypeMismatchException ex) {
-        FailData body = new FailData(
-                "Validation failed",
-                CommonErrorCode.VALIDATION_ERROR,
-                List.of(new Violation(
-                        ex.getName(), "Invalid value", ViolationCode.INVALID_FORMAT)));
-        return ResponseEntity.badRequest().body(JsendResponse.fail(body));
+    public ResponseEntity<Object> handleTypeMismatch(MethodArgumentTypeMismatchException ex) {
+        List<Violation> violations =
+                List.of(new Violation(ex.getName(), ViolationCode.INVALID_FORMAT, null));
+        ProblemDetail body = problemDetailMapper.forErrorCode(
+                CommonErrorCode.VALIDATION_ERROR, new Object[0], violations);
+        return problemResponse(body);
     }
 
-    /** Catches all unhandled exceptions and returns a generic 500 error response. */
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<JsendResponse<Void>> handleUnexpected(Exception ex) {
+    public ResponseEntity<Object> handleUnexpected(Exception ex) {
         log.error("Unhandled exception", ex);
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(JsendResponse.error("An unexpected error occurred"));
+        return problemResponse(problemDetailMapper.forErrorCode(CommonErrorCode.INTERNAL_ERROR));
+    }
+
+    private ResponseEntity<Object> problemResponse(ProblemDetail body) {
+        HttpStatus status = HttpStatus.valueOf(body.getStatus());
+        return ResponseEntity.status(status)
+                .header(HttpHeaders.CONTENT_TYPE, "application/problem+json")
+                .body(body);
     }
 
     private ViolationCode resolveViolationCode(String constraintCode) {
-        if (constraintCode == null) return ViolationCode.INVALID_VALUE;
+        if (constraintCode == null) {
+            return ViolationCode.INVALID_VALUE;
+        }
         return switch (constraintCode) {
             case "NotBlank", "NotNull", "NotEmpty" -> ViolationCode.REQUIRED;
             case "Email", "Pattern" -> ViolationCode.INVALID_FORMAT;
