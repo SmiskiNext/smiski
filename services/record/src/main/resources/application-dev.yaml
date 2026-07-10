@@ -29,7 +29,3 @@ app:
         webhook-url: http://localhost:30000/api/v1/webhook/livekit
         recording:
             egress-endpoint: http://rustfs:9000
-
-springdoc:
-    servers:
-        - url: http://localhost:30000

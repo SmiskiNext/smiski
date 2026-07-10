@@ -7,8 +7,8 @@ code in this repository.
 
 Monorepo: Spring Boot 4 / Java 25 backend microservices (hexagonal:
 `domain → application → infrastructure → presentation`) + an Atlassian Forge
-app. API-first: services emit OpenAPI via tests, merged into
-`openapi/unified-openapi.yaml`.
+app. API-first: each service emits its own OpenAPI spec via tests to
+`services/<service>/openapi.yaml`.
 
 The stack has migrated from the legacy Zero Meeting System into a focused Jira
 integration. The **legacy codebase is archived at `zms/`** (gitignored, full

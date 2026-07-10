@@ -59,7 +59,7 @@ The auth bridge (how Forge identity reaches the backend) and the final role of
 | Real-time media       | LiveKit (WebRTC)                                    |
 | Jira integration      | Atlassian Forge app (Custom UI, issue panel module) |
 | Infrastructure        | Docker Compose (local), Kubernetes / k3s            |
-| API-first             | OpenAPI 3.0 (generated from tests), unified spec    |
+| API-first             | OpenAPI 3.1 (generated from tests), per service     |
 
 ---
 
@@ -106,8 +106,7 @@ smiski/
 ├── services/k8s/              # Kubernetes manifests (Kustomize overlays)
 ├── requirements/              # BA and roadmap documents
 ├── openspec/                  # Product specifications and change artifacts
-├── build-logic/              # Shared Gradle convention plugins
-└── openapi/                  # Merged unified OpenAPI spec
+└── build-logic/              # Shared Gradle convention plugins
 ```
 
 ---
@@ -124,12 +123,15 @@ smiski/
 ./services/gradlew test                           # run all tests
 ```
 
-### OpenAPI / SDK generation
+### OpenAPI generation
+
+Each service emits its own spec to `services/<service>/openapi.yaml` via a
+`@SpringBootTest`; specs are not merged.
 
 ```bash
-pnpm run openapi:services # generate per-service OpenAPI specs from tests
-pnpm run openapi:join     # merge specs into openapi/unified-openapi.yaml
-pnpm run openapi:unified  # full pipeline (generate + merge + lint)
+pnpm run openapi:generate # generate every service's openapi.yaml from tests
+pnpm run openapi:lint     # lint each service spec with redocly
+pnpm run openapi          # full pipeline (generate + lint)
 ```
 
 ---
@@ -163,11 +165,13 @@ secret management, and overlay differences between dev and prod.
 
 ## API Reference
 
-The unified OpenAPI spec is generated at `openapi/unified-openapi.yaml` after
-running `pnpm run openapi:unified`. It covers:
+Each service generates its own OpenAPI spec at `services/<service>/openapi.yaml`
+after running `pnpm run openapi`. Specs are validated per service with redocly
+and are not merged into a single document.
 
-- `user-management` — identity resolution
-- `meeting-management` — meetings, Issue links, participants, join requests
+- `tenant` — identity and tenancy
+- `meet` — meetings, invitations, participants, join requests
+- `record` — recordings
 
 ---
 

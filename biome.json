@@ -3,7 +3,8 @@
     "root": true,
     "vcs": {
         "enabled": true,
-        "clientKind": "git"
+        "clientKind": "git",
+        "useIgnoreFile": true
     },
     "formatter": {
         "indentStyle": "space",

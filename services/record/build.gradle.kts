@@ -38,6 +38,8 @@ tasks.register<Test>("generateOpenApiDocsFromTests") {
     filter {
         includeTestsMatching("*OpenApiGenerationTest")
     }
-    outputs.file(layout.buildDirectory.file("openapi/openapi.yaml"))
+    val specFile = layout.projectDirectory.file("openapi.yaml")
+    systemProperty("openapi.output.file", specFile.asFile.absolutePath)
+    outputs.file(specFile)
     shouldRunAfter(testTask)
 }

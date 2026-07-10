@@ -13,7 +13,3 @@ spring:
 app:
     forge:
         environment-type: DEVELOPMENT
-
-springdoc:
-    servers:
-        - url: http://localhost:30000

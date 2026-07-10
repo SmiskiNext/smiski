@@ -1,0 +1,9 @@
+openapi: 3.1.0
+info:
+  title: Meet
+  version: 1.0.0
+servers:
+- url: http://localhost:8080
+  description: API Gateway
+paths: {}
+components: {}
