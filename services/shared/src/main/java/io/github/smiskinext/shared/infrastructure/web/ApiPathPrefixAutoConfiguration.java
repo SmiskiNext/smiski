@@ -1,5 +1,6 @@
 package io.github.smiskinext.shared.infrastructure.web;
 
+import org.jspecify.annotations.NonNull;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
@@ -34,7 +35,7 @@ public class ApiPathPrefixAutoConfiguration {
     public WebMvcConfigurer versionedApiPathPrefixConfigurer() {
         return new WebMvcConfigurer() {
             @Override
-            public void configurePathMatch(PathMatchConfigurer configurer) {
+            public void configurePathMatch(@NonNull PathMatchConfigurer configurer) {
                 configurer.addPathPrefix(
                         VERSIONED_API_PREFIX,
                         HandlerTypePredicate.forAnnotation(RestController.class));
