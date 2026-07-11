@@ -24,6 +24,7 @@ dependencies {
     implementation(plugin(libs.plugins.hibernateOrm))
     implementation(plugin(libs.plugins.graalvmNative))
     implementation(plugin(libs.plugins.protobuf))
+    implementation(plugin(libs.plugins.pitest))
     implementation(files(libs.javaClass.superclass.protectionDomain.codeSource.location))
 }
 

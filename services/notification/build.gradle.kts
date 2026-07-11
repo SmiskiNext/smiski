@@ -2,6 +2,7 @@ plugins {
     id("io.github.smiskinext.plugin.spotless")
     id("io.github.smiskinext.plugin.jvm.base")
     id("io.github.smiskinext.plugin.service.base")
+    id("io.github.smiskinext.plugin.test.base")
 }
 
 group = "io.github.smiskinext.services"

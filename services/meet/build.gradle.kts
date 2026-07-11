@@ -4,6 +4,7 @@ plugins {
     id("io.github.smiskinext.plugin.spotless")
     id("io.github.smiskinext.plugin.jvm.base")
     id("io.github.smiskinext.plugin.service.base")
+    id("io.github.smiskinext.plugin.test.base")
 }
 
 group = "io.github.smiskinext.services"
@@ -26,13 +27,13 @@ dependencies {
     testImplementation(testFixtures(libs.shared))
 }
 
-val testTask = tasks.named<Test>("test")
+val integrationTestTask = tasks.named<Test>("integrationTest")
 
 tasks.register<Test>("generateOpenApiDocsFromTests") {
     group = "openapi"
     description = "Generate the meet OpenAPI spec via SpringBootTest"
-    testClassesDirs = testTask.get().testClassesDirs
-    classpath = testTask.get().classpath
+    testClassesDirs = integrationTestTask.get().testClassesDirs
+    classpath = integrationTestTask.get().classpath
     useJUnitPlatform()
     filter {
         includeTestsMatching("*OpenApiGenerationTest")
@@ -40,5 +41,5 @@ tasks.register<Test>("generateOpenApiDocsFromTests") {
     val specFile = layout.projectDirectory.file("openapi.yaml")
     systemProperty("openapi.output.file", specFile.asFile.absolutePath)
     outputs.file(specFile)
-    shouldRunAfter(testTask)
+    shouldRunAfter(integrationTestTask)
 }

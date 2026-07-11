@@ -21,12 +21,16 @@ registered in `settings.gradle.kts` via `includeBuild`.
 Run from repo root. `<name>` is a service dir.
 
 ```sh
-./services/gradlew build                                              # all services
-./services/gradlew -p services/ < name > build                        # build one
-./services/gradlew -p services/ < name > test                         # test one
-./services/gradlew -p services/ < name > generateOpenApiDocsFromTests # emit openapi.yaml
-./services/gradlew spotlessApply                                      # format Java/KTS/XML
-./services/gradlew bufFormatApply                                     # format proto
+./services/gradlew build                                                # all services (test + integrationTest)
+./services/gradlew -p services/ < name > build                          # build one
+./services/gradlew -p services/ < name > test                           # fast tests only (unit + ArchUnit)
+./services/gradlew -p services/ < name > integrationTest                # Testcontainers + @SpringBootTest
+./services/gradlew -p services/ < name > jacocoTestReport               # coverage report (HTML + XML)
+./services/gradlew -p services/ < name > jacocoTestCoverageVerification # coverage gate (opt-in)
+./services/gradlew -p services/ < name > pitest                         # mutation testing (opt-in)
+./services/gradlew -p services/ < name > generateOpenApiDocsFromTests   # emit openapi.yaml
+./services/gradlew spotlessApply                                        # format Java/KTS/XML
+./services/gradlew bufFormatApply                                       # format proto
 ```
 
 API-first: each service emits its own spec to `services/<name>/openapi.yaml`
@@ -74,12 +78,44 @@ services/<name>/src/main/java/io/github/smiskinext/<name>/
   {Service}Application.java # @SpringBootApplication (scanBasePackages = service + shared)
   resources/application.yaml, db/migration/
 
-src/test/java/.../<name>/
+src/test/java/.../<name>/                # FAST — no Spring context, no containers
+  domain/                                # pure unit tests: aggregates, VOs, domain services
+  application/                           # use-case tests: *ApplicationService with mocked ports
   architecture/ArchitectureTest.java     # extends CleanArchitectureTest + @AnalyzeClasses
+src/integrationTest/java/.../<name>/     # SLOW — Testcontainers + @SpringBootTest
   config/TestcontainersConfiguration.java # per-service containers via shared factories
+  infrastructure/                        # adapter tests: *RepositoryAdapter, KafkaEventPublisher
+  presentation/                          # @WebMvcTest / @SpringBootTest controller tests
   {Service}ApplicationTests.java         # @SpringBootTest context-load
-src/test/resources/application-test.yaml
+  {Service}OpenApiGenerationTest.java    # emits openapi.yaml
+src/integrationTest/resources/application-test.yaml
 ```
+
+## Testing strategy (hexagonal, layer-aligned)
+
+Two source sets, wired by the `io.github.smiskinext.plugin.test.base` convention
+plugin (`build-logic/`). `test` is fast and container-free; `integrationTest`
+runs container-backed and full-context tests.
+
+| Layer          | Source set        | Test type                                     |
+| -------------- | ----------------- | --------------------------------------------- |
+| domain         | `test`            | pure unit tests (no Spring, no containers)    |
+| application    | `test`            | use-case tests, outbound ports Mockito-mocked |
+| architecture   | `test`            | ArchUnit (`CleanArchitectureTest`)            |
+| infrastructure | `integrationTest` | adapter tests via Testcontainers              |
+| presentation   | `integrationTest` | controller / problem+json tests               |
+| full context   | `integrationTest` | `@SpringBootTest`, OpenAPI generation         |
+
+- `build`/`check` run `test` then `integrationTest`. Keep container-dependent
+  tests out of `test` so the fast suite and mutation runs need no Docker.
+- **Coverage (JaCoCo)**: `jacocoTestReport` measures the `test` task;
+  `jacocoTestCoverageVerification` enforces line ≥ 70% / branch ≥ 60%.
+  Bootstrap, `*Config`, `*JpaEntity`, and generated classes are excluded.
+- **Mutation (PIT)**: `pitest` targets `..domain..` + `..application..` against
+  the fast `test` suite (JUnit 5 plugin), threshold 60%.
+- Gates are **opt-in** (not wired into `check`) and ratchet upward as suites are
+  backfilled. Thresholds and tool versions live in the convention plugin +
+  `gradle/libs.versions.toml`, changed in one place for all services.
 
 Shared library (`io.github.smiskinext.shared`):
 
