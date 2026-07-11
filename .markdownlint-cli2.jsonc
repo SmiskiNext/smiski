@@ -27,6 +27,6 @@
         },
         "no-emphasis-as-heading": false
     },
-    "ignores": ["**/node_modules", "**/dist", "**/build", "**/out", "**/.next"],
+    "ignores": ["**/node_modules", "**/dist", "**/build", "**/out", "**/.next", "**/openspec"],
     "gitignore": false
 }
