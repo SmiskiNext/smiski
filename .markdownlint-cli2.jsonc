@@ -3,7 +3,7 @@
     "config": {
         "default": true,
         "line-length": {
-            "line_length": 80,
+            "line_length": 120,
             "code_blocks": false,
             "tables": false
         },
@@ -27,6 +27,6 @@
         },
         "no-emphasis-as-heading": false
     },
-    "ignores": ["**/node_modules", "**/dist", "**/build", "**/out", "**/.next"],
+    "ignores": ["**/node_modules", "**/dist", "**/build", "**/out", "**/.next", "**/openspec"],
     "gitignore": false
 }

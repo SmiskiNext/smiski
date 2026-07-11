@@ -9,71 +9,32 @@ context: |
     Proposal: Develop a production-ready, scalable, maintainable, and secure Jira Forge App + Backend by Forge remote
     Tech stack:
     - Services: Spring Boot, Java 25
-    - App: Nextjs, TypeScript
+    - App: ReactJs, TypeScript, Antd
 
 rules:
     design:
-        - |
-            Hexagonal + DDD layering: domain → application → infrastructure → presentation.
-            Outer layers depend inward; domain knows nothing of outer layers. Enforced by
-            ArchUnit (shared testFixtures CleanArchitectureTest).
-
-            services/{service}/src/main/java/io/github/smiskinext/{service}/
-              domain/
-                model/                # Aggregates (extends AggregateRoot<UUID>), entities, enums
-                  valueobject/        # Value Objects: records implementing ValueObject
-                port/                 # Outbound ports (interfaces): {Entity}Repository, EventPublisher, external contracts
-                event/                # Domain events: PublishableEvent (Kafka) or DomainEvent (internal)
-                projection/           # Read models for queries (CQRS-lite)
-                {Feature}Error.java   # Sealed interface of error records, used in Result<T, {Feature}Error>
-                {Feature}ErrorCode.java  # Enum implementing ErrorCode (machine-readable API codes)
-              application/
-                usecase/              # Inbound ports: INTERFACES named *UseCase, extend shared UseCase<I,O,E>
-                service/              # @Service @Transactional IMPLS named *ApplicationService (implement *UseCase)
-                command/              # Write input records (implement shared Command); no validation
-                query/                # Read input records (implement shared Query)
-                response/             # Output DTO records
-                mapper/               # domain → response mappers (static or MapStruct; interface+@Component only if collaborators)
-                helper/               # Reusable orchestration helpers
-                handler/              # Internal domain-event handlers
-              infrastructure/
-                persistence/          # {Entity}JpaEntity, {Entity}JpaRepository (Spring Data),
-                                      # {Entity}RepositoryAdapter (@Repository, implements domain port),
-                                      # {Entity}PersistenceMapper (entity ⇄ domain); OutboxEvent* for outbox
-                messaging/            # KafkaEventPublisher (implements EventPublisher), consumers, outbox listener/poller
-                livekit/ storage/ email/ sse/  # External adapters (per-service: LiveKit, S3, Resend, SSE/Valkey)
-                config/               # Framework config beans (Kafka, LiveKit, Redis...)
-                web/                  # WebConfig, cursor codecs
-                security/             # SecurityConfig
-              presentation/
-                request/              # Request DTO records (Jakarta @Valid); each has toCommand()/toQuery()
-                {Feature}Controller.java  # @RestController; injects *UseCase interfaces; maps Result<> → JsendResponse
-              {Service}Application.java   # @SpringBootApplication (scanBasePackages = service + shared)
-              resources/application.yaml, db/migration/  # Flyway B1.0.0__baseline.sql then V{N}__*.sql (Postgres)
-
-            src/test/java/.../{service}/
-              architecture/ArchitectureTest.java  # extends CleanArchitectureTest + @AnalyzeClasses
-              config/TestcontainersConfiguration.java  # per-service containers via shared factories
-              {Service}ApplicationTests.java      # @SpringBootTest context-load
-            src/test/resources/application-test.yaml
-
-            Shared library (io.github.smiskinext.shared):
-            - domain/    AggregateRoot, ValueObject, DomainEvent, DomainError, ErrorCode, Result<T,E>, paging
-            - application/  UseCase<I,O,E>, Command, Query (reusable inbound-port contracts)
-            - infrastructure/  JsendResponse, FailData, Violation, GlobalExceptionHandler, ApiPathPrefix, tenancy, cache, logging
-            - testFixtures/  architecture/CleanArchitectureTest, testcontainers/{Postgres,Kafka,Valkey,Minio}ContainerSupport
-
-            Key patterns:
-            - Use case = interface (inbound port) in application.usecase; impl = *ApplicationService in application.service. Controllers inject the interface (DI via abstraction).
-            - Domain entities: static factories (schedule()/create() for new, reconstitute() from DB). VOs validate in compact constructor.
-            - Error handling: Result<T, {Feature}Error> across boundaries (no exceptions for business rules); {Feature}Error is a sealed interface extending shared DomainError.
-            - Request → Command/Query → (usecase) → Response. Request DTOs validate + toCommand(); command/query records carry no validation.
-            - Mapping split: application.mapper (domain → response), infrastructure.persistence {Entity}PersistenceMapper (entity ⇄ domain).
-            - REST: global /api/{version} prefix (ApiPathPrefixAutoConfiguration); declare full path at method level; actions use :action suffix (POST). JSend envelope for responses.
-            - Primary keys: UUIDv7 (UuidCreator.getTimeOrderedEpoch()). ddl-auto: validate — JpaEntity must match migrations; never edit an applied migration.
-            - Events: registerEvent() on AggregateRoot, cleared after publishing; filter by PublishableEvent; CloudEvents 1.0 over Kafka.
-            - Naming (ArchUnit-enforced): *UseCase (usecase interfaces), *ApplicationService (service impls), *RepositoryAdapter, *JpaEntity, *Controller. @Service only in application, @Repository/@Entity only in infrastructure.persistence, @RestController only in presentation. Domain stays framework-agnostic.
-
+        - Read openspec/specs/api-conventions/spec.md before making API
+          decisions
+        - Read openspec/specs/db-schema/spec.md before proposing schema changes
+        - Include sequence diagrams (mermaid) for any flow with 3+ components
+          involved
+    spec:
+        - Every requirement MUST have at least one scenario covering
+          failure/edge case
+        - MUST reference existing patterns in specs/ before inventing new ones
+        - Do not describe implementation details — specs describe behavior, not
+          code
+    task:
+        - Derive test tasks from spec scenarios (Given/When/Then), not from
+          individual code diffs
+        - One test task per scenario/acceptance criterion, not per file or
+          function changed
+        - Skip test tasks for scenarios already covered by existing tests —
+          reference the existing test instead of duplicating
+        - Group test tasks separately from implementation tasks so reviewers can
+          see test coverage at a glance
+        - For bug-fix changes, always include a regression test task even if
+          other rules would skip testing
 # Per-artifact rules (optional)
 # Add custom rules for specific artifacts.
 # Example:
