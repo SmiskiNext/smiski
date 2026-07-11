@@ -20,6 +20,10 @@ resend = "4.13.0"
 palantirJavaFormat = "2.94.0"
 testcontainers = "1.21.3"
 archunit = "1.4.2"
+jacoco = "0.8.15"
+pitest = "1.25.7"
+pitestJunit5 = "1.2.3"
+pitestGradle = "1.19.0"
 springdocOpenapi = "3.0.3"
 openapiGenerator = "7.23.0"
 protobuf = "0.10.0"
@@ -153,6 +157,7 @@ graalvmNative = { id = "org.graalvm.buildtools.native", version.ref = "graalvmNa
 spotless = { id = "com.diffplug.spotless", version.ref = "spotless" }
 protobuf = { id = "com.google.protobuf", version.ref = "protobuf" }
 buildBuf = { id = "build.buf", version.ref = "buildBuf" }
+pitest = { id = "info.solidsoft.pitest", version.ref = "pitestGradle" }
 
 # ─── Custom Plugin ─────────────────────────────────────────────────────────────
 springdocOpenapi = { id = "org.springdoc.openapi-gradle-plugin", version = "1.9.0" }
