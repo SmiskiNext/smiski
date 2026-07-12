@@ -27,6 +27,6 @@
         },
         "no-emphasis-as-heading": false
     },
-    "ignores": ["**/node_modules", "**/dist", "**/build", "**/out", "**/.next", "**/openspec"],
+    "ignores": ["**/node_modules", "**/dist", "**/build", "**/out", "**/.next", "**/openspec", ".github/pull_request_template.md"],
     "gitignore": false
 }
