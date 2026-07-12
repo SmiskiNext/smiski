@@ -48,9 +48,6 @@ dist/
 .project
 .settings/
 
-# opencode
-.opencode/
-
 # hprof
 *.hprof
 .gitnexus
