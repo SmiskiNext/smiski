@@ -5,6 +5,7 @@ plugins {
     id("io.github.smiskinext.plugin.jvm.base")
     id("io.github.smiskinext.plugin.spotless")
     id("io.github.smiskinext.plugin.service.base")
+    alias(libs.plugins.nxProjectGraph)
     `java-test-fixtures`
 }
 
@@ -41,4 +42,10 @@ tasks.withType<org.springframework.boot.gradle.tasks.aot.ProcessAot> {
 
 tasks.withType<org.springframework.boot.gradle.tasks.aot.ProcessTestAot> {
     enabled = false
+}
+
+tasks.register("projectReportAll") {
+    gradle.includedBuilds.forEach { includedBuild ->
+        dependsOn(includedBuild.task(":projectReportAll"))
+    }
 }

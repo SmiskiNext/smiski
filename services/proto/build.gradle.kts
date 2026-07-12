@@ -7,6 +7,7 @@ plugins {
     id("io.github.smiskinext.plugin.jvm.base")
     alias(libs.plugins.protobuf)
     alias(libs.plugins.buildBuf)
+    alias(libs.plugins.nxProjectGraph)
     `java-library`
 }
 
@@ -47,4 +48,7 @@ buf {
 
 tasks.named<Jar>("jar") {
     enabled = true
+}
+
+tasks.register("projectReportAll") {
 }

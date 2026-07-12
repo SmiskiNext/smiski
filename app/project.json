@@ -1,0 +1,37 @@
+{
+    "$schema": "../node_modules/nx/schemas/project-schema.json",
+    "name": "app",
+    "sourceRoot": "app/src",
+    "projectType": "application",
+    "targets": {
+        "lint": {
+            "executor": "nx:run-commands",
+            "options": {
+                "command": "pnpm biome check",
+                "cwd": "app"
+            }
+        },
+        "typecheck": {
+            "executor": "nx:run-commands",
+            "options": {
+                "command": "pnpm exec tsc --noEmit",
+                "cwd": "app"
+            }
+        },
+        "build-static": {
+            "executor": "nx:run-commands",
+            "options": {
+                "commands": ["npm ci", "npm run build"],
+                "cwd": "app/static/hello-world",
+                "parallel": false
+            }
+        },
+        "forge-lint": {
+            "executor": "nx:run-commands",
+            "options": {
+                "command": "npx @forge/cli lint",
+                "cwd": "app"
+            }
+        }
+    }
+}

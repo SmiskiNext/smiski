@@ -1,0 +1,59 @@
+name: CI
+
+on:
+    pull_request:
+        branches: [dev, main]
+    push:
+        branches: [dev, main]
+
+permissions:
+    contents: read
+
+concurrency:
+    group: ci-${{ github.ref }}
+    cancel-in-progress: true
+
+jobs:
+    lint:
+        name: Lint
+        uses: ./.github/workflows/lint.yml
+        permissions:
+            contents: read
+
+    test:
+        name: Test
+        uses: ./.github/workflows/test.yml
+        permissions:
+            contents: read
+
+    build:
+        name: Build
+        uses: ./.github/workflows/build.yml
+        permissions:
+            contents: read
+
+    proto:
+        name: Proto
+        uses: ./.github/workflows/proto.yml
+        permissions:
+            contents: read
+
+    security:
+        name: Security
+        uses: ./.github/workflows/security.yml
+        permissions:
+            contents: read
+
+    ci-success:
+        name: CI Success
+        if: always()
+        needs: [lint, test, build, proto, security]
+        runs-on: ubuntu-latest
+        steps:
+            - name: Check results
+              run: |
+                  if [[ "${{ contains(needs.*.result, 'failure') }}" == "true" || "${{ contains(needs.*.result, 'cancelled') }}" == "true" ]]; then
+                    echo "::error::One or more checks failed or were cancelled."
+                    exit 1
+                  fi
+                  echo "All checks passed or were skipped."
