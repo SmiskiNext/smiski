@@ -1,0 +1,30 @@
+{
+    "$schema": "./node_modules/nx/schemas/nx-schema.json",
+    "namedInputs": {
+        "default": ["{projectRoot}/**/*", "sharedGlobals"],
+        "sharedGlobals": ["{workspaceRoot}/gradle/libs.versions.toml"],
+        "docs": [
+            "{workspaceRoot}/**/*.md",
+            "{workspaceRoot}/**/*.json",
+            "{workspaceRoot}/**/*.toml",
+            "{workspaceRoot}/**/*.yaml",
+            "{workspaceRoot}/**/*.yml",
+            "{workspaceRoot}/**/*.sh",
+            "{workspaceRoot}/.prettier*",
+            "{workspaceRoot}/.markdownlint*"
+        ]
+    },
+    "plugins": [
+        {
+            "plugin": "@nx/gradle",
+            "options": {
+                "buildTargetName": "build",
+                "testTargetName": "test",
+                "ciTargetName": "ci",
+                "gradleExecutableDirectory": "./services"
+            }
+        }
+    ],
+    "cacheDirectory": ".nx/cache",
+    "defaultBase": "dev"
+}

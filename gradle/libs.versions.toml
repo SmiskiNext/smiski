@@ -40,6 +40,7 @@ livekitAndroid = "2.26.1"
 
 # Utilities
 ktlint = "1.8.0"
+nxProjectGraph = "0.1.24"
 
 [libraries]
 # ─── Backend ─────────────────────────────────────────────────────────────────
@@ -163,3 +164,4 @@ pitest = { id = "info.solidsoft.pitest", version.ref = "pitestGradle" }
 springdocOpenapi = { id = "org.springdoc.openapi-gradle-plugin", version = "1.9.0" }
 openapiGenerator = { id = "org.openapi.generator", version.ref = "openapiGenerator" }
 spotlessConvention = { id = "io.github.smiskinext.plugin.spotless" }
+nxProjectGraph = { id = "dev.nx.gradle.project-graph", version.ref = "nxProjectGraph" }

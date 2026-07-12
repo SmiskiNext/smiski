@@ -5,6 +5,7 @@ plugins {
     id("io.github.smiskinext.plugin.jvm.base")
     id("io.github.smiskinext.plugin.service.base")
     id("io.github.smiskinext.plugin.test.base")
+    alias(libs.plugins.nxProjectGraph)
 }
 
 group = "io.github.smiskinext.services"
@@ -42,4 +43,10 @@ tasks.register<Test>("generateOpenApiDocsFromTests") {
     systemProperty("openapi.output.file", specFile.asFile.absolutePath)
     outputs.file(specFile)
     shouldRunAfter(integrationTestTask)
+}
+
+tasks.register("projectReportAll") {
+    gradle.includedBuilds.forEach { includedBuild ->
+        dependsOn(includedBuild.task(":projectReportAll"))
+    }
 }

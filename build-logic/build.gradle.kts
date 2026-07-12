@@ -1,5 +1,6 @@
 plugins {
     `kotlin-dsl`
+    alias(libs.plugins.nxProjectGraph)
 }
 
 group = "io.github.smiskinext"
@@ -32,3 +33,6 @@ fun DependencyHandlerScope.plugin(plugin: Provider<PluginDependency>) =
     plugin.map {
         "${it.pluginId}:${it.pluginId}.gradle.plugin:${it.version}"
     }
+
+tasks.register("projectReportAll") {
+}
