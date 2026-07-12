@@ -19,13 +19,54 @@
 - **Downstream (dependencies):** [services, stores, or external systems this
   service calls]
 
-```text
-[Caller A] ──→ ([this service]) ──→ [Dependency X]
-[Caller B] ──→ ([this service]) ──→ [Dependency Y]
+### C4 — System Context
+
+Who and what talks to this service, at the highest level.
+
+> The diagrams below are written in [D2](https://d2lang.com) using C4 shapes. D2
+> does not parse Markdown — extract each `d2` block into its own file before
+> rendering (`d2 --layout elk <file>.d2 out.svg`).
+
+```d2
+vars: {d2-config: {layout-engine: elk}}
+direction: down
+
+caller: "[Caller / Actor]\n[Person or System]" {shape: person}
+system: "[this service]\n[Software System]\n[1-sentence responsibility]"
+dep: "[Downstream System]\n[Software System]"
+
+caller -> system: "[what it asks for]"
+system -> dep: "[what it needs]"
 ```
 
-> Replace the diagram above with actual callers and dependencies. Keep it
-> text-based and simple.
+### C4 — Container
+
+Zoom into this service: its process plus the stores and external systems it
+talks to directly. Replace every placeholder with real containers and edges.
+
+```d2
+vars: {d2-config: {layout-engine: elk}}
+direction: down
+
+caller: "[Caller]\n[Container]" {shape: person}
+
+system: "[this service]" {
+  app: "[name]\n[Spring Boot]"
+  db: "[db_name]\n[PostgreSQL]" {shape: cylinder}
+}
+
+kafka: "Kafka\n[CloudEvents · key = tenant_id]" {shape: queue}
+ext: "[External System]\n[e.g. LiveKit / Resend]"
+
+caller -> system.app: "REST / SSE"
+system.app -> system.db: "read / write"
+system.app -> kafka: "publish [topic.*] (outbox)"
+kafka -> system.app: "consume [topic.*]"
+system.app -> ext: "[method]"
+```
+
+> Keep the Container diagram aligned with the actual process boundaries. Omit
+> the Kafka or external nodes if this service does not use them.
 
 ## 3. API Surface
 
@@ -71,26 +112,34 @@
 
 ### Schema
 
+The schema is transcribed **directly from the SQL migration(s)** in
+`services/[name]/src/main/resources/db/migration/` (the source of truth — JPA
+`*JpaEntity` classes must match it, never the reverse). Render as a Mermaid
+`erDiagram` so table relationships are explicit.
+
 ```mermaid
 erDiagram
     TABLE_A ||--o{ TABLE_B : "[relationship]"
     TABLE_A {
-        uuid id PK
-        uuid tenant_id "[partition key]"
+        string tenant_id PK "[partition key]"
+        uuid id PK "uuidv7"
         string name
+        string status "[enum from CHECK]"
         timestamp created_at
     }
     TABLE_B {
-        uuid id PK
-        uuid tenant_id FK
+        string tenant_id PK,FK
+        uuid id PK "uuidv7"
         uuid table_a_id FK
         string status
     }
 ```
 
 > Use "No database" if the service is stateless. List only stores this service
-> owns or directly uses. Keep the ER diagram aligned with
-> `services/[name]/src/main/resources/db/migration/`.
+> owns or directly uses. Copy column names, types, and `CHECK` enum values
+> verbatim from the `.sql` baseline; show relationships with crow's-foot
+> cardinality (`||--o{`, `||--o|`); keep the diagram in sync when a new `V<n>__`
+> migration lands.
 
 ## 6. External Integrations
 
