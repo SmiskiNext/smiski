@@ -1,0 +1,81 @@
+name: 🐛 Bug report
+description:
+    Report an issue that should be fixed (avoid pasting giant AI generated
+    summaries or your issue may be closed/ignored)
+title: '[BUG]: '
+labels: ['bug']
+body:
+    - type: textarea
+      id: description
+      attributes:
+          label: Description
+          description: Describe the bug you encountered
+          placeholder: What happened?
+      validations:
+          required: true
+
+    - type: dropdown
+      id: component
+      attributes:
+          label: Component
+          description: Which part of the project is affected?
+          options:
+              - Backend - meet service
+              - Backend - notification service
+              - Backend - record service
+              - Backend - tenant service
+              - Backend - shared / proto
+              - Forge app (app/)
+              - Infra (k8s / docker)
+              - CI / build (Gradle / pnpm smiski)
+              - Other / not sure
+      validations:
+          required: true
+
+    - type: textarea
+      id: reproduce
+      attributes:
+          label: Steps to reproduce
+          description: How can we reproduce this issue?
+          placeholder: |
+              1.
+              2.
+              3.
+      validations:
+          required: false
+
+    - type: textarea
+      id: expected
+      attributes:
+          label: Expected behavior
+          description: What did you expect to happen instead?
+      validations:
+          required: false
+
+    - type: textarea
+      id: logs
+      attributes:
+          label: Logs and/or screenshots
+          description: Relevant service logs, stack traces, or screenshots
+          placeholder:
+              Paste logs (fenced with ```) or drag and drop screenshots here
+      validations:
+          required: false
+
+    - type: input
+      id: environment
+      attributes:
+          label: Environment
+          description: Where did this happen?
+          placeholder: e.g., local dev, staging, production
+      validations:
+          required: false
+
+    - type: input
+      id: os
+      attributes:
+          label: Operating System
+          description: What OS are you using?
+          placeholder: e.g., macOS 26.0.1, Ubuntu 22.04, Windows 11
+      validations:
+          required: false
