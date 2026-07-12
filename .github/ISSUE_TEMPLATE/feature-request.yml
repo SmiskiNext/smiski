@@ -1,0 +1,54 @@
+name: 🚀 Feature Request
+description: Suggest an idea, feature, or enhancement
+title: '[FEATURE]: '
+labels: ['enhancement']
+
+body:
+    - type: checkboxes
+      id: verified
+      attributes:
+          label: Feature hasn't been suggested before.
+          options:
+              - label:
+                    I have verified this feature I'm about to request hasn't
+                    been suggested before.
+                required: true
+
+    - type: dropdown
+      id: component
+      attributes:
+          label: Component
+          description: Which part of the project would this affect?
+          options:
+              - Backend - meet service
+              - Backend - notification service
+              - Backend - record service
+              - Backend - tenant service
+              - Backend - shared / proto
+              - Forge app (app/)
+              - Infra (k8s / docker)
+              - CI / build (Gradle / pnpm smiski)
+              - Other / cross-cutting
+      validations:
+          required: true
+
+    - type: textarea
+      id: enhancement
+      attributes:
+          label: Describe the enhancement you want to request
+          description:
+              What do you want to change or add? What are the benefits of
+              implementing this? Try to be detailed so we can understand your
+              request better :)
+      validations:
+          required: true
+
+    - type: textarea
+      id: alternatives
+      attributes:
+          label: Alternatives and context
+          description:
+              Any alternative solutions you considered, related issues, or
+              additional context.
+      validations:
+          required: false
