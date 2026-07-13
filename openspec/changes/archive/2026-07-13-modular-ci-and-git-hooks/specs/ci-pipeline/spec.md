@@ -1,35 +1,4 @@
-# ci-pipeline Specification
-
-## Purpose
-
-Defines the modular GitHub Actions CI pipeline, split across four validation
-workflows (lint, build, test, security). A shared composite action provides
-change detection and path filtering to run only the jobs relevant to each PR.
-Branch protection requires four per-workflow success gates.
-
-## Requirements
-
-### Requirement: Workflow triggers
-
-The CI workflow SHALL run on `pull_request` events targeting `dev` or `main`,
-and on `push` events to `dev` or `main`. It SHALL NOT run on pushes to other
-branches (those are validated via their PRs).
-
-#### Scenario: Pull request opened against dev
-
-- **WHEN** a pull request targeting `dev` is opened, synchronized, or reopened
-- **THEN** the CI workflow starts and reports a status check on the PR
-
-#### Scenario: Push to protected branch
-
-- **WHEN** a commit is pushed to `dev` or `main`
-- **THEN** the CI workflow runs against that ref
-
-#### Scenario: Push to an unrelated feature branch
-
-- **WHEN** a commit is pushed to a branch other than `dev` or `main` with no
-  open PR
-- **THEN** the CI workflow does not run
+## MODIFIED Requirements
 
 ### Requirement: Change detection and path filtering
 
@@ -74,24 +43,6 @@ corresponding output is truthy or its matrix is non-empty.
 
 - **WHEN** a PR changes `services/notification/` only
 - **THEN** `notification` appears in `services` but NOT in `openapi_services`
-
-### Requirement: Toolchain provisioning from `.mise.toml`
-
-Every job that needs project tooling SHALL install it via `jdx/mise-action`
-reading the repository `.mise.toml`, rather than hardcoding tool versions in the
-workflow. The workflow SHALL NOT duplicate the Java, Node, pnpm, Buf, or
-gitleaks version numbers.
-
-#### Scenario: Tool versions match local configuration
-
-- **WHEN** any CI job provisions its toolchain
-- **THEN** the installed Java, Node, pnpm, Buf, and gitleaks versions are those
-  resolved from `.mise.toml`
-
-#### Scenario: Adding a tool pin flows to CI without workflow edits
-
-- **WHEN** a new tool is added to `.mise.toml`
-- **THEN** CI jobs can use it without editing version numbers in the workflow
 
 ### Requirement: Backend validation job
 
@@ -316,33 +267,3 @@ expected to require these four per-workflow checks.
 - **WHEN** a PR changes only `app/`, so the backend matrix and other component
   jobs are skipped and the app job succeeds
 - **THEN** the affected workflow's success gate succeeds
-
-### Requirement: DevOps hardening
-
-The workflow SHALL apply the following hardening measures: all third-party
-actions pinned to a full commit SHA, workflow-level least-privilege permissions
-defaulting to read-only, concurrency control that cancels superseded runs on the
-same ref, and dependency/build caching for Gradle and the pnpm store.
-
-#### Scenario: Actions are SHA-pinned
-
-- **WHEN** the workflow references any non-GitHub-owned action
-- **THEN** the reference uses a full commit SHA (a version tag alone is not
-  sufficient)
-
-#### Scenario: Least-privilege permissions
-
-- **WHEN** the workflow runs
-- **THEN** the default token permissions are read-only (`contents: read`) and no
-  job requests write scope
-
-#### Scenario: Superseded runs are cancelled
-
-- **WHEN** a new commit is pushed to a ref that already has an in-progress CI
-  run
-- **THEN** the in-progress run for that ref is cancelled and the new run starts
-
-#### Scenario: Caches are reused across runs
-
-- **WHEN** a job runs after a previous run populated the Gradle and pnpm caches
-- **THEN** the job restores those caches instead of downloading everything anew

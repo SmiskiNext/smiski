@@ -3,7 +3,6 @@ plugins {
     id("io.github.smiskinext.plugin.jvm.base")
     id("io.github.smiskinext.plugin.service.base")
     id("io.github.smiskinext.plugin.test.base")
-    alias(libs.plugins.nxProjectGraph)
 }
 
 group = "io.github.smiskinext.services"
@@ -15,10 +14,4 @@ dependencies {
     implementation(libs.cloudevents.kafka)
     testImplementation(libs.testcontainers.kafka)
     testImplementation(testFixtures(libs.shared))
-}
-
-tasks.register("projectReportAll") {
-    gradle.includedBuilds.forEach { includedBuild ->
-        dependsOn(includedBuild.task(":projectReportAll"))
-    }
 }

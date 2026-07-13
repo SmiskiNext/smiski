@@ -1,14 +1,12 @@
 pre-commit:
     parallel: false
     commands:
-        # ── gitleaks ───────────────────────────────────────────────────
         gitleaks:
             run: >
                 command -v gitleaks >/dev/null 2>&1 && gitleaks protect --staged
                 --config .gitleaks.toml || echo "[gitleaks] not found, skipping
                 (install via: https://github.com/gitleaks/gitleaks)"
 
-        # ── format ─────────────────────────────────────────────────────
         format-java:
             glob: 'services/**/*.{java,kts,xml}'
             exclude:
@@ -27,7 +25,7 @@ pre-commit:
             stage_fixed: true
 
         format-general:
-            glob: '**/*.{md,json,toml,yaml,yml,sh}'
+            glob: '**/*.{md,json,toml,yaml,yml,sh,sql}'
             exclude:
                 - 'jira-client/**'
             run: >
@@ -56,35 +54,6 @@ pre-commit:
                 --files-ignore-unknown=true {staged_files}
             stage_fixed: true
 
-        # ── lint ───────────────────────────────────────────────────────
-        lint-scripts:
-            root: scripts
-            glob: '**/*.{ts,js}'
-            run: >
-                pnpm biome lint --no-errors-on-unmatched
-                --files-ignore-unknown=true {staged_files}
-
-        lint-app:
-            root: app
-            glob: 'app/src/**/*.{js,jsx,ts,tsx}'
-            run: >
-                pnpm biome lint --no-errors-on-unmatched
-                --files-ignore-unknown=true {staged_files}
-
-        # ── typecheck ──────────────────────────────────────────────────
-        typecheck-scripts:
-            root: scripts
-            glob: '**/*.ts'
-            run: pnpm exec tsc --noEmit
-
-        typecheck-java:
-            glob: 'services/**/*.java'
-            run: >
-                svcs=$(for f in {staged_files}; do case "$f" in
-                services/*/*) echo "$(echo "$f" | cut -d/ -f2)" ;; esac; done |
-                sort -u); [ -z "$svcs" ] && exit 0; for s in $svcs; do
-                ./services/gradlew -p "services/$s" compileJava || exit 1; done
-
 commit-msg:
     commands:
         commitlint:
@@ -93,7 +62,6 @@ commit-msg:
 pre-push:
     parallel: false
     commands:
-        # ── block direct push to main ──────────────────────────────────
         block-main:
             priority: 1
             run: >
@@ -101,7 +69,6 @@ pre-push:
                 "main" ]; then echo "[block-main] direct push to 'main' is not
                 allowed"; exit 1; fi
 
-        # ── gitleaks (full scan) ───────────────────────────────────────
         gitleaks:
             priority: 2
             run: >
@@ -109,72 +76,6 @@ pre-push:
                 .gitleaks.toml || echo "[gitleaks] not found, skipping (install
                 via: https://github.com/gitleaks/gitleaks)"
 
-        # ── format (verify all) ────────────────────────────────────────
-        format-scripts:
-            priority: 3
-            root: scripts
-            glob: '**/*.{ts,js}'
-            run: >
-                pnpm biome check --no-errors-on-unmatched
-                --files-ignore-unknown=true {push_files}
-
-        format-app:
-            priority: 3
-            root: app
-            glob: 'app/src/**/*.{js,jsx,ts,tsx,json}'
-            run: >
-                pnpm biome check --no-errors-on-unmatched
-                --files-ignore-unknown=true {push_files}
-
-        format-java:
-            priority: 3
-            glob: 'services/**/*.{java,kts,xml}'
-            exclude:
-                - 'services/**/.idea/**'
-                - 'services/**/.gradle/**'
-            run: >
-                ./services/gradlew spotlessCheck -PspotlessFiles="$(echo
-                {push_files} | tr ' ' ',')"
-
-        format-proto:
-            priority: 3
-            root: services/proto
-            glob: '**/*.proto'
-            run: >
-                for f in {push_files}; do buf format --diff --exit-code --path
-                "$f"; done
-
-        format-general:
-            priority: 3
-            glob: '**/*.{md,json,toml,yaml,yml,sh}'
-            run: >
-                pnpm exec prettier --check {push_files}
-
-        # ── lint (all) ─────────────────────────────────────────────────
-        lint-scripts:
-            priority: 3
-            root: scripts
-            glob: '**/*.{ts,js}'
-            run: >
-                pnpm biome lint --no-errors-on-unmatched
-                --files-ignore-unknown=true {push_files}
-
-        lint-app:
-            priority: 3
-            root: app
-            glob: 'app/src/**/*.{js,jsx,ts,tsx}'
-            run: >
-                pnpm biome lint --no-errors-on-unmatched
-                --files-ignore-unknown=true {push_files}
-
-        lint-markdown:
-            priority: 3
-            glob: '**/*.md'
-            exclude:
-                - '**/node_modules/**'
-            run: pnpm exec markdownlint-cli2 {push_files}
-
-        # ── typecheck (all) ────────────────────────────────────────────
         typecheck-scripts:
             priority: 3
             root: scripts
@@ -185,11 +86,11 @@ pre-push:
             root: app
             run: pnpm exec tsc --noEmit
 
-        typecheck-java:
+        assemble-java:
             priority: 3
             glob: 'services/**/*.java'
             run: >
                 svcs=$(for f in {push_files}; do case "$f" in
                 services/*/*) echo "$(echo "$f" | cut -d/ -f2)" ;; esac; done |
                 sort -u); [ -z "$svcs" ] && exit 0; for s in $svcs; do
-                ./services/gradlew -p "services/$s" compileJava || exit 1; done
+                ./services/gradlew -p "services/$s" assemble || exit 1; done

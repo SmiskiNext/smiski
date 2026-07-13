@@ -1,0 +1,109 @@
+name: Detect Changes
+description:
+    Classify changed paths and emit per-service matrix + component booleans
+
+outputs:
+    services:
+        description: JSON array of changed backend service names
+        value: ${{ steps.build-matrix.outputs.services }}
+    app:
+        description: Whether app/ changed
+        value: ${{ steps.filter.outputs.app }}
+    scripts:
+        description: Whether scripts/ changed
+        value: ${{ steps.filter.outputs.scripts }}
+    proto:
+        description: Whether services/proto/ changed
+        value: ${{ steps.filter.outputs.proto }}
+    docs:
+        description: Whether docs/config files changed
+        value: ${{ steps.filter.outputs.docs }}
+    openapi_services:
+        description:
+            JSON array of changed services that emit OpenAPI specs (tenant,
+            meet, record)
+        value: ${{ steps.build-matrix.outputs.openapi_services }}
+
+runs:
+    using: composite
+    steps:
+        - uses: dorny/paths-filter@d1c1ffe0248fe513906c8e24db8ea791d46f8590 # v3.0.3
+          id: filter
+          with:
+              filters: |
+                  tenant:
+                    - 'services/tenant/**'
+                    - 'services/shared/**'
+                    - 'services/proto/**'
+                    - 'build-logic/**'
+                    - 'gradle/libs.versions.toml'
+                  meet:
+                    - 'services/meet/**'
+                    - 'services/shared/**'
+                    - 'services/proto/**'
+                    - 'build-logic/**'
+                    - 'gradle/libs.versions.toml'
+                  record:
+                    - 'services/record/**'
+                    - 'services/shared/**'
+                    - 'services/proto/**'
+                    - 'build-logic/**'
+                    - 'gradle/libs.versions.toml'
+                  notification:
+                    - 'services/notification/**'
+                    - 'services/shared/**'
+                    - 'services/proto/**'
+                    - 'build-logic/**'
+                    - 'gradle/libs.versions.toml'
+                  app:
+                    - 'app/**'
+                  scripts:
+                    - 'scripts/**'
+                  proto:
+                    - 'services/proto/**'
+                  docs:
+                    - '**/*.md'
+                    - '**/*.json'
+                    - '**/*.toml'
+                    - '**/*.yaml'
+                    - '**/*.yml'
+                    - '**/*.sh'
+                    - '**/*.sql'
+                    - '.prettier*'
+                    - '.markdownlint*'
+
+        - name: Build service matrix
+          id: build-matrix
+          shell: bash
+          run: |
+              services=()
+              openapi_services=()
+
+              if [[ "${{ steps.filter.outputs.tenant }}" == "true" ]]; then
+                services+=("tenant")
+                openapi_services+=("tenant")
+              fi
+              if [[ "${{ steps.filter.outputs.meet }}" == "true" ]]; then
+                services+=("meet")
+                openapi_services+=("meet")
+              fi
+              if [[ "${{ steps.filter.outputs.record }}" == "true" ]]; then
+                services+=("record")
+                openapi_services+=("record")
+              fi
+              if [[ "${{ steps.filter.outputs.notification }}" == "true" ]]; then
+                services+=("notification")
+              fi
+
+              services_json=$(printf '%s\n' "${services[@]}" | jq -R . | jq -sc .)
+              openapi_json=$(printf '%s\n' "${openapi_services[@]}" | jq -R . | jq -sc .)
+
+              if [[ ${#services[@]} -eq 0 ]]; then
+                services_json='[]'
+              fi
+              if [[ ${#openapi_services[@]} -eq 0 ]]; then
+                openapi_json='[]'
+              fi
+
+              echo "services=$services_json" >> "$GITHUB_OUTPUT"
+              echo "openapi_services=$openapi_json" >> "$GITHUB_OUTPUT"

@@ -1,8 +1,8 @@
 [tools]
 java = "25"
-node = "latest"
-pnpm = "latest"
+node = "24.18.0"
+gradle = "9.6.1"
 gitleaks = "latest"
 lefthook = "latest"
 buf = "latest"
-"npm:mongosh" = "latest"
+"npm:corepack" = "latest"

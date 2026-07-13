@@ -17,6 +17,7 @@
     "embeddedLanguageFormatting": "auto",
     "plugins": [
 		"prettier-plugin-toml",
-		"prettier-plugin-sh"
+		"prettier-plugin-sh",
+		"prettier-plugin-sql"
     ]
 }

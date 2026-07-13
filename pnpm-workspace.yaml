@@ -6,7 +6,6 @@ allowBuilds:
   '@parcel/watcher': set this to true or false
   '@swc/core': set this to true or false
   esbuild: true
-  nx: true
   protobufjs: set this to true or false
   sharp: set this to true or false
 minimumReleaseAgeExclude:
