@@ -49,4 +49,3 @@ deploy/tunnel/lint commands live in `app/AGENTS.md`.
 · Biome `check --fix` (`scripts/`, `app/`) · Prettier + markdownlint for
 md/json/yaml/toml/sh elsewhere. `commit-msg` runs commitlint
 (`commitlint.config.js`); `pre-push` blocks direct pushes to `main`.
-
