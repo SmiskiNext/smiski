@@ -8,7 +8,7 @@ NAMESPACE="kafka"
 
 echo "==> Installing Strimzi Kafka Operator into namespace: ${NAMESPACE}"
 
-helm repo add strimzi https://strimzi.io/charts/ 2> /dev/null || true
+helm repo add strimzi https://strimzi.io/charts/ 2>/dev/null || true
 helm repo update strimzi
 
 helm upgrade --install strimzi-kafka-operator strimzi/strimzi-kafka-operator \

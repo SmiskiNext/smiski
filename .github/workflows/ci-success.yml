@@ -19,28 +19,24 @@ jobs:
         uses: ./.github/workflows/lint.yml
         permissions:
             contents: read
-            actions: read
 
     test:
         name: Test
         uses: ./.github/workflows/test.yml
         permissions:
             contents: read
-            actions: read
 
     build:
         name: Build
         uses: ./.github/workflows/build.yml
         permissions:
             contents: read
-            actions: read
 
     proto:
         name: Proto
         uses: ./.github/workflows/proto.yml
         permissions:
             contents: read
-            actions: read
 
     security:
         name: Security

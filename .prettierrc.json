@@ -15,5 +15,8 @@
     "htmlWhitespaceSensitivity": "css",
     "endOfLine": "lf",
     "embeddedLanguageFormatting": "auto",
-    "plugins": ["prettier-plugin-toml", "prettier-plugin-sh"]
+    "plugins": [
+		"prettier-plugin-toml",
+		"prettier-plugin-sh"
+    ]
 }
