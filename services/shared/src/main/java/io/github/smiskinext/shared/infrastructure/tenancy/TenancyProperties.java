@@ -5,8 +5,8 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 /**
  * Tenancy configuration bound from the {@code app.tenancy} prefix.
  *
- * <p>Placeholder configuration: defaults mirror the interim single-tenant setup until the Kong
- * gateway injects real tenant headers.
+ * <p>The header carries the tenant identifier injected per service by the infrastructure API
+ * gateway.
  */
 @ConfigurationProperties(prefix = "app.tenancy")
 public class TenancyProperties {

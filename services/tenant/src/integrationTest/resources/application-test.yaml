@@ -13,8 +13,3 @@ spring:
 app:
     cursor:
         secret: test-cursor-secret-fixed-value-for-tests
-    forge:
-        app-id: ari:cloud:ecosystem::app/test
-        jwks-uri: https://example.com/.well-known/jwks.json
-        environment-type: DEVELOPMENT
-        clock-skew-seconds: 10

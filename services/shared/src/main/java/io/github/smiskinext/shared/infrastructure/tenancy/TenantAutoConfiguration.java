@@ -9,7 +9,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.core.Ordered;
 
 /**
- * Auto-configuration that wires the placeholder tenancy infrastructure: the Hibernate {@link
+ * Auto-configuration that wires the tenancy infrastructure: the Hibernate {@link
  * TenantIdentifierResolver} and the request-scoped {@link TenantFilter}. Activated automatically via
  * Spring Boot SPI — no explicit {@code @Import} needed in services.
  *
