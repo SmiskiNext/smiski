@@ -18,7 +18,7 @@ if [[ "${confirm}" != [yY] ]]; then
     exit 0
 fi
 
-helm repo add grafana https://grafana.github.io/helm-charts 2>/dev/null || true
+helm repo add grafana https://grafana.github.io/helm-charts 2> /dev/null || true
 helm repo update grafana
 
 echo "==> Installing Loki..."

@@ -13,8 +13,7 @@ context: |
 
 rules:
     design:
-        - Read openspec/specs/api-convention/spec.md before making API
-          decisions
+        - Read openspec/specs/api-convention/spec.md before making API decisions
         - Read openspec/specs/db-schema/spec.md before proposing schema changes
         - Include sequence diagrams (mermaid) for any flow with 3+ components
           involved

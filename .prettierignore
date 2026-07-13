@@ -2,3 +2,7 @@ sdks/jira/**
 
 # Generated per-service OpenAPI specs (springdoc formatting is canonical)
 services/*/openapi.yaml
+
+# Lock file
+pnpm-lock.yaml
+package-lock.json
