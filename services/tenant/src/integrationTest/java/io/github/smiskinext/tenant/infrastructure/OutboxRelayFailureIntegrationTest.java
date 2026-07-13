@@ -7,11 +7,12 @@ import static org.mockito.Mockito.when;
 
 import com.github.f4b6a3.uuid.UuidCreator;
 import io.cloudevents.CloudEvent;
+import io.github.smiskinext.shared.infrastructure.outbox.OutboxRelay;
+import io.github.smiskinext.shared.infrastructure.outbox.OutboxTransport;
 import io.github.smiskinext.shared.infrastructure.tenancy.TenantContext;
 import io.github.smiskinext.tenant.config.TestcontainersConfiguration;
 import io.github.smiskinext.tenant.domain.event.TenantInstalledEvent;
 import io.github.smiskinext.tenant.infrastructure.messaging.OutboxEventPublisher;
-import io.github.smiskinext.tenant.infrastructure.messaging.OutboxRelayScheduler;
 import io.github.smiskinext.tenant.infrastructure.persistence.OutboxEventJpaEntity;
 import io.github.smiskinext.tenant.infrastructure.persistence.OutboxEventJpaRepository;
 import java.time.Instant;
@@ -23,10 +24,8 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
-import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import org.springframework.transaction.annotation.Transactional;
 
 @SpringBootTest
 @ActiveProfiles("test")
@@ -34,13 +33,13 @@ import org.springframework.transaction.annotation.Transactional;
 class OutboxRelayFailureIntegrationTest {
 
     @MockitoBean
-    private KafkaTemplate<String, CloudEvent> kafkaTemplate;
+    private OutboxTransport outboxTransport;
 
     @Autowired
     private OutboxEventPublisher outboxEventPublisher;
 
     @Autowired
-    private OutboxRelayScheduler outboxRelayScheduler;
+    private OutboxRelay outboxRelay;
 
     @Autowired
     private OutboxEventJpaRepository outboxEventJpaRepository;
@@ -48,6 +47,7 @@ class OutboxRelayFailureIntegrationTest {
     @BeforeEach
     void setUp() {
         TenantContext.setCurrentTenant("cloud-fail");
+        outboxEventJpaRepository.deleteAll();
     }
 
     @AfterEach
@@ -56,12 +56,11 @@ class OutboxRelayFailureIntegrationTest {
     }
 
     @Test
-    @Transactional
     void publish_failure_increments_retry_count_and_records_error() {
-        CompletableFuture<?> failedFuture = new CompletableFuture<>();
+        CompletableFuture<Void> failedFuture = new CompletableFuture<>();
         failedFuture.completeExceptionally(new RuntimeException("Kafka broker unavailable"));
-        when(kafkaTemplate.send(anyString(), anyString(), any(CloudEvent.class)))
-                .thenReturn((CompletableFuture) failedFuture);
+        when(outboxTransport.send(anyString(), anyString(), any(CloudEvent.class)))
+                .thenReturn(failedFuture);
 
         TenantInstalledEvent event = new TenantInstalledEvent(
                 UuidCreator.getTimeOrderedEpoch(),
@@ -76,10 +75,11 @@ class OutboxRelayFailureIntegrationTest {
                 Instant.now());
 
         outboxEventPublisher.publish(event);
+        TenantContext.clear();
 
         assertThat(outboxEventJpaRepository.findUnpublishedOrderByCreatedAt()).hasSize(1);
 
-        outboxRelayScheduler.relay();
+        outboxRelay.relay();
 
         List<OutboxEventJpaEntity> afterRelay =
                 outboxEventJpaRepository.findUnpublishedOrderByCreatedAt();

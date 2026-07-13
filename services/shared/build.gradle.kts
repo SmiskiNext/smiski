@@ -14,6 +14,10 @@ version = "0.0.1-SNAPSHOT"
 val libs = the<LibrariesForLibs>()
 
 dependencies {
+    implementation(libs.cloudevents.json.jackson)
+    implementation(libs.cloudevents.core)
+    implementation(libs.spring.kafka)
+    implementation(libs.protobuf.java.util)
     testFixturesImplementation(libs.archunit.junit5)
     testFixturesImplementation(platform("org.springframework.boot:spring-boot-dependencies:${libs.versions.springBoot.get()}"))
     testFixturesImplementation(libs.spring.boot.starter.test)

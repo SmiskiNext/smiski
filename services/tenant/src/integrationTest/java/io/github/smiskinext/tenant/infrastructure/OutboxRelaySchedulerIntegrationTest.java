@@ -3,11 +3,11 @@ package io.github.smiskinext.tenant.infrastructure;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.github.f4b6a3.uuid.UuidCreator;
+import io.github.smiskinext.shared.infrastructure.outbox.OutboxRelay;
 import io.github.smiskinext.shared.infrastructure.tenancy.TenantContext;
 import io.github.smiskinext.tenant.config.TestcontainersConfiguration;
 import io.github.smiskinext.tenant.domain.event.TenantInstalledEvent;
 import io.github.smiskinext.tenant.infrastructure.messaging.OutboxEventPublisher;
-import io.github.smiskinext.tenant.infrastructure.messaging.OutboxRelayScheduler;
 import io.github.smiskinext.tenant.infrastructure.persistence.OutboxEventJpaEntity;
 import io.github.smiskinext.tenant.infrastructure.persistence.OutboxEventJpaRepository;
 import java.time.Instant;
@@ -19,7 +19,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.transaction.annotation.Transactional;
 
 @SpringBootTest
 @ActiveProfiles("test")
@@ -30,7 +29,7 @@ class OutboxRelaySchedulerIntegrationTest {
     private OutboxEventPublisher outboxEventPublisher;
 
     @Autowired
-    private OutboxRelayScheduler outboxRelayScheduler;
+    private OutboxRelay outboxRelay;
 
     @Autowired
     private OutboxEventJpaRepository outboxEventJpaRepository;
@@ -38,6 +37,7 @@ class OutboxRelaySchedulerIntegrationTest {
     @BeforeEach
     void setUp() {
         TenantContext.setCurrentTenant("cloud-relay");
+        outboxEventJpaRepository.deleteAll();
     }
 
     @AfterEach
@@ -46,8 +46,7 @@ class OutboxRelaySchedulerIntegrationTest {
     }
 
     @Test
-    @Transactional
-    void relays_unpublished_rows_and_marks_published() {
+    void relay_without_tenant_context_selects_and_publishes_rows_across_tenants() {
         TenantInstalledEvent event = new TenantInstalledEvent(
                 UuidCreator.getTimeOrderedEpoch(),
                 "cloud-relay",
@@ -61,10 +60,11 @@ class OutboxRelaySchedulerIntegrationTest {
                 Instant.now());
 
         outboxEventPublisher.publish(event);
+        TenantContext.clear();
 
         assertThat(outboxEventJpaRepository.findUnpublishedOrderByCreatedAt()).hasSize(1);
 
-        outboxRelayScheduler.relay();
+        outboxRelay.relay();
 
         List<OutboxEventJpaEntity> afterRelay =
                 outboxEventJpaRepository.findUnpublishedOrderByCreatedAt();
@@ -72,7 +72,6 @@ class OutboxRelaySchedulerIntegrationTest {
     }
 
     @Test
-    @Transactional
     void already_published_rows_are_not_resent() {
         TenantInstalledEvent event = new TenantInstalledEvent(
                 UuidCreator.getTimeOrderedEpoch(),
@@ -87,13 +86,42 @@ class OutboxRelaySchedulerIntegrationTest {
                 Instant.now());
 
         outboxEventPublisher.publish(event);
-        outboxRelayScheduler.relay();
+        TenantContext.clear();
+
+        outboxRelay.relay();
 
         List<OutboxEventJpaEntity> unpublished =
                 outboxEventJpaRepository.findUnpublishedOrderByCreatedAt();
         assertThat(unpublished).isEmpty();
 
-        outboxRelayScheduler.relay();
+        outboxRelay.relay();
+        assertThat(outboxEventJpaRepository.findUnpublishedOrderByCreatedAt()).isEmpty();
+    }
+
+    @Test
+    void aggregate_id_is_used_as_transport_message_key() {
+        TenantInstalledEvent event = new TenantInstalledEvent(
+                UuidCreator.getTimeOrderedEpoch(),
+                "cloud-key-test",
+                "install-1",
+                "app-1",
+                "1.0.0",
+                null,
+                "PRODUCTION",
+                null,
+                null,
+                Instant.now());
+
+        outboxEventPublisher.publish(event);
+        TenantContext.clear();
+
+        List<OutboxEventJpaEntity> rows =
+                outboxEventJpaRepository.findUnpublishedOrderByCreatedAt();
+        assertThat(rows).hasSize(1);
+        assertThat(rows.getFirst().getAggregateId()).isEqualTo("cloud-key-test");
+
+        outboxRelay.relay();
+
         assertThat(outboxEventJpaRepository.findUnpublishedOrderByCreatedAt()).isEmpty();
     }
 }

@@ -84,9 +84,12 @@ class TenantRepositoryAdapterIntegrationTest {
 
         List<OutboxEventJpaEntity> outboxRows =
                 outboxEventJpaRepository.findUnpublishedOrderByCreatedAt();
-        assertThat(outboxRows).hasSize(1);
-        assertThat(outboxRows.getFirst().getAggregateId()).isEqualTo("cloud-test");
-        assertThat(outboxRows.getFirst().getPublishedAt()).isNull();
+        List<OutboxEventJpaEntity> relevantRows = outboxRows.stream()
+                .filter(row -> row.getAggregateId().equals("cloud-test"))
+                .toList();
+        assertThat(relevantRows).hasSize(1);
+        assertThat(relevantRows.getFirst().getAggregateId()).isEqualTo("cloud-test");
+        assertThat(relevantRows.getFirst().getPublishedAt()).isNull();
     }
 
     @Test

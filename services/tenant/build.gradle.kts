@@ -15,6 +15,7 @@ dependencies {
     implementation(libs.shared)
     implementation(libs.uuid.creator)
     implementation(libs.spring.boot.starter.flyway)
+    implementation(libs.spring.boot.starter.kafka)
     implementation(libs.cloudevents.kafka)
     implementation(libs.spring.boot.starter.security)
     implementation(libs.protobuf.java.util)

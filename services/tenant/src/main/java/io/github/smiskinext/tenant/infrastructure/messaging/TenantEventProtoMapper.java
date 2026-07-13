@@ -1,13 +1,28 @@
 package io.github.smiskinext.tenant.infrastructure.messaging;
 
+import com.google.protobuf.Message;
+
 import io.github.smiskinext.event.tenant.v1.TenantInstalled;
+import io.github.smiskinext.shared.infrastructure.outbox.OutboxEventProtoMapper;
 import io.github.smiskinext.tenant.domain.event.TenantInstalledEvent;
 
-public final class TenantEventProtoMapper {
+import org.springframework.stereotype.Component;
 
-    private TenantEventProtoMapper() {}
+@Component
+public class TenantEventProtoMapper implements OutboxEventProtoMapper<TenantInstalledEvent> {
 
-    public static TenantInstalled toProto(TenantInstalledEvent event) {
+    @Override
+    public Class<TenantInstalledEvent> eventType() {
+        return TenantInstalledEvent.class;
+    }
+
+    @Override
+    public String dataSchema() {
+        return "io.github.smiskinext.event.tenant.v1.TenantInstalled";
+    }
+
+    @Override
+    public Message toProto(TenantInstalledEvent event) {
         TenantInstalled.Builder builder = TenantInstalled.newBuilder()
                 .setCloudId(event.aggregateId())
                 .setInstallationId(event.installationId())
