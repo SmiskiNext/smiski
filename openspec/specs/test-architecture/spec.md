@@ -86,11 +86,11 @@ classpaths and SHALL run after `test`.
 
 ### Requirement: Shared Test Convention Plugin
 
-A single Gradle convention plugin `io.github.smiskinext.plugin.test.base` in
-`build-logic/` SHALL provide the `integrationTest` source set, JaCoCo
-configuration, and PIT configuration. Every backend service SHALL apply this
-plugin, and per-service `build.gradle.kts` SHALL NOT duplicate source-set,
-coverage, or mutation configuration.
+A single Gradle convention plugin SHALL provide the `integrationTest` source
+set, JaCoCo configuration, and PIT configuration; this plugin is
+`io.github.smiskinext.plugin.test.base` in `build-logic/`. Every backend service
+SHALL apply this plugin, and per-service `build.gradle.kts` SHALL NOT duplicate
+source-set, coverage, or mutation configuration.
 
 #### Scenario: Service applies the convention plugin
 
