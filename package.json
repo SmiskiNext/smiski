@@ -22,10 +22,8 @@
     "devDependencies": {
         "@commitlint/cli": "^21.2.0",
         "@commitlint/config-conventional": "^21.2.0",
-        "@nx/gradle": "23.0.2",
         "@redocly/cli": "^2.37.0",
         "markdownlint-cli2": "^0.23.0",
-        "nx": "23.0.2",
         "only-allow": "^1.2.2",
         "prettier": "^3.9.4",
         "prettier-plugin-sh": "^0.18.1",

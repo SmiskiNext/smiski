@@ -38,8 +38,7 @@ pnpm smiski infra <up|down|reset|logs|ps>
 
 Root formatting/specs: `pnpm lint` (markdownlint), `pnpm format` (prettier),
 `pnpm run openapi` (regenerate + lint service specs). Toolchain is pinned by
-`.mise.toml` (Java 25, node, pnpm, gitleaks, lefthook, buf) for
-development only.
+`.mise.toml` (Java 25, node, pnpm, gitleaks, lefthook, buf).
 
 Backend build/test/format commands live in `services/AGENTS.md`. Forge
 deploy/tunnel/lint commands live in `app/AGENTS.md`.

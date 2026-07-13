@@ -1,0 +1,291 @@
+name: CI
+
+on:
+    pull_request:
+        branches: [dev, main]
+    push:
+        branches: [dev, main]
+
+permissions:
+    contents: read
+
+concurrency:
+    group: ci-${{ github.workflow }}-${{ github.ref }}
+    cancel-in-progress: true
+
+jobs:
+    changes:
+        name: Detect changes
+        runs-on: ubuntu-latest
+        permissions:
+            contents: read
+            pull-requests: read
+        outputs:
+            services: ${{ steps.filter.outputs.services }}
+            app: ${{ steps.filter.outputs.app }}
+            scripts: ${{ steps.filter.outputs.scripts }}
+            proto: ${{ steps.filter.outputs.proto }}
+            docs: ${{ steps.filter.outputs.docs }}
+        steps:
+            - uses: actions/checkout@v7
+            - uses: dorny/paths-filter@v4
+              id: filter
+              with:
+                  filters: |
+                      services:
+                        - 'services/**'
+                        - '!services/proto/**'
+                      app:
+                        - 'app/**'
+                      scripts:
+                        - 'scripts/**'
+                      proto:
+                        - 'services/proto/**'
+                      docs:
+                        - '**/*.md'
+                        - '**/*.json'
+                        - '**/*.toml'
+                        - '**/*.yaml'
+                        - '**/*.yml'
+                        - '**/*.sh'
+                        - '.prettier*'
+                        - '.markdownlint*'
+
+    backend:
+        name: Backend
+        needs: changes
+        if: needs.changes.outputs.services == 'true'
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v7
+
+            - uses: jdx/mise-action@v4
+
+            - name: Get pnpm store directory
+              id: pnpm-store
+              run:
+                  echo "STORE_PATH=$(pnpm store path --silent)" >>
+                  "$GITHUB_OUTPUT"
+
+            - uses: actions/cache@v6
+              with:
+                  path: ${{ steps.pnpm-store.outputs.STORE_PATH }}
+                  key:
+                      ${{ runner.os }}-pnpm-store-${{
+                      hashFiles('**/pnpm-lock.yaml') }}
+                  restore-keys: |
+                      ${{ runner.os }}-pnpm-store-
+
+            - uses: gradle/actions/setup-gradle@v6
+
+            - name: Build and test
+              run: ./services/gradlew build
+
+            - name: Coverage gate
+              run: ./services/gradlew jacocoTestCoverageVerification
+
+            - name: Generate JaCoCo report
+              run: ./services/gradlew jacocoTestReport
+              if: always()
+
+            - name: Upload JaCoCo report
+              uses: actions/upload-artifact@v7
+              if: always()
+              with:
+                  name: jacoco-reports
+                  path: services/**/build/reports/jacoco/
+
+            - name: Install pnpm dependencies
+              run: pnpm install --frozen-lockfile
+
+            - name: OpenAPI drift check
+              run: |
+                  pnpm run openapi:generate
+                  if ! git diff --exit-code -- 'services/**/openapi.yaml'; then
+                    echo "::error::OpenAPI specs are out of date. Run 'pnpm run openapi' locally and commit the result."
+                    exit 1
+                  fi
+
+            - name: OpenAPI lint
+              run: pnpm run openapi:lint
+
+    forge-app:
+        name: Forge app
+        needs: changes
+        if: needs.changes.outputs.app == 'true'
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v7
+
+            - uses: jdx/mise-action@v4
+
+            - name: Get pnpm store directory
+              id: pnpm-store
+              run:
+                  echo "STORE_PATH=$(pnpm store path --silent)" >>
+                  "$GITHUB_OUTPUT"
+
+            - uses: actions/cache@v6
+              with:
+                  path: ${{ steps.pnpm-store.outputs.STORE_PATH }}
+                  key:
+                      ${{ runner.os }}-pnpm-store-${{
+                      hashFiles('**/pnpm-lock.yaml') }}
+                  restore-keys: |
+                      ${{ runner.os }}-pnpm-store-
+
+            - name: Install pnpm dependencies
+              run: pnpm install --frozen-lockfile
+
+            - name: Biome check
+              run: pnpm biome check
+              working-directory: app
+
+            - name: Typecheck
+              run: pnpm exec tsc --noEmit
+              working-directory: app
+
+            - name: Install static/hello-world dependencies
+              run: npm ci
+              working-directory: app/static/hello-world
+
+            - name: Build static/hello-world
+              run: npm run build
+              working-directory: app/static/hello-world
+              env:
+                  CI: 'true'
+
+            - name: Install Forge CLI
+              run: npm i -g @forge/cli
+
+            - name: Forge lint
+              run: forge lint
+              working-directory: app
+
+    scripts:
+        name: Scripts
+        needs: changes
+        if: needs.changes.outputs.scripts == 'true'
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v7
+
+            - uses: jdx/mise-action@v4
+
+            - name: Get pnpm store directory
+              id: pnpm-store
+              run:
+                  echo "STORE_PATH=$(pnpm store path --silent)" >>
+                  "$GITHUB_OUTPUT"
+
+            - uses: actions/cache@v6
+              with:
+                  path: ${{ steps.pnpm-store.outputs.STORE_PATH }}
+                  key:
+                      ${{ runner.os }}-pnpm-store-${{
+                      hashFiles('**/pnpm-lock.yaml') }}
+                  restore-keys: |
+                      ${{ runner.os }}-pnpm-store-
+
+            - name: Install pnpm dependencies
+              run: pnpm install --frozen-lockfile
+
+            - name: Biome check
+              run: pnpm biome check
+              working-directory: scripts
+
+            - name: Typecheck
+              run: pnpm exec tsc --noEmit
+              working-directory: scripts
+
+    proto:
+        name: Proto
+        needs: changes
+        if: needs.changes.outputs.proto == 'true'
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v7
+              with:
+                  fetch-depth: 0
+
+            - uses: jdx/mise-action@v4
+
+            - name: Buf lint
+              run: buf lint
+              working-directory: services/proto
+
+            - name: Buf breaking
+              run: buf breaking --against '.git#branch=dev'
+              working-directory: services/proto
+
+    security:
+        name: Security
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v7
+              with:
+                  fetch-depth: 0
+
+            - uses: jdx/mise-action@v4
+
+            - name: Gitleaks detect
+              env:
+                  BASE_SHA:
+                      ${{ github.event.pull_request.base.sha ||
+                      github.event.before }}
+                  HEAD_SHA:
+                      ${{ github.event.pull_request.head.sha || github.sha }}
+              run: |
+                  if [ -z "$BASE_SHA" ] || [ "$BASE_SHA" = "0000000000000000000000000000000000000000" ]; then
+                    gitleaks detect --config .gitleaks.toml
+                  else
+                    gitleaks detect --config .gitleaks.toml --log-opts="$BASE_SHA..$HEAD_SHA"
+                  fi
+
+    docs:
+        name: Docs
+        needs: changes
+        if: needs.changes.outputs.docs == 'true'
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v7
+
+            - uses: jdx/mise-action@v4
+
+            - name: Get pnpm store directory
+              id: pnpm-store
+              run:
+                  echo "STORE_PATH=$(pnpm store path --silent)" >>
+                  "$GITHUB_OUTPUT"
+
+            - uses: actions/cache@v6
+              with:
+                  path: ${{ steps.pnpm-store.outputs.STORE_PATH }}
+                  key:
+                      ${{ runner.os }}-pnpm-store-${{
+                      hashFiles('**/pnpm-lock.yaml') }}
+                  restore-keys: |
+                      ${{ runner.os }}-pnpm-store-
+
+            - name: Install pnpm dependencies
+              run: pnpm install --frozen-lockfile
+
+            - name: Markdownlint
+              run: pnpm exec markdownlint-cli2 '**/*.md'
+
+            - name: Prettier check
+              run: pnpm exec prettier --check '**/*.{md,json,toml,yaml,yml,sh}'
+
+    ci-success:
+        name: CI Success
+        needs: [backend, forge-app, scripts, proto, security, docs]
+        if: always()
+        runs-on: ubuntu-latest
+        steps:
+            - name: Check results
+              run: |
+                  if [[ "${{ contains(needs.*.result, 'failure') }}" == "true" || "${{ contains(needs.*.result, 'cancelled') }}" == "true" ]]; then
+                    echo "::error::One or more jobs failed or were cancelled."
+                    exit 1
+                  fi
+                  echo "All jobs passed or were skipped."

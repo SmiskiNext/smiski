@@ -1,13 +1,6 @@
 plugins {
     id("io.github.smiskinext.plugin.spotless")
-    alias(libs.plugins.nxProjectGraph)
 }
 
 version = "0.0.1-SNAPSHOT"
 group = "io.github.smiskinext"
-
-tasks.register("projectReportAll") {
-    gradle.includedBuilds.forEach { includedBuild ->
-        dependsOn(includedBuild.task(":projectReportAll"))
-    }
-}

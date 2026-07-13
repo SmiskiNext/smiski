@@ -13,18 +13,18 @@ context: |
 
 rules:
     design:
-        - Read openspec/specs/api-convention/spec.md before making API decisions
+        - Read openspec/specs/api-convention/spec.md before making API
+          decisions
         - Read openspec/specs/db-schema/spec.md before proposing schema changes
         - Include sequence diagrams (mermaid) for any flow with 3+ components
           involved
-    specs:
+    spec:
         - Every requirement MUST have at least one scenario covering
           failure/edge case
-        - MUST reference existing patterns in `openspec list --specs` before
-          inventing new ones
+        - MUST reference existing patterns in specs/ before inventing new ones
         - Do not describe implementation details — specs describe behavior, not
           code
-    tasks:
+    task:
         - Derive test tasks from spec scenarios (Given/When/Then), not from
           individual code diffs
         - One test task per scenario/acceptance criterion, not per file or
