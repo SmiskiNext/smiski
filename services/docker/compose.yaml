@@ -6,11 +6,15 @@ services:
             POSTGRES_USER: ${POSTGRES_USER:-zms_user}
             POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-zms_secret}
         ports:
-            - "8281:5432"
+            - '8281:5432'
         volumes:
             - user-postgres-data:/var/lib/postgresql
         healthcheck:
-            test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+            test:
+                [
+                    'CMD-SHELL',
+                    'pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}',
+                ]
             interval: 10s
             timeout: 5s
             retries: 10
@@ -22,24 +26,33 @@ services:
             POSTGRES_USER: ${POSTGRES_USER:-zms_user}
             POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-zms_secret}
         ports:
-            - "8282:5432"
+            - '8282:5432'
         volumes:
             - meeting-postgres-data:/var/lib/postgresql
         healthcheck:
-            test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+            test:
+                [
+                    'CMD-SHELL',
+                    'pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}',
+                ]
             interval: 10s
             timeout: 5s
             retries: 10
 
     chat-mongo:
         image: mongo:7.0-jammy
-        command: ["mongod", "--replSet", "rs0", "--bind_ip_all"]
+        command: ['mongod', '--replSet', 'rs0', '--bind_ip_all']
         ports:
-            - "8283:27017"
+            - '8283:27017'
         volumes:
             - chat-mongo-data:/data/db
         healthcheck:
-            test: ["CMD-SHELL", "mongosh --quiet --eval 'db.adminCommand({ ping: 1 }).ok' | grep 1"]
+            test:
+                [
+                    'CMD-SHELL',
+                    "mongosh --quiet --eval 'db.adminCommand({ ping: 1 }).ok' |
+                    grep 1",
+                ]
             interval: 10s
             timeout: 5s
             retries: 10
@@ -58,9 +71,9 @@ services:
                     rs.initiate({ _id: "rs0", members: [{ _id: 0, host: "chat-mongo:27017" }] })
                   }
                 ' && touch /tmp/init-done && tail -f /dev/null
-        restart: "no"
+        restart: 'no'
         healthcheck:
-            test: ["CMD-SHELL", "test -f /tmp/init-done"]
+            test: ['CMD-SHELL', 'test -f /tmp/init-done']
             interval: 5s
             timeout: 3s
             retries: 12
@@ -72,15 +85,15 @@ services:
             chat-mongo-init:
                 condition: service_healthy
         environment:
-            FLYWAY_URL: "mongodb://chat-mongo:27017/chat_management?replicaSet=rs0&directConnection=true"
-            FLYWAY_LOCATIONS: "filesystem:/flyway/sql"
-            FLYWAY_SQL_MIGRATION_SUFFIXES: ".js"
-            FLYWAY_BASELINE_ON_MIGRATE: "true"
-            FLYWAY_CONNECT_RETRIES: "30"
-        command: ["migrate"]
+            FLYWAY_URL: 'mongodb://chat-mongo:27017/chat_management?replicaSet=rs0&directConnection=true'
+            FLYWAY_LOCATIONS: 'filesystem:/flyway/sql'
+            FLYWAY_SQL_MIGRATION_SUFFIXES: '.js'
+            FLYWAY_BASELINE_ON_MIGRATE: 'true'
+            FLYWAY_CONNECT_RETRIES: '30'
+        command: ['migrate']
         volumes:
             - ../chat-management/src/main/resources/db/migration:/flyway/sql:ro
-        restart: "no"
+        restart: 'no'
 
     kafka:
         image: apache/kafka:latest
@@ -98,11 +111,16 @@ services:
             KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
             KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
         ports:
-            - "9094:9094"
+            - '9094:9094'
         volumes:
             - kafka-data:/var/lib/kafka/data
         healthcheck:
-            test: ["CMD-SHELL", "/opt/kafka/bin/kafka-broker-api-versions.sh --bootstrap-server localhost:9092 >/dev/null 2>&1"]
+            test:
+                [
+                    'CMD-SHELL',
+                    '/opt/kafka/bin/kafka-broker-api-versions.sh
+                    --bootstrap-server localhost:9092 >/dev/null 2>&1',
+                ]
             interval: 10s
             timeout: 10s
             retries: 12
@@ -110,11 +128,11 @@ services:
     valkey:
         image: valkey/valkey:8-alpine
         ports:
-            - "8284:6379"
+            - '8284:6379'
         volumes:
             - valkey-data:/data
         healthcheck:
-            test: ["CMD", "valkey-cli", "ping"]
+            test: ['CMD', 'valkey-cli', 'ping']
             interval: 10s
             timeout: 5s
             retries: 10
@@ -126,12 +144,16 @@ services:
             RUSTFS_SECRET_KEY: ${RUSTFS_SECRET_KEY:-rustfs-secret-key-change-me}
         command: server /data --console-address :9001
         ports:
-            - "9000:9000"
-            - "30001:9001"
+            - '9000:9000'
+            - '30001:9001'
         volumes:
             - rustfs-data:/data
         healthcheck:
-            test: ["CMD-SHELL", "wget -q --spider http://localhost:9000/health || exit 1"]
+            test:
+                [
+                    'CMD-SHELL',
+                    'wget -q --spider http://localhost:9000/health || exit 1',
+                ]
             interval: 10s
             timeout: 5s
             retries: 10
@@ -141,7 +163,7 @@ services:
         volumes:
             - livekit-redis-data:/data
         healthcheck:
-            test: ["CMD", "redis-cli", "ping"]
+            test: ['CMD', 'redis-cli', 'ping']
             interval: 10s
             timeout: 5s
             retries: 10
@@ -149,16 +171,18 @@ services:
     livekit-server:
         image: livekit/livekit-server:latest
         command:
-            - "--config"
-            - "/etc/livekit/livekit.yaml"
-            - "--node-ip"
-            - "${ZMS_HOST_IP}"
+            - '--config'
+            - '/etc/livekit/livekit.yaml'
+            - '--node-ip'
+            - '${ZMS_HOST_IP}'
         environment:
-            ZMS_HOST_IP: ${ZMS_HOST_IP:?set ZMS_HOST_IP in services/docker/.env to your host LAN IP (LiveKit advertises this IP in ICE candidates)}
+            ZMS_HOST_IP:
+                ${ZMS_HOST_IP:?set ZMS_HOST_IP in services/docker/.env to your
+                host LAN IP (LiveKit advertises this IP in ICE candidates)}
         ports:
-            - "7880:7880"
-            - "7881:7881"
-            - "7882:7882/udp"
+            - '7880:7880'
+            - '7881:7881'
+            - '7882:7882/udp'
         configs:
             - source: livekit_server_config
               target: /etc/livekit/livekit.yaml
@@ -166,7 +190,11 @@ services:
             livekit-redis:
                 condition: service_healthy
         healthcheck:
-            test: ["CMD-SHELL", "wget -q --spider http://localhost:7880 || exit 1"]
+            test:
+                [
+                    'CMD-SHELL',
+                    'wget -q --spider http://localhost:7880 || exit 1',
+                ]
             interval: 10s
             timeout: 5s
             retries: 10
@@ -189,19 +217,19 @@ services:
         depends_on:
             rustfs:
                 condition: service_healthy
-        entrypoint: ["/bin/sh", "-c"]
+        entrypoint: ['/bin/sh', '-c']
         command: >
-            "mc alias set rustfs http://rustfs:9000 $${RUSTFS_ACCESS_KEY} $${RUSTFS_SECRET_KEY} &&
-            mc mb --ignore-existing rustfs/$${RUSTFS_BUCKET} &&
-            touch /tmp/init-done &&
-            tail -f /dev/null"
+            "mc alias set rustfs http://rustfs:9000 $${RUSTFS_ACCESS_KEY}
+            $${RUSTFS_SECRET_KEY} && mc mb --ignore-existing
+            rustfs/$${RUSTFS_BUCKET} && touch /tmp/init-done && tail -f
+            /dev/null"
         environment:
             RUSTFS_ACCESS_KEY: ${RUSTFS_ACCESS_KEY:-rustfs-access-key}
             RUSTFS_SECRET_KEY: ${RUSTFS_SECRET_KEY:-rustfs-secret-key-change-me}
             RUSTFS_BUCKET: ${RUSTFS_BUCKET:-recordings}
-        restart: "no"
+        restart: 'no'
         healthcheck:
-            test: ["CMD-SHELL", "test -f /tmp/init-done"]
+            test: ['CMD-SHELL', 'test -f /tmp/init-done']
             interval: 5s
             timeout: 3s
             retries: 12
@@ -211,14 +239,18 @@ services:
         build:
             context: ./caddy
         environment:
-            JWT_SECRET_BASE64: ${JWT_SECRET_BASE64:?set JWT_SECRET_BASE64 in .env to base64 of JWT_SECRET}
-            ZMS_HOST_IP: ${ZMS_HOST_IP:?set ZMS_HOST_IP in services/docker/.env to your host LAN IP (rootless Docker cannot reach host loopback)}
+            JWT_SECRET_BASE64:
+                ${JWT_SECRET_BASE64:?set JWT_SECRET_BASE64 in .env to base64 of
+                JWT_SECRET}
+            ZMS_HOST_IP:
+                ${ZMS_HOST_IP:?set ZMS_HOST_IP in services/docker/.env to your
+                host LAN IP (rootless Docker cannot reach host loopback)}
         ports:
-            - "30000:80"
+            - '30000:80'
         volumes:
             - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro
         extra_hosts:
-            - "host.docker.internal:host-gateway"
+            - 'host.docker.internal:host-gateway'
         depends_on:
             livekit-server:
                 condition: service_healthy

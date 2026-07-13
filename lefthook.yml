@@ -90,7 +90,7 @@ pre-push:
             priority: 3
             glob: 'services/**/*.java'
             run: >
-                svcs=$(for f in {push_files}; do case "$f" in
-                services/*/*) echo "$(echo "$f" | cut -d/ -f2)" ;; esac; done |
-                sort -u); [ -z "$svcs" ] && exit 0; for s in $svcs; do
-                ./services/gradlew -p "services/$s" assemble || exit 1; done
+                svcs=$(for f in {push_files}; do case "$f" in services/*/*) echo
+                "$(echo "$f" | cut -d/ -f2)" ;; esac; done | sort -u); [ -z
+                "$svcs" ] && exit 0; for s in $svcs; do ./services/gradlew -p
+                "services/$s" assemble || exit 1; done

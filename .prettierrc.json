@@ -16,8 +16,8 @@
     "endOfLine": "lf",
     "embeddedLanguageFormatting": "auto",
     "plugins": [
-		"prettier-plugin-toml",
-		"prettier-plugin-sh",
-		"prettier-plugin-sql"
+        "prettier-plugin-toml",
+        "prettier-plugin-sh",
+        "prettier-plugin-sql"
     ]
 }
