@@ -10,7 +10,7 @@ VALUES_FILE="${SCRIPT_DIR}/../base/kong/02-gateway-operator-values.yaml"
 
 echo "==> Installing Kong Gateway Operator into namespace: ${NAMESPACE}"
 
-helm repo add kong https://charts.konghq.com 2>/dev/null || true
+helm repo add kong https://charts.konghq.com 2> /dev/null || true
 helm repo update kong
 
 helm upgrade --install kong-operator kong/kong-operator \

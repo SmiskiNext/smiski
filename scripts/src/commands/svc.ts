@@ -1,8 +1,8 @@
 import { defineCommand } from 'citty';
 import { $ } from 'zx';
-import { GRADLEW, SERVICES_DIR, type BackendService } from '../lib/paths.js';
-import { springDevEnv } from '../lib/env.js';
-import { runParallelWithKillAll } from '../lib/parallel.js';
+import { springDevEnv } from '../lib/env.ts';
+import { runParallelWithKillAll } from '../lib/parallel.ts';
+import { type BackendService, GRADLEW, SERVICES_DIR } from '../lib/paths.ts';
 
 async function bootRun(service: BackendService): Promise<void> {
     const env = springDevEnv();

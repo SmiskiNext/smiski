@@ -5,6 +5,7 @@ on:
 
 permissions:
     contents: read
+    actions: read
 
 jobs:
     build:
@@ -23,10 +24,10 @@ jobs:
               run: npx nx affected -t build
 
             - name: Coverage gate
-              run: ./services/gradlew jacocoTestCoverageVerification
+              run: npx nx affected -t jacocoTestCoverageVerification
 
             - name: Generate JaCoCo report
-              run: ./services/gradlew jacocoTestReport
+              run: npx nx affected -t jacocoTestReport
               if: always()
 
             - name: Upload JaCoCo report

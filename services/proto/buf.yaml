@@ -1,7 +1,9 @@
 version: v2
+modules:
+    - path: src/main/proto
 lint:
-  use:
-    - STANDARD
+    use:
+        - STANDARD
 breaking:
-  use:
-    - FILE
+    use:
+        - FILE

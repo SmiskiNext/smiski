@@ -16,7 +16,7 @@ EGRESS_VALUES="${SCRIPT_DIR}/../base/livekit/04-egress-values.yaml"
 
 echo "==> Installing LiveKit Server into namespace: ${NAMESPACE}"
 
-helm repo add livekit https://helm.livekit.io 2>/dev/null || true
+helm repo add livekit https://helm.livekit.io 2> /dev/null || true
 helm repo update livekit
 
 helm upgrade --install livekit-server livekit/livekit-server \
@@ -30,10 +30,10 @@ echo "==> LiveKit Server installed."
 echo "==> Installing LiveKit Egress into namespace: ${NAMESPACE}"
 
 # Read credentials from existing Secrets (must be applied before running this script)
-LIVEKIT_API_KEY=$(kubectl get secret meeting-management-secrets -n default -o jsonpath='{.data.livekit-api-key}' 2>/dev/null | base64 -d || echo "zms-livekit-key")
-LIVEKIT_API_SECRET=$(kubectl get secret meeting-management-secrets -n default -o jsonpath='{.data.livekit-api-secret}' 2>/dev/null | base64 -d || echo "change-me-livekit-secret-must-be-at-least-32-chars")
-S3_ACCESS_KEY=$(kubectl get secret meeting-management-secrets -n default -o jsonpath='{.data.recording-s3-access-key}' 2>/dev/null | base64 -d || echo "rustfs-access-key")
-S3_SECRET_KEY=$(kubectl get secret meeting-management-secrets -n default -o jsonpath='{.data.recording-s3-secret-key}' 2>/dev/null | base64 -d || echo "rustfs-secret-key-change-me")
+LIVEKIT_API_KEY=$(kubectl get secret meeting-management-secrets -n default -o jsonpath='{.data.livekit-api-key}' 2> /dev/null | base64 -d || echo "zms-livekit-key")
+LIVEKIT_API_SECRET=$(kubectl get secret meeting-management-secrets -n default -o jsonpath='{.data.livekit-api-secret}' 2> /dev/null | base64 -d || echo "change-me-livekit-secret-must-be-at-least-32-chars")
+S3_ACCESS_KEY=$(kubectl get secret meeting-management-secrets -n default -o jsonpath='{.data.recording-s3-access-key}' 2> /dev/null | base64 -d || echo "rustfs-access-key")
+S3_SECRET_KEY=$(kubectl get secret meeting-management-secrets -n default -o jsonpath='{.data.recording-s3-secret-key}' 2> /dev/null | base64 -d || echo "rustfs-secret-key-change-me")
 
 helm upgrade --install livekit-egress livekit/egress \
     --namespace "${NAMESPACE}" \

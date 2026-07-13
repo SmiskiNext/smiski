@@ -1,5 +1,5 @@
-import type { ChildProcess } from "node:child_process";
-import { spawn } from "node:child_process";
+import type { ChildProcess } from 'node:child_process';
+import { spawn } from 'node:child_process';
 
 export interface ParallelTask {
     label: string;
@@ -20,7 +20,7 @@ export async function runParallelWithKillAll(
     let firstFailureCode: number | null = null;
     let shuttingDown = false;
 
-    const killAll = (signal: NodeJS.Signals = "SIGTERM"): void => {
+    const killAll = (signal: NodeJS.Signals = 'SIGTERM'): void => {
         if (shuttingDown) {
             return;
         }
@@ -36,8 +36,8 @@ export async function runParallelWithKillAll(
         killAll(signal);
     };
 
-    process.on("SIGINT", forwardSignal);
-    process.on("SIGTERM", forwardSignal);
+    process.on('SIGINT', forwardSignal);
+    process.on('SIGTERM', forwardSignal);
 
     try {
         await new Promise<void>((resolvePromise) => {
@@ -47,16 +47,15 @@ export async function runParallelWithKillAll(
                 const child = spawn(task.command, task.args, {
                     cwd: task.cwd ?? process.cwd(),
                     env: { ...process.env, ...task.env },
-                    stdio: "inherit",
+                    stdio: 'inherit',
                 });
                 children.push(child);
 
-                child.on("exit", (code, signal) => {
+                child.on('exit', (code, signal) => {
                     const isFailure =
                         signal !== null || (code !== null && code !== 0);
                     if (isFailure) {
-                        const exitCode =
-                            code ?? (signal !== null ? 128 : 1);
+                        const exitCode = code ?? (signal !== null ? 128 : 1);
                         if (firstFailureCode === null) {
                             firstFailureCode = exitCode;
                         }
@@ -81,7 +80,7 @@ export async function runParallelWithKillAll(
                     }
                 });
 
-                child.on("error", (error) => {
+                child.on('error', (error) => {
                     console.error(
                         `[${task.label}] failed to start: ${error.message}`,
                     );
@@ -99,8 +98,8 @@ export async function runParallelWithKillAll(
             }
         });
     } finally {
-        process.off("SIGINT", forwardSignal);
-        process.off("SIGTERM", forwardSignal);
+        process.off('SIGINT', forwardSignal);
+        process.off('SIGTERM', forwardSignal);
     }
 
     return firstFailureCode ?? 0;

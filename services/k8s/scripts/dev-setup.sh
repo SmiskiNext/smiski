@@ -17,33 +17,33 @@ GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
-info()  { echo -e "${GREEN}==>${NC} $*"; }
-warn()  { echo -e "${YELLOW}==> WARNING:${NC} $*"; }
+info() { echo -e "${GREEN}==>${NC} $*"; }
+warn() { echo -e "${YELLOW}==> WARNING:${NC} $*"; }
 error() { echo -e "${RED}==> ERROR:${NC} $*" >&2; }
 
 # ─── Pre-flight checks ───────────────────────────────────────────────────────
 
 info "Checking prerequisites..."
 
-if ! command -v kubectl &>/dev/null; then
+if ! command -v kubectl &> /dev/null; then
     error "kubectl not found. Install k3s first:"
     echo "  curl -sfL https://get.k3s.io | INSTALL_K3S_EXEC=\"server --disable traefik --disable metrics-server\" sh -"
     exit 1
 fi
 
-if ! kubectl cluster-info &>/dev/null; then
+if ! kubectl cluster-info &> /dev/null; then
     error "Cannot connect to Kubernetes cluster. Is k3s running?"
     echo "  sudo systemctl start k3s"
     exit 1
 fi
 
-if ! command -v helm &>/dev/null; then
+if ! command -v helm &> /dev/null; then
     error "helm not found. Install Helm:"
     echo "  curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash"
     exit 1
 fi
 
-if ! command -v kustomize &>/dev/null; then
+if ! command -v kustomize &> /dev/null; then
     warn "kustomize not found, will use 'kubectl kustomize' instead."
     USE_KUBECTL_KUSTOMIZE=true
 else
@@ -74,7 +74,7 @@ info "Waiting for Kafka cluster to be ready (up to 5 minutes)..."
 kubectl wait kafka/zms-kafka \
     --for=condition=Ready \
     --namespace=kafka \
-    --timeout=300s 2>/dev/null || {
+    --timeout=300s 2> /dev/null || {
     warn "Kafka not ready yet. Topics will be applied anyway (operator will reconcile)."
 }
 
@@ -109,7 +109,7 @@ for deploy in "${DEPLOYMENTS[@]}"; do
     info "  Waiting for ${deploy}..."
     if ! kubectl rollout status "deployment/${deploy}" \
         --namespace=default \
-        --timeout=300s 2>/dev/null; then
+        --timeout=300s 2> /dev/null; then
         warn "${deploy} did not become ready in time."
         ALL_READY=false
     fi
@@ -117,13 +117,13 @@ done
 
 # Wait for StatefulSets
 info "  Waiting for chat-mongo..."
-kubectl rollout status statefulset/chat-mongo --namespace=default --timeout=300s 2>/dev/null || {
+kubectl rollout status statefulset/chat-mongo --namespace=default --timeout=300s 2> /dev/null || {
     warn "chat-mongo did not become ready in time."
     ALL_READY=false
 }
 
 info "  Waiting for valkey..."
-kubectl rollout status statefulset/valkey --namespace=default --timeout=300s 2>/dev/null || {
+kubectl rollout status statefulset/valkey --namespace=default --timeout=300s 2> /dev/null || {
     warn "valkey did not become ready in time."
     ALL_READY=false
 }

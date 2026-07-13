@@ -19,6 +19,6 @@ spec:
               - namespaceSelector:
                     matchLabels:
                         name: default
-            ports:
-                - port: 7880
-                  protocol: TCP
+          ports:
+              - port: 7880
+                protocol: TCP

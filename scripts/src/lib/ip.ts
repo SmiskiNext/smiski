@@ -1,5 +1,5 @@
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
-import { DOCKER_ENV } from "./paths.js";
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { DOCKER_ENV } from './paths.ts';
 
 const DOCKER_ENV_REPLACEMENTS: Record<string, (ip: string) => string> = {
     ZMS_HOST_IP: (ip) => ip,
@@ -19,9 +19,9 @@ function updateEnvFile(
         console.warn(`[ip] Skipping ${path} (file not found)`);
         return;
     }
-    let content = readFileSync(path, "utf8");
+    let content = readFileSync(path, 'utf8');
     for (const [key, valueFn] of Object.entries(replacements)) {
-        const regex = new RegExp(`^(${key})=.*$`, "m");
+        const regex = new RegExp(`^(${key})=.*$`, 'm');
         const newLine = `${key}=${valueFn(ip)}`;
         if (regex.test(content)) {
             content = content.replace(regex, newLine);
@@ -29,7 +29,7 @@ function updateEnvFile(
             content += `\n${newLine}`;
         }
     }
-    writeFileSync(path, content, "utf8");
+    writeFileSync(path, content, 'utf8');
     console.log(`[ip] Updated ${path}`);
 }
 
