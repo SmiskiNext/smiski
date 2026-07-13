@@ -1,0 +1,187 @@
+name: Lint
+
+on:
+    pull_request:
+        branches: [dev, main]
+    push:
+        branches: [dev, main]
+
+permissions:
+    contents: read
+
+concurrency:
+    group: lint-${{ github.workflow }}-${{ github.ref }}
+    cancel-in-progress: true
+
+jobs:
+    changes:
+        name: Detect changes
+        runs-on: ubuntu-latest
+        permissions:
+            contents: read
+            pull-requests: read
+        outputs:
+            services: ${{ steps.detect.outputs.services }}
+            app: ${{ steps.detect.outputs.app }}
+            scripts: ${{ steps.detect.outputs.scripts }}
+            proto: ${{ steps.detect.outputs.proto }}
+            docs: ${{ steps.detect.outputs.docs }}
+        steps:
+            - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+            - id: detect
+              uses: ./.github/actions/detect-changes
+
+    spotless:
+        name: Spotless (${{ matrix.service }})
+        needs: changes
+        if: fromJSON(needs.changes.outputs.services)[0] != null
+        runs-on: ubuntu-latest
+        strategy:
+            fail-fast: false
+            matrix:
+                service: ${{ fromJSON(needs.changes.outputs.services) }}
+        steps:
+            - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+
+            - uses: jdx/mise-action@e6a8b3978addb5a52f2b4cd9d91eafa7f0ab959d # v4
+
+            - uses: gradle/actions/setup-gradle@3f131e8634966bd73d06cc69884922b02e6faf92 # v6
+
+            - name: Spotless check
+              run:
+                  ./services/gradlew -p services/${{ matrix.service }}
+                  spotlessCheck
+
+    biome-app:
+        name: Biome (app)
+        needs: changes
+        if: needs.changes.outputs.app == 'true'
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+
+            - uses: jdx/mise-action@e6a8b3978addb5a52f2b4cd9d91eafa7f0ab959d # v4
+
+            - name: Get pnpm store directory
+              id: pnpm-store
+              run:
+                  echo "STORE_PATH=$(pnpm store path --silent)" >>
+                  "$GITHUB_OUTPUT"
+
+            - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+              with:
+                  path: ${{ steps.pnpm-store.outputs.STORE_PATH }}
+                  key:
+                      ${{ runner.os }}-pnpm-store-${{
+                      hashFiles('**/pnpm-lock.yaml') }}
+                  restore-keys: |
+                      ${{ runner.os }}-pnpm-store-
+
+            - name: Install dependencies
+              run: pnpm install --frozen-lockfile
+
+            - name: Biome check
+              run: pnpm biome check
+              working-directory: app
+
+    biome-scripts:
+        name: Biome (scripts)
+        needs: changes
+        if: needs.changes.outputs.scripts == 'true'
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+
+            - uses: jdx/mise-action@e6a8b3978addb5a52f2b4cd9d91eafa7f0ab959d # v4
+
+            - name: Get pnpm store directory
+              id: pnpm-store
+              run:
+                  echo "STORE_PATH=$(pnpm store path --silent)" >>
+                  "$GITHUB_OUTPUT"
+
+            - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+              with:
+                  path: ${{ steps.pnpm-store.outputs.STORE_PATH }}
+                  key:
+                      ${{ runner.os }}-pnpm-store-${{
+                      hashFiles('**/pnpm-lock.yaml') }}
+                  restore-keys: |
+                      ${{ runner.os }}-pnpm-store-
+
+            - name: Install dependencies
+              run: pnpm install --frozen-lockfile
+
+            - name: Biome check
+              run: pnpm biome check
+              working-directory: scripts
+
+    proto:
+        name: Proto
+        needs: changes
+        if: needs.changes.outputs.proto == 'true'
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+              with:
+                  fetch-depth: 0
+
+            - uses: jdx/mise-action@e6a8b3978addb5a52f2b4cd9d91eafa7f0ab959d # v4
+
+            - name: Buf lint
+              run: buf lint
+              working-directory: services/proto
+
+            - name: Buf breaking
+              run: buf breaking --against '.git#branch=dev'
+              working-directory: services/proto
+
+    docs:
+        name: Docs
+        needs: changes
+        if: needs.changes.outputs.docs == 'true'
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+
+            - uses: jdx/mise-action@e6a8b3978addb5a52f2b4cd9d91eafa7f0ab959d # v4
+
+            - name: Get pnpm store directory
+              id: pnpm-store
+              run:
+                  echo "STORE_PATH=$(pnpm store path --silent)" >>
+                  "$GITHUB_OUTPUT"
+
+            - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+              with:
+                  path: ${{ steps.pnpm-store.outputs.STORE_PATH }}
+                  key:
+                      ${{ runner.os }}-pnpm-store-${{
+                      hashFiles('**/pnpm-lock.yaml') }}
+                  restore-keys: |
+                      ${{ runner.os }}-pnpm-store-
+
+            - name: Install dependencies
+              run: pnpm install --frozen-lockfile
+
+            - name: Markdownlint
+              run: pnpm exec markdownlint-cli2 '**/*.md'
+
+            - name: Prettier check
+              run:
+                  pnpm exec prettier --check
+                  '**/*.{md,json,toml,yaml,yml,sh,sql}'
+
+    lint-success:
+        name: Lint Success
+        needs: [spotless, biome-app, biome-scripts, proto, docs]
+        if: always()
+        runs-on: ubuntu-latest
+        steps:
+            - name: Check results
+              run: |
+                  if [[ "${{ contains(needs.*.result, 'failure') }}" == "true" || "${{ contains(needs.*.result, 'cancelled') }}" == "true" ]]; then
+                    echo "::error::One or more lint jobs failed or were cancelled."
+                    exit 1
+                  fi
+                  echo "All lint jobs passed or were skipped."

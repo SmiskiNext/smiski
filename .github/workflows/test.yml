@@ -1,0 +1,133 @@
+name: Test
+
+on:
+    pull_request:
+        branches: [dev, main]
+    push:
+        branches: [dev, main]
+
+permissions:
+    contents: read
+
+concurrency:
+    group: test-${{ github.workflow }}-${{ github.ref }}
+    cancel-in-progress: true
+
+jobs:
+    changes:
+        name: Detect changes
+        runs-on: ubuntu-latest
+        permissions:
+            contents: read
+            pull-requests: read
+        outputs:
+            services: ${{ steps.detect.outputs.services }}
+            openapi_services: ${{ steps.detect.outputs.openapi_services }}
+        steps:
+            - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+            - id: detect
+              uses: ./.github/actions/detect-changes
+
+    java:
+        name: Test (${{ matrix.service }})
+        needs: changes
+        if: fromJSON(needs.changes.outputs.services)[0] != null
+        runs-on: ubuntu-latest
+        strategy:
+            fail-fast: false
+            matrix:
+                service: ${{ fromJSON(needs.changes.outputs.services) }}
+        steps:
+            - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+
+            - uses: jdx/mise-action@e6a8b3978addb5a52f2b4cd9d91eafa7f0ab959d # v4
+
+            - uses: gradle/actions/setup-gradle@3f131e8634966bd73d06cc69884922b02e6faf92 # v6
+
+            - name: Run tests
+              run:
+                  ./services/gradlew -p services/${{ matrix.service }} test
+                  integrationTest
+
+            - name: Coverage verification
+              run:
+                  ./services/gradlew -p services/${{ matrix.service }}
+                  jacocoTestCoverageVerification
+
+            - name: Generate JaCoCo report
+              run:
+                  ./services/gradlew -p services/${{ matrix.service }}
+                  jacocoTestReport
+              if: always()
+
+            - name: Upload JaCoCo report
+              uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+              if: always()
+              with:
+                  name: jacoco-report-${{ matrix.service }}
+                  path: services/${{ matrix.service }}/build/reports/jacoco/
+
+    openapi:
+        name: OpenAPI (${{ matrix.service }})
+        needs: changes
+        if: fromJSON(needs.changes.outputs.openapi_services)[0] != null
+        runs-on: ubuntu-latest
+        strategy:
+            fail-fast: false
+            matrix:
+                service: ${{ fromJSON(needs.changes.outputs.openapi_services) }}
+        steps:
+            - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+
+            - uses: jdx/mise-action@e6a8b3978addb5a52f2b4cd9d91eafa7f0ab959d # v4
+
+            - uses: gradle/actions/setup-gradle@3f131e8634966bd73d06cc69884922b02e6faf92 # v6
+
+            - name: Get pnpm store directory
+              id: pnpm-store
+              run:
+                  echo "STORE_PATH=$(pnpm store path --silent)" >>
+                  "$GITHUB_OUTPUT"
+
+            - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+              with:
+                  path: ${{ steps.pnpm-store.outputs.STORE_PATH }}
+                  key:
+                      ${{ runner.os }}-pnpm-store-${{
+                      hashFiles('**/pnpm-lock.yaml') }}
+                  restore-keys: |
+                      ${{ runner.os }}-pnpm-store-
+
+            - name: Install dependencies
+              run: pnpm install --frozen-lockfile
+
+            - name: Generate OpenAPI spec
+              run:
+                  ./services/gradlew -p services/${{ matrix.service }}
+                  generateOpenApiDocsFromTests
+
+            - name: Check for drift
+              run: |
+                  if ! git diff --exit-code -- 'services/${{ matrix.service }}/openapi.yaml'; then
+                    echo "::error::OpenAPI spec for ${{ matrix.service }} is out of date. Run 'pnpm run openapi' locally and commit the result."
+                    exit 1
+                  fi
+
+            - name: Lint spec
+              run:
+                  pnpm exec redocly lint services/${{ matrix.service
+                  }}/openapi.yaml
+
+    test-success:
+        name: Test Success
+        needs: [java, openapi]
+        if: always()
+        runs-on: ubuntu-latest
+        steps:
+            - name: Check results
+              run: |
+                  if [[ "${{ contains(needs.*.result, 'failure') }}" == "true" || "${{ contains(needs.*.result, 'cancelled') }}" == "true" ]]; then
+                    echo "::error::One or more test jobs failed or were cancelled."
+                    exit 1
+                  fi
+                  echo "All test jobs passed or were skipped."

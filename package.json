@@ -7,7 +7,7 @@
         "preinstall": "npx only-allow pnpm",
         "smiski": "pnpm --filter @smiskinext/scripts smiski --",
         "lint": "markdownlint-cli2 --fix '**/*.md'",
-        "format": "prettier --write '**/*.{md, json, toml, yaml, yml, sh}'",
+        "format": "prettier --write '**/*.{md,json,toml,yaml,yml,sh,sql}'",
         "openapi:tenant": "./services/gradlew -p services/tenant generateOpenApiDocsFromTests",
         "openapi:meet": "./services/gradlew -p services/meet generateOpenApiDocsFromTests",
         "openapi:record": "./services/gradlew -p services/record generateOpenApiDocsFromTests",
@@ -27,6 +27,7 @@
         "only-allow": "^1.2.2",
         "prettier": "^3.9.4",
         "prettier-plugin-sh": "^0.18.1",
+        "prettier-plugin-sql": "^0.20.0",
         "prettier-plugin-toml": "^2.0.6"
     }
 }

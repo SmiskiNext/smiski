@@ -1,0 +1,144 @@
+name: Build
+
+on:
+    pull_request:
+        branches: [dev, main]
+    push:
+        branches: [dev, main]
+
+permissions:
+    contents: read
+
+concurrency:
+    group: build-${{ github.workflow }}-${{ github.ref }}
+    cancel-in-progress: true
+
+jobs:
+    changes:
+        name: Detect changes
+        runs-on: ubuntu-latest
+        permissions:
+            contents: read
+            pull-requests: read
+        outputs:
+            services: ${{ steps.detect.outputs.services }}
+            app: ${{ steps.detect.outputs.app }}
+            scripts: ${{ steps.detect.outputs.scripts }}
+        steps:
+            - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+            - id: detect
+              uses: ./.github/actions/detect-changes
+
+    java:
+        name: Java (${{ matrix.service }})
+        needs: changes
+        if: fromJSON(needs.changes.outputs.services)[0] != null
+        runs-on: ubuntu-latest
+        strategy:
+            fail-fast: false
+            matrix:
+                service: ${{ fromJSON(needs.changes.outputs.services) }}
+        steps:
+            - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+
+            - uses: jdx/mise-action@e6a8b3978addb5a52f2b4cd9d91eafa7f0ab959d # v4
+
+            - uses: gradle/actions/setup-gradle@3f131e8634966bd73d06cc69884922b02e6faf92 # v6
+
+            - name: Assemble
+              run: ./services/gradlew -p services/${{ matrix.service }} assemble
+
+    app:
+        name: Forge app
+        needs: changes
+        if: needs.changes.outputs.app == 'true'
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+
+            - uses: jdx/mise-action@e6a8b3978addb5a52f2b4cd9d91eafa7f0ab959d # v4
+
+            - name: Get pnpm store directory
+              id: pnpm-store
+              run:
+                  echo "STORE_PATH=$(pnpm store path --silent)" >>
+                  "$GITHUB_OUTPUT"
+
+            - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+              with:
+                  path: ${{ steps.pnpm-store.outputs.STORE_PATH }}
+                  key:
+                      ${{ runner.os }}-pnpm-store-${{
+                      hashFiles('**/pnpm-lock.yaml') }}
+                  restore-keys: |
+                      ${{ runner.os }}-pnpm-store-
+
+            - name: Install dependencies
+              run: pnpm install --frozen-lockfile
+
+            - name: Typecheck
+              run: pnpm exec tsc --noEmit
+              working-directory: app
+
+            - name: Install static/hello-world dependencies
+              run: npm ci
+              working-directory: app/static/hello-world
+
+            - name: Build static/hello-world
+              run: npm run build
+              working-directory: app/static/hello-world
+              env:
+                  CI: 'true'
+
+            - name: Install Forge CLI
+              run: npm i -g @forge/cli
+
+            - name: Forge lint
+              run: forge lint
+              working-directory: app
+
+    scripts:
+        name: Scripts
+        needs: changes
+        if: needs.changes.outputs.scripts == 'true'
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+
+            - uses: jdx/mise-action@e6a8b3978addb5a52f2b4cd9d91eafa7f0ab959d # v4
+
+            - name: Get pnpm store directory
+              id: pnpm-store
+              run:
+                  echo "STORE_PATH=$(pnpm store path --silent)" >>
+                  "$GITHUB_OUTPUT"
+
+            - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+              with:
+                  path: ${{ steps.pnpm-store.outputs.STORE_PATH }}
+                  key:
+                      ${{ runner.os }}-pnpm-store-${{
+                      hashFiles('**/pnpm-lock.yaml') }}
+                  restore-keys: |
+                      ${{ runner.os }}-pnpm-store-
+
+            - name: Install dependencies
+              run: pnpm install --frozen-lockfile
+
+            - name: Typecheck
+              run: pnpm exec tsc --noEmit
+              working-directory: scripts
+
+    build-success:
+        name: Build Success
+        needs: [java, app, scripts]
+        if: always()
+        runs-on: ubuntu-latest
+        steps:
+            - name: Check results
+              run: |
+                  if [[ "${{ contains(needs.*.result, 'failure') }}" == "true" || "${{ contains(needs.*.result, 'cancelled') }}" == "true" ]]; then
+                    echo "::error::One or more build jobs failed or were cancelled."
+                    exit 1
+                  fi
+                  echo "All build jobs passed or were skipped."
