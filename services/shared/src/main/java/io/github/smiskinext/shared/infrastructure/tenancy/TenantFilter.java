@@ -11,8 +11,8 @@ import org.springframework.web.filter.OncePerRequestFilter;
  * Servlet filter that binds the tenant identifier from a configurable request header into {@link
  * TenantContext} for the duration of the request, then clears it.
  *
- * <p>Placeholder filter: real tenant header injection (via the Kong gateway) is not wired yet, so
- * requests without the header fall back to {@link TenantContext#DEFAULT_TENANT}.
+ * <p>The tenant identifier is injected per service by the infrastructure API gateway; requests
+ * without the header fall back to {@link TenantContext#DEFAULT_TENANT}.
  *
  * <p>Only active when running in a SERVLET container (not Netty/WebFlux).
  */

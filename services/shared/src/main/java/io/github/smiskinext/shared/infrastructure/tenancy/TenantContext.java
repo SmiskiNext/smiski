@@ -5,9 +5,9 @@ import org.jspecify.annotations.Nullable;
 /**
  * ThreadLocal holder for the tenant identifier associated with the current request.
  *
- * <p>This is placeholder tenancy context: the real tenant identifier will later be injected by the
- * Kong gateway. Until then the context defaults to {@link #DEFAULT_TENANT} whenever no tenant has
- * been set.
+ * <p>The tenant identifier is injected per service by the infrastructure API gateway and bound to
+ * this context by {@link TenantFilter}. The context defaults to {@link #DEFAULT_TENANT} whenever no
+ * tenant has been set.
  *
  * <p>The backing {@link ThreadLocal} is compatible with virtual threads (services enable {@code
  * spring.threads.virtual.enabled}); each virtual thread carries its own value and it is cleared per

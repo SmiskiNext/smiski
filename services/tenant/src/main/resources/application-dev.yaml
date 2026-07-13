@@ -9,7 +9,3 @@ spring:
 
     kafka:
         bootstrap-servers: localhost:9094
-
-app:
-    forge:
-        environment-type: DEVELOPMENT
