@@ -1,0 +1,62 @@
+package io.github.smiskinext.tenant.infrastructure;
+
+import static org.assertj.core.api.Assertions.assertThat;
+
+import com.github.f4b6a3.uuid.UuidCreator;
+import io.github.smiskinext.event.tenant.v1.TenantInstalled;
+import io.github.smiskinext.tenant.domain.event.TenantInstalledEvent;
+import io.github.smiskinext.tenant.infrastructure.messaging.TenantEventProtoMapper;
+import java.time.Instant;
+import org.junit.jupiter.api.Test;
+
+class TenantEventProtoMapperTest {
+
+    @Test
+    void maps_domain_event_to_proto_with_matching_fields() {
+        Instant now = Instant.now();
+        TenantInstalledEvent event = new TenantInstalledEvent(
+                UuidCreator.getTimeOrderedEpoch(),
+                "cloud-123",
+                "install-1",
+                "app-1",
+                "1.0.0",
+                "env-1",
+                "PRODUCTION",
+                "https://example.atlassian.net",
+                "installer-1",
+                now);
+
+        TenantInstalled proto = TenantEventProtoMapper.toProto(event);
+
+        assertThat(proto.getCloudId()).isEqualTo("cloud-123");
+        assertThat(proto.getInstallationId()).isEqualTo("install-1");
+        assertThat(proto.getAppId()).isEqualTo("app-1");
+        assertThat(proto.getAppVersion()).isEqualTo("1.0.0");
+        assertThat(proto.getEnvironmentId()).isEqualTo("env-1");
+        assertThat(proto.getEnvironmentType()).isEqualTo("PRODUCTION");
+        assertThat(proto.getSiteUrl()).isEqualTo("https://example.atlassian.net");
+        assertThat(proto.getInstallerAccountId()).isEqualTo("installer-1");
+        assertThat(proto.getInstalledAt()).isEqualTo(now.toString());
+    }
+
+    @Test
+    void handles_null_optional_fields() {
+        TenantInstalledEvent event = new TenantInstalledEvent(
+                UuidCreator.getTimeOrderedEpoch(),
+                "cloud-123",
+                "install-1",
+                "app-1",
+                null,
+                null,
+                "PRODUCTION",
+                null,
+                null,
+                Instant.now());
+
+        TenantInstalled proto = TenantEventProtoMapper.toProto(event);
+
+        assertThat(proto.getCloudId()).isEqualTo("cloud-123");
+        assertThat(proto.getAppVersion()).isEmpty();
+        assertThat(proto.getEnvironmentId()).isEmpty();
+    }
+}

@@ -5,5 +5,63 @@ info:
 servers:
 - url: http://localhost:8080
   description: API Gateway
-paths: {}
-components: {}
+paths:
+  /api/{version}/tenants:
+    post:
+      tags:
+      - tenant-controller
+      operationId: register
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterTenantRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: object
+components:
+  schemas:
+    App:
+      type: object
+      properties:
+        id:
+          type: string
+          minLength: 1
+        version:
+          type: string
+        name:
+          type: string
+        ownerAccountId:
+          type: string
+      required:
+      - id
+      - version
+    Environment:
+      type: object
+      properties:
+        id:
+          type: string
+    RegisterTenantRequest:
+      type: object
+      properties:
+        id:
+          type: string
+          minLength: 1
+        installerAccountId:
+          type: string
+        app:
+          $ref: "#/components/schemas/App"
+        environment:
+          $ref: "#/components/schemas/Environment"
+        environmentType:
+          type: string
+        siteUrl:
+          type: string
+      required:
+      - app
+      - id
