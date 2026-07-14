@@ -19,7 +19,7 @@ val libs = the<LibrariesForLibs>()
 
 val coverageExclusions =
     listOf(
-        "**/*Application*",
+        "**/*Application.class",
         "**/*Config*",
         "**/*Configuration*",
         "**/infrastructure/persistence/**JpaEntity*",
