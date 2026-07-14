@@ -94,3 +94,19 @@ pre-push:
                 "$(echo "$f" | cut -d/ -f2)" ;; esac; done | sort -u); [ -z
                 "$svcs" ] && exit 0; for s in $svcs; do ./services/gradlew -p
                 "services/$s" assemble || exit 1; done
+
+        openapi-drift:
+            priority: 4
+            glob: 'services/{tenant,meet,record}/**'
+            run: >
+                svcs=$(for f in {push_files}; do case "$f" in services/tenant/*)
+                echo tenant ;; services/meet/*) echo meet ;; services/record/*)
+                echo record ;; esac; done | sort -u); [ -z "$svcs" ] && exit 0;
+                rc=0; for s in $svcs; do spec="services/$s/openapi.yaml";
+                backup="$(mktemp)"; cp "$spec" "$backup"; if !
+                ./services/gradlew -p "services/$s"
+                generateOpenApiDocsFromTests; then cp "$backup" "$spec"; rm -f
+                "$backup"; exit 1; fi; if ! diff -q "$backup" "$spec"
+                >/dev/null; then echo "[openapi-drift] $spec is out of date.
+                Run: pnpm run openapi:$s and commit the regenerated spec.";
+                rc=1; fi; cp "$backup" "$spec"; rm -f "$backup"; done; exit $rc
