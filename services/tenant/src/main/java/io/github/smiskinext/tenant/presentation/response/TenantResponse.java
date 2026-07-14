@@ -1,7 +1,6 @@
-package io.github.smiskinext.tenant.application.response;
+package io.github.smiskinext.tenant.presentation.response;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
-
+import io.github.smiskinext.tenant.application.result.RegisterTenantResult;
 import io.github.smiskinext.tenant.domain.model.TenantStatus;
 import io.swagger.v3.oas.annotations.media.Schema;
 
@@ -22,6 +21,14 @@ public record TenantResponse(
         TenantStatus status,
 
         @Schema(description = "Timestamp of initial installation", example = "2025-01-15T10:30:00Z")
-        Instant installedAt,
+        Instant installedAt) {
 
-        @JsonIgnore boolean created) {}
+    public static TenantResponse from(RegisterTenantResult result) {
+        return new TenantResponse(
+                result.tenantId(),
+                result.installationId(),
+                result.appId(),
+                result.status(),
+                result.installedAt());
+    }
+}

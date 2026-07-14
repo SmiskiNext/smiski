@@ -7,7 +7,7 @@ import static org.mockito.Mockito.*;
 import io.github.smiskinext.shared.domain.Result;
 import io.github.smiskinext.shared.infrastructure.tenancy.TenantContext;
 import io.github.smiskinext.tenant.application.command.RegisterTenantCommand;
-import io.github.smiskinext.tenant.application.response.TenantResponse;
+import io.github.smiskinext.tenant.application.result.RegisterTenantResult;
 import io.github.smiskinext.tenant.application.service.RegisterTenantApplicationService;
 import io.github.smiskinext.tenant.domain.TenantError;
 import io.github.smiskinext.tenant.domain.event.PublishableEvent;
@@ -53,10 +53,10 @@ class RegisterTenantApplicationServiceTest {
         RegisterTenantCommand command = new RegisterTenantCommand(
                 TenantContext.DEFAULT_TENANT, "install-1", "app-1", "1.0.0", null, null, null);
 
-        Result<TenantResponse, TenantError> result = service.execute(command);
+        Result<RegisterTenantResult, TenantError> result = service.execute(command);
 
         assertThat(result).isInstanceOf(Result.Failure.class);
-        TenantError error = ((Result.Failure<TenantResponse, TenantError>) result).error();
+        TenantError error = ((Result.Failure<RegisterTenantResult, TenantError>) result).error();
         assertThat(error).isInstanceOf(TenantError.MissingTenantContext.class);
         verify(tenantRepository, never()).save(any());
         verify(eventPublisher, never()).publish(any());
@@ -70,10 +70,11 @@ class RegisterTenantApplicationServiceTest {
         RegisterTenantCommand command = new RegisterTenantCommand(
                 "cloud-abc", "install-1", "app-1", "1.0.0", null, null, null);
 
-        Result<TenantResponse, TenantError> result = service.execute(command);
+        Result<RegisterTenantResult, TenantError> result = service.execute(command);
 
         assertThat(result).isInstanceOf(Result.Success.class);
-        TenantResponse response = ((Result.Success<TenantResponse, TenantError>) result).value();
+        RegisterTenantResult response =
+                ((Result.Success<RegisterTenantResult, TenantError>) result).value();
         assertThat(response.tenantId()).isEqualTo("cloud-abc");
         assertThat(response.status()).isEqualTo(TenantStatus.ACTIVE);
         assertThat(response.created()).isTrue();
@@ -105,10 +106,11 @@ class RegisterTenantApplicationServiceTest {
         RegisterTenantCommand command = new RegisterTenantCommand(
                 "cloud-abc", "new-install", "app-1", "2.0.0", null, null, null);
 
-        Result<TenantResponse, TenantError> result = service.execute(command);
+        Result<RegisterTenantResult, TenantError> result = service.execute(command);
 
         assertThat(result).isInstanceOf(Result.Success.class);
-        TenantResponse response = ((Result.Success<TenantResponse, TenantError>) result).value();
+        RegisterTenantResult response =
+                ((Result.Success<RegisterTenantResult, TenantError>) result).value();
         assertThat(response.installationId()).isEqualTo("new-install");
         assertThat(response.created()).isFalse();
 

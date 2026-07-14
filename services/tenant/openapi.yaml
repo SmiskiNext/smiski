@@ -99,14 +99,14 @@ paths:
                     detail: Tenant context is required but was not provided
                     code: MISSING_TENANT_CONTEXT
                     traceId: 6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a
-        "415":
-          description: Unsupported Media Type
+        "500":
+          description: Internal Server Error
           content:
             application/problem+json:
               schema:
                 $ref: "#/components/schemas/ProblemDetail"
-        "500":
-          description: Internal Server Error
+        "415":
+          description: Unsupported Media Type
           content:
             application/problem+json:
               schema:

@@ -5,10 +5,11 @@ import io.github.smiskinext.shared.infrastructure.tenancy.TenantContext;
 import io.github.smiskinext.shared.infrastructure.web.ProblemDetailSchema;
 import io.github.smiskinext.shared.infrastructure.web.ResultResponder;
 import io.github.smiskinext.tenant.application.command.RegisterTenantCommand;
-import io.github.smiskinext.tenant.application.response.TenantResponse;
+import io.github.smiskinext.tenant.application.result.RegisterTenantResult;
 import io.github.smiskinext.tenant.application.usecase.RegisterTenantUseCase;
 import io.github.smiskinext.tenant.domain.TenantError;
 import io.github.smiskinext.tenant.presentation.request.RegisterTenantRequest;
+import io.github.smiskinext.tenant.presentation.response.TenantResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.headers.Header;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -131,19 +132,20 @@ public class TenantController {
     public ResponseEntity<Object> register(@Valid @RequestBody RegisterTenantRequest request) {
         String cloudId = TenantContext.getCurrentTenant();
         RegisterTenantCommand command = request.toCommand(cloudId);
-        Result<TenantResponse, TenantError> result = registerTenantUseCase.execute(command);
+        Result<RegisterTenantResult, TenantError> result = registerTenantUseCase.execute(command);
 
         return result.fold(
-                response -> {
-                    if (response.created()) {
+                resultValue -> {
+                    if (resultValue.created()) {
                         URI location = ServletUriComponentsBuilder.fromCurrentRequest()
                                 .path("/{id}")
-                                .buildAndExpand(response.tenantId())
+                                .buildAndExpand(resultValue.tenantId())
                                 .toUri();
-                        return ResponseEntity.created(location).body(response);
+                        return ResponseEntity.created(location)
+                                .body(TenantResponse.from(resultValue));
                     }
-                    return ResponseEntity.ok().body(response);
+                    return ResponseEntity.ok().body(TenantResponse.from(resultValue));
                 },
-                error -> responder.ok(Result.<TenantResponse, TenantError>failure(error)));
+                error -> responder.ok(Result.<RegisterTenantResult, TenantError>failure(error)));
     }
 }
