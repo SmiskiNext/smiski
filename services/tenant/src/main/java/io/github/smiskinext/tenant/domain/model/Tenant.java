@@ -3,6 +3,7 @@ package io.github.smiskinext.tenant.domain.model;
 import com.github.f4b6a3.uuid.UuidCreator;
 import io.github.smiskinext.shared.domain.AggregateRoot;
 import io.github.smiskinext.tenant.domain.event.TenantInstalledEvent;
+import io.github.smiskinext.tenant.domain.event.TenantUninstalledEvent;
 import io.github.smiskinext.tenant.domain.model.valueobject.AppId;
 import io.github.smiskinext.tenant.domain.model.valueobject.InstallationId;
 import java.time.Instant;
@@ -18,7 +19,7 @@ public class Tenant extends AggregateRoot<String> {
     private @Nullable String siteUrl;
     private @Nullable String installerAccountId;
     private TenantStatus status;
-    private Instant installedAt;
+    private final Instant installedAt;
     private Instant updatedAt;
     private @Nullable Instant uninstalledAt;
     private @Nullable Instant purgeAfter;
@@ -132,7 +133,36 @@ public class Tenant extends AggregateRoot<String> {
                 environmentId,
                 siteUrl,
                 installerAccountId,
-                installedAt));
+                installedAt,
+                status,
+                updatedAt,
+                uninstalledAt,
+                purgeAfter));
+    }
+
+    public void uninstall(Instant purgeAfter) {
+        this.status = TenantStatus.UNINSTALLED;
+        this.uninstalledAt = Instant.now();
+        this.purgeAfter = purgeAfter;
+        this.updatedAt = Instant.now();
+        registerEvent(new TenantUninstalledEvent(
+                UuidCreator.getTimeOrderedEpoch(),
+                cloudId,
+                installationId.value(),
+                appId.value(),
+                this.uninstalledAt,
+                purgeAfter,
+                appVersion,
+                environmentId,
+                siteUrl,
+                installerAccountId,
+                status,
+                installedAt,
+                this.updatedAt));
+    }
+
+    public boolean isUninstalled() {
+        return status == TenantStatus.UNINSTALLED;
     }
 
     @Override

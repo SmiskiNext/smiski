@@ -17,4 +17,8 @@ message TenantInstalled {
   string site_url = 7;
   string installer_account_id = 8;
   string installed_at = 9;
+  string status = 10;
+  string updated_at = 11;
+  string uninstalled_at = 12;
+  string purge_after = 13;
 }

@@ -5,20 +5,20 @@ import java.time.Instant;
 import java.util.UUID;
 import org.jspecify.annotations.Nullable;
 
-public record TenantInstalledEvent(
+public record TenantUninstalledEvent(
         UUID eventId,
         String aggregateId,
         String installationId,
         String appId,
+        Instant uninstalledAt,
+        Instant purgeAfter,
         @Nullable String appVersion,
         @Nullable String environmentId,
         @Nullable String siteUrl,
         @Nullable String installerAccountId,
-        Instant installedAt,
         TenantStatus status,
-        Instant updatedAt,
-        @Nullable Instant uninstalledAt,
-        @Nullable Instant purgeAfter)
+        Instant installedAt,
+        Instant updatedAt)
         implements PublishableEvent {
 
     @Override
@@ -28,16 +28,16 @@ public record TenantInstalledEvent(
 
     @Override
     public String eventType() {
-        return "io.github.smiskinext.tenant.v1.installed";
+        return "io.github.smiskinext.tenant.v1.uninstalled";
     }
 
     @Override
     public String topic() {
-        return "tenant.tenant.installed";
+        return "tenant.tenant.uninstalled";
     }
 
     @Override
     public Instant occurredAt() {
-        return installedAt;
+        return uninstalledAt;
     }
 }

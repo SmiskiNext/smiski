@@ -6,6 +6,7 @@ import com.github.f4b6a3.uuid.UuidCreator;
 import com.google.protobuf.Message;
 import io.github.smiskinext.event.tenant.v1.TenantInstalled;
 import io.github.smiskinext.tenant.domain.event.TenantInstalledEvent;
+import io.github.smiskinext.tenant.domain.model.TenantStatus;
 import io.github.smiskinext.tenant.infrastructure.messaging.TenantEventProtoMapper;
 import java.time.Instant;
 import org.junit.jupiter.api.Test;
@@ -37,7 +38,11 @@ class TenantEventProtoMapperTest {
                 "env-1",
                 "https://example.atlassian.net",
                 "installer-1",
-                now);
+                now,
+                TenantStatus.ACTIVE,
+                now,
+                null,
+                null);
 
         Message result = mapper.toProto(event);
         assertThat(result).isInstanceOf(TenantInstalled.class);
@@ -51,10 +56,15 @@ class TenantEventProtoMapperTest {
         assertThat(proto.getSiteUrl()).isEqualTo("https://example.atlassian.net");
         assertThat(proto.getInstallerAccountId()).isEqualTo("installer-1");
         assertThat(proto.getInstalledAt()).isEqualTo(now.toString());
+        assertThat(proto.getStatus()).isEqualTo("ACTIVE");
+        assertThat(proto.getUpdatedAt()).isEqualTo(now.toString());
+        assertThat(proto.getUninstalledAt()).isEmpty();
+        assertThat(proto.getPurgeAfter()).isEmpty();
     }
 
     @Test
     void handles_null_optional_fields() {
+        Instant now = Instant.now();
         TenantInstalledEvent event = new TenantInstalledEvent(
                 UuidCreator.getTimeOrderedEpoch(),
                 "cloud-123",
@@ -64,12 +74,18 @@ class TenantEventProtoMapperTest {
                 null,
                 null,
                 null,
-                Instant.now());
+                now,
+                TenantStatus.ACTIVE,
+                now,
+                null,
+                null);
 
         TenantInstalled proto = (TenantInstalled) mapper.toProto(event);
 
         assertThat(proto.getCloudId()).isEqualTo("cloud-123");
         assertThat(proto.getAppVersion()).isEmpty();
         assertThat(proto.getEnvironmentId()).isEmpty();
+        assertThat(proto.getUninstalledAt()).isEmpty();
+        assertThat(proto.getPurgeAfter()).isEmpty();
     }
 }

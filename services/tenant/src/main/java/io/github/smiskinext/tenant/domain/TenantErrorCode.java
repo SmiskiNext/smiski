@@ -4,7 +4,8 @@ import io.github.smiskinext.shared.domain.ErrorCategory;
 import io.github.smiskinext.shared.domain.ErrorCode;
 
 public enum TenantErrorCode implements ErrorCode {
-    MISSING_TENANT_CONTEXT(ErrorCategory.VALIDATION);
+    MISSING_TENANT_CONTEXT(ErrorCategory.VALIDATION),
+    TENANT_NOT_FOUND(ErrorCategory.NOT_FOUND);
 
     private final ErrorCategory category;
 

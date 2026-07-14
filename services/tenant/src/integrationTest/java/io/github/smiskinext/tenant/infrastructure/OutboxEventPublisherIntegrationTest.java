@@ -7,6 +7,8 @@ import com.github.f4b6a3.uuid.UuidCreator;
 import io.github.smiskinext.shared.infrastructure.tenancy.TenantContext;
 import io.github.smiskinext.tenant.config.TestcontainersConfiguration;
 import io.github.smiskinext.tenant.domain.event.TenantInstalledEvent;
+import io.github.smiskinext.tenant.domain.event.TenantUninstalledEvent;
+import io.github.smiskinext.tenant.domain.model.TenantStatus;
 import io.github.smiskinext.tenant.infrastructure.messaging.OutboxEventPublisher;
 import io.github.smiskinext.tenant.infrastructure.persistence.OutboxEventJpaEntity;
 import io.github.smiskinext.tenant.infrastructure.persistence.OutboxEventJpaRepository;
@@ -59,7 +61,11 @@ class OutboxEventPublisherIntegrationTest {
                 null,
                 null,
                 null,
-                Instant.now());
+                Instant.now(),
+                TenantStatus.ACTIVE,
+                Instant.now(),
+                null,
+                null);
 
         outboxEventPublisher.publish(event);
 
@@ -84,7 +90,11 @@ class OutboxEventPublisherIntegrationTest {
                 null,
                 null,
                 null,
-                Instant.now());
+                Instant.now(),
+                TenantStatus.ACTIVE,
+                Instant.now(),
+                null,
+                null);
 
         outboxEventPublisher.publish(event);
 
@@ -95,18 +105,18 @@ class OutboxEventPublisherIntegrationTest {
         String payload = rows.getFirst().getPayload();
         JsonNode cloudEvent = objectMapper.readTree(payload);
 
-        assertThat(cloudEvent.get("specversion").asText()).isEqualTo("1.0");
-        assertThat(cloudEvent.get("type").asText())
+        assertThat(cloudEvent.get("specversion").asString()).isEqualTo("1.0");
+        assertThat(cloudEvent.get("type").asString())
                 .isEqualTo("io.github.smiskinext.tenant.v1.installed");
-        assertThat(cloudEvent.get("datacontenttype").asText()).isEqualTo("application/json");
-        assertThat(cloudEvent.get("dataschema").asText())
+        assertThat(cloudEvent.get("datacontenttype").asString()).isEqualTo("application/json");
+        assertThat(cloudEvent.get("dataschema").asString())
                 .isEqualTo("io.github.smiskinext.event.tenant.v1.TenantInstalled");
-        assertThat(cloudEvent.get("id").asText()).isNotBlank();
+        assertThat(cloudEvent.get("id").asString()).isNotBlank();
 
         JsonNode data = cloudEvent.get("data");
-        assertThat(data.get("cloudId").asText()).isEqualTo("cloud-payload");
-        assertThat(data.get("installationId").asText()).isEqualTo("install-1");
-        assertThat(data.get("appId").asText()).isEqualTo("app-1");
+        assertThat(data.get("cloudId").asString()).isEqualTo("cloud-payload");
+        assertThat(data.get("installationId").asString()).isEqualTo("install-1");
+        assertThat(data.get("appId").asString()).isEqualTo("app-1");
     }
 
     @Test
@@ -151,5 +161,79 @@ class OutboxEventPublisherIntegrationTest {
         List<OutboxEventJpaEntity> rows =
                 outboxEventJpaRepository.findUnpublishedOrderByCreatedAt();
         assertThat(rows).isEmpty();
+    }
+
+    @Test
+    void uninstall_event_enqueued_with_correct_topic_and_type() {
+        Instant uninstalledAt = Instant.now();
+        Instant purgeAfter = uninstalledAt.plusSeconds(86400 * 30);
+        TenantUninstalledEvent event = new TenantUninstalledEvent(
+                UuidCreator.getTimeOrderedEpoch(),
+                "cloud-payload",
+                "install-1",
+                "app-1",
+                uninstalledAt,
+                purgeAfter,
+                null,
+                null,
+                null,
+                null,
+                TenantStatus.UNINSTALLED,
+                Instant.now(),
+                Instant.now());
+
+        outboxEventPublisher.publish(event);
+
+        List<OutboxEventJpaEntity> rows =
+                outboxEventJpaRepository.findUnpublishedOrderByCreatedAt();
+        assertThat(rows).hasSize(1);
+
+        OutboxEventJpaEntity row = rows.getFirst();
+        assertThat(row.getPublishedAt()).isNull();
+        assertThat(row.getTenantId()).isEqualTo("cloud-payload");
+        assertThat(row.getAggregateId()).isEqualTo("cloud-payload");
+        assertThat(row.getTopic()).isEqualTo("tenant.tenant.uninstalled");
+        assertThat(row.getEventType()).isEqualTo("io.github.smiskinext.tenant.v1.uninstalled");
+    }
+
+    @Test
+    void uninstall_event_payload_contains_proto_json_data() throws Exception {
+        Instant uninstalledAt = Instant.parse("2025-06-15T10:30:00Z");
+        Instant purgeAfter = Instant.parse("2025-07-15T10:30:00Z");
+        TenantUninstalledEvent event = new TenantUninstalledEvent(
+                UuidCreator.getTimeOrderedEpoch(),
+                "cloud-payload",
+                "install-1",
+                "app-1",
+                uninstalledAt,
+                purgeAfter,
+                null,
+                null,
+                null,
+                null,
+                TenantStatus.UNINSTALLED,
+                Instant.now(),
+                Instant.now());
+
+        outboxEventPublisher.publish(event);
+
+        List<OutboxEventJpaEntity> rows =
+                outboxEventJpaRepository.findUnpublishedOrderByCreatedAt();
+        assertThat(rows).hasSize(1);
+
+        String payload = rows.getFirst().getPayload();
+        JsonNode cloudEvent = objectMapper.readTree(payload);
+
+        assertThat(cloudEvent.get("type").asString())
+                .isEqualTo("io.github.smiskinext.tenant.v1.uninstalled");
+        assertThat(cloudEvent.get("dataschema").asString())
+                .isEqualTo("io.github.smiskinext.event.tenant.v1.TenantUninstalled");
+
+        JsonNode data = cloudEvent.get("data");
+        assertThat(data.get("cloudId").asString()).isEqualTo("cloud-payload");
+        assertThat(data.get("installationId").asString()).isEqualTo("install-1");
+        assertThat(data.get("appId").asString()).isEqualTo("app-1");
+        assertThat(data.get("uninstalledAt").asString()).isEqualTo(uninstalledAt.toString());
+        assertThat(data.get("purgeAfter").asString()).isEqualTo(purgeAfter.toString());
     }
 }

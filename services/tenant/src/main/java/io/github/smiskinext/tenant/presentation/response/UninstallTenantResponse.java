@@ -1,13 +1,13 @@
 package io.github.smiskinext.tenant.presentation.response;
 
-import io.github.smiskinext.tenant.application.result.RegisterTenantResult;
+import io.github.smiskinext.tenant.application.result.UninstallTenantResult;
 import io.github.smiskinext.tenant.domain.model.TenantStatus;
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.time.Instant;
 import org.jspecify.annotations.Nullable;
 
-@Schema(description = "Tenant registration result")
-public record TenantResponse(
+@Schema(description = "Tenant uninstall result")
+public record UninstallTenantResponse(
         @Schema(description = "Installation identifier", example = "install-xyz-456")
         String installationId,
 
@@ -23,13 +23,13 @@ public record TenantResponse(
 
         @Schema(description = "Account ID of the installer", example = "installer-1") @Nullable String installerAccountId,
 
-        @Schema(description = "Current tenant status", example = "ACTIVE")
+        @Schema(description = "Current tenant status", example = "UNINSTALLED")
         TenantStatus status,
 
         @Schema(description = "Timestamp of initial installation", example = "2025-01-15T10:30:00Z")
         Instant installedAt,
 
-        @Schema(description = "Timestamp of last update", example = "2025-01-15T10:30:00Z")
+        @Schema(description = "Timestamp of last update", example = "2025-06-15T10:30:00Z")
         Instant updatedAt,
 
         @Schema(
@@ -42,8 +42,8 @@ public record TenantResponse(
                 example = "2025-07-15T10:30:00Z")
         @Nullable Instant purgeAfter) {
 
-    public static TenantResponse from(RegisterTenantResult result) {
-        return new TenantResponse(
+    public static UninstallTenantResponse from(UninstallTenantResult result) {
+        return new UninstallTenantResponse(
                 result.installationId(),
                 result.appId(),
                 result.appVersion(),

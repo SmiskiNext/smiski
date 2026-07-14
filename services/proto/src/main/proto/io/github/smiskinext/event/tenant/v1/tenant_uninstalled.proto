@@ -1,0 +1,21 @@
+syntax = "proto3";
+
+package io.github.smiskinext.event.tenant.v1;
+
+option java_multiple_files = true;
+option java_package = "io.github.smiskinext.event.tenant.v1";
+
+message TenantUninstalled {
+  string cloud_id = 1;
+  string installation_id = 2;
+  string app_id = 3;
+  string uninstalled_at = 4;
+  string purge_after = 5;
+  string app_version = 6;
+  string environment_id = 7;
+  string site_url = 8;
+  string installer_account_id = 9;
+  string status = 10;
+  string installed_at = 11;
+  string updated_at = 12;
+}

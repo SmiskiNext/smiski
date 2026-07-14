@@ -2,33 +2,36 @@ package io.github.smiskinext.tenant.infrastructure.messaging;
 
 import com.google.protobuf.Message;
 
-import io.github.smiskinext.event.tenant.v1.TenantInstalled;
+import io.github.smiskinext.event.tenant.v1.TenantUninstalled;
 import io.github.smiskinext.shared.infrastructure.outbox.OutboxEventProtoMapper;
-import io.github.smiskinext.tenant.domain.event.TenantInstalledEvent;
+import io.github.smiskinext.tenant.domain.event.TenantUninstalledEvent;
 
 import org.springframework.stereotype.Component;
 
 @Component
-public class TenantEventProtoMapper implements OutboxEventProtoMapper<TenantInstalledEvent> {
+public class TenantUninstalledEventProtoMapper
+        implements OutboxEventProtoMapper<TenantUninstalledEvent> {
 
     @Override
-    public Class<TenantInstalledEvent> eventType() {
-        return TenantInstalledEvent.class;
+    public Class<TenantUninstalledEvent> eventType() {
+        return TenantUninstalledEvent.class;
     }
 
     @Override
     public String dataSchema() {
-        return "io.github.smiskinext.event.tenant.v1.TenantInstalled";
+        return "io.github.smiskinext.event.tenant.v1.TenantUninstalled";
     }
 
     @Override
-    public Message toProto(TenantInstalledEvent event) {
-        TenantInstalled.Builder builder = TenantInstalled.newBuilder()
+    public Message toProto(TenantUninstalledEvent event) {
+        TenantUninstalled.Builder builder = TenantUninstalled.newBuilder()
                 .setCloudId(event.aggregateId())
                 .setInstallationId(event.installationId())
                 .setAppId(event.appId())
-                .setInstalledAt(event.installedAt().toString())
+                .setUninstalledAt(event.uninstalledAt().toString())
+                .setPurgeAfter(event.purgeAfter().toString())
                 .setStatus(event.status().name())
+                .setInstalledAt(event.installedAt().toString())
                 .setUpdatedAt(event.updatedAt().toString());
 
         if (event.appVersion() != null) {
@@ -42,12 +45,6 @@ public class TenantEventProtoMapper implements OutboxEventProtoMapper<TenantInst
         }
         if (event.installerAccountId() != null) {
             builder.setInstallerAccountId(event.installerAccountId());
-        }
-        if (event.uninstalledAt() != null) {
-            builder.setUninstalledAt(event.uninstalledAt().toString());
-        }
-        if (event.purgeAfter() != null) {
-            builder.setPurgeAfter(event.purgeAfter().toString());
         }
         return builder.build();
     }

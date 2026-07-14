@@ -4,7 +4,7 @@ import io.github.smiskinext.tenant.domain.model.TenantStatus;
 import java.time.Instant;
 import org.jspecify.annotations.Nullable;
 
-public record RegisterTenantResult(
+public record UninstallTenantResult(
         String tenantId,
         String installationId,
         String appId,
@@ -16,5 +16,4 @@ public record RegisterTenantResult(
         Instant installedAt,
         Instant updatedAt,
         @Nullable Instant uninstalledAt,
-        @Nullable Instant purgeAfter,
-        boolean created) {}
+        @Nullable Instant purgeAfter) {}

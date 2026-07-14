@@ -11,4 +11,11 @@ public sealed interface TenantError extends DomainError {
             return TenantErrorCode.MISSING_TENANT_CONTEXT;
         }
     }
+
+    record TenantNotFound(String cloudId) implements TenantError {
+        @Override
+        public ErrorCode errorCode() {
+            return TenantErrorCode.TENANT_NOT_FOUND;
+        }
+    }
 }

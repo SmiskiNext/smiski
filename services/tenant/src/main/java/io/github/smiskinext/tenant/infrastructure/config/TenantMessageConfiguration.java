@@ -4,12 +4,14 @@ import io.github.smiskinext.shared.infrastructure.web.MessageBundleContributor;
 
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication.Type;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.annotation.EnableScheduling;
 
 @Configuration
 @EnableScheduling
+@EnableConfigurationProperties(TenantRetentionProperties.class)
 @ConditionalOnWebApplication(type = Type.SERVLET)
 public class TenantMessageConfiguration {
 
