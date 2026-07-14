@@ -10,6 +10,9 @@ paths:
     post:
       tags:
       - tenant-controller
+      summary: Register a tenant
+      description: "Registers a new tenant installation or acknowledges a reinstall/redelivery.\
+        \ Returns 201 on first install with a Location header, 200 on reinstall."
       operationId: register
       requestBody:
         content:
@@ -18,50 +21,272 @@ paths:
               $ref: "#/components/schemas/RegisterTenantRequest"
         required: true
       responses:
-        "200":
-          description: OK
-          content:
-            '*/*':
+        "201":
+          description: Tenant registered (first install)
+          headers:
+            Location:
+              description: URI of the newly created tenant resource
+              style: simple
               schema:
-                type: object
+                type: string
+                format: uri
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TenantResponse"
+              examples:
+                created:
+                  description: created
+                  value:
+                    tenantId: cloud-abc-123
+                    installationId: install-xyz-456
+                    appId: app-1
+                    status: ACTIVE
+                    environmentType: PRODUCTION
+                    installedAt: 2025-01-15T10:30:00Z
+        "200":
+          description: Tenant already exists (reinstall/redelivery)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TenantResponse"
+              examples:
+                reinstall:
+                  description: reinstall
+                  value:
+                    tenantId: cloud-abc-123
+                    installationId: install-new-789
+                    appId: app-1
+                    status: ACTIVE
+                    environmentType: PRODUCTION
+                    installedAt: 2025-01-15T10:30:00Z
+        "400":
+          description: Bad Request
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+              examples:
+                validationError:
+                  summary: Validation failure
+                  description: validationError
+                  value:
+                    type: about:blank
+                    title: Bad Request
+                    status: 400
+                    detail: The request body failed validation
+                    code: VALIDATION_ERROR
+                    traceId: 6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a
+                    errors:
+                    - field: id
+                      code: REQUIRED
+                      message: must not be blank
+                malformedRequest:
+                  summary: Malformed JSON body
+                  description: malformedRequest
+                  value:
+                    type: about:blank
+                    title: Bad Request
+                    status: 400
+                    detail: The request body could not be read
+                    code: MALFORMED_REQUEST
+                    traceId: 6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a
+                missingTenantContext:
+                  summary: Missing X-Tenant-ID header
+                  description: missingTenantContext
+                  value:
+                    type: about:blank
+                    title: Bad Request
+                    status: 400
+                    detail: Tenant context is required but was not provided
+                    code: MISSING_TENANT_CONTEXT
+                    traceId: 6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a
+        "405":
+          description: Method Not Allowed
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "415":
+          description: Unsupported Media Type
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "500":
+          description: Internal Server Error
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
 components:
   schemas:
     App:
       type: object
+      description: Application metadata for the installation
       properties:
         id:
           type: string
+          description: Unique application identifier
+          example: app-1
           minLength: 1
         version:
           type: string
+          description: Application version
+          example: 1.0.0
         name:
-          type: string
+          type:
+          - string
+          - "null"
+          description: Human-readable application name
+          example: My App
         ownerAccountId:
-          type: string
+          type:
+          - string
+          - "null"
+          description: Account ID of the application owner
+          example: owner-abc-123
       required:
       - id
       - version
     Environment:
       type: object
+      description: Environment context for the installation
       properties:
         id:
-          type: string
+          type:
+          - string
+          - "null"
+          description: Environment identifier
+          example: env-prod-1
     RegisterTenantRequest:
       type: object
+      description: Request body for registering a tenant installation
       properties:
         id:
           type: string
+          description: Unique installation identifier
+          example: install-xyz-456
           minLength: 1
         installerAccountId:
-          type: string
+          type:
+          - string
+          - "null"
+          description: Account ID of the user who installed the app
+          example: account-abc-123
         app:
           $ref: "#/components/schemas/App"
         environment:
+          type: "null"
           $ref: "#/components/schemas/Environment"
         environmentType:
-          type: string
+          type:
+          - string
+          - "null"
+          description: Target environment type. Case-insensitive. Defaults to PRODUCTION
+            when absent or blank.
+          example: PRODUCTION
         siteUrl:
-          type: string
+          type:
+          - string
+          - "null"
+          description: Base URL of the Atlassian site
+          example: https://mysite.atlassian.net
       required:
       - app
       - id
+    TenantResponse:
+      type: object
+      description: Tenant registration result
+      properties:
+        tenantId:
+          type: string
+          description: Unique tenant identifier (cloud ID)
+          example: cloud-abc-123
+        installationId:
+          type: string
+          description: Installation identifier
+          example: install-xyz-456
+        appId:
+          type: string
+          description: Application identifier
+          example: app-1
+        status:
+          type: string
+          description: Current tenant status
+          enum:
+          - ACTIVE
+          - SUSPENDED
+          - UNINSTALLED
+          example: ACTIVE
+        environmentType:
+          type: string
+          description: Deployment environment type
+          enum:
+          - DEVELOPMENT
+          - STAGING
+          - PRODUCTION
+          example: PRODUCTION
+        installedAt:
+          type: string
+          format: date-time
+          description: Timestamp of initial installation
+          example: 2025-01-15T10:30:00Z
+    Violation:
+      type: object
+      description: Field-level validation error
+      properties:
+        field:
+          type: string
+          description: Request field that failed validation
+          example: app.id
+        code:
+          type: string
+          description: Machine-readable violation category
+          enum:
+          - REQUIRED
+          - INVALID_FORMAT
+          - TOO_SHORT
+          - TOO_LONG
+          - INVALID_VALUE
+          example: REQUIRED
+        message:
+          type:
+          - string
+          - "null"
+          description: Server-localized human-readable message
+          example: must not be blank
+    ProblemDetail:
+      type: object
+      description: RFC 9457 Problem Details response body
+      properties:
+        type:
+          type: string
+          description: URI reference identifying the problem type
+          example: about:blank
+        title:
+          type: string
+          description: Short human-readable summary of the problem
+          example: Bad Request
+        status:
+          type: integer
+          format: int32
+          description: HTTP status code
+          example: 400
+        detail:
+          type: string
+          description: Human-readable explanation specific to this occurrence
+          example: The request body failed validation
+        code:
+          type: string
+          description: Machine-readable error code
+          example: VALIDATION_ERROR
+        traceId:
+          type: string
+          description: Distributed trace identifier for correlation
+          example: 6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a
+        errors:
+          type: array
+          description: Field-level validation errors (present when code is VALIDATION_ERROR)
+          items:
+            $ref: "#/components/schemas/Violation"
