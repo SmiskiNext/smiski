@@ -1,11 +1,11 @@
 package io.github.smiskinext.meet.domain.model;
 
 /**
- * Lifecycle status of a per-invitee meeting invite token.
+ * Lifecycle status of the single invite token carried inline on a {@link MeetingInvitee}.
  *
  * <p>Valid transitions: {@code PENDING → USED}, {@code PENDING → REVOKED}.
- * Tokens in {@code EXPIRED} status are those past their {@code expiresAt} timestamp;
- * the system does not write EXPIRED directly — it is a logical state derived during validation.
+ * The {@code EXPIRED} status is a logical state derived from the token's expiry timestamp
+ * during validation; it is never persisted directly.
  */
 public enum InviteTokenStatus {
     PENDING,
