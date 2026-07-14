@@ -99,12 +99,6 @@ paths:
                     detail: Tenant context is required but was not provided
                     code: MISSING_TENANT_CONTEXT
                     traceId: 6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a
-        "405":
-          description: Method Not Allowed
-          content:
-            application/problem+json:
-              schema:
-                $ref: "#/components/schemas/ProblemDetail"
         "500":
           description: Internal Server Error
           content:
@@ -113,6 +107,89 @@ paths:
                 $ref: "#/components/schemas/ProblemDetail"
         "415":
           description: Unsupported Media Type
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "405":
+          description: Method Not Allowed
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+    delete:
+      tags:
+      - tenant-controller
+      summary: Uninstall a tenant
+      description: Records a Forge app uninstall. Marks the tenant as UNINSTALLED
+        and schedules purge. Idempotent for already-uninstalled tenants.
+      operationId: uninstall
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UninstallTenantRequest"
+      responses:
+        "200":
+          description: Tenant uninstalled (or already uninstalled)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UninstallTenantResponse"
+              examples:
+                uninstalled:
+                  description: uninstalled
+                  value:
+                    tenantId: cloud-abc-123
+                    status: UNINSTALLED
+                    uninstalledAt: 2025-06-15T10:30:00Z
+                    purgeAfter: 2025-07-15T10:30:00Z
+        "400":
+          description: Missing tenant context
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+              examples:
+                missingTenantContext:
+                  description: missingTenantContext
+                  value:
+                    type: about:blank
+                    title: Bad Request
+                    status: 400
+                    detail: Tenant context is required but was not provided
+                    code: MISSING_TENANT_CONTEXT
+                    traceId: 6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a
+        "404":
+          description: Tenant not found
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+              examples:
+                notFound:
+                  description: notFound
+                  value:
+                    type: about:blank
+                    title: Tenant Not Found
+                    status: 404
+                    detail: No tenant exists for the given cloud ID
+                    code: TENANT_NOT_FOUND
+                    traceId: 6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a
+        "500":
+          description: Internal Server Error
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "415":
+          description: Unsupported Media Type
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "405":
+          description: Method Not Allowed
           content:
             application/problem+json:
               schema:
@@ -273,3 +350,41 @@ components:
           description: Field-level validation errors (present when code is VALIDATION_ERROR)
           items:
             $ref: "#/components/schemas/Violation"
+    UninstallTenantRequest:
+      type: object
+      description: Forge preUninstall life-cycle event payload
+      properties:
+        id:
+          type: string
+          description: Installation identifier
+          example: install-xyz-456
+        app:
+          type: "null"
+          $ref: "#/components/schemas/App"
+          description: Application metadata
+    UninstallTenantResponse:
+      type: object
+      description: Tenant uninstall result
+      properties:
+        tenantId:
+          type: string
+          description: Unique tenant identifier (cloud ID)
+          example: cloud-abc-123
+        status:
+          type: string
+          description: Current tenant status
+          enum:
+          - ACTIVE
+          - SUSPENDED
+          - UNINSTALLED
+          example: UNINSTALLED
+        uninstalledAt:
+          type: string
+          format: date-time
+          description: Timestamp when the tenant was uninstalled
+          example: 2025-06-15T10:30:00Z
+        purgeAfter:
+          type: string
+          format: date-time
+          description: Timestamp after which tenant data may be purged
+          example: 2025-07-15T10:30:00Z

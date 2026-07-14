@@ -54,6 +54,9 @@ smiski:
             batch-size: 50
         cloudevent:
             source: tenant-service
+    tenant:
+        retention:
+            purge-after: P30D
 
 springdoc:
     api-docs:
