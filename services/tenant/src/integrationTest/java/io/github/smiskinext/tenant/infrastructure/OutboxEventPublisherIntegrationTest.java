@@ -8,6 +8,7 @@ import io.github.smiskinext.shared.infrastructure.tenancy.TenantContext;
 import io.github.smiskinext.tenant.config.TestcontainersConfiguration;
 import io.github.smiskinext.tenant.domain.event.TenantInstalledEvent;
 import io.github.smiskinext.tenant.domain.event.TenantUninstalledEvent;
+import io.github.smiskinext.tenant.domain.model.TenantStatus;
 import io.github.smiskinext.tenant.infrastructure.messaging.OutboxEventPublisher;
 import io.github.smiskinext.tenant.infrastructure.persistence.OutboxEventJpaEntity;
 import io.github.smiskinext.tenant.infrastructure.persistence.OutboxEventJpaRepository;
@@ -60,7 +61,11 @@ class OutboxEventPublisherIntegrationTest {
                 null,
                 null,
                 null,
-                Instant.now());
+                Instant.now(),
+                TenantStatus.ACTIVE,
+                Instant.now(),
+                null,
+                null);
 
         outboxEventPublisher.publish(event);
 
@@ -85,7 +90,11 @@ class OutboxEventPublisherIntegrationTest {
                 null,
                 null,
                 null,
-                Instant.now());
+                Instant.now(),
+                TenantStatus.ACTIVE,
+                Instant.now(),
+                null,
+                null);
 
         outboxEventPublisher.publish(event);
 
@@ -164,7 +173,14 @@ class OutboxEventPublisherIntegrationTest {
                 "install-1",
                 "app-1",
                 uninstalledAt,
-                purgeAfter);
+                purgeAfter,
+                null,
+                null,
+                null,
+                null,
+                TenantStatus.UNINSTALLED,
+                Instant.now(),
+                Instant.now());
 
         outboxEventPublisher.publish(event);
 
@@ -190,7 +206,14 @@ class OutboxEventPublisherIntegrationTest {
                 "install-1",
                 "app-1",
                 uninstalledAt,
-                purgeAfter);
+                purgeAfter,
+                null,
+                null,
+                null,
+                null,
+                TenantStatus.UNINSTALLED,
+                Instant.now(),
+                Instant.now());
 
         outboxEventPublisher.publish(event);
 

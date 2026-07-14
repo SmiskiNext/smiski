@@ -27,7 +27,9 @@ public class TenantEventProtoMapper implements OutboxEventProtoMapper<TenantInst
                 .setCloudId(event.aggregateId())
                 .setInstallationId(event.installationId())
                 .setAppId(event.appId())
-                .setInstalledAt(event.installedAt().toString());
+                .setInstalledAt(event.installedAt().toString())
+                .setStatus(event.status().name())
+                .setUpdatedAt(event.updatedAt().toString());
 
         if (event.appVersion() != null) {
             builder.setAppVersion(event.appVersion());
@@ -40,6 +42,12 @@ public class TenantEventProtoMapper implements OutboxEventProtoMapper<TenantInst
         }
         if (event.installerAccountId() != null) {
             builder.setInstallerAccountId(event.installerAccountId());
+        }
+        if (event.uninstalledAt() != null) {
+            builder.setUninstalledAt(event.uninstalledAt().toString());
+        }
+        if (event.purgeAfter() != null) {
+            builder.setPurgeAfter(event.purgeAfter().toString());
         }
         return builder.build();
     }

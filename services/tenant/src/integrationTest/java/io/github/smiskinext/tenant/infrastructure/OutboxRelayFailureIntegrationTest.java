@@ -12,6 +12,7 @@ import io.github.smiskinext.shared.infrastructure.outbox.OutboxTransport;
 import io.github.smiskinext.shared.infrastructure.tenancy.TenantContext;
 import io.github.smiskinext.tenant.config.TestcontainersConfiguration;
 import io.github.smiskinext.tenant.domain.event.TenantInstalledEvent;
+import io.github.smiskinext.tenant.domain.model.TenantStatus;
 import io.github.smiskinext.tenant.infrastructure.messaging.OutboxEventPublisher;
 import io.github.smiskinext.tenant.infrastructure.persistence.OutboxEventJpaEntity;
 import io.github.smiskinext.tenant.infrastructure.persistence.OutboxEventJpaRepository;
@@ -71,7 +72,11 @@ class OutboxRelayFailureIntegrationTest {
                 null,
                 null,
                 null,
-                Instant.now());
+                Instant.now(),
+                TenantStatus.ACTIVE,
+                Instant.now(),
+                null,
+                null);
 
         outboxEventPublisher.publish(event);
         TenantContext.clear();

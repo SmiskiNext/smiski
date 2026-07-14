@@ -76,7 +76,12 @@ class RegisterTenantApplicationServiceTest {
         RegisterTenantResult response =
                 ((Result.Success<RegisterTenantResult, TenantError>) result).value();
         assertThat(response.tenantId()).isEqualTo("cloud-abc");
+        assertThat(response.installationId()).isEqualTo("install-1");
+        assertThat(response.appId()).isEqualTo("app-1");
+        assertThat(response.appVersion()).isEqualTo("1.0.0");
         assertThat(response.status()).isEqualTo(TenantStatus.ACTIVE);
+        assertThat(response.installedAt()).isNotNull();
+        assertThat(response.updatedAt()).isNotNull();
         assertThat(response.created()).isTrue();
 
         ArgumentCaptor<PublishableEvent> eventCaptor =
@@ -112,6 +117,7 @@ class RegisterTenantApplicationServiceTest {
         RegisterTenantResult response =
                 ((Result.Success<RegisterTenantResult, TenantError>) result).value();
         assertThat(response.installationId()).isEqualTo("new-install");
+        assertThat(response.appVersion()).isEqualTo("2.0.0");
         assertThat(response.created()).isFalse();
 
         verify(eventPublisher, times(1)).publish(any());

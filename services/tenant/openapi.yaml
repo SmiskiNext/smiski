@@ -38,11 +38,17 @@ paths:
                 created:
                   description: created
                   value:
-                    tenantId: cloud-abc-123
                     installationId: install-xyz-456
                     appId: app-1
+                    appVersion: 1.0.0
+                    environmentId: env-1
+                    siteUrl: https://example.atlassian.net
+                    installerAccountId: installer-1
                     status: ACTIVE
                     installedAt: 2025-01-15T10:30:00Z
+                    updatedAt: 2025-01-15T10:30:00Z
+                    uninstalledAt: null
+                    purgeAfter: null
         "200":
           description: Tenant already exists (reinstall/redelivery)
           content:
@@ -53,11 +59,17 @@ paths:
                 reinstall:
                   description: reinstall
                   value:
-                    tenantId: cloud-abc-123
                     installationId: install-new-789
                     appId: app-1
+                    appVersion: 2.0.0
+                    environmentId: null
+                    siteUrl: null
+                    installerAccountId: null
                     status: ACTIVE
                     installedAt: 2025-01-15T10:30:00Z
+                    updatedAt: 2025-06-15T10:30:00Z
+                    uninstalledAt: null
+                    purgeAfter: null
         "400":
           description: Bad Request
           content:
@@ -99,8 +111,8 @@ paths:
                     detail: Tenant context is required but was not provided
                     code: MISSING_TENANT_CONTEXT
                     traceId: 6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a
-        "500":
-          description: Internal Server Error
+        "405":
+          description: Method Not Allowed
           content:
             application/problem+json:
               schema:
@@ -111,8 +123,8 @@ paths:
             application/problem+json:
               schema:
                 $ref: "#/components/schemas/ProblemDetail"
-        "405":
-          description: Method Not Allowed
+        "500":
+          description: Internal Server Error
           content:
             application/problem+json:
               schema:
@@ -140,8 +152,15 @@ paths:
                 uninstalled:
                   description: uninstalled
                   value:
-                    tenantId: cloud-abc-123
+                    installationId: install-xyz-456
+                    appId: app-1
+                    appVersion: 1.0.0
+                    environmentId: null
+                    siteUrl: null
+                    installerAccountId: null
                     status: UNINSTALLED
+                    installedAt: 2025-01-15T10:30:00Z
+                    updatedAt: 2025-06-15T10:30:00Z
                     uninstalledAt: 2025-06-15T10:30:00Z
                     purgeAfter: 2025-07-15T10:30:00Z
         "400":
@@ -176,8 +195,8 @@ paths:
                     detail: No tenant exists for the given cloud ID
                     code: TENANT_NOT_FOUND
                     traceId: 6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a
-        "500":
-          description: Internal Server Error
+        "405":
+          description: Method Not Allowed
           content:
             application/problem+json:
               schema:
@@ -188,8 +207,8 @@ paths:
             application/problem+json:
               schema:
                 $ref: "#/components/schemas/ProblemDetail"
-        "405":
-          description: Method Not Allowed
+        "500":
+          description: Internal Server Error
           content:
             application/problem+json:
               schema:
@@ -267,10 +286,6 @@ components:
       type: object
       description: Tenant registration result
       properties:
-        tenantId:
-          type: string
-          description: Unique tenant identifier (cloud ID)
-          example: cloud-abc-123
         installationId:
           type: string
           description: Installation identifier
@@ -279,6 +294,22 @@ components:
           type: string
           description: Application identifier
           example: app-1
+        appVersion:
+          type: string
+          description: Application version
+          example: 1.0.0
+        environmentId:
+          type: string
+          description: Environment identifier
+          example: env-1
+        siteUrl:
+          type: string
+          description: Atlassian site URL
+          example: https://example.atlassian.net
+        installerAccountId:
+          type: string
+          description: Account ID of the installer
+          example: installer-1
         status:
           type: string
           description: Current tenant status
@@ -292,6 +323,21 @@ components:
           format: date-time
           description: Timestamp of initial installation
           example: 2025-01-15T10:30:00Z
+        updatedAt:
+          type: string
+          format: date-time
+          description: Timestamp of last update
+          example: 2025-01-15T10:30:00Z
+        uninstalledAt:
+          type: string
+          format: date-time
+          description: Timestamp when the tenant was uninstalled
+          example: 2025-06-15T10:30:00Z
+        purgeAfter:
+          type: string
+          format: date-time
+          description: Timestamp after which tenant data may be purged
+          example: 2025-07-15T10:30:00Z
     Violation:
       type: object
       description: Field-level validation error
@@ -366,10 +412,30 @@ components:
       type: object
       description: Tenant uninstall result
       properties:
-        tenantId:
+        installationId:
           type: string
-          description: Unique tenant identifier (cloud ID)
-          example: cloud-abc-123
+          description: Installation identifier
+          example: install-xyz-456
+        appId:
+          type: string
+          description: Application identifier
+          example: app-1
+        appVersion:
+          type: string
+          description: Application version
+          example: 1.0.0
+        environmentId:
+          type: string
+          description: Environment identifier
+          example: env-1
+        siteUrl:
+          type: string
+          description: Atlassian site URL
+          example: https://example.atlassian.net
+        installerAccountId:
+          type: string
+          description: Account ID of the installer
+          example: installer-1
         status:
           type: string
           description: Current tenant status
@@ -378,6 +444,16 @@ components:
           - SUSPENDED
           - UNINSTALLED
           example: UNINSTALLED
+        installedAt:
+          type: string
+          format: date-time
+          description: Timestamp of initial installation
+          example: 2025-01-15T10:30:00Z
+        updatedAt:
+          type: string
+          format: date-time
+          description: Timestamp of last update
+          example: 2025-06-15T10:30:00Z
         uninstalledAt:
           type: string
           format: date-time
