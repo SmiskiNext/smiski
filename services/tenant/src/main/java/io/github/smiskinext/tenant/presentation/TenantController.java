@@ -61,7 +61,6 @@ public class TenantController {
                           "installationId": "install-xyz-456",
                           "appId": "app-1",
                           "status": "ACTIVE",
-                          "environmentType": "PRODUCTION",
                           "installedAt": "2025-01-15T10:30:00Z"
                         }"""))),
         @ApiResponse(
@@ -77,7 +76,6 @@ public class TenantController {
                           "installationId": "install-new-789",
                           "appId": "app-1",
                           "status": "ACTIVE",
-                          "environmentType": "PRODUCTION",
                           "installedAt": "2025-01-15T10:30:00Z"
                         }"""))),
         @ApiResponse(

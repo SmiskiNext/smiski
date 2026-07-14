@@ -69,7 +69,6 @@ class OutboxRelayFailureIntegrationTest {
                 "app-fail",
                 "1.0.0",
                 null,
-                "PRODUCTION",
                 null,
                 null,
                 Instant.now());

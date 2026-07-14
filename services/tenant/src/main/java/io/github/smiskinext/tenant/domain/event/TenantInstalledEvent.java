@@ -11,7 +11,6 @@ public record TenantInstalledEvent(
         String appId,
         @Nullable String appVersion,
         @Nullable String environmentId,
-        String environmentType,
         @Nullable String siteUrl,
         @Nullable String installerAccountId,
         Instant installedAt)

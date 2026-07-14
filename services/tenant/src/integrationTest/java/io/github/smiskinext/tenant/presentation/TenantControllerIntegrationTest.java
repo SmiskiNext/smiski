@@ -33,8 +33,7 @@ class TenantControllerIntegrationTest {
                         "id": "app-1",
                         "version": "1.0.0",
                         "name": "My App"
-                    },
-                    "environmentType": "PRODUCTION"
+                    }
                 }
                 """;
 
@@ -150,69 +149,5 @@ class TenantControllerIntegrationTest {
                 .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"))
                 .andExpect(jsonPath("$.errors[?(@.field == 'app.id' && @.code == 'REQUIRED')]")
                         .exists());
-    }
-
-    @Test
-    void invalid_environment_type_returns_validation_error() throws Exception {
-        String body = """
-                {
-                    "id": "install-env-invalid",
-                    "app": {
-                        "id": "app-1",
-                        "version": "1.0.0"
-                    },
-                    "environmentType": "INVALID_VALUE"
-                }
-                """;
-
-        mockMvc.perform(post("/api/1/tenants")
-                        .header("X-Tenant-ID", "cloud-env-invalid")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(body))
-                .andExpect(status().isBadRequest())
-                .andExpect(content().contentTypeCompatibleWith("application/problem+json"))
-                .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"))
-                .andExpect(jsonPath("$.errors[?(@.field == 'environmentType')]").exists());
-    }
-
-    @Test
-    void blank_environment_type_defaults_to_production() throws Exception {
-        String body = """
-                {
-                    "id": "install-env-blank",
-                    "app": {
-                        "id": "app-1",
-                        "version": "1.0.0"
-                    },
-                    "environmentType": ""
-                }
-                """;
-
-        mockMvc.perform(post("/api/1/tenants")
-                        .header("X-Tenant-ID", "cloud-env-blank")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(body))
-                .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.environmentType").value("PRODUCTION"));
-    }
-
-    @Test
-    void omitted_environment_type_defaults_to_production() throws Exception {
-        String body = """
-                {
-                    "id": "install-env-omit",
-                    "app": {
-                        "id": "app-1",
-                        "version": "1.0.0"
-                    }
-                }
-                """;
-
-        mockMvc.perform(post("/api/1/tenants")
-                        .header("X-Tenant-ID", "cloud-env-omit")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(body))
-                .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.environmentType").value("PRODUCTION"));
     }
 }

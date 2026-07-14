@@ -57,7 +57,6 @@ class OutboxEventPublisherIntegrationTest {
                 "app-1",
                 "1.0.0",
                 null,
-                "PRODUCTION",
                 null,
                 null,
                 Instant.now());
@@ -83,7 +82,6 @@ class OutboxEventPublisherIntegrationTest {
                 "app-1",
                 "1.0.0",
                 null,
-                "PRODUCTION",
                 null,
                 null,
                 Instant.now());

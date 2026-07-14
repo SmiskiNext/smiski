@@ -11,7 +11,6 @@ import io.github.smiskinext.tenant.application.response.TenantResponse;
 import io.github.smiskinext.tenant.application.service.RegisterTenantApplicationService;
 import io.github.smiskinext.tenant.domain.TenantError;
 import io.github.smiskinext.tenant.domain.event.PublishableEvent;
-import io.github.smiskinext.tenant.domain.model.EnvironmentType;
 import io.github.smiskinext.tenant.domain.model.Tenant;
 import io.github.smiskinext.tenant.domain.model.TenantStatus;
 import io.github.smiskinext.tenant.domain.model.valueobject.AppId;
@@ -52,14 +51,7 @@ class RegisterTenantApplicationServiceTest {
     @Test
     void rejects_default_tenant_context() {
         RegisterTenantCommand command = new RegisterTenantCommand(
-                TenantContext.DEFAULT_TENANT,
-                "install-1",
-                "app-1",
-                "1.0.0",
-                null,
-                EnvironmentType.PRODUCTION,
-                null,
-                null);
+                TenantContext.DEFAULT_TENANT, "install-1", "app-1", "1.0.0", null, null, null);
 
         Result<TenantResponse, TenantError> result = service.execute(command);
 
@@ -76,14 +68,7 @@ class RegisterTenantApplicationServiceTest {
         when(tenantRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
         RegisterTenantCommand command = new RegisterTenantCommand(
-                "cloud-abc",
-                "install-1",
-                "app-1",
-                "1.0.0",
-                null,
-                EnvironmentType.PRODUCTION,
-                null,
-                null);
+                "cloud-abc", "install-1", "app-1", "1.0.0", null, null, null);
 
         Result<TenantResponse, TenantError> result = service.execute(command);
 
@@ -107,7 +92,6 @@ class RegisterTenantApplicationServiceTest {
                 new AppId("app-1"),
                 "1.0.0",
                 null,
-                EnvironmentType.PRODUCTION,
                 null,
                 null,
                 TenantStatus.ACTIVE,
@@ -119,14 +103,7 @@ class RegisterTenantApplicationServiceTest {
         when(tenantRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
         RegisterTenantCommand command = new RegisterTenantCommand(
-                "cloud-abc",
-                "new-install",
-                "app-1",
-                "2.0.0",
-                null,
-                EnvironmentType.PRODUCTION,
-                null,
-                null);
+                "cloud-abc", "new-install", "app-1", "2.0.0", null, null, null);
 
         Result<TenantResponse, TenantError> result = service.execute(command);
 

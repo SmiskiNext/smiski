@@ -13,7 +13,6 @@ public final class TenantResponseMapper {
                 tenant.getInstallationId().value(),
                 tenant.getAppId().value(),
                 tenant.getStatus(),
-                tenant.getEnvironmentType(),
                 tenant.getInstalledAt(),
                 created);
     }

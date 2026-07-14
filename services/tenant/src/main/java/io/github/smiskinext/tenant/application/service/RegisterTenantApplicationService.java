@@ -49,7 +49,6 @@ public class RegisterTenantApplicationService implements RegisterTenantUseCase {
                     new AppId(command.appId()),
                     command.appVersion(),
                     command.environmentId(),
-                    command.environmentType(),
                     command.siteUrl(),
                     command.installerAccountId());
         } else {
@@ -59,7 +58,6 @@ public class RegisterTenantApplicationService implements RegisterTenantUseCase {
                     new AppId(command.appId()),
                     command.appVersion(),
                     command.environmentId(),
-                    command.environmentType(),
                     command.siteUrl(),
                     command.installerAccountId());
         }

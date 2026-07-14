@@ -6,12 +6,14 @@ option java_multiple_files = true;
 option java_package = "io.github.smiskinext.event.tenant.v1";
 
 message TenantInstalled {
+  reserved 6;
+  reserved "environment_type";
+
   string cloud_id = 1;
   string installation_id = 2;
   string app_id = 3;
   string app_version = 4;
   string environment_id = 5;
-  string environment_type = 6;
   string site_url = 7;
   string installer_account_id = 8;
   string installed_at = 9;

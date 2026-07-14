@@ -1,6 +1,5 @@
 package io.github.smiskinext.tenant.infrastructure.persistence;
 
-import io.github.smiskinext.tenant.domain.model.EnvironmentType;
 import io.github.smiskinext.tenant.domain.model.Tenant;
 import io.github.smiskinext.tenant.domain.model.TenantStatus;
 import io.github.smiskinext.tenant.domain.model.valueobject.AppId;
@@ -17,7 +16,6 @@ final class TenantPersistenceMapper {
                 new AppId(entity.getAppId()),
                 entity.getAppVersion(),
                 entity.getEnvironmentId(),
-                EnvironmentType.valueOf(entity.getEnvironmentType()),
                 entity.getSiteUrl(),
                 entity.getInstallerAccountId(),
                 TenantStatus.valueOf(entity.getStatus()),
@@ -32,7 +30,6 @@ final class TenantPersistenceMapper {
                 tenant.getCloudId(),
                 tenant.getInstallationId().value(),
                 tenant.getAppId().value(),
-                tenant.getEnvironmentType().name(),
                 tenant.getEnvironmentId(),
                 tenant.getSiteUrl(),
                 tenant.getInstallerAccountId(),
@@ -48,7 +45,6 @@ final class TenantPersistenceMapper {
         entity.setInstallationId(tenant.getInstallationId().value());
         entity.setAppId(tenant.getAppId().value());
         entity.setAppVersion(tenant.getAppVersion());
-        entity.setEnvironmentType(tenant.getEnvironmentType().name());
         entity.setEnvironmentId(tenant.getEnvironmentId());
         entity.setSiteUrl(tenant.getSiteUrl());
         entity.setInstallerAccountId(tenant.getInstallerAccountId());

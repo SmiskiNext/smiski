@@ -35,7 +35,6 @@ class TenantEventProtoMapperTest {
                 "app-1",
                 "1.0.0",
                 "env-1",
-                "PRODUCTION",
                 "https://example.atlassian.net",
                 "installer-1",
                 now);
@@ -49,7 +48,6 @@ class TenantEventProtoMapperTest {
         assertThat(proto.getAppId()).isEqualTo("app-1");
         assertThat(proto.getAppVersion()).isEqualTo("1.0.0");
         assertThat(proto.getEnvironmentId()).isEqualTo("env-1");
-        assertThat(proto.getEnvironmentType()).isEqualTo("PRODUCTION");
         assertThat(proto.getSiteUrl()).isEqualTo("https://example.atlassian.net");
         assertThat(proto.getInstallerAccountId()).isEqualTo("installer-1");
         assertThat(proto.getInstalledAt()).isEqualTo(now.toString());
@@ -64,7 +62,6 @@ class TenantEventProtoMapperTest {
                 "app-1",
                 null,
                 null,
-                "PRODUCTION",
                 null,
                 null,
                 Instant.now());

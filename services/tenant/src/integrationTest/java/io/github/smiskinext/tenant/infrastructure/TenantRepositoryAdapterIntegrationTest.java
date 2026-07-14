@@ -5,7 +5,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import io.github.smiskinext.shared.infrastructure.tenancy.TenantContext;
 import io.github.smiskinext.tenant.config.TestcontainersConfiguration;
 import io.github.smiskinext.tenant.domain.event.PublishableEvent;
-import io.github.smiskinext.tenant.domain.model.EnvironmentType;
 import io.github.smiskinext.tenant.domain.model.Tenant;
 import io.github.smiskinext.tenant.domain.model.TenantStatus;
 import io.github.smiskinext.tenant.domain.model.valueobject.AppId;
@@ -67,7 +66,6 @@ class TenantRepositoryAdapterIntegrationTest {
                 new AppId("app-1"),
                 "1.0.0",
                 null,
-                EnvironmentType.PRODUCTION,
                 null,
                 null);
 
@@ -107,7 +105,6 @@ class TenantRepositoryAdapterIntegrationTest {
                         new AppId("app-rb"),
                         "1.0.0",
                         null,
-                        EnvironmentType.PRODUCTION,
                         null,
                         null);
 

@@ -1,8 +1,6 @@
 package io.github.smiskinext.tenant.presentation.request;
 
 import io.github.smiskinext.tenant.application.command.RegisterTenantCommand;
-import io.github.smiskinext.tenant.domain.model.EnvironmentType;
-import io.github.smiskinext.tenant.presentation.validation.ValidEnum;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 import jakarta.validation.Valid;
@@ -24,14 +22,6 @@ public record RegisterTenantRequest(
 
         @NotNull @Valid App app,
         @Schema(nullable = true) @Nullable Environment environment,
-
-        @Schema(
-                description = "Target environment type. Case-insensitive. Defaults to PRODUCTION"
-                        + " when absent or blank.",
-                example = "PRODUCTION",
-                nullable = true)
-        @ValidEnum(EnvironmentType.class)
-        @Nullable String environmentType,
 
         @Schema(
                 description = "Base URL of the Atlassian site",
@@ -63,16 +53,8 @@ public record RegisterTenantRequest(
             @Nullable String id) {}
 
     public RegisterTenantCommand toCommand(String cloudId) {
-        EnvironmentType envType = resolveEnvironmentType();
         String envId = environment != null ? environment.id() : null;
         return new RegisterTenantCommand(
-                cloudId, id, app.id(), app.version(), envId, envType, siteUrl, installerAccountId);
-    }
-
-    private EnvironmentType resolveEnvironmentType() {
-        if (environmentType == null || environmentType.isBlank()) {
-            return EnvironmentType.PRODUCTION;
-        }
-        return EnvironmentType.valueOf(environmentType.toUpperCase());
+                cloudId, id, app.id(), app.version(), envId, siteUrl, installerAccountId);
     }
 }

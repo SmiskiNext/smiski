@@ -21,9 +21,6 @@ public class TenantJpaEntity {
     @Column(name = "app_id", nullable = false, length = 255)
     private String appId;
 
-    @Column(name = "environment_type", nullable = false, length = 20)
-    private String environmentType;
-
     @Column(name = "environment_id", length = 255)
     private @Nullable String environmentId;
 
@@ -57,7 +54,6 @@ public class TenantJpaEntity {
             String tenantId,
             String installationId,
             String appId,
-            String environmentType,
             @Nullable String environmentId,
             @Nullable String siteUrl,
             @Nullable String installerAccountId,
@@ -70,7 +66,6 @@ public class TenantJpaEntity {
         this.tenantId = tenantId;
         this.installationId = installationId;
         this.appId = appId;
-        this.environmentType = environmentType;
         this.environmentId = environmentId;
         this.siteUrl = siteUrl;
         this.installerAccountId = installerAccountId;
@@ -100,14 +95,6 @@ public class TenantJpaEntity {
 
     public void setAppId(String appId) {
         this.appId = appId;
-    }
-
-    public String getEnvironmentType() {
-        return environmentType;
-    }
-
-    public void setEnvironmentType(String environmentType) {
-        this.environmentType = environmentType;
     }
 
     public @Nullable String getEnvironmentId() {

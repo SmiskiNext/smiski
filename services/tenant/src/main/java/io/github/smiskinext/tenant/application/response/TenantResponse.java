@@ -2,7 +2,6 @@ package io.github.smiskinext.tenant.application.response;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
-import io.github.smiskinext.tenant.domain.model.EnvironmentType;
 import io.github.smiskinext.tenant.domain.model.TenantStatus;
 import io.swagger.v3.oas.annotations.media.Schema;
 
@@ -21,9 +20,6 @@ public record TenantResponse(
 
         @Schema(description = "Current tenant status", example = "ACTIVE")
         TenantStatus status,
-
-        @Schema(description = "Deployment environment type", example = "PRODUCTION")
-        EnvironmentType environmentType,
 
         @Schema(description = "Timestamp of initial installation", example = "2025-01-15T10:30:00Z")
         Instant installedAt,

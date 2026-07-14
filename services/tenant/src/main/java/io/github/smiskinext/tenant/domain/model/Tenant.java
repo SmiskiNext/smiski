@@ -15,7 +15,6 @@ public class Tenant extends AggregateRoot<String> {
     private AppId appId;
     private @Nullable String appVersion;
     private @Nullable String environmentId;
-    private EnvironmentType environmentType;
     private @Nullable String siteUrl;
     private @Nullable String installerAccountId;
     private TenantStatus status;
@@ -30,7 +29,6 @@ public class Tenant extends AggregateRoot<String> {
             AppId appId,
             @Nullable String appVersion,
             @Nullable String environmentId,
-            EnvironmentType environmentType,
             @Nullable String siteUrl,
             @Nullable String installerAccountId,
             TenantStatus status,
@@ -43,7 +41,6 @@ public class Tenant extends AggregateRoot<String> {
         this.appId = appId;
         this.appVersion = appVersion;
         this.environmentId = environmentId;
-        this.environmentType = environmentType;
         this.siteUrl = siteUrl;
         this.installerAccountId = installerAccountId;
         this.status = status;
@@ -59,7 +56,6 @@ public class Tenant extends AggregateRoot<String> {
             AppId appId,
             @Nullable String appVersion,
             @Nullable String environmentId,
-            EnvironmentType environmentType,
             @Nullable String siteUrl,
             @Nullable String installerAccountId) {
         Instant now = Instant.now();
@@ -69,7 +65,6 @@ public class Tenant extends AggregateRoot<String> {
                 appId,
                 appVersion,
                 environmentId,
-                environmentType,
                 siteUrl,
                 installerAccountId,
                 TenantStatus.ACTIVE,
@@ -86,14 +81,12 @@ public class Tenant extends AggregateRoot<String> {
             AppId appId,
             @Nullable String appVersion,
             @Nullable String environmentId,
-            EnvironmentType environmentType,
             @Nullable String siteUrl,
             @Nullable String installerAccountId) {
         this.installationId = installationId;
         this.appId = appId;
         this.appVersion = appVersion;
         this.environmentId = environmentId;
-        this.environmentType = environmentType;
         this.siteUrl = siteUrl;
         this.installerAccountId = installerAccountId;
         this.status = TenantStatus.ACTIVE;
@@ -107,7 +100,6 @@ public class Tenant extends AggregateRoot<String> {
             AppId appId,
             @Nullable String appVersion,
             @Nullable String environmentId,
-            EnvironmentType environmentType,
             @Nullable String siteUrl,
             @Nullable String installerAccountId,
             TenantStatus status,
@@ -121,7 +113,6 @@ public class Tenant extends AggregateRoot<String> {
                 appId,
                 appVersion,
                 environmentId,
-                environmentType,
                 siteUrl,
                 installerAccountId,
                 status,
@@ -139,7 +130,6 @@ public class Tenant extends AggregateRoot<String> {
                 appId.value(),
                 appVersion,
                 environmentId,
-                environmentType.name(),
                 siteUrl,
                 installerAccountId,
                 installedAt));
@@ -168,10 +158,6 @@ public class Tenant extends AggregateRoot<String> {
 
     public @Nullable String getEnvironmentId() {
         return environmentId;
-    }
-
-    public EnvironmentType getEnvironmentType() {
-        return environmentType;
     }
 
     public @Nullable String getSiteUrl() {

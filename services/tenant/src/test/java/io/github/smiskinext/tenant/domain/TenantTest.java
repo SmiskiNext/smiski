@@ -4,7 +4,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import io.github.smiskinext.shared.domain.DomainEvent;
 import io.github.smiskinext.tenant.domain.event.TenantInstalledEvent;
-import io.github.smiskinext.tenant.domain.model.EnvironmentType;
 import io.github.smiskinext.tenant.domain.model.Tenant;
 import io.github.smiskinext.tenant.domain.model.TenantStatus;
 import io.github.smiskinext.tenant.domain.model.valueobject.AppId;
@@ -23,7 +22,6 @@ class TenantTest {
                 new AppId("app-1"),
                 "1.0.0",
                 "env-1",
-                EnvironmentType.PRODUCTION,
                 "https://example.atlassian.net",
                 "installer-1");
 
@@ -50,7 +48,6 @@ class TenantTest {
                 new AppId("app-1"),
                 "1.0.0",
                 null,
-                EnvironmentType.PRODUCTION,
                 null,
                 null);
         Instant originalInstalledAt = tenant.getInstalledAt();
@@ -63,7 +60,6 @@ class TenantTest {
                 tenant.getAppId(),
                 tenant.getAppVersion(),
                 null,
-                tenant.getEnvironmentType(),
                 null,
                 null,
                 TenantStatus.UNINSTALLED,
@@ -77,7 +73,6 @@ class TenantTest {
                 new AppId("app-2"),
                 "2.0.0",
                 "env-2",
-                EnvironmentType.STAGING,
                 "https://new.atlassian.net",
                 "installer-2");
 

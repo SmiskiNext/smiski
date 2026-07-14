@@ -27,7 +27,6 @@ public class TenantEventProtoMapper implements OutboxEventProtoMapper<TenantInst
                 .setCloudId(event.aggregateId())
                 .setInstallationId(event.installationId())
                 .setAppId(event.appId())
-                .setEnvironmentType(event.environmentType())
                 .setInstalledAt(event.installedAt().toString());
 
         if (event.appVersion() != null) {
