@@ -52,12 +52,12 @@ jobs:
             - name: Coverage verification
               run:
                   ./services/gradlew -p services/${{ matrix.service }}
-                  jacocoTestCoverageVerification
+                  jacocoCoverageVerificationAll
 
             - name: Generate JaCoCo report
               run:
                   ./services/gradlew -p services/${{ matrix.service }}
-                  jacocoTestReport
+                  jacocoAggregatedReport
               if: always()
 
             - name: Upload JaCoCo report

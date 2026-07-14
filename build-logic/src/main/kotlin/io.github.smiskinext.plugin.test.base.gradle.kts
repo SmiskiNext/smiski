@@ -105,6 +105,56 @@ tasks.named<JacocoCoverageVerification>("jacocoTestCoverageVerification") {
     }
 }
 
+val aggregatedExecutionData =
+    fileTree(layout.buildDirectory) {
+        include("jacoco/test.exec", "jacoco/integrationTest.exec")
+    }
+
+fun filteredMainClassDirectories() =
+    files(
+        sourceSets["main"].output.classesDirs.files.map { dir ->
+            fileTree(dir) { exclude(coverageExclusions) }
+        },
+    )
+
+tasks.register<JacocoReport>("jacocoAggregatedReport") {
+    group = "verification"
+    description = "Aggregates unit and integration test coverage into a single report."
+    dependsOn(tasks.named("test"), integrationTestTask)
+    sourceDirectories.setFrom(files(sourceSets["main"].allSource.srcDirs))
+    classDirectories.setFrom(filteredMainClassDirectories())
+    executionData.setFrom(aggregatedExecutionData)
+    reports {
+        html.required.set(true)
+        xml.required.set(true)
+    }
+}
+
+tasks.register<JacocoCoverageVerification>("jacocoCoverageVerificationAll") {
+    group = "verification"
+    description = "Enforces coverage thresholds across unit and integration tests."
+    dependsOn(tasks.named("test"), integrationTestTask)
+    sourceDirectories.setFrom(files(sourceSets["main"].allSource.srcDirs))
+    classDirectories.setFrom(filteredMainClassDirectories())
+    executionData.setFrom(aggregatedExecutionData)
+    violationRules {
+        rule {
+            limit {
+                counter = "LINE"
+                value = "COVEREDRATIO"
+                minimum = "0.70".toBigDecimal()
+            }
+        }
+        rule {
+            limit {
+                counter = "BRANCH"
+                value = "COVEREDRATIO"
+                minimum = "0.60".toBigDecimal()
+            }
+        }
+    }
+}
+
 configure<PitestPluginExtension> {
     pitestVersion.set(libs.versions.pitest.get())
     junit5PluginVersion.set(libs.versions.pitestJunit5.get())

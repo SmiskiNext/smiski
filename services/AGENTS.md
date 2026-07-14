@@ -109,9 +109,12 @@ runs container-backed and full-context tests.
 
 - `build`/`check` run `test` then `integrationTest`. Keep container-dependent
   tests out of `test` so the fast suite and mutation runs need no Docker.
-- **Coverage (JaCoCo)**: `jacocoTestReport` measures the `test` task;
-  `jacocoTestCoverageVerification` enforces line ≥ 70% / branch ≥ 60%.
-  Bootstrap, `*Config`, `*JpaEntity`, and generated classes are excluded.
+- **Coverage (JaCoCo)**: `jacocoTestReport` / `jacocoTestCoverageVerification`
+  measure only the fast `test` task (no Docker) for local use.
+  `jacocoAggregatedReport` / `jacocoCoverageVerificationAll` combine `test` +
+  `integrationTest` execution data for a full-picture gate (line ≥ 70% / branch
+  ≥ 60%); CI runs the aggregated variant. Bootstrap, `*Config`, `*JpaEntity`,
+  and generated classes are excluded.
 - **Mutation (PIT)**: `pitest` targets `..domain..` + `..application..` against
   the fast `test` suite (JUnit 5 plugin), threshold 60%.
 - Gates are **opt-in** (not wired into `check`) and ratchet upward as suites are
