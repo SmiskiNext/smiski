@@ -77,9 +77,11 @@ flyway-database-mongodb = { module = "org.flywaydb:flyway-database-nc-mongodb", 
 
 # Spring Kafka (version managed by Spring Boot BOM)
 spring-kafka = { module = "org.springframework.kafka:spring-kafka" }
+spring-boot-starter-kafka = { module = "org.springframework.boot:spring-boot-starter-kafka" }
 
 # CloudEvents
 cloudevents-core = { module = "io.cloudevents:cloudevents-core", version.ref = "cloudevents" }
+cloudevents-json-jackson = { module = "io.cloudevents:cloudevents-json-jackson", version.ref = "cloudevents" }
 cloudevents-kafka = { module = "io.cloudevents:cloudevents-kafka", version.ref = "cloudevents" }
 aws-s3 = { module = "software.amazon.awssdk:s3", version.ref = "awsSdk" }
 resend-java = { module = "com.resend:resend-java", version.ref = "resend" }

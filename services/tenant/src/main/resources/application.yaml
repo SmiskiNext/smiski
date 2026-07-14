@@ -45,6 +45,16 @@ logging:
     aspect:
         include-args: false
 
+smiski:
+    outbox:
+        transport: kafka
+        relay:
+            enabled: true
+            fixed-delay: PT5S
+            batch-size: 50
+        cloudevent:
+            source: tenant-service
+
 springdoc:
     api-docs:
         enabled: true

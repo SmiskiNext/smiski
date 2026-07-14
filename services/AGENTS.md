@@ -59,8 +59,8 @@ services/<name>/src/main/java/io/github/smiskinext/<name>/
     service/               # @Service @Transactional IMPLS named *ApplicationService (implement *UseCase)
     command/               # Write input records (implement shared Command); no validation
     query/                 # Read input records (implement shared Query)
-    response/              # Output DTO records
-    mapper/                # domain → response (static or MapStruct; interface+@Component only if collaborators)
+    result/                # Framework-agnostic use-case output records (one per use case, named after the use case, e.g. RegisterTenantResult); no Jackson/Swagger
+    mapper/                # domain → application result (static or MapStruct; interface+@Component only if collaborators)
     helper/                # Reusable orchestration helpers
     handler/               # Internal domain-event handlers
   infrastructure/
@@ -74,6 +74,7 @@ services/<name>/src/main/java/io/github/smiskinext/<name>/
     security/              # SecurityConfig
   presentation/
     request/               # Request DTO records (Jakarta @Valid); each has toCommand()/toQuery()
+    response/              # Response DTO records (JSON/OpenAPI @Schema); static `from(...)` factory maps application result → response
     {Feature}Controller.java  # @RestController; injects *UseCase; maps Result<> via ResultResponder
   {Service}Application.java # @SpringBootApplication (scanBasePackages = service + shared)
   resources/application.yaml, db/migration/
@@ -108,9 +109,12 @@ runs container-backed and full-context tests.
 
 - `build`/`check` run `test` then `integrationTest`. Keep container-dependent
   tests out of `test` so the fast suite and mutation runs need no Docker.
-- **Coverage (JaCoCo)**: `jacocoTestReport` measures the `test` task;
-  `jacocoTestCoverageVerification` enforces line ≥ 70% / branch ≥ 60%.
-  Bootstrap, `*Config`, `*JpaEntity`, and generated classes are excluded.
+- **Coverage (JaCoCo)**: `jacocoTestReport` / `jacocoTestCoverageVerification`
+  measure only the fast `test` task (no Docker) for local use.
+  `jacocoAggregatedReport` / `jacocoCoverageVerificationAll` combine `test` +
+  `integrationTest` execution data for a full-picture gate (line ≥ 70% / branch
+  ≥ 60%); CI runs the aggregated variant. Bootstrap, `*Config`, `*JpaEntity`,
+  and generated classes are excluded.
 - **Mutation (PIT)**: `pitest` targets `..domain..` + `..application..` against
   the fast `test` suite (JUnit 5 plugin), threshold 60%.
 - Gates are **opt-in** (not wired into `check`) and ratchet upward as suites are
@@ -138,9 +142,12 @@ Shared library (`io.github.smiskinext.shared`):
 - Error handling: `Result<T, {Feature}Error>` across boundaries — no exceptions
   for business rules. `{Feature}Error` is a sealed interface extending shared
   `DomainError`.
-- Flow: Request → Command/Query → (usecase) → Response. Request DTOs validate +
-  `toCommand()`; command/query records carry no validation.
-- Mapping split: `application.mapper` (domain → response),
+- Flow: Request → Command/Query → (usecase) → Result → Response. Request DTOs
+  validate + `toCommand()`; command/query records carry no validation. Use-case
+  results live in `application.result`; presentation maps them to
+  `presentation.response` DTOs via static `from(...)` factories.
+- Mapping split: `application.mapper` (domain → application result),
+  `presentation.response.<Dto>#from` (result → response DTO),
   `infrastructure.persistence.{Entity}PersistenceMapper` (entity ⇄ domain).
 - HTTP: RFC 9457 `application/problem+json` for errors; raw representation
   bodies (no envelope) for success. See `openspec/specs/api-convention/spec.md`.

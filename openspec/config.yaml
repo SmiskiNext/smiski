@@ -17,13 +17,13 @@ rules:
         - Read openspec/specs/db-schema/spec.md before proposing schema changes
         - Include sequence diagrams (mermaid) for any flow with 3+ components
           involved
-    spec:
+    specs:
         - Every requirement MUST have at least one scenario covering
           failure/edge case
         - MUST reference existing patterns in specs/ before inventing new ones
         - Do not describe implementation details — specs describe behavior, not
           code
-    task:
+    tasks:
         - Derive test tasks from spec scenarios (Given/When/Then), not from
           individual code diffs
         - One test task per scenario/acceptance criterion, not per file or

@@ -9,9 +9,6 @@ CREATE TABLE tenants (
     tenant_id VARCHAR(255) NOT NULL, -- Jira cloudId (stable across reinstall)
     installation_id VARCHAR(255) NOT NULL, -- Forge installation id (changes on reinstall)
     app_id VARCHAR(255) NOT NULL, -- Forge application id (ari)
-    environment_type VARCHAR(20) NOT NULL DEFAULT 'PRODUCTION' CHECK (
-        environment_type IN ('DEVELOPMENT', 'STAGING', 'PRODUCTION')
-    ),
     environment_id VARCHAR(255),
     site_url VARCHAR(512),
     installer_account_id VARCHAR(128),
