@@ -32,6 +32,15 @@ public class OutboxAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
+    public OutboxEventPublisher outboxEventPublisher(
+            OutboxStore outboxStore,
+            OutboxEventProtoMapperRegistry mapperRegistry,
+            CloudEventEncoder cloudEventEncoder) {
+        return new OutboxEventPublisher(outboxStore, mapperRegistry, cloudEventEncoder);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
     @ConditionalOnProperty(
             prefix = "smiski.outbox",
             name = "transport",

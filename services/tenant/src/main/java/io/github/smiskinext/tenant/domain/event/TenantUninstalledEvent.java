@@ -1,5 +1,6 @@
 package io.github.smiskinext.tenant.domain.event;
 
+import io.github.smiskinext.shared.domain.PublishableEvent;
 import io.github.smiskinext.tenant.domain.model.TenantStatus;
 import java.time.Instant;
 import java.util.UUID;

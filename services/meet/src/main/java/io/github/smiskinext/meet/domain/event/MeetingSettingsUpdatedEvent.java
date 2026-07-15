@@ -1,8 +1,8 @@
 package io.github.smiskinext.meet.domain.event;
 
-import io.github.smiskinext.meet.domain.PublishableEvent;
 import io.github.smiskinext.meet.domain.model.MeetingStatus;
 import io.github.smiskinext.meet.domain.model.valueobject.MeetingSettings;
+import io.github.smiskinext.shared.domain.PublishableEvent;
 
 import java.time.Instant;
 import java.util.UUID;
@@ -17,7 +17,7 @@ import java.util.UUID;
 public record MeetingSettingsUpdatedEvent(
         UUID eventId,
         String tenantId,
-        UUID aggregateId,
+        UUID meetingId,
         String hostId,
         String updatedBy,
         MeetingStatus meetingStatus,
@@ -25,6 +25,11 @@ public record MeetingSettingsUpdatedEvent(
         MeetingSettings newSettings,
         Instant updatedAt)
         implements PublishableEvent {
+
+    @Override
+    public String aggregateId() {
+        return meetingId.toString();
+    }
 
     @Override
     public String aggregateType() {

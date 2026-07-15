@@ -6,7 +6,7 @@ import io.github.smiskinext.meet.domain.event.InviteeAcceptedEvent;
 import io.github.smiskinext.meet.domain.event.InviteeDeclinedEvent;
 import io.github.smiskinext.meet.domain.model.valueobject.AccountId;
 import io.github.smiskinext.meet.domain.model.valueobject.Email;
-import io.github.smiskinext.meet.domain.model.valueobject.InviteTokenId;
+import io.github.smiskinext.meet.domain.model.valueobject.InviteToken;
 import io.github.smiskinext.meet.domain.model.valueobject.InviteeDisplayName;
 import io.github.smiskinext.meet.domain.model.valueobject.InviteeId;
 import io.github.smiskinext.meet.domain.model.valueobject.InviterId;
@@ -27,6 +27,10 @@ import org.jspecify.annotations.Nullable;
  *
  * <p>Status transitions: {@code PENDING → ACCEPTED}, {@code PENDING → DECLINED},
  * {@code ACCEPTED → DECLINED}.
+ *
+ * <p>The invite token is carried inline on the invitee: each invitee holds at most one token,
+ * so there is exactly one active invite code at any point in time. Rotating an invite overwrites
+ * the token fields; no token history is retained.
  */
 public class MeetingInvitee extends AggregateRoot<InviteeId> {
 
@@ -40,7 +44,7 @@ public class MeetingInvitee extends AggregateRoot<InviteeId> {
     private InviteeStatus status;
     private final Instant invitedAt;
     private @Nullable Instant respondedAt;
-    private @Nullable InviteTokenId inviteTokenId;
+    private @Nullable InviteToken inviteToken;
 
     private MeetingInvitee(
             TenantId tenantId,
@@ -53,7 +57,7 @@ public class MeetingInvitee extends AggregateRoot<InviteeId> {
             InviteeStatus status,
             Instant invitedAt,
             @Nullable Instant respondedAt,
-            @Nullable InviteTokenId inviteTokenId) {
+            @Nullable InviteToken inviteToken) {
         this.tenantId = tenantId;
         this.id = id;
         this.meetingId = meetingId;
@@ -64,12 +68,12 @@ public class MeetingInvitee extends AggregateRoot<InviteeId> {
         this.status = status;
         this.invitedAt = invitedAt;
         this.respondedAt = respondedAt;
-        this.inviteTokenId = inviteTokenId;
+        this.inviteToken = inviteToken;
     }
 
     /**
      * Factory method — creates a new PENDING invitation without an invite token.
-     * Call {@link #assignInviteToken(InviteTokenId)} after token creation.
+     * Call {@link #assignToken(String, Instant)} after generating the token.
      */
     public static MeetingInvitee create(
             TenantId tenantId,
@@ -106,7 +110,7 @@ public class MeetingInvitee extends AggregateRoot<InviteeId> {
             InviteeStatus status,
             Instant invitedAt,
             @Nullable Instant respondedAt,
-            @Nullable InviteTokenId inviteTokenId) {
+            @Nullable InviteToken inviteToken) {
         return new MeetingInvitee(
                 tenantId,
                 id,
@@ -118,14 +122,61 @@ public class MeetingInvitee extends AggregateRoot<InviteeId> {
                 status,
                 invitedAt,
                 respondedAt,
-                inviteTokenId);
+                inviteToken);
     }
 
     /**
-     * Associates an invite token with this invitee. Should be called once, right after token creation.
+     * Assigns a fresh invite token to this invitee, guaranteeing a single active invite code.
+     *
+     * @param tokenHash SHA-256 hash of the raw token string (the raw token is never stored)
+     * @param expiresAt future instant at which the token expires
+     * @return {@code Result.success()} on success, or {@code Result.failure(InvalidInviteToken)}
+     *     when a PENDING token already exists or {@code expiresAt} is not in the future
      */
-    public void assignInviteToken(InviteTokenId tokenId) {
-        this.inviteTokenId = tokenId;
+    public Result<Void, MeetingError> assignToken(String tokenHash, Instant expiresAt) {
+        if (inviteToken != null && inviteToken.status() == InviteTokenStatus.PENDING) {
+            return Result.failure(
+                    new MeetingError.InvalidInviteToken(
+                            "Invitee already has an active invite token; revoke it before assigning a new one"));
+        }
+        return InviteToken.issue(tokenHash, expiresAt).map(token -> {
+            this.inviteToken = token;
+            return null;
+        });
+    }
+
+    /**
+     * Transitions the invite token to {@code USED}.
+     *
+     * @return {@code Result.success()} on success, or {@code Result.failure(InvalidInviteToken)}
+     *     when no token is present or the current status forbids the transition
+     */
+    public Result<Void, MeetingError> markTokenUsed() {
+        if (inviteToken == null) {
+            return Result.failure(
+                    new MeetingError.InvalidInviteToken("Invitee has no invite token"));
+        }
+        return inviteToken.markUsed().map(token -> {
+            this.inviteToken = token;
+            return null;
+        });
+    }
+
+    /**
+     * Transitions the invite token to {@code REVOKED}.
+     *
+     * @return {@code Result.success()} on success, or {@code Result.failure(InvalidInviteToken)}
+     *     when no token is present or the current status forbids the transition
+     */
+    public Result<Void, MeetingError> revokeToken() {
+        if (inviteToken == null) {
+            return Result.failure(
+                    new MeetingError.InvalidInviteToken("Invitee has no invite token"));
+        }
+        return inviteToken.revoke().map(token -> {
+            this.inviteToken = token;
+            return null;
+        });
     }
 
     /**
@@ -144,7 +195,6 @@ public class MeetingInvitee extends AggregateRoot<InviteeId> {
         registerEvent(new InviteeAcceptedEvent(
                 UUID.randomUUID(),
                 tenantId.value(),
-                id.value(),
                 meetingId.value(),
                 inviterId.value(),
                 respondedAt));
@@ -167,7 +217,6 @@ public class MeetingInvitee extends AggregateRoot<InviteeId> {
         registerEvent(new InviteeDeclinedEvent(
                 UUID.randomUUID(),
                 tenantId.value(),
-                id.value(),
                 meetingId.value(),
                 inviterId.value(),
                 respondedAt));
@@ -216,9 +265,9 @@ public class MeetingInvitee extends AggregateRoot<InviteeId> {
     }
 
     /**
-     * Returns the associated invite token ID, if one has been assigned.
+     * Returns the current invite token, if one has been assigned.
      */
-    public Optional<InviteTokenId> getInviteTokenId() {
-        return Optional.ofNullable(inviteTokenId);
+    public Optional<InviteToken> getInviteToken() {
+        return Optional.ofNullable(inviteToken);
     }
 }

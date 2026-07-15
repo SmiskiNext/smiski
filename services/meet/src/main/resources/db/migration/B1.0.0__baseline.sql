@@ -279,6 +279,13 @@ WHERE
 
 -- ============================================================================
 -- meeting_invitees
+--
+-- The invite token lives inline on the invitee row (token_* columns) instead of
+-- a separate invite_tokens table: each invitee holds at most one token, so the
+-- row itself guarantees a single active invite code at any point in time.
+-- Rotating an invite overwrites the token_* columns; no token history is kept.
+-- token_hash is unique per tenant; EXPIRED is derived from token_expires_at and
+-- is never persisted (status stays PENDING until USED or REVOKED).
 -- ============================================================================
 CREATE TABLE meeting_invitees (
     tenant_id VARCHAR(255) NOT NULL,
@@ -289,7 +296,14 @@ CREATE TABLE meeting_invitees (
     email VARCHAR(255) NOT NULL,
     display_name VARCHAR(255),
     status VARCHAR(20) NOT NULL DEFAULT 'PENDING' CHECK (status IN ('PENDING', 'ACCEPTED', 'DECLINED')),
-    invite_token_id UUID,
+    token_hash VARCHAR(64),
+    token_status VARCHAR(20) CHECK (
+        token_status IS NULL
+        OR token_status IN ('PENDING', 'USED', 'REVOKED', 'EXPIRED')
+    ),
+    token_expires_at TIMESTAMPTZ,
+    token_created_at TIMESTAMPTZ,
+    token_updated_at TIMESTAMPTZ,
     invited_at TIMESTAMPTZ NOT NULL DEFAULT now (),
     responded_at TIMESTAMPTZ,
     CONSTRAINT pk_meeting_invitees PRIMARY KEY (tenant_id, id),
@@ -387,112 +401,13 @@ CREATE INDEX idx_meeting_invitees_account ON meeting_invitees (tenant_id, accoun
 WHERE
     account_id IS NOT NULL;
 
--- ============================================================================
--- invite_tokens
--- ============================================================================
-CREATE TABLE invite_tokens (
-    tenant_id VARCHAR(255) NOT NULL,
-    id UUID NOT NULL DEFAULT uuidv7 (),
-    meeting_id UUID NOT NULL,
-    invitee_id UUID NOT NULL,
-    token_hash VARCHAR(64) NOT NULL,
-    status VARCHAR(20) NOT NULL DEFAULT 'PENDING' CHECK (
-        status IN ('PENDING', 'USED', 'REVOKED', 'EXPIRED')
-    ),
-    expires_at TIMESTAMPTZ NOT NULL,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT now (),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT now (),
-    CONSTRAINT pk_invite_tokens PRIMARY KEY (tenant_id, id),
-    CONSTRAINT uq_invite_tokens_hash UNIQUE (tenant_id, token_hash),
-    CONSTRAINT fk_invite_tokens_meeting FOREIGN KEY (tenant_id, meeting_id) REFERENCES meetings (tenant_id, id) ON DELETE CASCADE,
-    CONSTRAINT fk_invite_tokens_invitee FOREIGN KEY (tenant_id, invitee_id) REFERENCES meeting_invitees (tenant_id, id) ON DELETE CASCADE
-)
-PARTITION BY
-    HASH (tenant_id);
+CREATE UNIQUE INDEX uq_meeting_invitees_token_hash ON meeting_invitees (tenant_id, token_hash)
+WHERE
+    token_hash IS NOT NULL;
 
-CREATE TABLE invite_tokens_p00 PARTITION OF invite_tokens FOR
-VALUES
-WITH
-    (MODULUS 16, REMAINDER 0);
-
-CREATE TABLE invite_tokens_p01 PARTITION OF invite_tokens FOR
-VALUES
-WITH
-    (MODULUS 16, REMAINDER 1);
-
-CREATE TABLE invite_tokens_p02 PARTITION OF invite_tokens FOR
-VALUES
-WITH
-    (MODULUS 16, REMAINDER 2);
-
-CREATE TABLE invite_tokens_p03 PARTITION OF invite_tokens FOR
-VALUES
-WITH
-    (MODULUS 16, REMAINDER 3);
-
-CREATE TABLE invite_tokens_p04 PARTITION OF invite_tokens FOR
-VALUES
-WITH
-    (MODULUS 16, REMAINDER 4);
-
-CREATE TABLE invite_tokens_p05 PARTITION OF invite_tokens FOR
-VALUES
-WITH
-    (MODULUS 16, REMAINDER 5);
-
-CREATE TABLE invite_tokens_p06 PARTITION OF invite_tokens FOR
-VALUES
-WITH
-    (MODULUS 16, REMAINDER 6);
-
-CREATE TABLE invite_tokens_p07 PARTITION OF invite_tokens FOR
-VALUES
-WITH
-    (MODULUS 16, REMAINDER 7);
-
-CREATE TABLE invite_tokens_p08 PARTITION OF invite_tokens FOR
-VALUES
-WITH
-    (MODULUS 16, REMAINDER 8);
-
-CREATE TABLE invite_tokens_p09 PARTITION OF invite_tokens FOR
-VALUES
-WITH
-    (MODULUS 16, REMAINDER 9);
-
-CREATE TABLE invite_tokens_p10 PARTITION OF invite_tokens FOR
-VALUES
-WITH
-    (MODULUS 16, REMAINDER 10);
-
-CREATE TABLE invite_tokens_p11 PARTITION OF invite_tokens FOR
-VALUES
-WITH
-    (MODULUS 16, REMAINDER 11);
-
-CREATE TABLE invite_tokens_p12 PARTITION OF invite_tokens FOR
-VALUES
-WITH
-    (MODULUS 16, REMAINDER 12);
-
-CREATE TABLE invite_tokens_p13 PARTITION OF invite_tokens FOR
-VALUES
-WITH
-    (MODULUS 16, REMAINDER 13);
-
-CREATE TABLE invite_tokens_p14 PARTITION OF invite_tokens FOR
-VALUES
-WITH
-    (MODULUS 16, REMAINDER 14);
-
-CREATE TABLE invite_tokens_p15 PARTITION OF invite_tokens FOR
-VALUES
-WITH
-    (MODULUS 16, REMAINDER 15);
-
-ALTER TABLE meeting_invitees ADD CONSTRAINT fk_meeting_invitees_token FOREIGN KEY (tenant_id, invite_token_id) REFERENCES invite_tokens (tenant_id, id) ON DELETE SET NULL;
-
-CREATE INDEX idx_invite_tokens_meeting_status ON invite_tokens (tenant_id, meeting_id, status);
+CREATE INDEX idx_meeting_invitees_token_status ON meeting_invitees (tenant_id, meeting_id, token_status)
+WHERE
+    token_status IS NOT NULL;
 
 -- ============================================================================
 -- outbox_event (BIGSERIAL -> UUIDv7; poller scans globally, tenant-scoped PK)

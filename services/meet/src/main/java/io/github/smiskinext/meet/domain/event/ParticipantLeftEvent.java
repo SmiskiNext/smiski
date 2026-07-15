@@ -1,6 +1,6 @@
 package io.github.smiskinext.meet.domain.event;
 
-import io.github.smiskinext.meet.domain.PublishableEvent;
+import io.github.smiskinext.shared.domain.PublishableEvent;
 
 import java.time.Instant;
 import java.util.UUID;
@@ -19,8 +19,8 @@ public record ParticipantLeftEvent(
         implements PublishableEvent {
 
     @Override
-    public UUID aggregateId() {
-        return meetingId;
+    public String aggregateId() {
+        return meetingId.toString();
     }
 
     @Override

@@ -235,6 +235,33 @@ public class Meeting extends AggregateRoot<MeetingId> {
     }
 
     /**
+     * Records that invitations have been sent for this meeting.
+     * Registers {@code MeetingInvitationsSentEvent} carrying the invitee details and raw tokens.
+     *
+     * <p>Does nothing when the invitee list is empty.
+     *
+     * @param invitees list of invitee info snapshots
+     * @param inviteeTokens map of accountId (or email as fallback) to raw invite token
+     */
+    public void recordInvitationsSent(
+            List<MeetingInvitationsSentEvent.InviteeInfo> invitees,
+            java.util.Map<String, String> inviteeTokens) {
+        if (invitees.isEmpty()) {
+            return;
+        }
+        registerEvent(new MeetingInvitationsSentEvent(
+                UUID.randomUUID(),
+                tenantId.value(),
+                id.value(),
+                title != null ? title.value() : null,
+                shortCode.value(),
+                timeRange != null ? timeRange.start() : null,
+                List.copyOf(invitees),
+                java.util.Map.copyOf(inviteeTokens),
+                Instant.now()));
+    }
+
+    /**
      * Updates meeting settings when status is SCHEDULED or LIVE.
      * Registers {@code MeetingSettingsUpdatedEvent} with both old and new settings snapshots.
      *

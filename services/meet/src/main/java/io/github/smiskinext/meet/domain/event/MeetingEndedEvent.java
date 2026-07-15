@@ -1,6 +1,6 @@
 package io.github.smiskinext.meet.domain.event;
 
-import io.github.smiskinext.meet.domain.PublishableEvent;
+import io.github.smiskinext.shared.domain.PublishableEvent;
 
 import java.time.Instant;
 import java.util.UUID;
@@ -9,8 +9,13 @@ import java.util.UUID;
  * Published when a meeting transitions LIVE → ENDED.
  */
 public record MeetingEndedEvent(
-        UUID eventId, String tenantId, UUID aggregateId, String hostId, Instant endedAt)
+        UUID eventId, String tenantId, UUID meetingId, String hostId, Instant endedAt)
         implements PublishableEvent {
+
+    @Override
+    public String aggregateId() {
+        return meetingId.toString();
+    }
 
     @Override
     public String aggregateType() {

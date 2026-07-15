@@ -2,14 +2,14 @@ package io.github.smiskinext.tenant.infrastructure;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import io.github.smiskinext.shared.domain.EventPublisher;
+import io.github.smiskinext.shared.domain.PublishableEvent;
 import io.github.smiskinext.shared.infrastructure.tenancy.TenantContext;
 import io.github.smiskinext.tenant.config.TestcontainersConfiguration;
-import io.github.smiskinext.tenant.domain.event.PublishableEvent;
 import io.github.smiskinext.tenant.domain.model.Tenant;
 import io.github.smiskinext.tenant.domain.model.TenantStatus;
 import io.github.smiskinext.tenant.domain.model.valueobject.AppId;
 import io.github.smiskinext.tenant.domain.model.valueobject.InstallationId;
-import io.github.smiskinext.tenant.infrastructure.messaging.OutboxEventPublisher;
 import io.github.smiskinext.tenant.infrastructure.persistence.OutboxEventJpaEntity;
 import io.github.smiskinext.tenant.infrastructure.persistence.OutboxEventJpaRepository;
 import io.github.smiskinext.tenant.infrastructure.persistence.TenantJpaRepository;
@@ -36,7 +36,7 @@ class TenantRepositoryAdapterIntegrationTest {
     private TenantRepositoryAdapter tenantRepository;
 
     @Autowired
-    private OutboxEventPublisher outboxEventPublisher;
+    private EventPublisher eventPublisher;
 
     @Autowired
     private OutboxEventJpaRepository outboxEventJpaRepository;
@@ -74,7 +74,7 @@ class TenantRepositoryAdapterIntegrationTest {
         tenant.getDomainEvents().stream()
                 .filter(PublishableEvent.class::isInstance)
                 .map(PublishableEvent.class::cast)
-                .forEach(outboxEventPublisher::publish);
+                .forEach(eventPublisher::publish);
 
         Optional<Tenant> loaded = tenantRepository.findById("cloud-test");
         assertThat(loaded).isPresent();
@@ -113,7 +113,7 @@ class TenantRepositoryAdapterIntegrationTest {
                 tenant.getDomainEvents().stream()
                         .filter(PublishableEvent.class::isInstance)
                         .map(PublishableEvent.class::cast)
-                        .forEach(outboxEventPublisher::publish);
+                        .forEach(eventPublisher::publish);
 
                 throw new RuntimeException("Simulated failure to trigger rollback");
             });

@@ -7,13 +7,13 @@ import static org.mockito.Mockito.when;
 
 import com.github.f4b6a3.uuid.UuidCreator;
 import io.cloudevents.CloudEvent;
+import io.github.smiskinext.shared.domain.EventPublisher;
 import io.github.smiskinext.shared.infrastructure.outbox.OutboxRelay;
 import io.github.smiskinext.shared.infrastructure.outbox.OutboxTransport;
 import io.github.smiskinext.shared.infrastructure.tenancy.TenantContext;
 import io.github.smiskinext.tenant.config.TestcontainersConfiguration;
 import io.github.smiskinext.tenant.domain.event.TenantInstalledEvent;
 import io.github.smiskinext.tenant.domain.model.TenantStatus;
-import io.github.smiskinext.tenant.infrastructure.messaging.OutboxEventPublisher;
 import io.github.smiskinext.tenant.infrastructure.persistence.OutboxEventJpaEntity;
 import io.github.smiskinext.tenant.infrastructure.persistence.OutboxEventJpaRepository;
 import java.time.Instant;
@@ -27,6 +27,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.transaction.support.TransactionTemplate;
 
 @SpringBootTest
 @ActiveProfiles("test")
@@ -37,7 +38,7 @@ class OutboxRelayFailureIntegrationTest {
     private OutboxTransport outboxTransport;
 
     @Autowired
-    private OutboxEventPublisher outboxEventPublisher;
+    private EventPublisher eventPublisher;
 
     @Autowired
     private OutboxRelay outboxRelay;
@@ -45,14 +46,25 @@ class OutboxRelayFailureIntegrationTest {
     @Autowired
     private OutboxEventJpaRepository outboxEventJpaRepository;
 
+    @Autowired
+    private TransactionTemplate transactionTemplate;
+
     @BeforeEach
     void setUp() {
         TenantContext.setCurrentTenant("cloud-fail");
-        outboxEventJpaRepository.deleteAll();
+        transactionTemplate.execute(status -> {
+            outboxEventJpaRepository.deleteAll();
+            return null;
+        });
     }
 
     @AfterEach
     void tearDown() {
+        TenantContext.setCurrentTenant("cloud-fail");
+        transactionTemplate.execute(status -> {
+            outboxEventJpaRepository.deleteAll();
+            return null;
+        });
         TenantContext.clear();
     }
 
@@ -63,30 +75,40 @@ class OutboxRelayFailureIntegrationTest {
         when(outboxTransport.send(anyString(), anyString(), any(CloudEvent.class)))
                 .thenReturn(failedFuture);
 
-        TenantInstalledEvent event = new TenantInstalledEvent(
-                UuidCreator.getTimeOrderedEpoch(),
-                "cloud-fail",
-                "install-fail",
-                "app-fail",
-                "1.0.0",
-                null,
-                null,
-                null,
-                Instant.now(),
-                TenantStatus.ACTIVE,
-                Instant.now(),
-                null,
-                null);
+        transactionTemplate.execute(status -> {
+            TenantInstalledEvent event = new TenantInstalledEvent(
+                    UuidCreator.getTimeOrderedEpoch(),
+                    "cloud-fail",
+                    "install-fail",
+                    "app-fail",
+                    "1.0.0",
+                    null,
+                    null,
+                    null,
+                    Instant.now(),
+                    TenantStatus.ACTIVE,
+                    Instant.now(),
+                    null,
+                    null);
 
-        outboxEventPublisher.publish(event);
+            eventPublisher.publish(event);
+            return null;
+        });
+
+        List<OutboxEventJpaEntity> beforeRelay = transactionTemplate.execute(status -> {
+            status.setRollbackOnly();
+            return outboxEventJpaRepository.findUnpublishedOrderByCreatedAt();
+        });
+        assertThat(beforeRelay).hasSize(1);
+
         TenantContext.clear();
-
-        assertThat(outboxEventJpaRepository.findUnpublishedOrderByCreatedAt()).hasSize(1);
-
         outboxRelay.relay();
 
-        List<OutboxEventJpaEntity> afterRelay =
-                outboxEventJpaRepository.findUnpublishedOrderByCreatedAt();
+        TenantContext.setCurrentTenant("cloud-fail");
+        List<OutboxEventJpaEntity> afterRelay = transactionTemplate.execute(status -> {
+            status.setRollbackOnly();
+            return outboxEventJpaRepository.findUnpublishedOrderByCreatedAt();
+        });
         assertThat(afterRelay).hasSize(1);
 
         OutboxEventJpaEntity row = afterRelay.getFirst();

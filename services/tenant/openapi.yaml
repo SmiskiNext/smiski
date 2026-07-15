@@ -213,6 +213,14 @@ paths:
             application/problem+json:
               schema:
                 $ref: "#/components/schemas/ProblemDetail"
+    parameters:
+    - name: version
+      in: path
+      required: true
+      schema:
+        type: integer
+        format: int32
+      example: 1
 components:
   schemas:
     App:
@@ -295,19 +303,27 @@ components:
           description: Application identifier
           example: app-1
         appVersion:
-          type: string
+          type:
+          - string
+          - "null"
           description: Application version
           example: 1.0.0
         environmentId:
-          type: string
+          type:
+          - string
+          - "null"
           description: Environment identifier
           example: env-1
         siteUrl:
-          type: string
+          type:
+          - string
+          - "null"
           description: Atlassian site URL
           example: https://example.atlassian.net
         installerAccountId:
-          type: string
+          type:
+          - string
+          - "null"
           description: Account ID of the installer
           example: installer-1
         status:
@@ -329,12 +345,16 @@ components:
           description: Timestamp of last update
           example: 2025-01-15T10:30:00Z
         uninstalledAt:
-          type: string
+          type:
+          - string
+          - "null"
           format: date-time
           description: Timestamp when the tenant was uninstalled
           example: 2025-06-15T10:30:00Z
         purgeAfter:
-          type: string
+          type:
+          - string
+          - "null"
           format: date-time
           description: Timestamp after which tenant data may be purged
           example: 2025-07-15T10:30:00Z
@@ -421,19 +441,27 @@ components:
           description: Application identifier
           example: app-1
         appVersion:
-          type: string
+          type:
+          - string
+          - "null"
           description: Application version
           example: 1.0.0
         environmentId:
-          type: string
+          type:
+          - string
+          - "null"
           description: Environment identifier
           example: env-1
         siteUrl:
-          type: string
+          type:
+          - string
+          - "null"
           description: Atlassian site URL
           example: https://example.atlassian.net
         installerAccountId:
-          type: string
+          type:
+          - string
+          - "null"
           description: Account ID of the installer
           example: installer-1
         status:
@@ -455,12 +483,16 @@ components:
           description: Timestamp of last update
           example: 2025-06-15T10:30:00Z
         uninstalledAt:
-          type: string
+          type:
+          - string
+          - "null"
           format: date-time
           description: Timestamp when the tenant was uninstalled
           example: 2025-06-15T10:30:00Z
         purgeAfter:
-          type: string
+          type:
+          - string
+          - "null"
           format: date-time
           description: Timestamp after which tenant data may be purged
           example: 2025-07-15T10:30:00Z
