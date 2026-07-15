@@ -67,6 +67,17 @@ class TenantOpenApiContentTest {
         assertThat(spec).contains("#/components/schemas/ProblemDetail");
     }
 
+    @Test
+    void spec_marks_nullable_tenant_fields_as_nullable() throws Exception {
+        String spec = fetchSpec();
+
+        assertThat(spec).containsPattern("(?s)environmentId:.*?nullable: true");
+        assertThat(spec).containsPattern("(?s)siteUrl:.*?nullable: true");
+        assertThat(spec).containsPattern("(?s)installerAccountId:.*?nullable: true");
+        assertThat(spec).containsPattern("(?s)uninstalledAt:.*?nullable: true");
+        assertThat(spec).containsPattern("(?s)purgeAfter:.*?nullable: true");
+    }
+
     private String fetchSpec() throws Exception {
         HttpClient client = HttpClient.newHttpClient();
         HttpRequest request = HttpRequest.newBuilder()
