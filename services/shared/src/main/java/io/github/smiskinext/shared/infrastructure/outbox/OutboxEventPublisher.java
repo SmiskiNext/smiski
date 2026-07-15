@@ -2,6 +2,7 @@ package io.github.smiskinext.shared.infrastructure.outbox;
 
 import com.google.protobuf.Message;
 
+import io.github.smiskinext.shared.domain.EventPublisher;
 import io.github.smiskinext.shared.domain.PublishableEvent;
 import io.github.smiskinext.shared.infrastructure.outbox.OutboxStore.NewOutboxEvent;
 

@@ -1,6 +1,4 @@
-package io.github.smiskinext.shared.infrastructure.outbox;
-
-import io.github.smiskinext.shared.domain.PublishableEvent;
+package io.github.smiskinext.shared.domain;
 
 /**
  * Port for publishing domain events to the transactional outbox. Services inject this interface to

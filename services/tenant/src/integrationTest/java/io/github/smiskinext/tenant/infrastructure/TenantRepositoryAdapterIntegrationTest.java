@@ -2,8 +2,8 @@ package io.github.smiskinext.tenant.infrastructure;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import io.github.smiskinext.shared.domain.EventPublisher;
 import io.github.smiskinext.shared.domain.PublishableEvent;
-import io.github.smiskinext.shared.infrastructure.outbox.EventPublisher;
 import io.github.smiskinext.shared.infrastructure.tenancy.TenantContext;
 import io.github.smiskinext.tenant.config.TestcontainersConfiguration;
 import io.github.smiskinext.tenant.domain.model.Tenant;

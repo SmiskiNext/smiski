@@ -7,7 +7,7 @@ import static org.mockito.Mockito.when;
 
 import com.github.f4b6a3.uuid.UuidCreator;
 import io.cloudevents.CloudEvent;
-import io.github.smiskinext.shared.infrastructure.outbox.EventPublisher;
+import io.github.smiskinext.shared.domain.EventPublisher;
 import io.github.smiskinext.shared.infrastructure.outbox.OutboxRelay;
 import io.github.smiskinext.shared.infrastructure.outbox.OutboxTransport;
 import io.github.smiskinext.shared.infrastructure.tenancy.TenantContext;

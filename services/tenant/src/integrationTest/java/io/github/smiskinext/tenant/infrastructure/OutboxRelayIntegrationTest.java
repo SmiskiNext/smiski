@@ -3,7 +3,7 @@ package io.github.smiskinext.tenant.infrastructure;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.github.f4b6a3.uuid.UuidCreator;
-import io.github.smiskinext.shared.infrastructure.outbox.EventPublisher;
+import io.github.smiskinext.shared.domain.EventPublisher;
 import io.github.smiskinext.shared.infrastructure.outbox.OutboxRelay;
 import io.github.smiskinext.shared.infrastructure.tenancy.TenantContext;
 import io.github.smiskinext.tenant.config.TestcontainersConfiguration;
