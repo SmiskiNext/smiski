@@ -1,5 +1,6 @@
 io.github.smiskinext.shared.infrastructure.logging.LoggingAutoConfiguration
 io.github.smiskinext.shared.infrastructure.tenancy.TenantAutoConfiguration
+io.github.smiskinext.shared.infrastructure.identity.AccountAutoConfiguration
 io.github.smiskinext.shared.infrastructure.web.ApiPathPrefixAutoConfiguration
 io.github.smiskinext.shared.infrastructure.web.OpenApiServerAutoConfiguration
 io.github.smiskinext.shared.infrastructure.web.OpenApiProblemDetailAutoConfiguration

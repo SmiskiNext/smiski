@@ -1,6 +1,6 @@
 package io.github.smiskinext.meet.domain.event;
 
-import io.github.smiskinext.meet.domain.PublishableEvent;
+import io.github.smiskinext.shared.domain.PublishableEvent;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
@@ -15,7 +15,7 @@ import org.jspecify.annotations.Nullable;
  * The token-based link should be used by the notification service to build the join URL.
  *
  * @param eventId          unique identifier for this event occurrence
- * @param aggregateId      ID of the meeting aggregate
+ * @param meetingId        ID of the meeting aggregate
  * @param meetingTitle     human-readable title of the meeting
  * @param meetingShortCode short alphanumeric code for the meeting join URL
  * @param startTime        scheduled start time, or {@code null} for open-ended meetings
@@ -27,7 +27,7 @@ import org.jspecify.annotations.Nullable;
 public record MeetingInvitationsSentEvent(
         UUID eventId,
         String tenantId,
-        UUID aggregateId,
+        UUID meetingId,
         @Nullable String meetingTitle,
         String meetingShortCode,
         @Nullable Instant startTime,
@@ -49,6 +49,11 @@ public record MeetingInvitationsSentEvent(
             @Nullable String displayName) {}
 
     @Override
+    public String aggregateId() {
+        return meetingId.toString();
+    }
+
+    @Override
     public String aggregateType() {
         return "meeting";
     }
@@ -67,8 +72,8 @@ public record MeetingInvitationsSentEvent(
     public String toString() {
         return "MeetingInvitationsSentEvent[eventId="
                 + eventId
-                + ", aggregateId="
-                + aggregateId
+                + ", meetingId="
+                + meetingId
                 + ", meetingTitle="
                 + meetingTitle
                 + ", meetingShortCode="

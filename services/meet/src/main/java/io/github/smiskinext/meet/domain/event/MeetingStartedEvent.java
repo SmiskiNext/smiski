@@ -1,6 +1,6 @@
 package io.github.smiskinext.meet.domain.event;
 
-import io.github.smiskinext.meet.domain.PublishableEvent;
+import io.github.smiskinext.shared.domain.PublishableEvent;
 
 import java.time.Instant;
 import java.util.UUID;
@@ -11,11 +11,16 @@ import java.util.UUID;
 public record MeetingStartedEvent(
         UUID eventId,
         String tenantId,
-        UUID aggregateId,
+        UUID meetingId,
         String hostId,
         String liveKitRoomName,
         Instant startedAt)
         implements PublishableEvent {
+
+    @Override
+    public String aggregateId() {
+        return meetingId.toString();
+    }
 
     @Override
     public String aggregateType() {

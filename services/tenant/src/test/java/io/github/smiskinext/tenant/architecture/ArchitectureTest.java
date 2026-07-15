@@ -14,6 +14,22 @@ import io.github.smiskinext.shared.architecture.CleanArchitectureTest;
 class ArchitectureTest extends CleanArchitectureTest {
 
     /**
+     * Override the parent rule to allow application classes to depend on shared infrastructure ports
+     * (EventPublisher, TenantContext) which are designed as cross-cutting concerns. The application
+     * layer must not depend on service-specific infrastructure adapters.
+     */
+    @ArchTest
+    static final ArchRule application_must_not_depend_on_infrastructure = noClasses()
+            .that()
+            .resideInAPackage("..application..")
+            .should()
+            .dependOnClassesThat()
+            .resideInAPackage("..tenant.infrastructure..")
+            .allowEmptyShould(true)
+            .because("Application layer must depend only on domain ports and shared infrastructure"
+                    + " ports, never on service-specific infrastructure adapters");
+
+    /**
      * Override the parent rule to allow presentation classes to depend on shared infrastructure
      * utilities (ResultResponder, TenantContext) which are designed as cross-cutting concerns for the
      * presentation layer.

@@ -7,6 +7,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import java.time.Instant;
 import java.util.UUID;
+import org.hibernate.annotations.TenantId;
 import org.jspecify.annotations.Nullable;
 
 @Entity
@@ -17,6 +18,7 @@ public class OutboxEventJpaEntity {
     @Column(columnDefinition = "uuid")
     private UUID id;
 
+    @TenantId
     @Column(name = "tenant_id", nullable = false, length = 255, updatable = false)
     private String tenantId;
 
@@ -50,7 +52,6 @@ public class OutboxEventJpaEntity {
     protected OutboxEventJpaEntity() {}
 
     public OutboxEventJpaEntity(
-            String tenantId,
             String aggregateId,
             String aggregateType,
             String eventType,
@@ -58,7 +59,6 @@ public class OutboxEventJpaEntity {
             String payload,
             Instant createdAt) {
         this.id = UuidCreator.getTimeOrderedEpoch();
-        this.tenantId = tenantId;
         this.aggregateId = aggregateId;
         this.aggregateType = aggregateType;
         this.eventType = eventType;

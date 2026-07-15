@@ -18,6 +18,19 @@ public class OutboxStoreRepositoryAdapter implements OutboxStore {
 
     @Override
     @Transactional
+    public void append(NewOutboxEvent event) {
+        OutboxEventJpaEntity entity = new OutboxEventJpaEntity(
+                event.aggregateId(),
+                event.aggregateType(),
+                event.eventType(),
+                event.topic(),
+                event.payload(),
+                event.occurredAt());
+        repository.save(entity);
+    }
+
+    @Override
+    @Transactional
     public List<OutboxRow> claimBatch(int batchSize) {
         return repository.claimBatch(batchSize).stream()
                 .map(entity -> new OutboxRow(
@@ -38,7 +51,7 @@ public class OutboxStoreRepositoryAdapter implements OutboxStore {
     @Override
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void recordFailure(UUID id, String error) {
-        repository.findById(id).ifPresent(entity -> {
+        repository.findByIdAcrossTenants(id).ifPresent(entity -> {
             entity.recordFailure(error);
             repository.save(entity);
         });

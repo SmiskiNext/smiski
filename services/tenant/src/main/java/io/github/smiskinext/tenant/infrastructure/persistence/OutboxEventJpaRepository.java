@@ -1,6 +1,7 @@
 package io.github.smiskinext.tenant.infrastructure.persistence;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
@@ -20,6 +21,11 @@ public interface OutboxEventJpaRepository extends JpaRepository<OutboxEventJpaEn
     List<OutboxEventJpaEntity> claimBatch(@Param("batchSize") int batchSize);
 
     @Modifying
-    @Query("UPDATE OutboxEventJpaEntity e SET e.publishedAt = CURRENT_TIMESTAMP WHERE e.id IN :ids")
+    @Query(
+            value = "UPDATE outbox_event SET published_at = NOW() WHERE id IN :ids",
+            nativeQuery = true)
     void markPublished(@Param("ids") List<UUID> ids);
+
+    @Query(value = "SELECT * FROM outbox_event WHERE id = :id", nativeQuery = true)
+    Optional<OutboxEventJpaEntity> findByIdAcrossTenants(@Param("id") UUID id);
 }

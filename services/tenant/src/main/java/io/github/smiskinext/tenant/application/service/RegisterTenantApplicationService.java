@@ -1,18 +1,18 @@
 package io.github.smiskinext.tenant.application.service;
 
 import io.github.smiskinext.shared.domain.DomainEvent;
+import io.github.smiskinext.shared.domain.PublishableEvent;
 import io.github.smiskinext.shared.domain.Result;
+import io.github.smiskinext.shared.infrastructure.outbox.EventPublisher;
 import io.github.smiskinext.shared.infrastructure.tenancy.TenantContext;
 import io.github.smiskinext.tenant.application.command.RegisterTenantCommand;
 import io.github.smiskinext.tenant.application.mapper.TenantResultMapper;
 import io.github.smiskinext.tenant.application.result.RegisterTenantResult;
 import io.github.smiskinext.tenant.application.usecase.RegisterTenantUseCase;
 import io.github.smiskinext.tenant.domain.TenantError;
-import io.github.smiskinext.tenant.domain.event.PublishableEvent;
 import io.github.smiskinext.tenant.domain.model.Tenant;
 import io.github.smiskinext.tenant.domain.model.valueobject.AppId;
 import io.github.smiskinext.tenant.domain.model.valueobject.InstallationId;
-import io.github.smiskinext.tenant.domain.port.EventPublisher;
 import io.github.smiskinext.tenant.domain.port.TenantRepository;
 import java.util.Optional;
 import org.springframework.stereotype.Service;

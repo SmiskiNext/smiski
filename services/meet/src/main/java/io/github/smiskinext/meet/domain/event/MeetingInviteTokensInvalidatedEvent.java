@@ -1,6 +1,6 @@
 package io.github.smiskinext.meet.domain.event;
 
-import io.github.smiskinext.meet.domain.PublishableEvent;
+import io.github.smiskinext.shared.domain.PublishableEvent;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
@@ -16,7 +16,7 @@ import org.jspecify.annotations.Nullable;
 public record MeetingInviteTokensInvalidatedEvent(
         UUID eventId,
         String tenantId,
-        UUID aggregateId,
+        UUID meetingId,
         String hostId,
         @Nullable String meetingTitle,
         String meetingShortCode,
@@ -37,6 +37,11 @@ public record MeetingInviteTokensInvalidatedEvent(
             @Nullable String accountId,
             String email,
             @Nullable String displayName) {}
+
+    @Override
+    public String aggregateId() {
+        return meetingId.toString();
+    }
 
     @Override
     public String aggregateType() {

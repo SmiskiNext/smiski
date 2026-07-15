@@ -1,6 +1,6 @@
 package io.github.smiskinext.meet.domain.event;
 
-import io.github.smiskinext.meet.domain.PublishableEvent;
+import io.github.smiskinext.shared.domain.PublishableEvent;
 import java.time.Instant;
 import java.util.UUID;
 import org.jspecify.annotations.Nullable;
@@ -11,13 +11,18 @@ import org.jspecify.annotations.Nullable;
 public record MeetingScheduledEvent(
         UUID eventId,
         String tenantId,
-        UUID aggregateId,
+        UUID meetingId,
         String hostId,
         String shortCode,
         @Nullable String title,
         @Nullable Instant startTime,
         Instant scheduledAt)
         implements PublishableEvent {
+
+    @Override
+    public String aggregateId() {
+        return meetingId.toString();
+    }
 
     @Override
     public String aggregateType() {

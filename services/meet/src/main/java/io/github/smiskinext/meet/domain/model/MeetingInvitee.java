@@ -195,7 +195,6 @@ public class MeetingInvitee extends AggregateRoot<InviteeId> {
         registerEvent(new InviteeAcceptedEvent(
                 UUID.randomUUID(),
                 tenantId.value(),
-                id.value(),
                 meetingId.value(),
                 inviterId.value(),
                 respondedAt));
@@ -218,7 +217,6 @@ public class MeetingInvitee extends AggregateRoot<InviteeId> {
         registerEvent(new InviteeDeclinedEvent(
                 UUID.randomUUID(),
                 tenantId.value(),
-                id.value(),
                 meetingId.value(),
                 inviterId.value(),
                 respondedAt));

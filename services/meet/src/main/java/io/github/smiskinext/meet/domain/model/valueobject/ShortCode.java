@@ -3,6 +3,7 @@ package io.github.smiskinext.meet.domain.model.valueobject;
 import io.github.smiskinext.shared.domain.ValueObject;
 
 import java.security.SecureRandom;
+import java.util.Locale;
 import java.util.Objects;
 
 /**
@@ -32,10 +33,15 @@ public record ShortCode(String value) implements ValueObject {
         for (int i = 0; i < LENGTH; i++) {
             sb.append(ALPHABET.charAt(RANDOM.nextInt(ALPHABET.length())));
         }
-        return new ShortCode(sb.toString());
+        return new ShortCode(sb.toString().toLowerCase(Locale.ROOT));
     }
 
     public static ShortCode of(String raw) {
         return new ShortCode(raw);
+    }
+
+    @Override
+    public String value() {
+        return value.trim().toLowerCase(Locale.ROOT);
     }
 }
