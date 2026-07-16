@@ -31,11 +31,11 @@ CREATE TABLE meetings (
     id UUID NOT NULL DEFAULT uuidv7 (),
     host_id VARCHAR(128) NOT NULL, -- Jira accountId
     short_code VARCHAR(15) NOT NULL,
-    issue_id VARCHAR(64), -- Jira Issue id
-    issue_key VARCHAR(64), -- Jira Issue key, e.g. "PROJ-123"
-    project_key VARCHAR(64),
-    title VARCHAR(255),
-    description TEXT,
+    issue_id VARCHAR(64) NOT NULL, -- Jira Issue id
+    issue_key VARCHAR(64) NOT NULL, -- Jira Issue key, e.g. "PROJ-123"
+    project_key VARCHAR(64) NOT NULL,
+    title VARCHAR(255) NOT NULL,
+    description TEXT NOT NULL,
     start_time TIMESTAMPTZ,
     end_time TIMESTAMPTZ,
     type VARCHAR(20) NOT NULL CHECK (type IN ('INSTANT', 'SCHEDULED')),
@@ -139,8 +139,7 @@ WHERE
 
 CREATE INDEX idx_meetings_issue ON meetings (tenant_id, issue_id)
 WHERE
-    issue_id IS NOT NULL
-    AND deleted_at IS NULL;
+    deleted_at IS NULL;
 
 CREATE INDEX idx_meetings_host ON meetings (tenant_id, host_id)
 WHERE
@@ -292,9 +291,9 @@ CREATE TABLE meeting_invitees (
     id UUID NOT NULL DEFAULT uuidv7 (),
     meeting_id UUID NOT NULL,
     inviter_id VARCHAR(128) NOT NULL, -- Jira accountId
-    account_id VARCHAR(128), -- Jira accountId (null if not resolved)
+    account_id VARCHAR(128) NOT NULL, -- Jira accountId (frontend-resolved)
     email VARCHAR(255) NOT NULL,
-    display_name VARCHAR(255),
+    display_name VARCHAR(255) NOT NULL,
     status VARCHAR(20) NOT NULL DEFAULT 'PENDING' CHECK (status IN ('PENDING', 'ACCEPTED', 'DECLINED')),
     token_hash VARCHAR(64),
     token_status VARCHAR(20) CHECK (
@@ -397,9 +396,7 @@ CREATE INDEX idx_meeting_invitees_meeting ON meeting_invitees (tenant_id, meetin
 
 CREATE INDEX idx_meeting_invitees_email ON meeting_invitees (tenant_id, email);
 
-CREATE INDEX idx_meeting_invitees_account ON meeting_invitees (tenant_id, account_id)
-WHERE
-    account_id IS NOT NULL;
+CREATE INDEX idx_meeting_invitees_account ON meeting_invitees (tenant_id, account_id);
 
 CREATE UNIQUE INDEX uq_meeting_invitees_token_hash ON meeting_invitees (tenant_id, token_hash)
 WHERE
