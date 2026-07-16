@@ -5,7 +5,7 @@ import io.github.smiskinext.shared.domain.ValueObject;
 import java.util.Objects;
 
 /**
- * Optional display name for a meeting invitee, max 255 characters.
+ * Required display name for a meeting invitee. Must be non-blank, max 255 characters.
  */
 public record InviteeDisplayName(String value) implements ValueObject {
 

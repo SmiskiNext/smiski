@@ -252,11 +252,11 @@ public sealed interface MeetingError extends DomainError {
         }
     }
 
-    /** The meeting is not in LIVE status; mute operations are only valid on live meetings. */
-    record MeetingNotLive(UUID meetingId) implements MeetingError {
+    /** The meeting is not in RUNNING status; mute operations are only valid on running meetings. */
+    record MeetingNotRunning(UUID meetingId) implements MeetingError {
         @Override
         public ErrorCode errorCode() {
-            return MeetingErrorCode.MEETING_NOT_LIVE;
+            return MeetingErrorCode.MEETING_NOT_RUNNING;
         }
 
         @Override

@@ -17,7 +17,7 @@ import org.jspecify.annotations.Nullable;
 /**
  * Meeting aggregate root.
  *
- * <p>Manages the meeting lifecycle: SCHEDULED → LIVE → ENDED, or SCHEDULED → CANCELLED.
+ * <p>Manages the meeting lifecycle: SCHEDULED → RUNNING → COMPLETED, or SCHEDULED → CANCELED.
  * Domain events are registered on each state transition and published by the infrastructure layer
  * via the Transactional Outbox pattern.
  */
@@ -30,9 +30,9 @@ public class Meeting extends AggregateRoot<MeetingId> {
     private final MeetingType type;
     private final Instant createdAt;
 
-    private @Nullable MeetingTitle title;
-    private @Nullable String description;
-    private @Nullable JiraIssueLink issueLink;
+    private MeetingTitle title;
+    private String description;
+    private JiraIssueLink issueLink;
     private @Nullable MeetingTimeRange timeRange;
     private @Nullable Instant endTime;
     private MeetingStatus status;
@@ -50,9 +50,9 @@ public class Meeting extends AggregateRoot<MeetingId> {
             MeetingId id,
             AccountId hostId,
             ShortCode shortCode,
-            @Nullable MeetingTitle title,
-            @Nullable String description,
-            @Nullable JiraIssueLink issueLink,
+            MeetingTitle title,
+            String description,
+            JiraIssueLink issueLink,
             @Nullable MeetingTimeRange timeRange,
             MeetingType type,
             MeetingStatus status,
@@ -77,14 +77,14 @@ public class Meeting extends AggregateRoot<MeetingId> {
     // -------------------------------------------------------------------------
 
     /**
-     * Creates a new SCHEDULED meeting. Registers {@code MeetingScheduledEvent}.
+     * Creates a new SCHEDULED meeting. Registers {@code MeetingCreatedEvent}.
      */
     public static Meeting schedule(
             TenantId tenantId,
             AccountId hostId,
-            @Nullable MeetingTitle title,
-            @Nullable String description,
-            @Nullable JiraIssueLink issueLink,
+            MeetingTitle title,
+            String description,
+            JiraIssueLink issueLink,
             MeetingTimeRange timeRange,
             MeetingSettings settings,
             ShortCode shortCode) {
@@ -103,28 +103,36 @@ public class Meeting extends AggregateRoot<MeetingId> {
                 MeetingStatus.SCHEDULED,
                 settings,
                 now);
-        meeting.registerEvent(new MeetingScheduledEvent(
+        meeting.registerEvent(new MeetingCreatedEvent(
                 UUID.randomUUID(),
                 tenantId.value(),
                 id.value(),
                 hostId.value(),
                 shortCode.value(),
-                title != null ? title.value() : null,
+                MeetingType.SCHEDULED.name(),
+                MeetingStatus.SCHEDULED.name(),
+                title.value(),
+                description,
+                issueLink.issueId(),
+                issueLink.issueKey(),
+                issueLink.projectKey(),
                 timeRange.start(),
+                null,
+                settings,
                 now));
         return meeting;
     }
 
     /**
      * Creates a new INSTANT meeting (starts immediately, no scheduled time).
-     * Registers {@code MeetingScheduledEvent}.
+     * Registers {@code MeetingCreatedEvent}.
      */
     public static Meeting instant(
             TenantId tenantId,
             AccountId hostId,
-            @Nullable MeetingTitle title,
-            @Nullable String description,
-            @Nullable JiraIssueLink issueLink,
+            MeetingTitle title,
+            String description,
+            JiraIssueLink issueLink,
             MeetingSettings settings,
             ShortCode shortCode) {
         MeetingId id = MeetingId.of(UuidCreator.getTimeOrderedEpoch());
@@ -142,14 +150,22 @@ public class Meeting extends AggregateRoot<MeetingId> {
                 MeetingStatus.SCHEDULED,
                 settings,
                 now);
-        meeting.registerEvent(new MeetingScheduledEvent(
+        meeting.registerEvent(new MeetingCreatedEvent(
                 UUID.randomUUID(),
                 tenantId.value(),
                 id.value(),
                 hostId.value(),
                 shortCode.value(),
-                title != null ? title.value() : null,
+                MeetingType.INSTANT.name(),
+                MeetingStatus.SCHEDULED.name(),
+                title.value(),
+                description,
+                issueLink.issueId(),
+                issueLink.issueKey(),
+                issueLink.projectKey(),
                 null,
+                null,
+                settings,
                 now));
         return meeting;
     }
@@ -162,9 +178,9 @@ public class Meeting extends AggregateRoot<MeetingId> {
             MeetingId id,
             AccountId hostId,
             ShortCode shortCode,
-            @Nullable MeetingTitle title,
-            @Nullable String description,
-            @Nullable JiraIssueLink issueLink,
+            MeetingTitle title,
+            String description,
+            JiraIssueLink issueLink,
             @Nullable MeetingTimeRange timeRange,
             @Nullable Instant endTime,
             MeetingType type,
@@ -199,53 +215,62 @@ public class Meeting extends AggregateRoot<MeetingId> {
     // -------------------------------------------------------------------------
 
     /**
-     * Transitions SCHEDULED → LIVE. Registers {@code MeetingStartedEvent}.
+     * Transitions SCHEDULED -> RUNNING. Registers {@code MeetingStartedEvent}.
      */
     public Result<Void, MeetingError> start() {
-        if (!status.canTransitionTo(MeetingStatus.LIVE)) {
+        if (!status.canTransitionTo(MeetingStatus.RUNNING)) {
             return Result.failure(
-                    new MeetingError.InvalidStatusTransition(status, MeetingStatus.LIVE));
+                    new MeetingError.InvalidStatusTransition(status, MeetingStatus.RUNNING));
         }
-        status = MeetingStatus.LIVE;
+        status = MeetingStatus.RUNNING;
         Instant now = Instant.now();
         registerEvent(new MeetingStartedEvent(
                 UUID.randomUUID(),
                 tenantId.value(),
                 id.value(),
                 hostId.value(),
+                shortCode.value(),
+                type.name(),
+                MeetingStatus.RUNNING.name(),
+                title.value(),
+                description,
+                issueLink.issueId(),
+                issueLink.issueKey(),
+                issueLink.projectKey(),
+                timeRange != null ? timeRange.start() : null,
+                null,
+                settings,
+                createdAt,
                 LiveKitRoomName.fromMeetingId(id).value(),
                 now));
         return Result.success();
     }
 
     /**
-     * Transitions LIVE → ENDED. Registers {@code MeetingEndedEvent}.
+     * Transitions RUNNING → COMPLETED. Registers {@code MeetingCompletedEvent}.
      */
-    public Result<Void, MeetingError> end() {
-        if (!status.canTransitionTo(MeetingStatus.ENDED)) {
+    public Result<Void, MeetingError> complete() {
+        if (!status.canTransitionTo(MeetingStatus.COMPLETED)) {
             return Result.failure(
-                    new MeetingError.InvalidStatusTransition(status, MeetingStatus.ENDED));
+                    new MeetingError.InvalidStatusTransition(status, MeetingStatus.COMPLETED));
         }
-        status = MeetingStatus.ENDED;
+        status = MeetingStatus.COMPLETED;
         Instant now = Instant.now();
         this.endTime = now;
-        registerEvent(new MeetingEndedEvent(
+        registerEvent(new MeetingCompletedEvent(
                 UUID.randomUUID(), tenantId.value(), id.value(), hostId.value(), now));
         return Result.success();
     }
 
     /**
      * Records that invitations have been sent for this meeting.
-     * Registers {@code MeetingInvitationsSentEvent} carrying the invitee details and raw tokens.
+     * Registers {@code MeetingInvitationsSentEvent} carrying the invitee details with embedded tokens.
      *
      * <p>Does nothing when the invitee list is empty.
      *
-     * @param invitees list of invitee info snapshots
-     * @param inviteeTokens map of accountId (or email as fallback) to raw invite token
+     * @param invitees list of invitee info snapshots (each carrying its own token)
      */
-    public void recordInvitationsSent(
-            List<MeetingInvitationsSentEvent.InviteeInfo> invitees,
-            java.util.Map<String, String> inviteeTokens) {
+    public void recordInvitationsSent(List<MeetingInvitationsSentEvent.InviteeInfo> invitees) {
         if (invitees.isEmpty()) {
             return;
         }
@@ -253,25 +278,24 @@ public class Meeting extends AggregateRoot<MeetingId> {
                 UUID.randomUUID(),
                 tenantId.value(),
                 id.value(),
-                title != null ? title.value() : null,
+                title.value(),
                 shortCode.value(),
                 timeRange != null ? timeRange.start() : null,
                 List.copyOf(invitees),
-                java.util.Map.copyOf(inviteeTokens),
                 Instant.now()));
     }
 
     /**
-     * Updates meeting settings when status is SCHEDULED or LIVE.
+     * Updates meeting settings when status is SCHEDULED or RUNNING.
      * Registers {@code MeetingSettingsUpdatedEvent} with both old and new settings snapshots.
      *
      * @param newSettings the new settings to apply
      * @param updatedBy   the account ID performing the update
-     * @return success, or failure with {@code InvalidStatusTransition} if meeting is ENDED/CANCELLED
+     * @return success, or failure with {@code InvalidStatusTransition} if meeting is COMPLETED/CANCELED
      */
     public Result<Void, MeetingError> updateSettings(
             MeetingSettings newSettings, String updatedBy) {
-        if (status != MeetingStatus.SCHEDULED && status != MeetingStatus.LIVE) {
+        if (status != MeetingStatus.SCHEDULED && status != MeetingStatus.RUNNING) {
             return Result.failure(
                     new MeetingError.InvalidStatusTransition(status, MeetingStatus.SCHEDULED));
         }
@@ -292,31 +316,31 @@ public class Meeting extends AggregateRoot<MeetingId> {
     }
 
     /**
-     * Transitions SCHEDULED → CANCELLED. Registers {@code MeetingCancelledEvent}.
+     * Transitions SCHEDULED → CANCELED. Registers {@code MeetingCanceledEvent}.
      */
     public Result<Void, MeetingError> cancel() {
         return cancel(
-                title != null ? title.value() : null,
+                title.value(),
                 shortCode.value(),
                 timeRange != null ? timeRange.start() : null,
                 List.of());
     }
 
     /**
-     * Transitions SCHEDULED → CANCELLED and includes notification payload for invitees.
+     * Transitions SCHEDULED → CANCELED and includes notification payload for invitees.
      */
     public Result<Void, MeetingError> cancel(
             @Nullable String meetingTitle,
             String meetingShortCode,
             @Nullable Instant startTime,
-            List<MeetingCancelledEvent.InviteeInfo> invitees) {
-        if (!status.canTransitionTo(MeetingStatus.CANCELLED)) {
+            List<MeetingCanceledEvent.InviteeInfo> invitees) {
+        if (!status.canTransitionTo(MeetingStatus.CANCELED)) {
             return Result.failure(
-                    new MeetingError.InvalidStatusTransition(status, MeetingStatus.CANCELLED));
+                    new MeetingError.InvalidStatusTransition(status, MeetingStatus.CANCELED));
         }
-        status = MeetingStatus.CANCELLED;
+        status = MeetingStatus.CANCELED;
         Instant now = Instant.now();
-        registerEvent(new MeetingCancelledEvent(
+        registerEvent(new MeetingCanceledEvent(
                 UUID.randomUUID(),
                 tenantId.value(),
                 id.value(),
@@ -350,12 +374,12 @@ public class Meeting extends AggregateRoot<MeetingId> {
         return shortCode;
     }
 
-    public Optional<MeetingTitle> getTitle() {
-        return Optional.ofNullable(title);
+    public MeetingTitle getTitle() {
+        return title;
     }
 
-    public Optional<String> getDescription() {
-        return Optional.ofNullable(description);
+    public String getDescription() {
+        return description;
     }
 
     public Optional<MeetingTimeRange> getTimeRange() {
@@ -406,7 +430,7 @@ public class Meeting extends AggregateRoot<MeetingId> {
         return Optional.ofNullable(purgeAfter);
     }
 
-    public Optional<JiraIssueLink> getIssueLink() {
-        return Optional.ofNullable(issueLink);
+    public JiraIssueLink getIssueLink() {
+        return issueLink;
     }
 }
