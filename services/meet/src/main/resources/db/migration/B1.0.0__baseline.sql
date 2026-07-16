@@ -40,7 +40,7 @@ CREATE TABLE meetings (
     end_time TIMESTAMPTZ,
     type VARCHAR(20) NOT NULL CHECK (type IN ('INSTANT', 'SCHEDULED')),
     status VARCHAR(20) NOT NULL DEFAULT 'SCHEDULED' CHECK (
-        status IN ('SCHEDULED', 'LIVE', 'ENDED', 'CANCELLED')
+        status IN ('SCHEDULED', 'RUNNING', 'COMPLETED', 'CANCELED')
     ),
     settings JSONB NOT NULL DEFAULT '{}',
     deleted_at TIMESTAMPTZ,
