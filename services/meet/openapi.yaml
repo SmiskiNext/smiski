@@ -72,14 +72,14 @@ paths:
             application/problem+json:
               schema:
                 $ref: "#/components/schemas/ProblemDetail"
-        "415":
-          description: Unsupported Media Type
+        "405":
+          description: Method Not Allowed
           content:
             application/problem+json:
               schema:
                 $ref: "#/components/schemas/ProblemDetail"
-        "405":
-          description: Method Not Allowed
+        "415":
+          description: Unsupported Media Type
           content:
             application/problem+json:
               schema:

@@ -7,7 +7,7 @@ import static org.mockito.Mockito.when;
 
 import com.github.f4b6a3.uuid.UuidCreator;
 import io.cloudevents.CloudEvent;
-import io.github.smiskinext.shared.domain.EventPublisher;
+import io.github.smiskinext.shared.infrastructure.outbox.OutboxEventPublisher;
 import io.github.smiskinext.shared.infrastructure.outbox.OutboxRelay;
 import io.github.smiskinext.shared.infrastructure.outbox.OutboxTransport;
 import io.github.smiskinext.shared.infrastructure.tenancy.TenantContext;
@@ -38,7 +38,7 @@ class OutboxRelayFailureIntegrationTest {
     private OutboxTransport outboxTransport;
 
     @Autowired
-    private EventPublisher eventPublisher;
+    private OutboxEventPublisher outboxEventPublisher;
 
     @Autowired
     private OutboxRelay outboxRelay;
@@ -91,7 +91,7 @@ class OutboxRelayFailureIntegrationTest {
                     null,
                     null);
 
-            eventPublisher.publish(event);
+            outboxEventPublisher.publish(event);
             return null;
         });
 

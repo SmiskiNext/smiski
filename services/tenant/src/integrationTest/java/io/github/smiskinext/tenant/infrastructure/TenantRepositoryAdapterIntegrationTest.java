@@ -3,7 +3,6 @@ package io.github.smiskinext.tenant.infrastructure;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import io.github.smiskinext.shared.domain.EventPublisher;
-import io.github.smiskinext.shared.domain.PublishableEvent;
 import io.github.smiskinext.shared.infrastructure.tenancy.TenantContext;
 import io.github.smiskinext.tenant.config.TestcontainersConfiguration;
 import io.github.smiskinext.tenant.domain.model.Tenant;
@@ -24,7 +23,6 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.PlatformTransactionManager;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
 
 @SpringBootTest
@@ -54,40 +52,53 @@ class TenantRepositoryAdapterIntegrationTest {
 
     @AfterEach
     void tearDown() {
+        TenantContext.setCurrentTenant("cloud-test");
+        TransactionTemplate cleanup = new TransactionTemplate(transactionManager);
+        cleanup.execute(status -> {
+            outboxEventJpaRepository.deleteAll();
+            tenantJpaRepository.deleteAll();
+            return null;
+        });
         TenantContext.clear();
     }
 
     @Test
-    @Transactional
     void upsert_and_outbox_written_atomically() {
-        Tenant tenant = Tenant.install(
-                "cloud-test",
-                new InstallationId("install-1"),
-                new AppId("app-1"),
-                "1.0.0",
-                null,
-                null,
-                null);
+        TransactionTemplate txTemplate = new TransactionTemplate(transactionManager);
 
-        tenantRepository.save(tenant);
+        txTemplate.execute(status -> {
+            Tenant tenant = Tenant.install(
+                    "cloud-test",
+                    new InstallationId("install-1"),
+                    new AppId("app-1"),
+                    "1.0.0",
+                    null,
+                    null,
+                    null);
 
-        tenant.getDomainEvents().stream()
-                .filter(PublishableEvent.class::isInstance)
-                .map(PublishableEvent.class::cast)
-                .forEach(eventPublisher::publish);
+            tenantRepository.save(tenant);
 
-        Optional<Tenant> loaded = tenantRepository.findById("cloud-test");
-        assertThat(loaded).isPresent();
-        assertThat(loaded.get().getStatus()).isEqualTo(TenantStatus.ACTIVE);
+            eventPublisher.publishEventsOf(tenant);
+            return null;
+        });
 
-        List<OutboxEventJpaEntity> outboxRows =
-                outboxEventJpaRepository.findUnpublishedOrderByCreatedAt();
-        List<OutboxEventJpaEntity> relevantRows = outboxRows.stream()
-                .filter(row -> row.getAggregateId().equals("cloud-test"))
-                .toList();
-        assertThat(relevantRows).hasSize(1);
-        assertThat(relevantRows.getFirst().getAggregateId()).isEqualTo("cloud-test");
-        assertThat(relevantRows.getFirst().getPublishedAt()).isNull();
+        TransactionTemplate verifyTx = new TransactionTemplate(transactionManager);
+        verifyTx.setReadOnly(true);
+        verifyTx.execute(status -> {
+            Optional<Tenant> loaded = tenantRepository.findById("cloud-test");
+            assertThat(loaded).isPresent();
+            assertThat(loaded.get().getStatus()).isEqualTo(TenantStatus.ACTIVE);
+
+            List<OutboxEventJpaEntity> outboxRows =
+                    outboxEventJpaRepository.findUnpublishedOrderByCreatedAt();
+            List<OutboxEventJpaEntity> relevantRows = outboxRows.stream()
+                    .filter(row -> row.getAggregateId().equals("cloud-test"))
+                    .toList();
+            assertThat(relevantRows).hasSize(1);
+            assertThat(relevantRows.getFirst().getAggregateId()).isEqualTo("cloud-test");
+            assertThat(relevantRows.getFirst().getPublishedAt()).isNull();
+            return null;
+        });
     }
 
     @Test
@@ -110,10 +121,7 @@ class TenantRepositoryAdapterIntegrationTest {
 
                 tenantRepository.save(tenant);
 
-                tenant.getDomainEvents().stream()
-                        .filter(PublishableEvent.class::isInstance)
-                        .map(PublishableEvent.class::cast)
-                        .forEach(eventPublisher::publish);
+                eventPublisher.publishEventsOf(tenant);
 
                 throw new RuntimeException("Simulated failure to trigger rollback");
             });

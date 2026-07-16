@@ -9,9 +9,7 @@ import io.github.smiskinext.meet.domain.event.MeetingInvitationsSentEvent;
 import io.github.smiskinext.meet.domain.model.*;
 import io.github.smiskinext.meet.domain.model.valueobject.*;
 import io.github.smiskinext.meet.domain.port.*;
-import io.github.smiskinext.shared.domain.DomainEvent;
 import io.github.smiskinext.shared.domain.EventPublisher;
-import io.github.smiskinext.shared.domain.PublishableEvent;
 import io.github.smiskinext.shared.domain.Result;
 import io.github.smiskinext.shared.domain.valueobject.TenantId;
 import java.util.ArrayList;
@@ -130,8 +128,8 @@ public class CreateInstantMeetingApplicationService implements CreateInstantMeet
                 settings);
 
         Result<String, MeetingError> tokenResult = liveKitPort.generateToken(tokenRequest);
-        if (tokenResult instanceof Result.Failure<String, MeetingError> f) {
-            return Result.failure(f.error());
+        if (tokenResult instanceof Result.Failure<String, MeetingError>(MeetingError error)) {
+            return Result.failure(error);
         }
         String livekitToken = ((Result.Success<String, MeetingError>) tokenResult).value();
 
@@ -140,12 +138,7 @@ public class CreateInstantMeetingApplicationService implements CreateInstantMeet
             meetingInviteeRepository.saveAll(invitees);
         }
 
-        for (DomainEvent event : meeting.getDomainEvents()) {
-            if (event instanceof PublishableEvent publishable) {
-                eventPublisher.publish(publishable);
-            }
-        }
-        meeting.clearDomainEvents();
+        eventPublisher.publishEventsOf(meeting);
 
         CreateInstantMeetingResult result = buildResult(meeting, livekitToken, roomName);
         return Result.success(result);

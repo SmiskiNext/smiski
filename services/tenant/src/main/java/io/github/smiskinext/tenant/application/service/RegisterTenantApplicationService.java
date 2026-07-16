@@ -1,8 +1,6 @@
 package io.github.smiskinext.tenant.application.service;
 
-import io.github.smiskinext.shared.domain.DomainEvent;
 import io.github.smiskinext.shared.domain.EventPublisher;
-import io.github.smiskinext.shared.domain.PublishableEvent;
 import io.github.smiskinext.shared.domain.Result;
 import io.github.smiskinext.shared.infrastructure.tenancy.TenantContext;
 import io.github.smiskinext.tenant.application.command.RegisterTenantCommand;
@@ -64,12 +62,7 @@ public class RegisterTenantApplicationService implements RegisterTenantUseCase {
 
         tenantRepository.save(tenant);
 
-        for (DomainEvent event : tenant.getDomainEvents()) {
-            if (event instanceof PublishableEvent publishable) {
-                eventPublisher.publish(publishable);
-            }
-        }
-        tenant.clearDomainEvents();
+        eventPublisher.publishEventsOf(tenant);
 
         return Result.success(TenantResultMapper.toResult(tenant, created));
     }

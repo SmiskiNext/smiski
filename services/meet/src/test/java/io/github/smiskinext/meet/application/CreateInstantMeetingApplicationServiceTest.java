@@ -13,8 +13,8 @@ import io.github.smiskinext.meet.domain.model.Meeting;
 import io.github.smiskinext.meet.domain.model.valueobject.LiveKitTokenRequest;
 import io.github.smiskinext.meet.domain.model.valueobject.ShortCode;
 import io.github.smiskinext.meet.domain.port.*;
+import io.github.smiskinext.shared.domain.AggregateRoot;
 import io.github.smiskinext.shared.domain.EventPublisher;
-import io.github.smiskinext.shared.domain.PublishableEvent;
 import io.github.smiskinext.shared.domain.Result;
 import java.time.Instant;
 import java.util.List;
@@ -104,11 +104,7 @@ class CreateInstantMeetingApplicationServiceTest {
         assertThat(tokenRequestCaptor.getValue().participantAttributes().avatarUrl())
                 .isEqualTo("https://cdn.example.com/alice.png");
 
-        ArgumentCaptor<PublishableEvent> eventCaptor =
-                ArgumentCaptor.forClass(PublishableEvent.class);
-        verify(eventPublisher, atLeast(3)).publish(eventCaptor.capture());
-        List<PublishableEvent> published = eventCaptor.getAllValues();
-        assertThat(published).hasSizeGreaterThanOrEqualTo(3);
+        verify(eventPublisher).publishEventsOf(any(AggregateRoot.class));
     }
 
     @Test
@@ -157,6 +153,6 @@ class CreateInstantMeetingApplicationServiceTest {
 
         verify(meetingRepository, never()).save(any(Meeting.class));
         verify(meetingInviteeRepository, never()).saveAll(anyList());
-        verify(eventPublisher, never()).publish(any(PublishableEvent.class));
+        verify(eventPublisher, never()).publishEventsOf(any(AggregateRoot.class));
     }
 }

@@ -3,7 +3,7 @@ package io.github.smiskinext.tenant.infrastructure;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.github.f4b6a3.uuid.UuidCreator;
-import io.github.smiskinext.shared.domain.EventPublisher;
+import io.github.smiskinext.shared.infrastructure.outbox.OutboxEventPublisher;
 import io.github.smiskinext.shared.infrastructure.outbox.OutboxRelay;
 import io.github.smiskinext.shared.infrastructure.tenancy.TenantContext;
 import io.github.smiskinext.tenant.config.TestcontainersConfiguration;
@@ -28,7 +28,7 @@ import org.springframework.transaction.support.TransactionTemplate;
 class OutboxRelayIntegrationTest {
 
     @Autowired
-    private EventPublisher eventPublisher;
+    private OutboxEventPublisher outboxEventPublisher;
 
     @Autowired
     private OutboxRelay outboxRelay;
@@ -76,7 +76,7 @@ class OutboxRelayIntegrationTest {
                     null,
                     null);
 
-            eventPublisher.publish(event);
+            outboxEventPublisher.publish(event);
             return null;
         });
 
@@ -115,7 +115,7 @@ class OutboxRelayIntegrationTest {
                     null,
                     null);
 
-            eventPublisher.publish(event);
+            outboxEventPublisher.publish(event);
             return null;
         });
 
@@ -160,7 +160,7 @@ class OutboxRelayIntegrationTest {
                     null,
                     null);
 
-            eventPublisher.publish(event);
+            outboxEventPublisher.publish(event);
             return null;
         });
 

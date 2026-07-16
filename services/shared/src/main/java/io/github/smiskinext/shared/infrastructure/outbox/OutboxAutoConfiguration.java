@@ -1,12 +1,15 @@
 package io.github.smiskinext.shared.infrastructure.outbox;
 
 import io.cloudevents.CloudEvent;
+import io.github.smiskinext.shared.domain.EventPublisher;
+import io.github.smiskinext.shared.infrastructure.event.SpringDomainEventPublisher;
 import java.util.List;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Bean;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.scheduling.annotation.EnableScheduling;
@@ -37,6 +40,19 @@ public class OutboxAutoConfiguration {
             OutboxEventProtoMapperRegistry mapperRegistry,
             CloudEventEncoder cloudEventEncoder) {
         return new OutboxEventPublisher(outboxStore, mapperRegistry, cloudEventEncoder);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean(EventPublisher.class)
+    public EventPublisher eventPublisher(ApplicationEventPublisher applicationEventPublisher) {
+        return new SpringDomainEventPublisher(applicationEventPublisher);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    public OutboxDomainEventListener outboxDomainEventListener(
+            OutboxEventPublisher outboxEventPublisher) {
+        return new OutboxDomainEventListener(outboxEventPublisher);
     }
 
     @Bean
