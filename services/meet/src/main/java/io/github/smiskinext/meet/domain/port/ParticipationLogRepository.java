@@ -47,7 +47,7 @@ public interface ParticipationLogRepository {
 
     /**
      * Returns all active (not yet left) participation logs for a meeting.
-     * Used by {@code room_finished} webhook and {@code EndMeetingUseCase} to bulk-close
+     * Used by {@code room_finished} webhook and {@code CompleteMeetingUseCase} to bulk-close
      * any remaining open sessions.
      */
     List<ParticipationLog> findActiveByMeetingId(UUID meetingId);

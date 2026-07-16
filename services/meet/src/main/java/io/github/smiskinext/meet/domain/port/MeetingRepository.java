@@ -16,6 +16,13 @@ import org.jspecify.annotations.Nullable;
 
 public interface MeetingRepository {
 
+    /**
+     * Persists the meeting, flushing immediately so a short-code uniqueness violation surfaces at
+     * the call site.
+     *
+     * @throws io.github.smiskinext.meet.domain.model.valueobject.ShortCodeCollisionException when
+     *     the meeting's short code is already used by another live meeting in the same tenant
+     */
     Meeting save(Meeting meeting);
 
     Optional<Meeting> findById(UUID id);
@@ -26,8 +33,6 @@ public interface MeetingRepository {
     Optional<Meeting> findByIdWithLock(UUID id);
 
     Optional<Meeting> findByShortCode(ShortCode shortCode);
-
-    boolean existsByShortCode(ShortCode shortCode);
 
     CursorPageResponse<MeetingSummary> findSummariesByHostId(
             AccountId hostId, @Nullable ScrollCursor cursor, int pageSize);

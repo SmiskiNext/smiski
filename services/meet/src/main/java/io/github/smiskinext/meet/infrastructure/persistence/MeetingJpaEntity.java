@@ -30,20 +30,20 @@ public class MeetingJpaEntity {
     @Column(name = "short_code", nullable = false, length = 15, unique = true)
     private String shortCode;
 
-    @Column(length = 255)
-    private @Nullable String title;
+    @Column(length = 255, nullable = false)
+    private String title;
 
-    @Column(columnDefinition = "TEXT")
-    private @Nullable String description;
+    @Column(columnDefinition = "TEXT", nullable = false)
+    private String description;
 
-    @Column(name = "issue_id", length = 64)
-    private @Nullable String issueId;
+    @Column(name = "issue_id", length = 64, nullable = false)
+    private String issueId;
 
-    @Column(name = "issue_key", length = 64)
-    private @Nullable String issueKey;
+    @Column(name = "issue_key", length = 64, nullable = false)
+    private String issueKey;
 
-    @Column(name = "project_key", length = 64)
-    private @Nullable String projectKey;
+    @Column(name = "project_key", length = 64, nullable = false)
+    private String projectKey;
 
     @Column(name = "start_time")
     private @Nullable Instant startTime;
@@ -79,11 +79,11 @@ public class MeetingJpaEntity {
             UUID id,
             String hostId,
             String shortCode,
-            @Nullable String title,
-            @Nullable String description,
-            @Nullable String issueId,
-            @Nullable String issueKey,
-            @Nullable String projectKey,
+            String title,
+            String description,
+            String issueId,
+            String issueKey,
+            String projectKey,
             @Nullable Instant startTime,
             @Nullable Instant endTime,
             String type,
@@ -128,23 +128,23 @@ public class MeetingJpaEntity {
         return shortCode;
     }
 
-    public @Nullable String getTitle() {
+    public String getTitle() {
         return title;
     }
 
-    public @Nullable String getDescription() {
+    public String getDescription() {
         return description;
     }
 
-    public @Nullable String getIssueId() {
+    public String getIssueId() {
         return issueId;
     }
 
-    public @Nullable String getIssueKey() {
+    public String getIssueKey() {
         return issueKey;
     }
 
-    public @Nullable String getProjectKey() {
+    public String getProjectKey() {
         return projectKey;
     }
 
