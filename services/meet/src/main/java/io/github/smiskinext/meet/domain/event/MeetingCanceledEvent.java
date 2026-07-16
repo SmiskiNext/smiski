@@ -7,12 +7,12 @@ import java.util.UUID;
 import org.jspecify.annotations.Nullable;
 
 /**
- * Published when a meeting transitions SCHEDULED → CANCELLED.
+ * Published when a meeting transitions SCHEDULED → CANCELED.
  *
  * <p>{@code meetingTitle} and {@code startTime} are nullable because instant meetings may not have
  * a published title or scheduled start time at cancellation time.
  */
-public record MeetingCancelledEvent(
+public record MeetingCanceledEvent(
         UUID eventId,
         String tenantId,
         UUID meetingId,
@@ -21,7 +21,7 @@ public record MeetingCancelledEvent(
         String meetingShortCode,
         @Nullable Instant startTime,
         List<InviteeInfo> invitees,
-        Instant cancelledAt)
+        Instant canceledAt)
         implements PublishableEvent {
 
     public record InviteeInfo(
@@ -43,16 +43,16 @@ public record MeetingCancelledEvent(
 
     @Override
     public String eventType() {
-        return "io.github.smiskinext.meet.meeting.cancelled.v1";
+        return "io.github.smiskinext.meet.meeting.canceled.v1";
     }
 
     @Override
     public String topic() {
-        return "meet.meeting.cancelled";
+        return "meet.meeting.canceled";
     }
 
     @Override
     public Instant occurredAt() {
-        return cancelledAt;
+        return canceledAt;
     }
 }

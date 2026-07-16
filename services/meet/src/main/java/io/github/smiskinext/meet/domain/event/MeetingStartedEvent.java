@@ -1,18 +1,32 @@
 package io.github.smiskinext.meet.domain.event;
 
+import io.github.smiskinext.meet.domain.model.valueobject.MeetingSettings;
 import io.github.smiskinext.shared.domain.PublishableEvent;
-
 import java.time.Instant;
 import java.util.UUID;
+import org.jspecify.annotations.Nullable;
 
 /**
- * Published when a meeting transitions SCHEDULED → LIVE.
+ * Published when a meeting transitions SCHEDULED -> RUNNING.
+ * Carries a full aggregate snapshot plus the LiveKit room name.
  */
 public record MeetingStartedEvent(
         UUID eventId,
         String tenantId,
         UUID meetingId,
         String hostId,
+        String shortCode,
+        String type,
+        String status,
+        String title,
+        String description,
+        String issueId,
+        String issueKey,
+        String projectKey,
+        @Nullable Instant startTime,
+        @Nullable Instant endTime,
+        MeetingSettings settings,
+        Instant createdAt,
         String liveKitRoomName,
         Instant startedAt)
         implements PublishableEvent {

@@ -6,10 +6,10 @@ import java.time.Instant;
 import java.util.UUID;
 
 /**
- * Published when a meeting transitions LIVE → ENDED.
+ * Published when a meeting transitions RUNNING → COMPLETED.
  */
-public record MeetingEndedEvent(
-        UUID eventId, String tenantId, UUID meetingId, String hostId, Instant endedAt)
+public record MeetingCompletedEvent(
+        UUID eventId, String tenantId, UUID meetingId, String hostId, Instant completedAt)
         implements PublishableEvent {
 
     @Override
@@ -24,16 +24,16 @@ public record MeetingEndedEvent(
 
     @Override
     public String eventType() {
-        return "io.github.smiskinext.meet.meeting.ended.v1";
+        return "io.github.smiskinext.meet.meeting.completed.v1";
     }
 
     @Override
     public String topic() {
-        return "meet.meeting.ended";
+        return "meet.meeting.completed";
     }
 
     @Override
     public Instant occurredAt() {
-        return endedAt;
+        return completedAt;
     }
 }

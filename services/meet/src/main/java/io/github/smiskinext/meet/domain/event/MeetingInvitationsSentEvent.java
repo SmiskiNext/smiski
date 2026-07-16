@@ -3,7 +3,6 @@ package io.github.smiskinext.meet.domain.event;
 import io.github.smiskinext.shared.domain.PublishableEvent;
 import java.time.Instant;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 import org.jspecify.annotations.Nullable;
 
@@ -11,7 +10,7 @@ import org.jspecify.annotations.Nullable;
  * Published when a meeting is scheduled with a non-empty invitee list.
  * Carries enough information for the notification service to send invitation emails.
  *
- * <p>Each invitee has a per-invitee invite token embedded in {@code inviteeTokens}.
+ * <p>Each invitee has a per-invitee invite token embedded directly in {@link InviteeInfo}.
  * The token-based link should be used by the notification service to build the join URL.
  *
  * @param eventId          unique identifier for this event occurrence
@@ -19,9 +18,7 @@ import org.jspecify.annotations.Nullable;
  * @param meetingTitle     human-readable title of the meeting
  * @param meetingShortCode short alphanumeric code for the meeting join URL
  * @param startTime        scheduled start time, or {@code null} for open-ended meetings
- * @param invitees         list of resolved invitees with display info
- * @param inviteeTokens    map of accountId (the resolved account identifier, not the DB invitee record ID)
- *                         to raw invite token; consumers must look up tokens by accountId
+ * @param invitees         list of resolved invitees with display info and tokens
  * @param occurredAt       timestamp when the event occurred
  */
 public record MeetingInvitationsSentEvent(
@@ -32,21 +29,18 @@ public record MeetingInvitationsSentEvent(
         String meetingShortCode,
         @Nullable Instant startTime,
         List<InviteeInfo> invitees,
-        Map<String, String> inviteeTokens,
         Instant occurredAt)
         implements PublishableEvent {
 
     /**
      * Minimal invitee info needed by the notification service.
      *
-     * @param accountId   resolved account ID (may be null if resolution was partial)
+     * @param accountId   resolved Jira account ID (always present — invitees are frontend-resolved)
      * @param email       the invite target email
      * @param displayName the user's full name at invite time
+     * @param token       the raw invite token for building the join URL
      */
-    public record InviteeInfo(
-            @Nullable String accountId,
-            String email,
-            @Nullable String displayName) {}
+    public record InviteeInfo(String accountId, String email, String displayName, String token) {}
 
     @Override
     public String aggregateId() {
@@ -82,8 +76,6 @@ public record MeetingInvitationsSentEvent(
                 + startTime
                 + ", invitees="
                 + invitees
-                + ", inviteeTokenCount="
-                + (inviteeTokens != null ? inviteeTokens.size() : 0)
                 + ", occurredAt="
                 + occurredAt
                 + ']';
