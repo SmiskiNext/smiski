@@ -19,7 +19,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
-@Transactional
 public class RegisterTenantApplicationService implements RegisterTenantUseCase {
 
     private final TenantRepository tenantRepository;
@@ -32,6 +31,7 @@ public class RegisterTenantApplicationService implements RegisterTenantUseCase {
     }
 
     @Override
+    @Transactional
     public Result<RegisterTenantResult, TenantError> execute(RegisterTenantCommand command) {
         String cloudId = command.cloudId();
         if (TenantContext.DEFAULT_TENANT.equals(cloudId)) {

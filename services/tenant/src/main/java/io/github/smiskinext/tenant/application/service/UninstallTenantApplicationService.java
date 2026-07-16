@@ -19,7 +19,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
-@Transactional
 public class UninstallTenantApplicationService implements UninstallTenantUseCase {
 
     private final TenantRepository tenantRepository;
@@ -36,6 +35,7 @@ public class UninstallTenantApplicationService implements UninstallTenantUseCase
     }
 
     @Override
+    @Transactional
     public Result<UninstallTenantResult, TenantError> execute(UninstallTenantCommand command) {
         String cloudId = command.cloudId();
         if (TenantContext.DEFAULT_TENANT.equals(cloudId)) {
