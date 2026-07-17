@@ -4,8 +4,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
+import io.github.smiskinext.shared.domain.AggregateRoot;
 import io.github.smiskinext.shared.domain.EventPublisher;
-import io.github.smiskinext.shared.domain.PublishableEvent;
 import io.github.smiskinext.shared.domain.Result;
 import io.github.smiskinext.shared.infrastructure.tenancy.TenantContext;
 import io.github.smiskinext.tenant.application.command.UninstallTenantCommand;
@@ -25,7 +25,6 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -90,12 +89,7 @@ class UninstallTenantApplicationServiceTest {
         assertThat(response.uninstalledAt()).isNotNull();
         assertThat(response.purgeAfter()).isAfter(response.uninstalledAt());
 
-        ArgumentCaptor<PublishableEvent> eventCaptor =
-                ArgumentCaptor.forClass(PublishableEvent.class);
-        verify(eventPublisher, times(1)).publish(eventCaptor.capture());
-        assertThat(eventCaptor.getValue().aggregateId()).isEqualTo("cloud-abc");
-        assertThat(eventCaptor.getValue().eventType())
-                .isEqualTo("io.github.smiskinext.tenant.v1.uninstalled");
+        verify(eventPublisher).publishEventsOf(any(AggregateRoot.class));
     }
 
     @Test
@@ -109,7 +103,7 @@ class UninstallTenantApplicationServiceTest {
         TenantError error = ((Result.Failure<UninstallTenantResult, TenantError>) result).error();
         assertThat(error).isInstanceOf(TenantError.TenantNotFound.class);
         verify(tenantRepository, never()).save(any());
-        verify(eventPublisher, never()).publish(any());
+        verify(eventPublisher, never()).publishEventsOf(any());
     }
 
     @Test
@@ -148,7 +142,7 @@ class UninstallTenantApplicationServiceTest {
         assertThat(response.purgeAfter()).isEqualTo(existingPurgeAfter);
 
         verify(tenantRepository, never()).save(any());
-        verify(eventPublisher, never()).publish(any());
+        verify(eventPublisher, never()).publishEventsOf(any());
     }
 
     @Test
@@ -160,6 +154,6 @@ class UninstallTenantApplicationServiceTest {
         TenantError error = ((Result.Failure<UninstallTenantResult, TenantError>) result).error();
         assertThat(error).isInstanceOf(TenantError.MissingTenantContext.class);
         verify(tenantRepository, never()).save(any());
-        verify(eventPublisher, never()).publish(any());
+        verify(eventPublisher, never()).publishEventsOf(any());
     }
 }

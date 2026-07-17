@@ -4,8 +4,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
+import io.github.smiskinext.shared.domain.AggregateRoot;
 import io.github.smiskinext.shared.domain.EventPublisher;
-import io.github.smiskinext.shared.domain.PublishableEvent;
 import io.github.smiskinext.shared.domain.Result;
 import io.github.smiskinext.shared.infrastructure.tenancy.TenantContext;
 import io.github.smiskinext.tenant.application.command.RegisterTenantCommand;
@@ -23,7 +23,6 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -59,7 +58,7 @@ class RegisterTenantApplicationServiceTest {
         TenantError error = ((Result.Failure<RegisterTenantResult, TenantError>) result).error();
         assertThat(error).isInstanceOf(TenantError.MissingTenantContext.class);
         verify(tenantRepository, never()).save(any());
-        verify(eventPublisher, never()).publish(any());
+        verify(eventPublisher, never()).publishEventsOf(any());
     }
 
     @Test
@@ -84,10 +83,7 @@ class RegisterTenantApplicationServiceTest {
         assertThat(response.updatedAt()).isNotNull();
         assertThat(response.created()).isTrue();
 
-        ArgumentCaptor<PublishableEvent> eventCaptor =
-                ArgumentCaptor.forClass(PublishableEvent.class);
-        verify(eventPublisher, times(1)).publish(eventCaptor.capture());
-        assertThat(eventCaptor.getValue().aggregateId()).isEqualTo("cloud-abc");
+        verify(eventPublisher).publishEventsOf(any(AggregateRoot.class));
     }
 
     @Test
@@ -120,6 +116,6 @@ class RegisterTenantApplicationServiceTest {
         assertThat(response.appVersion()).isEqualTo("2.0.0");
         assertThat(response.created()).isFalse();
 
-        verify(eventPublisher, times(1)).publish(any());
+        verify(eventPublisher).publishEventsOf(any(AggregateRoot.class));
     }
 }

@@ -23,7 +23,8 @@ import org.jspecify.annotations.Nullable;
  * Represents a pre-scheduled invitation for a meeting.
  *
  * <p>Created at scheduling time when the host provides an invitee list.
- * {@code accountId} is the resolved account identifier; {@code email} is the stable invite key.
+ * {@code accountId} is the resolved account identifier (always present — invitees must be
+ * resolved to a Jira account); {@code email} is the stable invite key.
  *
  * <p>Status transitions: {@code PENDING → ACCEPTED}, {@code PENDING → DECLINED},
  * {@code ACCEPTED → DECLINED}.
@@ -38,9 +39,9 @@ public class MeetingInvitee extends AggregateRoot<InviteeId> {
     private final InviteeId id;
     private final MeetingId meetingId;
     private final InviterId inviterId;
-    private @Nullable AccountId accountId;
+    private final AccountId accountId;
     private final Email email;
-    private final @Nullable InviteeDisplayName displayName;
+    private final InviteeDisplayName displayName;
     private InviteeStatus status;
     private final Instant invitedAt;
     private @Nullable Instant respondedAt;
@@ -51,9 +52,9 @@ public class MeetingInvitee extends AggregateRoot<InviteeId> {
             InviteeId id,
             MeetingId meetingId,
             InviterId inviterId,
-            @Nullable AccountId accountId,
+            AccountId accountId,
             Email email,
-            @Nullable InviteeDisplayName displayName,
+            InviteeDisplayName displayName,
             InviteeStatus status,
             Instant invitedAt,
             @Nullable Instant respondedAt,
@@ -79,9 +80,9 @@ public class MeetingInvitee extends AggregateRoot<InviteeId> {
             TenantId tenantId,
             MeetingId meetingId,
             InviterId inviterId,
-            @Nullable AccountId accountId,
+            AccountId accountId,
             Email email,
-            @Nullable InviteeDisplayName displayName) {
+            InviteeDisplayName displayName) {
         return new MeetingInvitee(
                 tenantId,
                 InviteeId.of(UuidCreator.getTimeOrderedEpoch()),
@@ -104,9 +105,9 @@ public class MeetingInvitee extends AggregateRoot<InviteeId> {
             InviteeId id,
             MeetingId meetingId,
             InviterId inviterId,
-            @Nullable AccountId accountId,
+            AccountId accountId,
             Email email,
-            @Nullable InviteeDisplayName displayName,
+            InviteeDisplayName displayName,
             InviteeStatus status,
             Instant invitedAt,
             @Nullable Instant respondedAt,
@@ -240,16 +241,16 @@ public class MeetingInvitee extends AggregateRoot<InviteeId> {
         return inviterId;
     }
 
-    public Optional<AccountId> getAccountId() {
-        return Optional.ofNullable(accountId);
+    public AccountId getAccountId() {
+        return accountId;
     }
 
     public Email getEmail() {
         return email;
     }
 
-    public Optional<InviteeDisplayName> getDisplayName() {
-        return Optional.ofNullable(displayName);
+    public InviteeDisplayName getDisplayName() {
+        return displayName;
     }
 
     public InviteeStatus getStatus() {

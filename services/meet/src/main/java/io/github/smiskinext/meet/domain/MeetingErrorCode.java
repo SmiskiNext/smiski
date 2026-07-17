@@ -32,7 +32,7 @@ public enum MeetingErrorCode implements ErrorCode {
     INVALID_INVITE_TOKEN(ErrorCategory.VALIDATION),
     PARTIAL_APPROVAL_FAILURE(ErrorCategory.CONFLICT),
     CANNOT_MUTE_SELF(ErrorCategory.VALIDATION),
-    MEETING_NOT_LIVE(ErrorCategory.CONFLICT),
+    MEETING_NOT_RUNNING(ErrorCategory.CONFLICT),
     TRACK_NOT_FOUND(ErrorCategory.NOT_FOUND),
     PARTICIPANT_NOT_FOUND(ErrorCategory.NOT_FOUND);
 

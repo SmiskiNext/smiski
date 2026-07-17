@@ -2,6 +2,8 @@ package io.github.smiskinext.shared.infrastructure.outbox;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import io.github.smiskinext.shared.domain.EventPublisher;
+import io.github.smiskinext.shared.infrastructure.event.SpringDomainEventPublisher;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
@@ -17,6 +19,9 @@ class OutboxAutoConfigurationTest {
             assertThat(context).doesNotHaveBean(OutboxRelay.class);
             assertThat(context).doesNotHaveBean(OutboxRelayTrigger.class);
             assertThat(context).doesNotHaveBean(OutboxTransport.class);
+            assertThat(context).doesNotHaveBean(EventPublisher.class);
+            assertThat(context).doesNotHaveBean(SpringDomainEventPublisher.class);
+            assertThat(context).doesNotHaveBean(OutboxDomainEventListener.class);
         });
     }
 }

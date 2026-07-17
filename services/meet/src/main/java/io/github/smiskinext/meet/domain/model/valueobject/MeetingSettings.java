@@ -22,6 +22,16 @@ public record MeetingSettings(
         boolean allowVideo)
         implements ValueObject {
 
+    public static final int MIN_PARTICIPANTS = 2;
+    public static final int MAX_PARTICIPANTS = 100;
+
+    public MeetingSettings {
+        if (maxParticipants < MIN_PARTICIPANTS || maxParticipants > MAX_PARTICIPANTS) {
+            throw new IllegalArgumentException("maxParticipants must be between " + MIN_PARTICIPANTS
+                    + " and " + MAX_PARTICIPANTS);
+        }
+    }
+
     /**
      * Default settings.
      *

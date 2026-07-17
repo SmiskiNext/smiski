@@ -71,11 +71,12 @@ class TenantOpenApiContentTest {
     void spec_marks_nullable_tenant_fields_as_nullable() throws Exception {
         String spec = fetchSpec();
 
-        assertThat(spec).containsPattern("(?s)environmentId:.*?nullable: true");
-        assertThat(spec).containsPattern("(?s)siteUrl:.*?nullable: true");
-        assertThat(spec).containsPattern("(?s)installerAccountId:.*?nullable: true");
-        assertThat(spec).containsPattern("(?s)uninstalledAt:.*?nullable: true");
-        assertThat(spec).containsPattern("(?s)purgeAfter:.*?nullable: true");
+        assertThat(spec).containsPattern("(?s)environmentId:\\s+type:\\s+- string\\s+- \"null\"");
+        assertThat(spec).containsPattern("(?s)siteUrl:\\s+type:\\s+- string\\s+- \"null\"");
+        assertThat(spec)
+                .containsPattern("(?s)installerAccountId:\\s+type:\\s+- string\\s+- \"null\"");
+        assertThat(spec).containsPattern("(?s)uninstalledAt:\\s+type:\\s+- string\\s+- \"null\"");
+        assertThat(spec).containsPattern("(?s)purgeAfter:\\s+type:\\s+- string\\s+- \"null\"");
     }
 
     private String fetchSpec() throws Exception {

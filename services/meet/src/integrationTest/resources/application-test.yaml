@@ -33,8 +33,5 @@ app:
     sse:
         timeout-ms: 300000
         join-request-timeout-ms: 600000
-
-zms:
     invite:
-        token-secret: test-invite-token-secret-for-tests
         token-expiry-days: 7

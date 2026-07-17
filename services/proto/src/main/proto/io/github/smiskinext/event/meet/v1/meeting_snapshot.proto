@@ -1,0 +1,37 @@
+syntax = "proto3";
+
+package io.github.smiskinext.event.meet.v1;
+
+option java_multiple_files = true;
+option java_package = "io.github.smiskinext.event.meet.v1";
+
+message MeetingSnapshot {
+  string meeting_id = 1;
+  string tenant_id = 2;
+  string host_id = 3;
+  string short_code = 4;
+  string type = 5;
+  string status = 6;
+  string title = 7;
+  string description = 8;
+  IssueLink issue_link = 9;
+  string start_time = 10;
+  string end_time = 11;
+  MeetingSettings settings = 12;
+  string created_at = 13;
+}
+
+message MeetingSettings {
+  string admission_policy = 1;
+  int32 max_participants = 2;
+  bool allow_screen_share = 3;
+  bool chat_enabled = 4;
+  bool allow_microphone = 5;
+  bool allow_video = 6;
+}
+
+message IssueLink {
+  string issue_id = 1;
+  string issue_key = 2;
+  string project_key = 3;
+}

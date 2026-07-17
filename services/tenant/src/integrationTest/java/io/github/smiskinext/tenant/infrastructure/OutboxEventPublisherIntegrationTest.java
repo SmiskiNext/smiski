@@ -4,8 +4,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.github.f4b6a3.uuid.UuidCreator;
-import io.github.smiskinext.shared.domain.EventPublisher;
 import io.github.smiskinext.shared.domain.PublishableEvent;
+import io.github.smiskinext.shared.infrastructure.outbox.OutboxEventPublisher;
 import io.github.smiskinext.shared.infrastructure.tenancy.TenantContext;
 import io.github.smiskinext.tenant.config.TestcontainersConfiguration;
 import io.github.smiskinext.tenant.domain.event.TenantInstalledEvent;
@@ -33,7 +33,7 @@ import tools.jackson.databind.ObjectMapper;
 class OutboxEventPublisherIntegrationTest {
 
     @Autowired
-    private EventPublisher eventPublisher;
+    private OutboxEventPublisher outboxEventPublisher;
 
     @Autowired
     private OutboxEventJpaRepository outboxEventJpaRepository;
@@ -78,7 +78,7 @@ class OutboxEventPublisherIntegrationTest {
                     null,
                     null);
 
-            eventPublisher.publish(event);
+            outboxEventPublisher.publish(event);
             return null;
         });
 
@@ -112,7 +112,7 @@ class OutboxEventPublisherIntegrationTest {
                     null,
                     null);
 
-            eventPublisher.publish(event);
+            outboxEventPublisher.publish(event);
             return null;
         });
 
@@ -174,7 +174,7 @@ class OutboxEventPublisherIntegrationTest {
         };
 
         assertThatThrownBy(() -> transactionTemplate.execute(status -> {
-                    eventPublisher.publish(unmappedEvent);
+                    outboxEventPublisher.publish(unmappedEvent);
                     return null;
                 }))
                 .isInstanceOf(IllegalArgumentException.class)
@@ -207,7 +207,7 @@ class OutboxEventPublisherIntegrationTest {
                     Instant.now(),
                     Instant.now());
 
-            eventPublisher.publish(event);
+            outboxEventPublisher.publish(event);
             return null;
         });
 
@@ -246,7 +246,7 @@ class OutboxEventPublisherIntegrationTest {
                     Instant.now(),
                     Instant.now());
 
-            eventPublisher.publish(event);
+            outboxEventPublisher.publish(event);
             return null;
         });
 

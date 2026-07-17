@@ -2,15 +2,15 @@ package io.github.smiskinext.shared.infrastructure.outbox;
 
 import com.google.protobuf.Message;
 
-import io.github.smiskinext.shared.domain.EventPublisher;
 import io.github.smiskinext.shared.domain.PublishableEvent;
 import io.github.smiskinext.shared.infrastructure.outbox.OutboxStore.NewOutboxEvent;
 
 /**
- * Shared implementation of {@link EventPublisher} that resolves a proto mapper, encodes the domain
- * event as a CloudEvent, and appends it to the transactional outbox via {@link OutboxStore}.
+ * Append delegate that resolves a proto mapper, encodes the domain event as a CloudEvent, and
+ * appends it to the transactional outbox via {@link OutboxStore}. Called by
+ * {@link OutboxDomainEventListener} rather than directly by application services.
  */
-public class OutboxEventPublisher implements EventPublisher {
+public class OutboxEventPublisher {
 
     private final OutboxStore outboxStore;
     private final OutboxEventProtoMapperRegistry mapperRegistry;
@@ -25,7 +25,6 @@ public class OutboxEventPublisher implements EventPublisher {
         this.cloudEventEncoder = cloudEventEncoder;
     }
 
-    @Override
     public void publish(PublishableEvent event) {
         OutboxEventProtoMapper<PublishableEvent> mapper = resolveMapper(event);
         Message protoMessage = mapper.toProto(event);
