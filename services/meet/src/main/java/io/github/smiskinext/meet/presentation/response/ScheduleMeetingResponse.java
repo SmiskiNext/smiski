@@ -1,13 +1,13 @@
 package io.github.smiskinext.meet.presentation.response;
 
-import io.github.smiskinext.meet.application.result.CreateInstantMeetingResult;
+import io.github.smiskinext.meet.application.result.ScheduleMeetingResult;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.time.Instant;
 import java.util.UUID;
 
-@Schema(description = "Response for a successfully created instant meeting")
-public record CreateInstantMeetingResponse(Meeting meeting, LiveKit livekit) {
+@Schema(description = "Response for a successfully created scheduled meeting")
+public record ScheduleMeetingResponse(Meeting meeting) {
 
     @Schema(description = "Meeting snapshot")
     public record Meeting(
@@ -20,6 +20,8 @@ public record CreateInstantMeetingResponse(Meeting meeting, LiveKit livekit) {
             String description,
             IssueLink issueLink,
             Settings settings,
+            Instant startTime,
+            Instant endTime,
             Instant createdAt) {}
 
     public record IssueLink(String issueId, String issueKey, String projectKey) {}
@@ -32,10 +34,7 @@ public record CreateInstantMeetingResponse(Meeting meeting, LiveKit livekit) {
             boolean allowMicrophone,
             boolean allowVideo) {}
 
-    @Schema(description = "LiveKit access details for the host")
-    public record LiveKit(String token, String roomName) {}
-
-    public static CreateInstantMeetingResponse from(CreateInstantMeetingResult result) {
+    public static ScheduleMeetingResponse from(ScheduleMeetingResult result) {
         IssueLink issueLink = new IssueLink(
                 result.issueLink().issueId(),
                 result.issueLink().issueKey(),
@@ -59,10 +58,10 @@ public record CreateInstantMeetingResponse(Meeting meeting, LiveKit livekit) {
                 result.description(),
                 issueLink,
                 settings,
+                result.startTime(),
+                result.endTime(),
                 result.createdAt());
 
-        LiveKit livekit = new LiveKit(result.livekit().token(), result.livekit().roomName());
-
-        return new CreateInstantMeetingResponse(meeting, livekit);
+        return new ScheduleMeetingResponse(meeting);
     }
 }

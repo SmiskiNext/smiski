@@ -6,6 +6,7 @@ import io.github.smiskinext.meet.domain.model.MeetingStatus;
 import io.github.smiskinext.shared.domain.DomainError;
 import io.github.smiskinext.shared.domain.ErrorCode;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
@@ -351,6 +352,18 @@ public sealed interface MeetingError extends DomainError {
         @Override
         public Object[] messageArgs() {
             return new Object[] {approvedCount, failedIds.size()};
+        }
+    }
+
+    record StartTimeInPast(Instant startTime) implements MeetingError {
+        @Override
+        public ErrorCode errorCode() {
+            return MeetingErrorCode.MEETING_START_IN_PAST;
+        }
+
+        @Override
+        public Object[] messageArgs() {
+            return new Object[] {startTime};
         }
     }
 }
