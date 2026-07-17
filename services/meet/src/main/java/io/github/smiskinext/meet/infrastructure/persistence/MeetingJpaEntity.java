@@ -57,6 +57,9 @@ public class MeetingJpaEntity {
     @Column(nullable = false, length = 20)
     private String status;
 
+    @Column(name = "cancel_reason", length = 20)
+    private @Nullable String cancelReason;
+
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(columnDefinition = "jsonb", nullable = false)
     private MeetingSettings settings;
@@ -88,6 +91,7 @@ public class MeetingJpaEntity {
             @Nullable Instant endTime,
             String type,
             String status,
+            @Nullable String cancelReason,
             MeetingSettings settings,
             @Nullable Instant deletedAt,
             @Nullable String deletedBy,
@@ -105,6 +109,7 @@ public class MeetingJpaEntity {
         this.endTime = endTime;
         this.type = type;
         this.status = status;
+        this.cancelReason = cancelReason;
         this.settings = settings;
         this.deletedAt = deletedAt;
         this.deletedBy = deletedBy;
@@ -162,6 +167,10 @@ public class MeetingJpaEntity {
 
     public String getStatus() {
         return status;
+    }
+
+    public @Nullable String getCancelReason() {
+        return cancelReason;
     }
 
     public MeetingSettings getSettings() {

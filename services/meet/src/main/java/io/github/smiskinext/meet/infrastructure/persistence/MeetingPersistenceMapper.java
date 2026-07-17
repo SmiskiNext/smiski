@@ -1,5 +1,6 @@
 package io.github.smiskinext.meet.infrastructure.persistence;
 
+import io.github.smiskinext.meet.domain.model.CancelReason;
 import io.github.smiskinext.meet.domain.model.Meeting;
 import io.github.smiskinext.meet.domain.model.MeetingStatus;
 import io.github.smiskinext.meet.domain.model.MeetingType;
@@ -29,6 +30,7 @@ final class MeetingPersistenceMapper {
                 meeting.getEndTime().orElse(null),
                 meeting.getType().name(),
                 meeting.getStatus().name(),
+                meeting.getCancelReason().map(CancelReason::name).orElse(null),
                 meeting.getSettings(),
                 meeting.getDeletedAt().orElse(null),
                 meeting.getDeletedBy().map(AccountId::value).orElse(null),
@@ -61,6 +63,9 @@ final class MeetingPersistenceMapper {
                 MeetingStatus.valueOf(entity.getStatus()),
                 entity.getSettings(),
                 entity.getCreatedAt(),
+                entity.getCancelReason() != null
+                        ? CancelReason.valueOf(entity.getCancelReason())
+                        : null,
                 entity.getDeletedAt(),
                 entity.getDeletedBy() != null ? AccountId.of(entity.getDeletedBy()) : null,
                 entity.getPurgeAfter());

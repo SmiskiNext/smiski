@@ -34,7 +34,8 @@ public enum MeetingErrorCode implements ErrorCode {
     CANNOT_MUTE_SELF(ErrorCategory.VALIDATION),
     MEETING_NOT_RUNNING(ErrorCategory.CONFLICT),
     TRACK_NOT_FOUND(ErrorCategory.NOT_FOUND),
-    PARTICIPANT_NOT_FOUND(ErrorCategory.NOT_FOUND);
+    PARTICIPANT_NOT_FOUND(ErrorCategory.NOT_FOUND),
+    MEETING_START_IN_PAST(ErrorCategory.VALIDATION);
 
     private final ErrorCategory category;
 
