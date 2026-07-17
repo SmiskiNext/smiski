@@ -37,6 +37,7 @@ public class Meeting extends AggregateRoot<MeetingId> {
     private @Nullable Instant endTime;
     private MeetingStatus status;
     private MeetingSettings settings;
+    private @Nullable CancelReason cancelReason;
     private @Nullable Instant deletedAt;
     private @Nullable AccountId deletedBy;
     private @Nullable Instant purgeAfter;
@@ -187,6 +188,7 @@ public class Meeting extends AggregateRoot<MeetingId> {
             MeetingStatus status,
             MeetingSettings settings,
             Instant createdAt,
+            @Nullable CancelReason cancelReason,
             @Nullable Instant deletedAt,
             @Nullable AccountId deletedBy,
             @Nullable Instant purgeAfter) {
@@ -204,6 +206,7 @@ public class Meeting extends AggregateRoot<MeetingId> {
                 settings,
                 createdAt);
         meeting.endTime = endTime;
+        meeting.cancelReason = cancelReason;
         meeting.deletedAt = deletedAt;
         meeting.deletedBy = deletedBy;
         meeting.purgeAfter = purgeAfter;
@@ -316,10 +319,14 @@ public class Meeting extends AggregateRoot<MeetingId> {
     }
 
     /**
-     * Transitions SCHEDULED → CANCELED. Registers {@code MeetingCanceledEvent}.
+     * Transitions SCHEDULED → CANCELED with the given reason.
+     * Registers {@code MeetingCanceledEvent}.
+     *
+     * @param reason why the meeting is being canceled
      */
-    public Result<Void, MeetingError> cancel() {
+    public Result<Void, MeetingError> cancel(CancelReason reason) {
         return cancel(
+                reason,
                 title.value(),
                 shortCode.value(),
                 timeRange != null ? timeRange.start() : null,
@@ -328,8 +335,15 @@ public class Meeting extends AggregateRoot<MeetingId> {
 
     /**
      * Transitions SCHEDULED → CANCELED and includes notification payload for invitees.
+     *
+     * @param reason           why the meeting is being canceled
+     * @param meetingTitle     snapshot of the meeting title for notification
+     * @param meetingShortCode the meeting short code
+     * @param startTime        scheduled start time (nullable for instant meetings)
+     * @param invitees         invitee snapshots for cancellation notification
      */
     public Result<Void, MeetingError> cancel(
+            CancelReason reason,
             @Nullable String meetingTitle,
             String meetingShortCode,
             @Nullable Instant startTime,
@@ -339,12 +353,14 @@ public class Meeting extends AggregateRoot<MeetingId> {
                     new MeetingError.InvalidStatusTransition(status, MeetingStatus.CANCELED));
         }
         status = MeetingStatus.CANCELED;
+        this.cancelReason = reason;
         Instant now = Instant.now();
         registerEvent(new MeetingCanceledEvent(
                 UUID.randomUUID(),
                 tenantId.value(),
                 id.value(),
                 hostId.value(),
+                reason.name(),
                 meetingTitle,
                 meetingShortCode,
                 startTime,
@@ -408,6 +424,10 @@ public class Meeting extends AggregateRoot<MeetingId> {
 
     public MeetingStatus getStatus() {
         return status;
+    }
+
+    public Optional<CancelReason> getCancelReason() {
+        return Optional.ofNullable(cancelReason);
     }
 
     public MeetingSettings getSettings() {

@@ -42,6 +42,11 @@ CREATE TABLE meetings (
     status VARCHAR(20) NOT NULL DEFAULT 'SCHEDULED' CHECK (
         status IN ('SCHEDULED', 'RUNNING', 'COMPLETED', 'CANCELED')
     ),
+    cancel_reason VARCHAR(20),
+    CONSTRAINT ck_meetings_cancel_reason CHECK (
+        cancel_reason IS NULL
+        OR cancel_reason IN ('HOST_CANCELED', 'NO_SHOW')
+    ),
     settings JSONB NOT NULL DEFAULT '{}',
     deleted_at TIMESTAMPTZ,
     deleted_by VARCHAR(128),

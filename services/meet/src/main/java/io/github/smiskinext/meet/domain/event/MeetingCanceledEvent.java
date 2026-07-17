@@ -17,6 +17,7 @@ public record MeetingCanceledEvent(
         String tenantId,
         UUID meetingId,
         String hostId,
+        String cancelReason,
         @Nullable String meetingTitle,
         String meetingShortCode,
         @Nullable Instant startTime,
