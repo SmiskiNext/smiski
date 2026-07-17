@@ -67,7 +67,37 @@ public class MeetingController {
                                 schema =
                                         @Schema(
                                                 implementation =
-                                                        CreateInstantMeetingResponse.class))),
+                                                        CreateInstantMeetingResponse.class),
+                                examples = @ExampleObject(name = "created", value = """
+                        {
+                          "meeting": {
+                            "id": "0195e0c2-8f3a-7c21-b9d4-2f1a6e7c8d90",
+                            "hostId": "account-123",
+                            "shortCode": "abc-defg-hij",
+                            "type": "INSTANT",
+                            "status": "RUNNING",
+                            "title": "Daily standup",
+                            "description": "Quick sync on progress",
+                            "issueLink": {
+                              "issueId": "10001",
+                              "issueKey": "PROJ-1",
+                              "projectKey": "PROJ"
+                            },
+                            "settings": {
+                              "admissionPolicy": "OPEN",
+                              "maxParticipants": 50,
+                              "allowScreenShare": true,
+                              "chatEnabled": true,
+                              "allowMicrophone": true,
+                              "allowVideo": true
+                            },
+                            "createdAt": "2025-01-15T10:30:00Z"
+                          },
+                          "livekit": {
+                            "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.example.token",
+                            "roomName": "meeting-0195e0c2"
+                          }
+                        }"""))),
         @ApiResponse(
                 responseCode = "400",
                 description = "Validation error or missing account header",
@@ -148,7 +178,35 @@ public class MeetingController {
                 content =
                         @Content(
                                 mediaType = "application/json",
-                                schema = @Schema(implementation = ScheduleMeetingResponse.class))),
+                                schema = @Schema(implementation = ScheduleMeetingResponse.class),
+                                examples = @ExampleObject(name = "created", value = """
+                        {
+                          "meeting": {
+                            "id": "0195e0c2-8f3a-7c21-b9d4-2f1a6e7c8d90",
+                            "hostId": "account-123",
+                            "shortCode": "abc-defg-hij",
+                            "type": "SCHEDULED",
+                            "status": "SCHEDULED",
+                            "title": "Sprint planning",
+                            "description": "Plan the next sprint",
+                            "issueLink": {
+                              "issueId": "10001",
+                              "issueKey": "PROJ-1",
+                              "projectKey": "PROJ"
+                            },
+                            "settings": {
+                              "admissionPolicy": "OPEN",
+                              "maxParticipants": 50,
+                              "allowScreenShare": true,
+                              "chatEnabled": true,
+                              "allowMicrophone": true,
+                              "allowVideo": true
+                            },
+                            "startTime": "2025-02-01T14:00:00Z",
+                            "endTime": "2025-02-01T15:00:00Z",
+                            "createdAt": "2025-01-15T10:30:00Z"
+                          }
+                        }"""))),
         @ApiResponse(
                 responseCode = "400",
                 description = "Validation error, missing account header, or start time in past",
