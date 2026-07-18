@@ -38,6 +38,7 @@ CREATE TABLE meetings (
     description TEXT NOT NULL,
     start_time TIMESTAMPTZ,
     end_time TIMESTAMPTZ,
+    zone_id VARCHAR(64) NOT NULL, -- host IANA time zone, e.g. "Asia/Ho_Chi_Minh"
     type VARCHAR(20) NOT NULL CHECK (type IN ('INSTANT', 'SCHEDULED')),
     status VARCHAR(20) NOT NULL DEFAULT 'SCHEDULED' CHECK (
         status IN ('SCHEDULED', 'RUNNING', 'COMPLETED', 'CANCELED')

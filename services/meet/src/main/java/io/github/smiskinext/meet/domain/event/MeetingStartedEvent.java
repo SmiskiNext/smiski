@@ -26,6 +26,7 @@ public record MeetingStartedEvent(
         @Nullable Instant startTime,
         @Nullable Instant endTime,
         MeetingSettings settings,
+        String zoneId,
         Instant createdAt,
         String liveKitRoomName,
         Instant startedAt)

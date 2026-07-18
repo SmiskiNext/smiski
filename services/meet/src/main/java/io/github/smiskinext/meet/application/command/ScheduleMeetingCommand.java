@@ -16,6 +16,7 @@ public record ScheduleMeetingCommand(
         Settings settings,
         String hostAccountId,
         TimeRange timeRange,
+        String zoneId,
         @Nullable List<Invitee> invitees)
         implements Command {
 

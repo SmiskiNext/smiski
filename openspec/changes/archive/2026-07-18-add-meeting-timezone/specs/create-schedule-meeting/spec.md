@@ -1,39 +1,6 @@
-# create-schedule-meeting Specification
+# create-schedule-meeting Specification (delta: add-meeting-timezone)
 
-## Purpose
-
-Enable creating future-dated `SCHEDULED` meetings via
-`POST /api/1/meetings:schedule` with a header-resolved host identity. The
-capability validates the scheduled time range with clock-skew tolerance,
-registers invitees with hashed single-use invite tokens, publishes the
-meeting-created and (when invitees exist) meeting-invitations-sent domain events
-through the transactional outbox, and returns a token-free meeting snapshot
-because no LiveKit room is provisioned at scheduling time.
-
-## Requirements
-
-### Requirement: Host identity resolved from request header
-
-The system SHALL resolve the acting host's Jira `accountId` from a configurable
-request header (default `X-Account-Id`) bound into a request-scoped account
-context by the shared servlet filter, and SHALL NOT read the host identity from
-the request body. The tenant SHALL be resolved from the `X-Tenant-ID` header.
-The scheduled-meeting request body SHALL NOT contain a `host` object because no
-LiveKit token is issued at scheduling time.
-
-#### Scenario: Host resolved from header
-
-- **WHEN** a client sends `POST /api/1/meetings:schedule` with
-  `X-Account-Id: acc-123` and a valid `X-Tenant-ID`
-- **THEN** the created meeting's host is `acc-123`, taken from the header and
-  not from any body field
-
-#### Scenario: Missing host header is rejected
-
-- **WHEN** a client sends `POST /api/1/meetings:schedule` without an
-  `X-Account-Id` header
-- **THEN** the request fails with a Problem Details error and no meeting is
-  created
+## MODIFIED Requirements
 
 ### Requirement: Create scheduled meeting endpoint
 
@@ -109,91 +76,6 @@ snapshot SHALL NOT include the tenant identifier.
 - **THEN** the response is `400` Problem Details with code `VALIDATION_ERROR`
   and no meeting or invitee is persisted
 
-### Requirement: Scheduled meeting time-range validation
-
-The system SHALL require the scheduled `startTime` to be strictly before the
-`endTime`, and SHALL require the `startTime` to not be in the past. To avoid
-rejecting valid requests due to network or processing latency and minor client
-clock skew, the system SHALL accept a `startTime` at or after
-`now - toleranceWindow`, where the tolerance window is a small fixed grace
-period. When the `startTime` is earlier than the allowed lower bound, the system
-SHALL fail with a validation error identified by the machine-readable code
-`MEETING_START_IN_PAST` and SHALL NOT create the meeting. The system SHALL NOT
-enforce any maximum or minimum meeting duration, because scheduled start/end are
-calendar metadata rather than runtime enforcement points.
-
-#### Scenario: Future start time is accepted
-
-- **WHEN** a request supplies a `startTime` comfortably in the future and an
-  `endTime` after it
-- **THEN** the meeting is created with type SCHEDULED and the time range is
-  persisted
-
-#### Scenario: Start time within clock-skew tolerance is accepted
-
-- **WHEN** a request supplies a `startTime` slightly before the current instant
-  but within the tolerance window
-- **THEN** the meeting is created successfully and is not rejected as past
-
-#### Scenario: Start time in the past is rejected
-
-- **WHEN** a request supplies a `startTime` earlier than the tolerance lower
-  bound
-- **THEN** the response is a `400` Problem Details error with code
-  `MEETING_START_IN_PAST` and no meeting is created
-
-#### Scenario: Start not before end is rejected
-
-- **WHEN** a request supplies a `startTime` equal to or after the `endTime`
-- **THEN** the request fails validation and no meeting is created
-
-### Requirement: Scheduled meeting lifecycle
-
-Creating a scheduled meeting SHALL produce a `Meeting` of type `SCHEDULED` with
-a unique join `shortCode`, SHALL leave it in `SCHEDULED` status (it is not
-started and no LiveKit room is provisioned at creation), and SHALL persist
-meeting state and any invitees within a single database transaction.
-
-#### Scenario: Meeting is created scheduled and not started
-
-- **WHEN** a scheduled meeting is created successfully
-- **THEN** the persisted meeting has type `SCHEDULED` and status `SCHEDULED`,
-  and no LiveKit token is issued and no `ParticipationLog` is created
-
-#### Scenario: Short code uniqueness is enforced with retry
-
-- **WHEN** a generated short code collides with an existing meeting's code
-- **THEN** the system retries generation and, only after exhausting its bounded
-  attempts, fails with a short-code-exhausted error without creating a meeting
-
-#### Scenario: Persistence failure creates nothing
-
-- **WHEN** persisting the meeting or invitees fails
-- **THEN** the transaction rolls back and no meeting, invitee, or outbox row is
-  left behind
-
-### Requirement: Scheduled meeting invitee registration with invite tokens
-
-When the request includes invitees, the system SHALL create one `MeetingInvitee`
-per entry using the frontend-resolved `email`, `accountId`, and `displayName`
-(all required), and SHALL generate a single-use invite token per invitee,
-storing only the token's SHA-256 hash. The raw invite tokens SHALL NOT be
-persisted and SHALL be carried only in the invitations event (embedded directly
-in each invitee entry) for downstream delivery. Sending invitation emails is out
-of scope for this capability.
-
-#### Scenario: Invitees persisted with hashed tokens
-
-- **WHEN** a scheduled meeting is created with two invitees
-- **THEN** two `MeetingInvitee` rows are persisted in PENDING status, each with
-  a stored token hash and no stored raw token
-
-#### Scenario: No invitees produces no invitations event
-
-- **WHEN** a scheduled meeting is created with an empty or absent invitees list
-- **THEN** no `MeetingInvitee` row is created and no invitations event is
-  enqueued, while the meeting is still created SCHEDULED
-
 ### Requirement: Scheduled meeting event publication
 
 Creating a scheduled meeting SHALL enqueue its domain events to the
@@ -227,6 +109,8 @@ free of protocol-buffer and messaging types.
 - **WHEN** the creation transaction is rolled back before commit
 - **THEN** no meeting-created or meeting-invitations-sent outbox row exists for
   that meeting
+
+## ADDED Requirements
 
 ### Requirement: Scheduled meeting host time zone
 

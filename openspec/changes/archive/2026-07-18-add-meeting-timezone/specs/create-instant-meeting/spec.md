@@ -1,42 +1,6 @@
-# create-instant-meeting Specification
+# create-instant-meeting Specification (delta: add-meeting-timezone)
 
-## Purpose
-
-TBD - created by archiving change create-instant-meeting. Update Purpose after
-archive.
-
-## Requirements
-
-### Requirement: Host identity resolved from request header
-
-The system SHALL resolve the acting host's Jira `accountId` from a configurable
-request header (default `X-Account-Id`) bound into a request-scoped account
-context by a shared servlet filter, and SHALL NOT read the host identity from
-the request body. The tenant SHALL continue to be resolved from the
-`X-Tenant-ID` header. The account context SHALL be cleared at the end of each
-request. Internally, the `accountId` (from the header) is carried inside the
-`Host` record of the command — it is never a top-level command field.
-
-#### Scenario: Host resolved from header
-
-- **WHEN** a client sends `POST /api/1/meetings:instant` with
-  `X-Account-Id: acc-123` and a valid `X-Tenant-ID`
-- **THEN** the created meeting's host is `acc-123` and the value is taken from
-  the header, not from any body field
-
-#### Scenario: Missing host header is rejected
-
-- **WHEN** a client sends `POST /api/1/meetings:instant` without an
-  `X-Account-Id` header
-- **THEN** the request fails with a Problem Details error and no meeting is
-  created
-
-#### Scenario: Account context does not leak across requests
-
-- **WHEN** a request carrying `X-Account-Id` completes and a later request
-  arrives without the header
-- **THEN** the later request does not observe the previous request's account
-  identity
+## MODIFIED Requirements
 
 ### Requirement: Create instant meeting endpoint
 
@@ -113,55 +77,6 @@ identifier.
 - **THEN** the response is `400` Problem Details with code `VALIDATION_ERROR`
   and no meeting is created
 
-### Requirement: Instant meeting lifecycle
-
-Creating an instant meeting SHALL produce a `Meeting` of type `INSTANT` with a
-unique join `shortCode`, SHALL immediately transition it to `LIVE`, and SHALL
-persist meeting state and any invitees within a single database transaction.
-Host participation logging is deferred to the `participant_joined` LiveKit
-webhook (out of scope for this capability).
-
-#### Scenario: Meeting is created live
-
-- **WHEN** an instant meeting is created successfully
-- **THEN** the persisted meeting has type `INSTANT` and status `LIVE`, and no
-  `ParticipationLog` is created at creation time (host participation is recorded
-  later via the LiveKit webhook)
-
-#### Scenario: Short code uniqueness is enforced with retry
-
-- **WHEN** a generated short code collides with an existing meeting's code
-- **THEN** the system retries generation and, only after exhausting its bounded
-  attempts, fails with a short-code-exhausted error without creating a meeting
-
-#### Scenario: Persistence failure creates nothing
-
-- **WHEN** persisting the meeting or invitees fails
-- **THEN** the transaction rolls back and no meeting, invitee, or outbox row is
-  left behind
-
-### Requirement: Invitee registration with invite tokens
-
-When the request includes invitees, the system SHALL create one `MeetingInvitee`
-per entry using the frontend-resolved `email`, `accountId`, and `displayName`
-(all required), and SHALL generate a single-use invite token per invitee,
-storing only the token's SHA-256 hash. The raw invite tokens SHALL NOT be
-persisted and SHALL be carried only in the invitations event (embedded directly
-in each `InviteeInfo` entry) for downstream delivery. Sending invitation emails
-is out of scope for this capability.
-
-#### Scenario: Invitees persisted with hashed tokens
-
-- **WHEN** an instant meeting is created with two invitees
-- **THEN** two `MeetingInvitee` rows are persisted in PENDING status, each with
-  a stored token hash and no stored raw token
-
-#### Scenario: No invitees produces no invitations event
-
-- **WHEN** an instant meeting is created with an empty or absent invitees list
-- **THEN** no `MeetingInvitee` row is created and no invitations event is
-  enqueued, while the meeting is still created LIVE
-
 ### Requirement: Instant meeting event publication
 
 Creating an instant meeting SHALL enqueue its domain events to the transactional
@@ -203,38 +118,7 @@ messaging types.
 - **THEN** each event is published to its topic as a CloudEvent keyed by the
   tenant identifier and the row is marked published
 
-### Requirement: Host LiveKit access token issuance
-
-The system SHALL issue a LiveKit access token granting HOST permissions for the
-room `meeting-<meetingId>`, using the host's LiveKit identity and display name,
-and SHALL set the host's `role` and (when provided) `avatarUrl` as real LiveKit
-participant attributes on the token. The token SHALL be returned in the creation
-response. If the LiveKit token cannot be generated, the creation SHALL fail and
-roll back rather than returning a meeting the host cannot join.
-
-#### Scenario: Host token issued for the meeting room
-
-- **WHEN** an instant meeting is created successfully
-- **THEN** the response `livekit.token` is a non-empty token scoped to room
-  `meeting-<meetingId>` for the host identity with host-level permissions
-
-#### Scenario: Host avatar attached as participant attribute
-
-- **WHEN** a request includes `host.avatarUrl`
-- **THEN** the issued LiveKit token carries a participant attribute `avatarUrl`
-  with that value and a participant attribute `role` = `HOST`
-
-#### Scenario: Host avatar omitted leaves no avatarUrl attribute
-
-- **WHEN** a request omits `host.avatarUrl` or sends null
-- **THEN** the issued LiveKit token carries a participant attribute `role` =
-  `HOST` but no `avatarUrl` attribute
-
-#### Scenario: LiveKit unavailable fails creation
-
-- **WHEN** the LiveKit token cannot be generated during creation
-- **THEN** the response is a Problem Details error indicating LiveKit is
-  unavailable and the transaction rolls back so no meeting is persisted
+## ADDED Requirements
 
 ### Requirement: Instant meeting host time zone
 

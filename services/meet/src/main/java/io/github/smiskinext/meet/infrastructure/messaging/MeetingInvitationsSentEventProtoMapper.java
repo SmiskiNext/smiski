@@ -27,13 +27,17 @@ public class MeetingInvitationsSentEventProtoMapper
         MeetingInvitationsSent.Builder builder = MeetingInvitationsSent.newBuilder()
                 .setMeetingId(event.meetingId().toString())
                 .setTenantId(event.tenantId())
-                .setMeetingShortCode(event.meetingShortCode());
+                .setMeetingShortCode(event.meetingShortCode())
+                .setZoneId(event.zoneId());
 
         if (event.meetingTitle() != null) {
             builder.setMeetingTitle(event.meetingTitle());
         }
         if (event.startTime() != null) {
             builder.setStartTime(event.startTime().toString());
+        }
+        if (event.endTime() != null) {
+            builder.setEndTime(event.endTime().toString());
         }
 
         for (MeetingInvitationsSentEvent.InviteeInfo invitee : event.invitees()) {

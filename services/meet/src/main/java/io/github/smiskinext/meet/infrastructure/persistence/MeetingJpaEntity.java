@@ -76,6 +76,9 @@ public class MeetingJpaEntity {
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
+    @Column(name = "zone_id", nullable = false, length = 64)
+    private String zoneId;
+
     protected MeetingJpaEntity() {}
 
     public MeetingJpaEntity(
@@ -96,7 +99,8 @@ public class MeetingJpaEntity {
             @Nullable Instant deletedAt,
             @Nullable String deletedBy,
             @Nullable Instant purgeAfter,
-            Instant createdAt) {
+            Instant createdAt,
+            String zoneId) {
         this.id = id;
         this.hostId = hostId;
         this.shortCode = shortCode;
@@ -115,6 +119,7 @@ public class MeetingJpaEntity {
         this.deletedBy = deletedBy;
         this.purgeAfter = purgeAfter;
         this.createdAt = createdAt;
+        this.zoneId = zoneId;
     }
 
     public UUID getId() {
@@ -191,5 +196,9 @@ public class MeetingJpaEntity {
 
     public @Nullable Instant getPurgeAfter() {
         return purgeAfter;
+    }
+
+    public String getZoneId() {
+        return zoneId;
     }
 }

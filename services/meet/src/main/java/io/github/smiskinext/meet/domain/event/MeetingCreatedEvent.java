@@ -26,6 +26,7 @@ public record MeetingCreatedEvent(
         @Nullable Instant startTime,
         @Nullable Instant endTime,
         MeetingSettings settings,
+        String zoneId,
         Instant createdAt)
         implements PublishableEvent {
 

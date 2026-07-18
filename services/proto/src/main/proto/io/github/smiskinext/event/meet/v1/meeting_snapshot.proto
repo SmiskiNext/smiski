@@ -19,6 +19,7 @@ message MeetingSnapshot {
   string end_time = 11;
   MeetingSettings settings = 12;
   string created_at = 13;
+  string zone_id = 14;
 }
 
 message MeetingSettings {

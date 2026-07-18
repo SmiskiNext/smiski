@@ -45,7 +45,8 @@ public class MeetingStartedEventProtoMapper implements OutboxEventProtoMapper<Me
                 .setDescription(event.description())
                 .setStartTime(event.startTime() != null ? event.startTime().toString() : "")
                 .setEndTime(event.endTime() != null ? event.endTime().toString() : "")
-                .setCreatedAt(event.createdAt().toString());
+                .setCreatedAt(event.createdAt().toString())
+                .setZoneId(event.zoneId());
 
         builder.setIssueLink(IssueLink.newBuilder()
                 .setIssueId(event.issueId())

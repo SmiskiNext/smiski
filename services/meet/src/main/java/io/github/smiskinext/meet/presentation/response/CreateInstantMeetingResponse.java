@@ -20,6 +20,7 @@ public record CreateInstantMeetingResponse(Meeting meeting, LiveKit livekit) {
             String description,
             IssueLink issueLink,
             Settings settings,
+            String zoneId,
             Instant createdAt) {}
 
     public record IssueLink(String issueId, String issueKey, String projectKey) {}
@@ -59,6 +60,7 @@ public record CreateInstantMeetingResponse(Meeting meeting, LiveKit livekit) {
                 result.description(),
                 issueLink,
                 settings,
+                result.zoneId(),
                 result.createdAt());
 
         LiveKit livekit = new LiveKit(result.livekit().token(), result.livekit().roomName());

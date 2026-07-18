@@ -18,6 +18,7 @@ public record ScheduleMeetingResult(
         Settings settings,
         Instant startTime,
         Instant endTime,
+        String zoneId,
         Instant createdAt) {
 
     public record IssueLink(String issueId, String issueKey, String projectKey) {}

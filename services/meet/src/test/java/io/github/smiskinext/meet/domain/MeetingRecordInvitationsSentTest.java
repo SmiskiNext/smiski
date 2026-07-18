@@ -21,6 +21,7 @@ class MeetingRecordInvitationsSentTest {
                 "Test description",
                 JiraIssueLink.of("ISS-1", "PROJ-1", "PROJ"),
                 MeetingSettings.defaults(),
+                MeetingTimeZone.of("UTC"),
                 ShortCode.of("ABC123DEF0"));
         meeting.start();
         meeting.clearDomainEvents();
@@ -54,6 +55,7 @@ class MeetingRecordInvitationsSentTest {
                 "Test description",
                 JiraIssueLink.of("ISS-1", "PROJ-1", "PROJ"),
                 MeetingSettings.defaults(),
+                MeetingTimeZone.of("UTC"),
                 ShortCode.of("ABC123DEF0"));
         meeting.start();
         meeting.clearDomainEvents();

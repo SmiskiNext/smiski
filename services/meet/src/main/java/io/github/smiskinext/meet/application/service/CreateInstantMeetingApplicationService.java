@@ -70,6 +70,8 @@ public class CreateInstantMeetingApplicationService implements CreateInstantMeet
 
         MeetingTitle title = MeetingTitle.of(command.title());
 
+        MeetingTimeZone timeZone = MeetingTimeZone.of(command.zoneId());
+
         Meeting meeting = Meeting.instant(
                 tenantId,
                 hostAccountId,
@@ -77,6 +79,7 @@ public class CreateInstantMeetingApplicationService implements CreateInstantMeet
                 command.description(),
                 issueLink,
                 settings,
+                timeZone,
                 shortCode);
 
         Result<Void, MeetingError> startResult = meeting.start();
@@ -169,6 +172,7 @@ public class CreateInstantMeetingApplicationService implements CreateInstantMeet
                 meeting.getDescription(),
                 issueLink,
                 settings,
+                meeting.getTimeZone().value(),
                 meeting.getCreatedAt(),
                 new CreateInstantMeetingResult.LiveKit(livekitToken, roomName.value()));
     }

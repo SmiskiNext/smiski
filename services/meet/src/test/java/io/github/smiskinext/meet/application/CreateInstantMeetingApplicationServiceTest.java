@@ -74,6 +74,7 @@ class CreateInstantMeetingApplicationServiceTest {
                 new CreateInstantMeetingCommand.Settings("ALLOW_ALL", 50, true, true, true, true),
                 new CreateInstantMeetingCommand.Host(
                         "host-account", "Alice", "device-1", "https://cdn.example.com/alice.png"),
+                "Asia/Ho_Chi_Minh",
                 List.of(
                         new CreateInstantMeetingCommand.Invitee(
                                 "bob@test.com", "bob-account", "Bob"),
@@ -118,6 +119,7 @@ class CreateInstantMeetingApplicationServiceTest {
                 new CreateInstantMeetingCommand.IssueLink("ISS-1", "PROJ-1", "PROJ"),
                 new CreateInstantMeetingCommand.Settings("ALLOW_ALL", 50, true, true, true, true),
                 new CreateInstantMeetingCommand.Host("host-account", "Alice", "device-1", null),
+                "UTC",
                 List.of());
 
         Result<CreateInstantMeetingResult, MeetingError> result = service.execute(command);
@@ -142,6 +144,7 @@ class CreateInstantMeetingApplicationServiceTest {
                 new CreateInstantMeetingCommand.IssueLink("ISS-1", "PROJ-1", "PROJ"),
                 new CreateInstantMeetingCommand.Settings("ALLOW_ALL", 50, true, true, true, true),
                 new CreateInstantMeetingCommand.Host("host-account", "Alice", "device-1", null),
+                "UTC",
                 List.of());
 
         Result<CreateInstantMeetingResult, MeetingError> result = service.execute(command);

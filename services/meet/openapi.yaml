@@ -92,12 +92,6 @@ paths:
                     detail: "The scheduled start time is in the past: {0}."
                     code: MEETING_START_IN_PAST
                     traceId: 6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a
-        "500":
-          description: Internal Server Error
-          content:
-            application/problem+json:
-              schema:
-                $ref: "#/components/schemas/ProblemDetail"
         "405":
           description: Method Not Allowed
           content:
@@ -106,6 +100,12 @@ paths:
                 $ref: "#/components/schemas/ProblemDetail"
         "415":
           description: Unsupported Media Type
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "500":
+          description: Internal Server Error
           content:
             application/problem+json:
               schema:
@@ -205,12 +205,6 @@ paths:
                     detail: X-Account-Id header is required
                     code: VALIDATION_ERROR
                     traceId: 6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a
-        "500":
-          description: Internal Server Error
-          content:
-            application/problem+json:
-              schema:
-                $ref: "#/components/schemas/ProblemDetail"
         "405":
           description: Method Not Allowed
           content:
@@ -219,6 +213,12 @@ paths:
                 $ref: "#/components/schemas/ProblemDetail"
         "415":
           description: Unsupported Media Type
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "500":
+          description: Internal Server Error
           content:
             application/problem+json:
               schema:
@@ -280,6 +280,11 @@ components:
           $ref: "#/components/schemas/Settings"
         timeRange:
           $ref: "#/components/schemas/TimeRange"
+        zoneId:
+          type: string
+          description: Host IANA time zone id
+          example: Asia/Ho_Chi_Minh
+          minLength: 1
         invitees:
           type:
           - array
@@ -292,6 +297,7 @@ components:
       - settings
       - timeRange
       - title
+      - zoneId
     Settings:
       type: object
       properties:
@@ -344,6 +350,8 @@ components:
           $ref: "#/components/schemas/IssueLink"
         settings:
           $ref: "#/components/schemas/Settings"
+        zoneId:
+          type: string
         createdAt:
           type: string
           format: date-time
@@ -431,6 +439,11 @@ components:
           $ref: "#/components/schemas/Settings"
         host:
           $ref: "#/components/schemas/Host"
+        zoneId:
+          type: string
+          description: Host IANA time zone id
+          example: Asia/Ho_Chi_Minh
+          minLength: 1
         invitees:
           type:
           - array
@@ -443,6 +456,7 @@ components:
       - issueLink
       - settings
       - title
+      - zoneId
     Host:
       type: object
       description: Host participant info

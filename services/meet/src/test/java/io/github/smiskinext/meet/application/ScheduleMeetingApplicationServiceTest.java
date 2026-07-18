@@ -109,6 +109,7 @@ class ScheduleMeetingApplicationServiceTest {
                 "host-account",
                 new ScheduleMeetingCommand.TimeRange(
                         now.plus(1, ChronoUnit.HOURS), now.plus(2, ChronoUnit.HOURS)),
+                "Asia/Ho_Chi_Minh",
                 List.of(
                         new ScheduleMeetingCommand.Invitee("bob@test.com", "bob-account", "Bob"),
                         new ScheduleMeetingCommand.Invitee(
@@ -157,6 +158,7 @@ class ScheduleMeetingApplicationServiceTest {
                 "host-account",
                 new ScheduleMeetingCommand.TimeRange(
                         now.plus(1, ChronoUnit.HOURS), now.plus(2, ChronoUnit.HOURS)),
+                "Asia/Ho_Chi_Minh",
                 List.of());
     }
 }

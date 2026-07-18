@@ -35,6 +35,7 @@ public class Meeting extends AggregateRoot<MeetingId> {
     private final AccountId hostId;
     private final ShortCode shortCode;
     private final MeetingType type;
+    private final MeetingTimeZone timeZone;
     private final Instant createdAt;
 
     private MeetingTitle title;
@@ -65,6 +66,7 @@ public class Meeting extends AggregateRoot<MeetingId> {
             MeetingType type,
             MeetingStatus status,
             MeetingSettings settings,
+            MeetingTimeZone timeZone,
             Instant createdAt) {
         this.tenantId = tenantId;
         this.id = id;
@@ -77,6 +79,7 @@ public class Meeting extends AggregateRoot<MeetingId> {
         this.type = type;
         this.status = status;
         this.settings = settings;
+        this.timeZone = timeZone;
         this.createdAt = createdAt;
     }
 
@@ -100,6 +103,7 @@ public class Meeting extends AggregateRoot<MeetingId> {
             JiraIssueLink issueLink,
             MeetingTimeRange timeRange,
             MeetingSettings settings,
+            MeetingTimeZone timeZone,
             ShortCode shortCode) {
         Instant now = Instant.now();
         if (timeRange.start().isBefore(now.minus(CLOCK_SKEW_TOLERANCE))) {
@@ -118,6 +122,7 @@ public class Meeting extends AggregateRoot<MeetingId> {
                 MeetingType.SCHEDULED,
                 MeetingStatus.SCHEDULED,
                 settings,
+                timeZone,
                 now);
         meeting.registerEvent(new MeetingCreatedEvent(
                 UUID.randomUUID(),
@@ -135,6 +140,7 @@ public class Meeting extends AggregateRoot<MeetingId> {
                 timeRange.start(),
                 timeRange.end(),
                 settings,
+                timeZone.value(),
                 now));
         return Result.success(meeting);
     }
@@ -150,6 +156,7 @@ public class Meeting extends AggregateRoot<MeetingId> {
             String description,
             JiraIssueLink issueLink,
             MeetingSettings settings,
+            MeetingTimeZone timeZone,
             ShortCode shortCode) {
         MeetingId id = MeetingId.of(UuidCreator.getTimeOrderedEpoch());
         Instant now = Instant.now();
@@ -165,6 +172,7 @@ public class Meeting extends AggregateRoot<MeetingId> {
                 MeetingType.INSTANT,
                 MeetingStatus.SCHEDULED,
                 settings,
+                timeZone,
                 now);
         meeting.registerEvent(new MeetingCreatedEvent(
                 UUID.randomUUID(),
@@ -182,6 +190,7 @@ public class Meeting extends AggregateRoot<MeetingId> {
                 null,
                 null,
                 settings,
+                timeZone.value(),
                 now));
         return meeting;
     }
@@ -202,6 +211,7 @@ public class Meeting extends AggregateRoot<MeetingId> {
             MeetingType type,
             MeetingStatus status,
             MeetingSettings settings,
+            MeetingTimeZone timeZone,
             Instant createdAt,
             @Nullable CancelReason cancelReason,
             @Nullable Instant deletedAt,
@@ -219,6 +229,7 @@ public class Meeting extends AggregateRoot<MeetingId> {
                 type,
                 status,
                 settings,
+                timeZone,
                 createdAt);
         meeting.endTime = endTime;
         meeting.cancelReason = cancelReason;
@@ -258,6 +269,7 @@ public class Meeting extends AggregateRoot<MeetingId> {
                 timeRange != null ? timeRange.start() : null,
                 null,
                 settings,
+                timeZone.value(),
                 createdAt,
                 LiveKitRoomName.fromMeetingId(id).value(),
                 now));
@@ -299,6 +311,8 @@ public class Meeting extends AggregateRoot<MeetingId> {
                 title.value(),
                 shortCode.value(),
                 timeRange != null ? timeRange.start() : null,
+                timeRange != null ? timeRange.end() : null,
+                timeZone.value(),
                 List.copyOf(invitees),
                 Instant.now()));
     }
@@ -467,5 +481,9 @@ public class Meeting extends AggregateRoot<MeetingId> {
 
     public JiraIssueLink getIssueLink() {
         return issueLink;
+    }
+
+    public MeetingTimeZone getTimeZone() {
+        return timeZone;
     }
 }

@@ -17,7 +17,9 @@ import org.jspecify.annotations.Nullable;
  * @param meetingId        ID of the meeting aggregate
  * @param meetingTitle     human-readable title of the meeting
  * @param meetingShortCode short alphanumeric code for the meeting join URL
- * @param startTime        scheduled start time, or {@code null} for open-ended meetings
+ * @param startTime        scheduled start time, or {@code null} for instant meetings
+ * @param endTime          scheduled end time, or {@code null} for instant meetings
+ * @param zoneId           host IANA time zone id
  * @param invitees         list of resolved invitees with display info and tokens
  * @param occurredAt       timestamp when the event occurred
  */
@@ -28,6 +30,8 @@ public record MeetingInvitationsSentEvent(
         @Nullable String meetingTitle,
         String meetingShortCode,
         @Nullable Instant startTime,
+        @Nullable Instant endTime,
+        String zoneId,
         List<InviteeInfo> invitees,
         Instant occurredAt)
         implements PublishableEvent {
@@ -74,6 +78,10 @@ public record MeetingInvitationsSentEvent(
                 + meetingShortCode
                 + ", startTime="
                 + startTime
+                + ", endTime="
+                + endTime
+                + ", zoneId="
+                + zoneId
                 + ", invitees="
                 + invitees
                 + ", occurredAt="

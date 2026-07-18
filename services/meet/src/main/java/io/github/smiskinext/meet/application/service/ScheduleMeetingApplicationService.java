@@ -71,6 +71,8 @@ public class ScheduleMeetingApplicationService implements ScheduleMeetingUseCase
         MeetingTimeRange timeRange = MeetingTimeRange.of(
                 command.timeRange().start(), command.timeRange().end());
 
+        MeetingTimeZone timeZone = MeetingTimeZone.of(command.zoneId());
+
         Result<Meeting, MeetingError> scheduleResult = Meeting.schedule(
                 tenantId,
                 hostAccountId,
@@ -79,6 +81,7 @@ public class ScheduleMeetingApplicationService implements ScheduleMeetingUseCase
                 issueLink,
                 timeRange,
                 settings,
+                timeZone,
                 shortCode);
 
         if (scheduleResult instanceof Result.Failure<Meeting, MeetingError>(MeetingError error)) {
@@ -153,6 +156,7 @@ public class ScheduleMeetingApplicationService implements ScheduleMeetingUseCase
                 settings,
                 timeRange.start(),
                 timeRange.end(),
+                meeting.getTimeZone().value(),
                 meeting.getCreatedAt());
     }
 }

@@ -22,6 +22,7 @@ public record ScheduleMeetingResponse(Meeting meeting) {
             Settings settings,
             Instant startTime,
             Instant endTime,
+            String zoneId,
             Instant createdAt) {}
 
     public record IssueLink(String issueId, String issueKey, String projectKey) {}
@@ -60,6 +61,7 @@ public record ScheduleMeetingResponse(Meeting meeting) {
                 settings,
                 result.startTime(),
                 result.endTime(),
+                result.zoneId(),
                 result.createdAt());
 
         return new ScheduleMeetingResponse(meeting);
