@@ -22,13 +22,14 @@ an instant meeting, join it as host immediately, and notify invitees.
 - Accept a frontend-resolved invitee list (`email`, required `accountId`,
   required `displayName`). For each invitee: create a `MeetingInvitee`, generate
   an invite token (JWT; only the SHA-256 hash is stored), and emit
-  `MeetingInvitationsSentEvent` carrying the raw tokens. Sending invite emails
-  is **out of scope** — the `notification` service consumes the event later.
+  `MeetingInvitationsCreatedEvent` carrying the raw tokens. Sending invite
+  emails is **out of scope** — the `notification` service consumes the event
+  later.
 - Publish `MeetingCreatedEvent`, `MeetingStartedEvent`, and (when invitees are
-  present) `MeetingInvitationsSentEvent` via the transactional outbox → Kafka
+  present) `MeetingInvitationsCreatedEvent` via the transactional outbox → Kafka
   (CloudEvents over protobuf), reusing the shared outbox relay. Both
   `MeetingCreatedEvent` and `MeetingStartedEvent` carry a full aggregate
-  snapshot. `MeetingInvitationsSentEvent` embeds the invite token directly in
+  snapshot. `MeetingInvitationsCreatedEvent` embeds the invite token directly in
   each invitee entry (no separate token map).
 - Add a new domain method `Meeting.recordInvitationsSent(...)` so the
   invitations event is registered on the aggregate (consistent with the existing

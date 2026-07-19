@@ -3,27 +3,27 @@ package io.github.smiskinext.meet.infrastructure.messaging;
 import com.google.protobuf.Message;
 
 import io.github.smiskinext.event.meet.v1.MeetingInvitationsSent;
-import io.github.smiskinext.meet.domain.event.MeetingInvitationsSentEvent;
+import io.github.smiskinext.meet.domain.event.MeetingInvitationsCreatedEvent;
 import io.github.smiskinext.shared.infrastructure.outbox.OutboxEventProtoMapper;
 
 import org.springframework.stereotype.Component;
 
 @Component
-public class MeetingInvitationsSentEventProtoMapper
-        implements OutboxEventProtoMapper<MeetingInvitationsSentEvent> {
+public class MeetingInvitationsCreatedEventProtoMapper
+        implements OutboxEventProtoMapper<MeetingInvitationsCreatedEvent> {
 
     @Override
-    public Class<MeetingInvitationsSentEvent> eventType() {
-        return MeetingInvitationsSentEvent.class;
+    public Class<MeetingInvitationsCreatedEvent> eventType() {
+        return MeetingInvitationsCreatedEvent.class;
     }
 
     @Override
     public String dataSchema() {
-        return "io.github.smiskinext.event.meet.v1.MeetingInvitationsSent";
+        return "io.github.smiskinext.event.meet.v1.MeetingInvitationsCreated";
     }
 
     @Override
-    public Message toProto(MeetingInvitationsSentEvent event) {
+    public Message toProto(MeetingInvitationsCreatedEvent event) {
         MeetingInvitationsSent.Builder builder = MeetingInvitationsSent.newBuilder()
                 .setMeetingId(event.meetingId().toString())
                 .setTenantId(event.tenantId())
@@ -40,7 +40,7 @@ public class MeetingInvitationsSentEventProtoMapper
             builder.setEndTime(event.endTime().toString());
         }
 
-        for (MeetingInvitationsSentEvent.InviteeInfo invitee : event.invitees()) {
+        for (MeetingInvitationsCreatedEvent.InviteeInfo invitee : event.invitees()) {
             MeetingInvitationsSent.InviteeInfo.Builder inviteeBuilder =
                     MeetingInvitationsSent.InviteeInfo.newBuilder()
                             .setAccountId(invitee.accountId())

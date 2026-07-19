@@ -4,7 +4,7 @@ Meeting start/end are stored purely as UTC `Instant` values across the `meet`
 service (`MeetingTimeRange`, `MeetingJpaEntity.start_time/end_time`, all
 events). No time-zone context is captured anywhere, and the `notification`
 service — the consumer that will render invitation emails — receives only a UTC
-`start_time` in the `MeetingInvitationsSent` proto. To show recipients a
+`start_time` in the `MeetingInvitationsCreated` proto. To show recipients a
 well-defined meeting time, the system needs one authoritative reference zone.
 The host's IANA time zone, captured at creation, is that reference.
 
@@ -82,14 +82,14 @@ non-null `zoneId` field to keep `ddl-auto: validate` green.
 
 ### D5 — Events and proto contracts (backward-compatible)
 
-- `MeetingCreatedEvent` gains `zoneId`. `MeetingInvitationsSentEvent` gains
+- `MeetingCreatedEvent` gains `zoneId`. `MeetingInvitationsCreatedEvent` gains
   `zoneId` and `endTime`.
-- `meeting_snapshot.proto` gains `zone_id`; `meeting_invitations_sent.proto`
+- `meeting_snapshot.proto` gains `zone_id`; `meeting_invitations_created.proto`
   gains `zone_id` and `end_time`, each using **new field numbers** (the
   invitations proto already reserves `7`, so use `8`, `9`) to stay
   backward-compatible per the event-driven shared-contract requirement.
 - Proto mappers (`MeetingCreatedEventProtoMapper`,
-  `MeetingInvitationsSentEventProtoMapper`, and any mapper building
+  `MeetingInvitationsCreatedEventProtoMapper`, and any mapper building
   `MeetingSnapshot`) set the new fields. For instant meetings the invitations
   `start_time`/`end_time` stay at proto3 default (absent).
 

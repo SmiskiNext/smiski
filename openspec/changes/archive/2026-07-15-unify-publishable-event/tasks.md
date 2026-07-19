@@ -21,7 +21,7 @@
       `io.github.smiskinext.shared.domain.PublishableEvent`
 - [x] 2.2 Rename `meetingAggregateId` record components to `meetingId` (group A:
       `MeetingScheduledEvent`, `MeetingStartedEvent`,
-      `MeetingInvitationsSentEvent`, `MeetingEndedEvent`,
+      `MeetingInvitationsCreatedEvent`, `MeetingEndedEvent`,
       `MeetingCancelledEvent`, `MeetingSettingsUpdatedEvent`,
       `MeetingInviteTokensInvalidatedEvent`, `InviteeAcceptedEvent`,
       `InviteeDeclinedEvent`)

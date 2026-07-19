@@ -5,7 +5,7 @@ import io.github.smiskinext.meet.application.helper.ShortCodeAllocator;
 import io.github.smiskinext.meet.application.result.ScheduleMeetingResult;
 import io.github.smiskinext.meet.application.usecase.ScheduleMeetingUseCase;
 import io.github.smiskinext.meet.domain.MeetingError;
-import io.github.smiskinext.meet.domain.event.MeetingInvitationsSentEvent;
+import io.github.smiskinext.meet.domain.event.MeetingInvitationsCreatedEvent;
 import io.github.smiskinext.meet.domain.model.*;
 import io.github.smiskinext.meet.domain.model.valueobject.*;
 import io.github.smiskinext.meet.domain.port.InviteTokenGenerator;
@@ -91,7 +91,7 @@ public class ScheduleMeetingApplicationService implements ScheduleMeetingUseCase
         Meeting meeting = ((Result.Success<Meeting, MeetingError>) scheduleResult).value();
 
         List<MeetingInvitee> invitees = new ArrayList<>();
-        List<MeetingInvitationsSentEvent.InviteeInfo> inviteeInfos = new ArrayList<>();
+        List<MeetingInvitationsCreatedEvent.InviteeInfo> inviteeInfos = new ArrayList<>();
 
         if (command.invitees() != null && !command.invitees().isEmpty()) {
             for (ScheduleMeetingCommand.Invitee inviteeCmd : command.invitees()) {
@@ -109,7 +109,7 @@ public class ScheduleMeetingApplicationService implements ScheduleMeetingUseCase
 
                 invitees.add(invitee);
 
-                inviteeInfos.add(new MeetingInvitationsSentEvent.InviteeInfo(
+                inviteeInfos.add(new MeetingInvitationsCreatedEvent.InviteeInfo(
                         inviteeCmd.accountId(),
                         inviteeCmd.email(),
                         inviteeCmd.displayName(),

@@ -5,7 +5,7 @@ import io.github.smiskinext.meet.application.helper.ShortCodeAllocator;
 import io.github.smiskinext.meet.application.result.CreateInstantMeetingResult;
 import io.github.smiskinext.meet.application.usecase.CreateInstantMeetingUseCase;
 import io.github.smiskinext.meet.domain.MeetingError;
-import io.github.smiskinext.meet.domain.event.MeetingInvitationsSentEvent;
+import io.github.smiskinext.meet.domain.event.MeetingInvitationsCreatedEvent;
 import io.github.smiskinext.meet.domain.model.*;
 import io.github.smiskinext.meet.domain.model.valueobject.*;
 import io.github.smiskinext.meet.domain.port.*;
@@ -91,7 +91,7 @@ public class CreateInstantMeetingApplicationService implements CreateInstantMeet
                 LiveKitIdentity.fromAccount(hostAccountId, command.host().deviceId());
 
         List<MeetingInvitee> invitees = new ArrayList<>();
-        List<MeetingInvitationsSentEvent.InviteeInfo> inviteeInfos = new ArrayList<>();
+        List<MeetingInvitationsCreatedEvent.InviteeInfo> inviteeInfos = new ArrayList<>();
 
         if (command.invitees() != null && !command.invitees().isEmpty()) {
             for (CreateInstantMeetingCommand.Invitee inviteeCmd : command.invitees()) {
@@ -109,7 +109,7 @@ public class CreateInstantMeetingApplicationService implements CreateInstantMeet
 
                 invitees.add(invitee);
 
-                inviteeInfos.add(new MeetingInvitationsSentEvent.InviteeInfo(
+                inviteeInfos.add(new MeetingInvitationsCreatedEvent.InviteeInfo(
                         inviteeCmd.accountId(),
                         inviteeCmd.email(),
                         inviteeCmd.displayName(),

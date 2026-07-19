@@ -45,12 +45,12 @@ downstream consumer a single, correct reference zone.
   `POST /api/1/meetings:instant` now require `zoneId`; existing clients omitting
   it receive `400 VALIDATION_ERROR`. OpenAPI specs regenerate.
 - **Domain**: new `MeetingTimeZone` value object; `Meeting` aggregate,
-  `MeetingCreatedEvent`, and `MeetingInvitationsSentEvent` gain zone/time
+  `MeetingCreatedEvent`, and `MeetingInvitationsCreatedEvent` gain zone/time
   fields.
 - **Persistence**: new `V2__add_meetings_zone_id.sql` migration adds
   `zone_id NOT NULL`; `MeetingJpaEntity` and `MeetingPersistenceMapper` updated.
 - **Messaging (cross-service contract)**: `meeting_snapshot.proto` and
-  `meeting_invitations_sent.proto` gain fields; proto mappers updated. The
+  `meeting_invitations_created.proto` gain fields; proto mappers updated. The
   `notification` service can then read the zone/time (email rendering itself is
   out of scope here).
 - **Tests**: meet unit/integration suites and request fixtures updated to supply

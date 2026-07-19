@@ -40,10 +40,11 @@ Cross-cutting facts established during exploration:
 - Introduce a reusable shared account-identity filter/context (`X-Account-Id` →
   `AccountContext`) analogous to the tenant machinery.
 - Publish `MeetingCreatedEvent`, `MeetingStartedEvent`, and (when invitees
-  exist) `MeetingInvitationsSentEvent` transactionally via the outbox → Kafka.
-  Both `MeetingCreatedEvent` and `MeetingStartedEvent` carry a full aggregate
-  snapshot (via a shared `MeetingSnapshot` proto message). The invitations event
-  embeds the invite token directly in each `InviteeInfo` entry.
+  exist) `MeetingInvitationsCreatedEvent` transactionally via the outbox →
+  Kafka. Both `MeetingCreatedEvent` and `MeetingStartedEvent` carry a full
+  aggregate snapshot (via a shared `MeetingSnapshot` proto message). The
+  invitations event embeds the invite token directly in each `InviteeInfo`
+  entry.
 - Keep the domain framework-agnostic; map to proto/CloudEvents only at the
   infrastructure boundary.
 
@@ -103,7 +104,7 @@ specific Jira issue, so every meeting inherently has an issue link, a title
 ### D3: `Meeting.recordInvitationsSent(...)` domain method
 
 Add a method to the `Meeting` aggregate that registers
-`MeetingInvitationsSentEvent` (built from the invitee snapshots with embedded
+`MeetingInvitationsCreatedEvent` (built from the invitee snapshots with embedded
 tokens). The application service creates invitees + tokens first, then calls it.
 
 _Why:_ keeps event registration on the aggregate (consistent with every other

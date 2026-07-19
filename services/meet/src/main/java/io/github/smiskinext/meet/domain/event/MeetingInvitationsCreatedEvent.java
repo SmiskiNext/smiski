@@ -23,7 +23,7 @@ import org.jspecify.annotations.Nullable;
  * @param invitees         list of resolved invitees with display info and tokens
  * @param occurredAt       timestamp when the event occurred
  */
-public record MeetingInvitationsSentEvent(
+public record MeetingInvitationsCreatedEvent(
         UUID eventId,
         String tenantId,
         UUID meetingId,
@@ -58,7 +58,7 @@ public record MeetingInvitationsSentEvent(
 
     @Override
     public String eventType() {
-        return "io.github.smiskinext.meet.meeting.invitations-sent.v1";
+        return "io.github.smiskinext.meet.meeting.invitations.created.v1";
     }
 
     @Override
@@ -68,7 +68,7 @@ public record MeetingInvitationsSentEvent(
 
     @Override
     public String toString() {
-        return "MeetingInvitationsSentEvent[eventId="
+        return "MeetingInvitationsCreatedEvent[eventId="
                 + eventId
                 + ", meetingId="
                 + meetingId

@@ -294,17 +294,17 @@ public class Meeting extends AggregateRoot<MeetingId> {
 
     /**
      * Records that invitations have been sent for this meeting.
-     * Registers {@code MeetingInvitationsSentEvent} carrying the invitee details with embedded tokens.
+     * Registers {@code MeetingInvitationsCreatedEvent} carrying the invitee details with embedded tokens.
      *
      * <p>Does nothing when the invitee list is empty.
      *
      * @param invitees list of invitee info snapshots (each carrying its own token)
      */
-    public void recordInvitationsSent(List<MeetingInvitationsSentEvent.InviteeInfo> invitees) {
+    public void recordInvitationsSent(List<MeetingInvitationsCreatedEvent.InviteeInfo> invitees) {
         if (invitees.isEmpty()) {
             return;
         }
-        registerEvent(new MeetingInvitationsSentEvent(
+        registerEvent(new MeetingInvitationsCreatedEvent(
                 UUID.randomUUID(),
                 tenantId.value(),
                 id.value(),

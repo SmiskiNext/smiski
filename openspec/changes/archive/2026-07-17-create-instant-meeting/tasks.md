@@ -29,7 +29,7 @@
 - [x] 3.1 Add `InviteTokenGenerator` outbound port in `meet/domain/port`
       (returns raw token + SHA-256 hash + expiry)
 - [x] 3.2 Add `Meeting.recordInvitationsSent(...)` registering
-      `MeetingInvitationsSentEvent` from invitee snapshots (each carrying its
+      `MeetingInvitationsCreatedEvent` from invitee snapshots (each carrying its
       own token)
 - [x] 3.3 Unit test: `recordInvitationsSent` registers the event with correct
       invitees and embedded tokens; no event when list empty ← (verify: event

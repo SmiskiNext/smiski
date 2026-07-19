@@ -9,7 +9,7 @@
       `schedule()` and `instant()` registrations
 - [x] 1.4 Add `zoneId` to `MeetingStartedEvent` and populate it in `start()`
       (instant started snapshot)
-- [x] 1.5 Add `zoneId` and `endTime` to `MeetingInvitationsSentEvent` and
+- [x] 1.5 Add `zoneId` and `endTime` to `MeetingInvitationsCreatedEvent` and
       `recordInvitationsSent(...)` ← (verify: created/started snapshots carry
       zoneId; invitations carries zoneId + scheduled endTime, absent for
       instant, per the event-publication requirements)
@@ -50,12 +50,12 @@
 ## 5. Messaging / proto contract
 
 - [x] 5.1 Add `zone_id` to `meeting_snapshot.proto` using a new field number
-- [x] 5.2 Add `zone_id` and `end_time` to `meeting_invitations_sent.proto` using
-      new field numbers (respect existing `reserved 7`)
+- [x] 5.2 Add `zone_id` and `end_time` to `meeting_invitations_created.proto`
+      using new field numbers (respect existing `reserved 7`)
 - [x] 5.3 Set `zone_id` in `MeetingCreatedEventProtoMapper` (and any
       `MeetingSnapshot` builder used by the started mapper)
 - [x] 5.4 Set `zone_id` and `end_time` in
-      `MeetingInvitationsSentEventProtoMapper` (leave times at proto3 default
+      `MeetingInvitationsCreatedEventProtoMapper` (leave times at proto3 default
       for instant) ← (verify: `bufFormatApply` + Buf STANDARD lint pass;
       produced proto carries zone_id and end_time)
 
