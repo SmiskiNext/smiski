@@ -36,3 +36,34 @@ message IssueLink {
   string issue_key = 2;
   string project_key = 3;
 }
+
+message MeetingInfoUpdated {
+  string meeting_id = 1;
+  string tenant_id = 2;
+  string host_id = 3;
+  string updated_by = 4;
+  string status = 5;
+  MeetingInfoSnapshot old_info = 6;
+  MeetingInfoSnapshot new_info = 7;
+  string updated_at = 8;
+}
+
+message MeetingInfoSnapshot {
+  string title = 1;
+  string description = 2;
+  IssueLink issue_link = 3;
+  string zone_id = 4;
+  string start_time = 5;
+  string end_time = 6;
+}
+
+message MeetingSettingsUpdated {
+  string meeting_id = 1;
+  string tenant_id = 2;
+  string host_id = 3;
+  string updated_by = 4;
+  string status = 5;
+  MeetingSettings old_settings = 6;
+  MeetingSettings new_settings = 7;
+  string updated_at = 8;
+}

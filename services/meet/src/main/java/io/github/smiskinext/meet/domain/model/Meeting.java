@@ -35,7 +35,7 @@ public class Meeting extends AggregateRoot<MeetingId> {
     private final AccountId hostId;
     private final ShortCode shortCode;
     private final MeetingType type;
-    private final MeetingTimeZone timeZone;
+    private MeetingTimeZone timeZone;
     private final Instant createdAt;
 
     private MeetingTitle title;
@@ -317,34 +317,89 @@ public class Meeting extends AggregateRoot<MeetingId> {
                 Instant.now()));
     }
 
-    /**
-     * Updates meeting settings when status is SCHEDULED or RUNNING.
-     * Registers {@code MeetingSettingsUpdatedEvent} with both old and new settings snapshots.
-     *
-     * @param newSettings the new settings to apply
-     * @param updatedBy   the account ID performing the update
-     * @return success, or failure with {@code InvalidStatusTransition} if meeting is COMPLETED/CANCELED
-     */
-    public Result<Void, MeetingError> updateSettings(
-            MeetingSettings newSettings, String updatedBy) {
-        if (status != MeetingStatus.SCHEDULED && status != MeetingStatus.RUNNING) {
+    public Result<Void, MeetingError> update(
+            AccountId updatedBy,
+            MeetingTitle newTitle,
+            String newDescription,
+            JiraIssueLink newIssueLink,
+            MeetingSettings newSettings,
+            MeetingTimeZone newTimeZone,
+            MeetingTimeRange newTimeRange) {
+        if (!hostId.equals(updatedBy)) {
+            return Result.failure(
+                    new MeetingError.NotAuthorized(updatedBy.value(), hostId.value()));
+        }
+        if (status == MeetingStatus.COMPLETED || status == MeetingStatus.CANCELED) {
             return Result.failure(
                     new MeetingError.InvalidStatusTransition(status, MeetingStatus.SCHEDULED));
         }
-        MeetingSettings oldSettings = this.settings;
-        this.settings = newSettings;
+
+        boolean scheduledFieldsChanged =
+                !timeZone.equals(newTimeZone) || !java.util.Objects.equals(timeRange, newTimeRange);
+        if (scheduledFieldsChanged && status != MeetingStatus.SCHEDULED) {
+            return Result.failure(
+                    new MeetingError.InvalidStatusTransition(status, MeetingStatus.SCHEDULED));
+        }
+        if (timeRange != null && newTimeRange == null) {
+            return Result.failure(
+                    new MeetingError.InvalidSettings("Scheduled meetings require a time range"));
+        }
+        if (scheduledFieldsChanged
+                && newTimeRange != null
+                && newTimeRange.start().isBefore(Instant.now().minus(CLOCK_SKEW_TOLERANCE))) {
+            return Result.failure(new MeetingError.StartTimeInPast(newTimeRange.start()));
+        }
+
+        MeetingInfoSnapshot oldInfo = infoSnapshot();
+        MeetingSettings oldSettings = settings;
+        boolean infoChanged = !title.equals(newTitle)
+                || !description.equals(newDescription)
+                || !issueLink.equals(newIssueLink)
+                || scheduledFieldsChanged;
+        boolean settingsChanged = !settings.equals(newSettings);
+
+        if (!infoChanged && !settingsChanged) {
+            return Result.success();
+        }
+
+        title = newTitle;
+        description = newDescription;
+        issueLink = newIssueLink;
+        settings = newSettings;
+        timeZone = newTimeZone;
+        timeRange = newTimeRange;
+
         Instant now = Instant.now();
-        registerEvent(new MeetingSettingsUpdatedEvent(
-                UUID.randomUUID(),
-                tenantId.value(),
-                id.value(),
-                hostId.value(),
-                updatedBy,
-                status,
-                oldSettings,
-                newSettings,
-                now));
+        if (infoChanged) {
+            registerEvent(new MeetingInfoUpdatedEvent(
+                    UUID.randomUUID(),
+                    tenantId.value(),
+                    id.value(),
+                    hostId.value(),
+                    updatedBy.value(),
+                    status,
+                    oldInfo,
+                    infoSnapshot(),
+                    now));
+        }
+        if (settingsChanged) {
+            registerEvent(new MeetingSettingsUpdatedEvent(
+                    UUID.randomUUID(),
+                    tenantId.value(),
+                    id.value(),
+                    hostId.value(),
+                    updatedBy.value(),
+                    status,
+                    oldSettings,
+                    newSettings,
+                    now));
+        }
         return Result.success();
+    }
+
+    private MeetingInfoSnapshot infoSnapshot() {
+        return new MeetingInfoSnapshot(
+                title.value(), description, issueLink, timeZone.value(), timeRange);
     }
 
     /**

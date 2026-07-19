@@ -63,7 +63,7 @@ public record MeetingInvitationsCreatedEvent(
 
     @Override
     public String topic() {
-        return "meet.meeting.invitations-sent";
+        return "meet.meeting.invitations.created";
     }
 
     @Override

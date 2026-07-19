@@ -62,7 +62,7 @@ public class MeetingRepositoryAdapter implements MeetingRepository {
 
     @Override
     public Optional<Meeting> findByIdWithLock(UUID id) {
-        throw new UnsupportedOperationException("Not implemented in create-instant-meeting slice");
+        return jpaRepository.findByIdWithLock(id).map(MeetingPersistenceMapper::toDomain);
     }
 
     @Override

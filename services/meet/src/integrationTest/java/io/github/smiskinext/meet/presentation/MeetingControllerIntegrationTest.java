@@ -732,7 +732,7 @@ class MeetingControllerIntegrationTest {
                     meetingId);
 
             String invitationsPayload = outboxRows.stream()
-                    .filter(r -> r.get("event_type").toString().contains("invitations-sent"))
+                    .filter(r -> r.get("event_type").toString().contains("invitations.created"))
                     .findFirst()
                     .map(r -> r.get("payload").toString())
                     .orElseThrow();
@@ -803,7 +803,7 @@ class MeetingControllerIntegrationTest {
                             "io.github.smiskinext.meet.meeting.created.v1",
                             "io.github.smiskinext.meet.meeting.started.v1");
             assertThat(eventTypes)
-                    .doesNotContain("io.github.smiskinext.meet.meeting.invitations-sent.v1");
+                    .doesNotContain("io.github.smiskinext.meet.meeting.invitations.created.v1");
         }
 
         @Test
@@ -870,7 +870,7 @@ class MeetingControllerIntegrationTest {
                     .contains(
                             "io.github.smiskinext.meet.meeting.created.v1",
                             "io.github.smiskinext.meet.meeting.started.v1",
-                            "io.github.smiskinext.meet.meeting.invitations-sent.v1");
+                            "io.github.smiskinext.meet.meeting.invitations.created.v1");
         }
     }
 

@@ -629,7 +629,7 @@ class ScheduleMeetingControllerIntegrationTest {
                     meetingId);
 
             String invitationsPayload = outboxRows.stream()
-                    .filter(r -> r.get("event_type").toString().contains("invitations-sent"))
+                    .filter(r -> r.get("event_type").toString().contains("invitations.created"))
                     .findFirst()
                     .map(r -> r.get("payload").toString())
                     .orElseThrow();

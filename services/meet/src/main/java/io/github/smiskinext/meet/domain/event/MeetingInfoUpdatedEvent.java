@@ -1,28 +1,20 @@
 package io.github.smiskinext.meet.domain.event;
 
 import io.github.smiskinext.meet.domain.model.MeetingStatus;
-import io.github.smiskinext.meet.domain.model.valueobject.MeetingSettings;
 import io.github.smiskinext.shared.domain.PublishableEvent;
 
 import java.time.Instant;
 import java.util.UUID;
 
-/**
- * Published when a meeting's settings are updated by the host.
- *
- * <p>Carries both the previous ({@code oldSettings}) and new ({@code newSettings}) settings
- * snapshots to enable downstream handlers to detect permission-relevant changes without
- * requiring a separate repository lookup.
- */
-public record MeetingSettingsUpdatedEvent(
+public record MeetingInfoUpdatedEvent(
         UUID eventId,
         String tenantId,
         UUID meetingId,
         String hostId,
         String updatedBy,
         MeetingStatus meetingStatus,
-        MeetingSettings oldSettings,
-        MeetingSettings newSettings,
+        MeetingInfoSnapshot oldInfo,
+        MeetingInfoSnapshot newInfo,
         Instant updatedAt)
         implements PublishableEvent {
 
@@ -38,12 +30,12 @@ public record MeetingSettingsUpdatedEvent(
 
     @Override
     public String eventType() {
-        return "meeting.settings.update";
+        return "meeting.info.update";
     }
 
     @Override
     public String topic() {
-        return "meeting.settings.update";
+        return "meeting.info.update";
     }
 
     @Override

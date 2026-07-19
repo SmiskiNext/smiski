@@ -2,7 +2,7 @@ package io.github.smiskinext.meet.infrastructure.messaging;
 
 import com.google.protobuf.Message;
 
-import io.github.smiskinext.event.meet.v1.MeetingInvitationsSent;
+import io.github.smiskinext.event.meet.v1.MeetingInvitationsCreated;
 import io.github.smiskinext.meet.domain.event.MeetingInvitationsCreatedEvent;
 import io.github.smiskinext.shared.infrastructure.outbox.OutboxEventProtoMapper;
 
@@ -24,7 +24,7 @@ public class MeetingInvitationsCreatedEventProtoMapper
 
     @Override
     public Message toProto(MeetingInvitationsCreatedEvent event) {
-        MeetingInvitationsSent.Builder builder = MeetingInvitationsSent.newBuilder()
+        MeetingInvitationsCreated.Builder builder = MeetingInvitationsCreated.newBuilder()
                 .setMeetingId(event.meetingId().toString())
                 .setTenantId(event.tenantId())
                 .setMeetingShortCode(event.meetingShortCode())
@@ -41,8 +41,8 @@ public class MeetingInvitationsCreatedEventProtoMapper
         }
 
         for (MeetingInvitationsCreatedEvent.InviteeInfo invitee : event.invitees()) {
-            MeetingInvitationsSent.InviteeInfo.Builder inviteeBuilder =
-                    MeetingInvitationsSent.InviteeInfo.newBuilder()
+            MeetingInvitationsCreated.InviteeInfo.Builder inviteeBuilder =
+                    MeetingInvitationsCreated.InviteeInfo.newBuilder()
                             .setAccountId(invitee.accountId())
                             .setEmail(invitee.email())
                             .setDisplayName(invitee.displayName())

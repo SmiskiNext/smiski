@@ -6,6 +6,78 @@ servers:
 - url: http://localhost:8080
   description: API Gateway
 paths:
+  /api/{version}/meetings/{id}:
+    put:
+      tags:
+      - meeting-controller
+      summary: Update a meeting
+      description: Updates a meeting as its host. Information and settings are mutable
+        while scheduled or running; scheduled details are mutable only while scheduled.
+      operationId: update
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateMeetingRequest"
+        required: true
+      responses:
+        "200":
+          description: Meeting updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UpdateMeetingResponse"
+        "400":
+          description: Validation error or missing account
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "403":
+          description: Only the host may update the meeting
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "404":
+          description: Meeting not found
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "405":
+          description: Method Not Allowed
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "415":
+          description: Unsupported Media Type
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "500":
+          description: Internal Server Error
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+    parameters:
+    - name: version
+      in: path
+      required: true
+      schema:
+        type: integer
+        format: int32
+      example: 1
   /api/{version}/meetings:schedule:
     post:
       tags:
@@ -233,24 +305,6 @@ paths:
       example: 1
 components:
   schemas:
-    Invitee:
-      type: object
-      description: Meeting invitee
-      properties:
-        email:
-          type: string
-          format: email
-          minLength: 1
-        accountId:
-          type: string
-          minLength: 1
-        displayName:
-          type: string
-          minLength: 1
-      required:
-      - accountId
-      - displayName
-      - email
     IssueLink:
       type: object
       properties:
@@ -260,44 +314,6 @@ components:
           type: string
         projectKey:
           type: string
-    ScheduleMeetingRequest:
-      type: object
-      description: Request body for creating a scheduled meeting
-      properties:
-        title:
-          type: string
-          description: Meeting title
-          example: Sprint Planning
-          minLength: 1
-        description:
-          type: string
-          description: Meeting description
-          example: Weekly sprint planning session
-          minLength: 1
-        issueLink:
-          $ref: "#/components/schemas/IssueLink"
-        settings:
-          $ref: "#/components/schemas/Settings"
-        timeRange:
-          $ref: "#/components/schemas/TimeRange"
-        zoneId:
-          type: string
-          description: Host IANA time zone id
-          example: Asia/Ho_Chi_Minh
-          minLength: 1
-        invitees:
-          type:
-          - array
-          - "null"
-          items:
-            $ref: "#/components/schemas/Invitee"
-      required:
-      - description
-      - issueLink
-      - settings
-      - timeRange
-      - title
-      - zoneId
     Settings:
       type: object
       properties:
@@ -316,7 +332,6 @@ components:
           type: boolean
     TimeRange:
       type: object
-      description: Scheduled time range
       properties:
         startTime:
           type: string
@@ -327,6 +342,34 @@ components:
       required:
       - endTime
       - startTime
+    UpdateMeetingRequest:
+      type: object
+      description: Full meeting update request
+      properties:
+        title:
+          type: string
+          maxLength: 255
+          minLength: 0
+        description:
+          type: string
+          minLength: 1
+        issueLink:
+          $ref: "#/components/schemas/IssueLink"
+        settings:
+          $ref: "#/components/schemas/Settings"
+        zoneId:
+          type: string
+          minLength: 1
+        timeRange:
+          $ref: "#/components/schemas/TimeRange"
+        timeRangeValid:
+          type: boolean
+      required:
+      - description
+      - issueLink
+      - settings
+      - title
+      - zoneId
     Meeting:
       type: object
       description: Meeting snapshot
@@ -355,9 +398,9 @@ components:
         createdAt:
           type: string
           format: date-time
-    ScheduleMeetingResponse:
+    UpdateMeetingResponse:
       type: object
-      description: Response for a successfully created scheduled meeting
+      description: Updated meeting snapshot
       properties:
         meeting:
           $ref: "#/components/schemas/Meeting"
@@ -419,6 +462,68 @@ components:
           description: Field-level validation errors (present when code is VALIDATION_ERROR)
           items:
             $ref: "#/components/schemas/Violation"
+    Invitee:
+      type: object
+      description: Meeting invitee
+      properties:
+        email:
+          type: string
+          format: email
+          minLength: 1
+        accountId:
+          type: string
+          minLength: 1
+        displayName:
+          type: string
+          minLength: 1
+      required:
+      - accountId
+      - displayName
+      - email
+    ScheduleMeetingRequest:
+      type: object
+      description: Request body for creating a scheduled meeting
+      properties:
+        title:
+          type: string
+          description: Meeting title
+          example: Sprint Planning
+          minLength: 1
+        description:
+          type: string
+          description: Meeting description
+          example: Weekly sprint planning session
+          minLength: 1
+        issueLink:
+          $ref: "#/components/schemas/IssueLink"
+        settings:
+          $ref: "#/components/schemas/Settings"
+        timeRange:
+          $ref: "#/components/schemas/TimeRange"
+        zoneId:
+          type: string
+          description: Host IANA time zone id
+          example: Asia/Ho_Chi_Minh
+          minLength: 1
+        invitees:
+          type:
+          - array
+          - "null"
+          items:
+            $ref: "#/components/schemas/Invitee"
+      required:
+      - description
+      - issueLink
+      - settings
+      - timeRange
+      - title
+      - zoneId
+    ScheduleMeetingResponse:
+      type: object
+      description: Response for a successfully created scheduled meeting
+      properties:
+        meeting:
+          $ref: "#/components/schemas/Meeting"
     CreateInstantMeetingRequest:
       type: object
       description: Request body for creating an instant meeting
