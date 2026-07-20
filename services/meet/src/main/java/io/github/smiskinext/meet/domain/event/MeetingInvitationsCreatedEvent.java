@@ -17,17 +17,25 @@ import org.jspecify.annotations.Nullable;
  * @param meetingId        ID of the meeting aggregate
  * @param meetingTitle     human-readable title of the meeting
  * @param meetingShortCode short alphanumeric code for the meeting join URL
- * @param startTime        scheduled start time, or {@code null} for open-ended meetings
+ * @param startTime        scheduled start time, or {@code null} for instant meetings
+ * @param endTime          scheduled end time, or {@code null} for instant meetings
+ * @param zoneId           host IANA time zone id
  * @param invitees         list of resolved invitees with display info and tokens
  * @param occurredAt       timestamp when the event occurred
  */
-public record MeetingInvitationsSentEvent(
+public record MeetingInvitationsCreatedEvent(
         UUID eventId,
         String tenantId,
         UUID meetingId,
         @Nullable String meetingTitle,
         String meetingShortCode,
         @Nullable Instant startTime,
+        @Nullable Instant endTime,
+        String zoneId,
+        String organizerEmail,
+        String organizerDisplayName,
+        String calendarUid,
+        int calendarSequence,
         List<InviteeInfo> invitees,
         Instant occurredAt)
         implements PublishableEvent {
@@ -40,7 +48,13 @@ public record MeetingInvitationsSentEvent(
      * @param displayName the user's full name at invite time
      * @param token       the raw invite token for building the join URL
      */
-    public record InviteeInfo(String accountId, String email, String displayName, String token) {}
+    public record InviteeInfo(
+            UUID inviteeId,
+            String accountId,
+            String email,
+            String displayName,
+            String status,
+            String token) {}
 
     @Override
     public String aggregateId() {
@@ -54,17 +68,17 @@ public record MeetingInvitationsSentEvent(
 
     @Override
     public String eventType() {
-        return "io.github.smiskinext.meet.meeting.invitations-sent.v1";
+        return "io.github.smiskinext.meet.meeting.invitations.created.v1";
     }
 
     @Override
     public String topic() {
-        return "meet.meeting.invitations-sent";
+        return "meet.meeting.invitations.created";
     }
 
     @Override
     public String toString() {
-        return "MeetingInvitationsSentEvent[eventId="
+        return "MeetingInvitationsCreatedEvent[eventId="
                 + eventId
                 + ", meetingId="
                 + meetingId
@@ -74,6 +88,10 @@ public record MeetingInvitationsSentEvent(
                 + meetingShortCode
                 + ", startTime="
                 + startTime
+                + ", endTime="
+                + endTime
+                + ", zoneId="
+                + zoneId
                 + ", invitees="
                 + invitees
                 + ", occurredAt="

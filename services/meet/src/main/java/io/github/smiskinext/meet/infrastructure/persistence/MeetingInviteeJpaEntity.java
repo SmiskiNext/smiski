@@ -45,6 +45,9 @@ public class MeetingInviteeJpaEntity {
     @Column(name = "responded_at")
     private @Nullable Instant respondedAt;
 
+    @Column(name = "removed_at")
+    private @Nullable Instant removedAt;
+
     @Column(name = "token_hash", length = 64)
     private @Nullable String tokenHash;
 
@@ -72,6 +75,7 @@ public class MeetingInviteeJpaEntity {
             String status,
             Instant invitedAt,
             @Nullable Instant respondedAt,
+            @Nullable Instant removedAt,
             @Nullable String tokenHash,
             @Nullable String tokenStatus,
             @Nullable Instant tokenExpiresAt,
@@ -86,6 +90,7 @@ public class MeetingInviteeJpaEntity {
         this.status = status;
         this.invitedAt = invitedAt;
         this.respondedAt = respondedAt;
+        this.removedAt = removedAt;
         this.tokenHash = tokenHash;
         this.tokenStatus = tokenStatus;
         this.tokenExpiresAt = tokenExpiresAt;
@@ -131,6 +136,10 @@ public class MeetingInviteeJpaEntity {
 
     public @Nullable Instant getRespondedAt() {
         return respondedAt;
+    }
+
+    public @Nullable Instant getRemovedAt() {
+        return removedAt;
     }
 
     public @Nullable String getTokenHash() {

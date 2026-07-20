@@ -5,6 +5,7 @@ import io.github.smiskinext.meet.domain.model.InviteeStatus;
 import io.github.smiskinext.meet.domain.model.MeetingInvitee;
 import io.github.smiskinext.meet.domain.model.valueobject.*;
 import io.github.smiskinext.shared.domain.valueobject.TenantId;
+import io.github.smiskinext.shared.infrastructure.tenancy.TenantContext;
 
 /**
  * Maps between {@link MeetingInviteeJpaEntity} and the {@link MeetingInvitee} domain aggregate.
@@ -25,6 +26,7 @@ final class MeetingInviteePersistenceMapper {
                 invitee.getStatus().name(),
                 invitee.getInvitedAt(),
                 invitee.getRespondedAt().orElse(null),
+                invitee.getRemovedAt().orElse(null),
                 token != null ? token.tokenHash() : null,
                 token != null ? token.status().name() : null,
                 token != null ? token.expiresAt() : null,
@@ -44,7 +46,10 @@ final class MeetingInviteePersistenceMapper {
         }
 
         return MeetingInvitee.reconstitute(
-                TenantId.of(entity.getTenantId()),
+                TenantId.of(
+                        entity.getTenantId() != null
+                                ? entity.getTenantId()
+                                : TenantContext.getCurrentTenant()),
                 InviteeId.of(entity.getId()),
                 MeetingId.of(entity.getMeetingId()),
                 InviterId.of(entity.getInviterId()),
@@ -54,6 +59,7 @@ final class MeetingInviteePersistenceMapper {
                 InviteeStatus.valueOf(entity.getStatus()),
                 entity.getInvitedAt(),
                 entity.getRespondedAt(),
+                entity.getRemovedAt(),
                 token);
     }
 }

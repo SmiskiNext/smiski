@@ -9,7 +9,14 @@ import java.util.UUID;
  * Published when an invitee declines a meeting invitation.
  */
 public record InviteeDeclinedEvent(
-        UUID eventId, String tenantId, UUID meetingId, String inviterId, Instant declinedAt)
+        UUID eventId,
+        String tenantId,
+        UUID meetingId,
+        String inviterId,
+        UUID inviteeId,
+        String inviteeEmail,
+        String status,
+        Instant declinedAt)
         implements PublishableEvent {
 
     @Override

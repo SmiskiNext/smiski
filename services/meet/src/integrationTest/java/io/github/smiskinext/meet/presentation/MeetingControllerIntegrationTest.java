@@ -68,6 +68,9 @@ class MeetingControllerIntegrationTest {
                         "deviceId": "device-1",
                         "avatarUrl": "https://cdn.example.com/alice.png"
                     },
+                    "organizerEmail": "alice@example.com",
+                    "organizerDisplayName": "Alice",
+                    "zoneId": "Asia/Ho_Chi_Minh",
                     "invitees": [
                         {"email": "bob@test.com", "accountId": "bob-account", "displayName": "Bob"}
                     ]
@@ -86,11 +89,14 @@ class MeetingControllerIntegrationTest {
                 .andExpect(jsonPath("$.meeting.hostId").value("host-account"))
                 .andExpect(jsonPath("$.meeting.title").value("Sprint Planning"))
                 .andExpect(jsonPath("$.meeting.description").value("Daily standup for the team"))
+                .andExpect(jsonPath("$.meeting.organizerEmail").value("alice@example.com"))
+                .andExpect(jsonPath("$.meeting.organizerDisplayName").value("Alice"))
                 .andExpect(jsonPath("$.meeting.issueLink.issueId").value("10001"))
                 .andExpect(jsonPath("$.meeting.issueLink.issueKey").value("PROJ-1"))
                 .andExpect(jsonPath("$.meeting.issueLink.projectKey").value("PROJ"))
                 .andExpect(jsonPath("$.livekit.token").isNotEmpty())
                 .andExpect(jsonPath("$.livekit.roomName").isNotEmpty())
+                .andExpect(jsonPath("$.meeting.zoneId").value("Asia/Ho_Chi_Minh"))
                 .andExpect(jsonPath("$.meeting.tenantId").doesNotExist())
                 .andReturn();
 
@@ -128,7 +134,8 @@ class MeetingControllerIntegrationTest {
                         "host": {
                             "displayName": "Alice",
                             "deviceId": "device-1"
-                        }
+                        },
+                        "zoneId": "UTC"
                     }
                     """;
 
@@ -461,6 +468,290 @@ class MeetingControllerIntegrationTest {
     }
 
     @Nested
+    class InstantTimeZoneValidation {
+
+        @Test
+        void missingZoneId_returns400ValidationErrorAndCreatesNothing() throws Exception {
+            long meetingsBefore = countTable("meetings");
+
+            String requestBody = """
+                    {
+                        "title": "Test",
+                        "description": "Desc",
+                        "issueLink": {
+                            "issueId": "10001",
+                            "issueKey": "PROJ-1",
+                            "projectKey": "PROJ"
+                        },
+                        "settings": {
+                            "admissionPolicy": "ALLOW_ALL",
+                            "maxParticipants": 50,
+                            "allowScreenShare": true,
+                            "chatEnabled": true,
+                            "allowMicrophone": true,
+                            "allowVideo": true
+                        },
+                        "host": {
+                            "displayName": "Alice",
+                            "deviceId": "device-1"
+                        }
+                    }
+                    """;
+
+            mockMvc.perform(post("/api/1/meetings:instant")
+                            .header("X-Account-Id", "host-account")
+                            .header("X-Tenant-ID", TENANT_ID)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(requestBody))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(content().contentTypeCompatibleWith("application/problem+json"))
+                    .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"));
+
+            assertThat(countTable("meetings")).isEqualTo(meetingsBefore);
+        }
+
+        @Test
+        void unknownIanaIdOrBareOffset_returns400ValidationErrorAndCreatesNothing()
+                throws Exception {
+            long meetingsBefore = countTable("meetings");
+
+            String unknownZone = """
+                    {
+                        "title": "Test",
+                        "description": "Desc",
+                        "issueLink": {
+                            "issueId": "10001",
+                            "issueKey": "PROJ-1",
+                            "projectKey": "PROJ"
+                        },
+                        "settings": {
+                            "admissionPolicy": "ALLOW_ALL",
+                            "maxParticipants": 50,
+                            "allowScreenShare": true,
+                            "chatEnabled": true,
+                            "allowMicrophone": true,
+                            "allowVideo": true
+                        },
+                        "host": {
+                            "displayName": "Alice",
+                            "deviceId": "device-1"
+                        },
+                        "zoneId": "Mars/Phobos"
+                    }
+                    """;
+
+            mockMvc.perform(post("/api/1/meetings:instant")
+                            .header("X-Account-Id", "host-account")
+                            .header("X-Tenant-ID", TENANT_ID)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(unknownZone))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(content().contentTypeCompatibleWith("application/problem+json"))
+                    .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"));
+
+            assertThat(countTable("meetings")).isEqualTo(meetingsBefore);
+
+            String bareOffset = """
+                    {
+                        "title": "Test",
+                        "description": "Desc",
+                        "issueLink": {
+                            "issueId": "10001",
+                            "issueKey": "PROJ-1",
+                            "projectKey": "PROJ"
+                        },
+                        "settings": {
+                            "admissionPolicy": "ALLOW_ALL",
+                            "maxParticipants": 50,
+                            "allowScreenShare": true,
+                            "chatEnabled": true,
+                            "allowMicrophone": true,
+                            "allowVideo": true
+                        },
+                        "host": {
+                            "displayName": "Alice",
+                            "deviceId": "device-1"
+                        },
+                        "zoneId": "+07:00"
+                    }
+                    """;
+
+            mockMvc.perform(post("/api/1/meetings:instant")
+                            .header("X-Account-Id", "host-account")
+                            .header("X-Tenant-ID", TENANT_ID)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(bareOffset))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(content().contentTypeCompatibleWith("application/problem+json"))
+                    .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"));
+
+            assertThat(countTable("meetings")).isEqualTo(meetingsBefore);
+        }
+
+        @Test
+        void validIanaZoneIsPersistedAndEchoed() throws Exception {
+            String requestBody = """
+                    {
+                        "title": "Zone Test",
+                        "description": "Desc",
+                        "issueLink": {
+                            "issueId": "10001",
+                            "issueKey": "PROJ-1",
+                            "projectKey": "PROJ"
+                        },
+                        "settings": {
+                            "admissionPolicy": "ALLOW_ALL",
+                            "maxParticipants": 50,
+                            "allowScreenShare": true,
+                            "chatEnabled": true,
+                            "allowMicrophone": true,
+                            "allowVideo": true
+                        },
+                        "host": {
+                            "displayName": "Alice",
+                            "deviceId": "device-1"
+                        },
+                        "organizerEmail": "alice@example.com",
+                        "organizerDisplayName": "Alice",
+                        "zoneId": "Asia/Ho_Chi_Minh"
+                    }
+                    """;
+
+            MvcResult result = mockMvc.perform(post("/api/1/meetings:instant")
+                            .header("X-Account-Id", "host-account")
+                            .header("X-Tenant-ID", TENANT_ID)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(requestBody))
+                    .andExpect(status().isCreated())
+                    .andExpect(jsonPath("$.meeting.zoneId").value("Asia/Ho_Chi_Minh"))
+                    .andReturn();
+
+            String meetingId =
+                    JsonPath.read(result.getResponse().getContentAsString(), "$.meeting.id");
+
+            List<Map<String, Object>> meetings = jdbcTemplate.queryForList(
+                    "SELECT zone_id FROM meetings WHERE id = ?::uuid", meetingId);
+            assertThat(meetings).hasSize(1);
+            assertThat(meetings.getFirst().get("zone_id").toString()).isEqualTo("Asia/Ho_Chi_Minh");
+        }
+
+        @Test
+        void createdAndStartedOutboxSnapshotsBothCarryZoneId() throws Exception {
+            String requestBody = """
+                    {
+                        "title": "Outbox Zone Test",
+                        "description": "Desc",
+                        "issueLink": {
+                            "issueId": "10001",
+                            "issueKey": "PROJ-1",
+                            "projectKey": "PROJ"
+                        },
+                        "settings": {
+                            "admissionPolicy": "ALLOW_ALL",
+                            "maxParticipants": 50,
+                            "allowScreenShare": true,
+                            "chatEnabled": true,
+                            "allowMicrophone": true,
+                            "allowVideo": true
+                        },
+                        "host": {
+                            "displayName": "Alice",
+                            "deviceId": "device-1"
+                        },
+                        "organizerEmail": "alice@example.com",
+                        "organizerDisplayName": "Alice",
+                        "zoneId": "Europe/London"
+                    }
+                    """;
+
+            MvcResult result = mockMvc.perform(post("/api/1/meetings:instant")
+                            .header("X-Account-Id", "host-account")
+                            .header("X-Tenant-ID", TENANT_ID)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(requestBody))
+                    .andExpect(status().isCreated())
+                    .andReturn();
+
+            String meetingId =
+                    JsonPath.read(result.getResponse().getContentAsString(), "$.meeting.id");
+
+            List<Map<String, Object>> outboxRows = jdbcTemplate.queryForList(
+                    "SELECT event_type, payload FROM outbox_event WHERE aggregate_id = ?::uuid",
+                    meetingId);
+
+            List<String> eventTypes =
+                    outboxRows.stream().map(r -> r.get("event_type").toString()).toList();
+            assertThat(eventTypes)
+                    .contains(
+                            "io.github.smiskinext.meet.meeting.created.v1",
+                            "io.github.smiskinext.meet.meeting.started.v1");
+
+            for (Map<String, Object> row : outboxRows) {
+                String eventType = row.get("event_type").toString();
+                if (eventType.contains("created") || eventType.contains("started")) {
+                    assertThat(row.get("payload").toString()).contains("Europe/London");
+                }
+            }
+        }
+
+        @Test
+        void invitationsSentOutboxCarriesZoneIdWithAbsentStartEndTime() throws Exception {
+            String requestBody = """
+                    {
+                        "title": "Inv Zone Test",
+                        "description": "Desc",
+                        "issueLink": {
+                            "issueId": "10001",
+                            "issueKey": "PROJ-1",
+                            "projectKey": "PROJ"
+                        },
+                        "settings": {
+                            "admissionPolicy": "ALLOW_ALL",
+                            "maxParticipants": 50,
+                            "allowScreenShare": true,
+                            "chatEnabled": true,
+                            "allowMicrophone": true,
+                            "allowVideo": true
+                        },
+                        "host": {
+                            "displayName": "Alice",
+                            "deviceId": "device-1"
+                        },
+                        "organizerEmail": "alice@example.com",
+                        "organizerDisplayName": "Alice",
+                        "zoneId": "America/Chicago",
+                        "invitees": [
+                            {"email": "test@example.com", "accountId": "test-acc", "displayName": "Test"}
+                        ]
+                    }
+                    """;
+
+            MvcResult result = mockMvc.perform(post("/api/1/meetings:instant")
+                            .header("X-Account-Id", "host-account")
+                            .header("X-Tenant-ID", TENANT_ID)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(requestBody))
+                    .andExpect(status().isCreated())
+                    .andReturn();
+
+            String meetingId =
+                    JsonPath.read(result.getResponse().getContentAsString(), "$.meeting.id");
+
+            List<Map<String, Object>> outboxRows = jdbcTemplate.queryForList(
+                    "SELECT event_type, payload FROM outbox_event WHERE aggregate_id = ?::uuid",
+                    meetingId);
+
+            String invitationsPayload = outboxRows.stream()
+                    .filter(r -> r.get("event_type").toString().contains("invitations.created"))
+                    .findFirst()
+                    .map(r -> r.get("payload").toString())
+                    .orElseThrow();
+            assertThat(invitationsPayload).contains("America/Chicago");
+            assertThat(invitationsPayload).contains("test-acc");
+        }
+    }
+
+    @Nested
     class LifecyclePersistence {
 
         @Test
@@ -485,7 +776,10 @@ class MeetingControllerIntegrationTest {
                         "host": {
                             "displayName": "HostUser",
                             "deviceId": "dev-42"
-                        }
+                        },
+                        "organizerEmail": "host@example.com",
+                        "organizerDisplayName": "Host User",
+                        "zoneId": "UTC"
                     }
                     """;
 
@@ -521,7 +815,7 @@ class MeetingControllerIntegrationTest {
                             "io.github.smiskinext.meet.meeting.created.v1",
                             "io.github.smiskinext.meet.meeting.started.v1");
             assertThat(eventTypes)
-                    .doesNotContain("io.github.smiskinext.meet.meeting.invitations-sent.v1");
+                    .doesNotContain("io.github.smiskinext.meet.meeting.invitations.created.v1");
         }
 
         @Test
@@ -547,6 +841,9 @@ class MeetingControllerIntegrationTest {
                             "displayName": "InvHost",
                             "deviceId": "dev-inv"
                         },
+                        "organizerEmail": "inv-host@example.com",
+                        "organizerDisplayName": "Invite Host",
+                        "zoneId": "UTC",
                         "invitees": [
                             {"email": "alice@example.com", "accountId": "alice-acc", "displayName": "Alice"},
                             {"email": "carol@example.com", "accountId": "carol-acc", "displayName": "Carol"}
@@ -587,7 +884,7 @@ class MeetingControllerIntegrationTest {
                     .contains(
                             "io.github.smiskinext.meet.meeting.created.v1",
                             "io.github.smiskinext.meet.meeting.started.v1",
-                            "io.github.smiskinext.meet.meeting.invitations-sent.v1");
+                            "io.github.smiskinext.meet.meeting.invitations.created.v1");
         }
     }
 

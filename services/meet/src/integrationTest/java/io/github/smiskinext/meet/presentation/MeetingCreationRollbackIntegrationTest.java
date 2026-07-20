@@ -85,6 +85,9 @@ class MeetingCreationRollbackIntegrationTest {
                         "displayName": "RollbackHost",
                         "deviceId": "dev-rb"
                     },
+                    "organizerEmail": "rollback@example.com",
+                    "organizerDisplayName": "Rollback Host",
+                    "zoneId": "UTC",
                     "invitees": [
                         {"email": "inv@example.com", "accountId": "inv-acc", "displayName": "Invitee"}
                     ]
@@ -134,7 +137,10 @@ class MeetingCreationRollbackIntegrationTest {
                     "host": {
                         "displayName": "NoInvHost",
                         "deviceId": "dev-no-inv"
-                    }
+                    },
+                    "organizerEmail": "no-inv@example.com",
+                    "organizerDisplayName": "No Invite Host",
+                    "zoneId": "UTC"
                 }
                 """;
 

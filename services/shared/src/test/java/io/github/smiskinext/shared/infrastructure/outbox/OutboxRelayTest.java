@@ -9,7 +9,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import io.cloudevents.CloudEvent;
-import java.time.Duration;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
@@ -18,22 +17,17 @@ import org.junit.jupiter.api.Test;
 
 class OutboxRelayTest {
 
-    private OutboxStore outboxStore;
+    private OutboxRelayTransactionDelegate transactionDelegate;
     private OutboxTransport transport;
     private CloudEventEncoder cloudEventEncoder;
-    private OutboxProperties properties;
     private OutboxRelay relay;
 
     @BeforeEach
     void setUp() {
-        outboxStore = mock(OutboxStore.class);
+        transactionDelegate = mock(OutboxRelayTransactionDelegate.class);
         transport = mock(OutboxTransport.class);
         cloudEventEncoder = new CloudEventEncoder("test-service");
-        properties = new OutboxProperties(
-                new OutboxProperties.Relay(true, Duration.ofSeconds(5), 10),
-                new OutboxProperties.Cloudevent("test-service"),
-                "kafka");
-        relay = new OutboxRelay(outboxStore, transport, cloudEventEncoder, properties);
+        relay = new OutboxRelay(transactionDelegate, transport, cloudEventEncoder);
     }
 
     @Nested
@@ -44,12 +38,12 @@ class OutboxRelayTest {
             UUID rowId = UUID.randomUUID();
             OutboxStore.OutboxRow malformedRow = new OutboxStore.OutboxRow(
                     rowId, "tenant-1", "agg-1", "topic", "not-a-valid-cloudevent");
-            when(outboxStore.claimBatch(10)).thenReturn(List.of(malformedRow));
+            when(transactionDelegate.claimBatch()).thenReturn(List.of(malformedRow));
 
             relay.relay();
 
             verify(transport, never()).send(anyString(), anyString(), any(CloudEvent.class));
-            verify(outboxStore).recordFailure(any(UUID.class), anyString());
+            verify(transactionDelegate).recordFailure(any(UUID.class), anyString());
         }
     }
 
@@ -69,7 +63,7 @@ class OutboxRelayTest {
 
         @Test
         void relay_does_nothing_when_no_rows() {
-            when(outboxStore.claimBatch(10)).thenReturn(List.of());
+            when(transactionDelegate.claimBatch()).thenReturn(List.of());
 
             relay.relay();
 

@@ -4,13 +4,17 @@ import io.github.smiskinext.meet.application.command.CreateInstantMeetingCommand
 import io.github.smiskinext.meet.application.command.ScheduleMeetingCommand;
 import io.github.smiskinext.meet.application.result.CreateInstantMeetingResult;
 import io.github.smiskinext.meet.application.result.ScheduleMeetingResult;
+import io.github.smiskinext.meet.application.result.UpdateMeetingResult;
 import io.github.smiskinext.meet.application.usecase.CreateInstantMeetingUseCase;
 import io.github.smiskinext.meet.application.usecase.ScheduleMeetingUseCase;
+import io.github.smiskinext.meet.application.usecase.UpdateMeetingUseCase;
 import io.github.smiskinext.meet.domain.MeetingError;
 import io.github.smiskinext.meet.presentation.request.CreateInstantMeetingRequest;
 import io.github.smiskinext.meet.presentation.request.ScheduleMeetingRequest;
+import io.github.smiskinext.meet.presentation.request.UpdateMeetingRequest;
 import io.github.smiskinext.meet.presentation.response.CreateInstantMeetingResponse;
 import io.github.smiskinext.meet.presentation.response.ScheduleMeetingResponse;
+import io.github.smiskinext.meet.presentation.response.UpdateMeetingResponse;
 import io.github.smiskinext.shared.domain.Result;
 import io.github.smiskinext.shared.infrastructure.identity.AccountContext;
 import io.github.smiskinext.shared.infrastructure.tenancy.TenantContext;
@@ -25,8 +29,11 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import jakarta.validation.Valid;
 import java.net.URI;
+import java.util.UUID;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
@@ -36,15 +43,69 @@ public class MeetingController {
 
     private final CreateInstantMeetingUseCase createInstantMeetingUseCase;
     private final ScheduleMeetingUseCase scheduleMeetingUseCase;
+    private final UpdateMeetingUseCase updateMeetingUseCase;
     private final ResultResponder responder;
 
     public MeetingController(
             CreateInstantMeetingUseCase createInstantMeetingUseCase,
             ScheduleMeetingUseCase scheduleMeetingUseCase,
+            UpdateMeetingUseCase updateMeetingUseCase,
             ResultResponder responder) {
         this.createInstantMeetingUseCase = createInstantMeetingUseCase;
         this.scheduleMeetingUseCase = scheduleMeetingUseCase;
+        this.updateMeetingUseCase = updateMeetingUseCase;
         this.responder = responder;
+    }
+
+    @Operation(
+            summary = "Update a meeting",
+            description = "Updates a meeting as its host. "
+                    + "Information and settings are mutable while scheduled or running; scheduled details "
+                    + "are mutable only while scheduled.")
+    @ApiResponses({
+        @ApiResponse(
+                responseCode = "200",
+                description = "Meeting updated",
+                content =
+                        @Content(
+                                mediaType = "application/json",
+                                schema = @Schema(implementation = UpdateMeetingResponse.class))),
+        @ApiResponse(
+                responseCode = "400",
+                description = "Validation error or missing account",
+                content =
+                        @Content(
+                                mediaType = "application/problem+json",
+                                schema = @Schema(implementation = ProblemDetailSchema.class))),
+        @ApiResponse(
+                responseCode = "403",
+                description = "Only the host may update the meeting",
+                content =
+                        @Content(
+                                mediaType = "application/problem+json",
+                                schema = @Schema(implementation = ProblemDetailSchema.class))),
+        @ApiResponse(
+                responseCode = "404",
+                description = "Meeting not found",
+                content =
+                        @Content(
+                                mediaType = "application/problem+json",
+                                schema = @Schema(implementation = ProblemDetailSchema.class)))
+    })
+    @PutMapping("/meetings/{id}")
+    public ResponseEntity<Object> update(
+            @PathVariable UUID id, @Valid @RequestBody UpdateMeetingRequest request) {
+        String accountId = AccountContext.getCurrentAccount().orElse(null);
+        if (accountId == null) {
+            return ResponseEntity.badRequest()
+                    .contentType(org.springframework.http.MediaType.APPLICATION_PROBLEM_JSON)
+                    .body(org.springframework.http.ProblemDetail.forStatusAndDetail(
+                            org.springframework.http.HttpStatus.BAD_REQUEST,
+                            "X-Account-Id header is required"));
+        }
+        Result<UpdateMeetingResult, MeetingError> result = updateMeetingUseCase.execute(
+                request.toCommand(id, accountId, TenantContext.getCurrentTenant()));
+        return responder.ok(result.map(UpdateMeetingResponse::from));
     }
 
     @Operation(
@@ -67,7 +128,37 @@ public class MeetingController {
                                 schema =
                                         @Schema(
                                                 implementation =
-                                                        CreateInstantMeetingResponse.class))),
+                                                        CreateInstantMeetingResponse.class),
+                                examples = @ExampleObject(name = "created", value = """
+                        {
+                          "meeting": {
+                            "id": "0195e0c2-8f3a-7c21-b9d4-2f1a6e7c8d90",
+                            "hostId": "account-123",
+                            "shortCode": "abc-defg-hij",
+                            "type": "INSTANT",
+                            "status": "RUNNING",
+                            "title": "Daily standup",
+                            "description": "Quick sync on progress",
+                            "issueLink": {
+                              "issueId": "10001",
+                              "issueKey": "PROJ-1",
+                              "projectKey": "PROJ"
+                            },
+                            "settings": {
+                              "admissionPolicy": "OPEN",
+                              "maxParticipants": 50,
+                              "allowScreenShare": true,
+                              "chatEnabled": true,
+                              "allowMicrophone": true,
+                              "allowVideo": true
+                            },
+                            "createdAt": "2025-01-15T10:30:00Z"
+                          },
+                          "livekit": {
+                            "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.example.token",
+                            "roomName": "meeting-0195e0c2"
+                          }
+                        }"""))),
         @ApiResponse(
                 responseCode = "400",
                 description = "Validation error or missing account header",
@@ -148,7 +239,35 @@ public class MeetingController {
                 content =
                         @Content(
                                 mediaType = "application/json",
-                                schema = @Schema(implementation = ScheduleMeetingResponse.class))),
+                                schema = @Schema(implementation = ScheduleMeetingResponse.class),
+                                examples = @ExampleObject(name = "created", value = """
+                        {
+                          "meeting": {
+                            "id": "0195e0c2-8f3a-7c21-b9d4-2f1a6e7c8d90",
+                            "hostId": "account-123",
+                            "shortCode": "abc-defg-hij",
+                            "type": "SCHEDULED",
+                            "status": "SCHEDULED",
+                            "title": "Sprint planning",
+                            "description": "Plan the next sprint",
+                            "issueLink": {
+                              "issueId": "10001",
+                              "issueKey": "PROJ-1",
+                              "projectKey": "PROJ"
+                            },
+                            "settings": {
+                              "admissionPolicy": "OPEN",
+                              "maxParticipants": 50,
+                              "allowScreenShare": true,
+                              "chatEnabled": true,
+                              "allowMicrophone": true,
+                              "allowVideo": true
+                            },
+                            "startTime": "2025-02-01T14:00:00Z",
+                            "endTime": "2025-02-01T15:00:00Z",
+                            "createdAt": "2025-01-15T10:30:00Z"
+                          }
+                        }"""))),
         @ApiResponse(
                 responseCode = "400",
                 description = "Validation error, missing account header, or start time in past",

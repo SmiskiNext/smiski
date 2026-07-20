@@ -1,6 +1,7 @@
 package io.github.smiskinext.meet.presentation.request;
 
 import io.github.smiskinext.meet.application.command.CreateInstantMeetingCommand;
+import io.github.smiskinext.meet.presentation.validation.IanaZoneId;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.*;
@@ -17,6 +18,17 @@ public record CreateInstantMeetingRequest(
         @NotNull @Valid IssueLink issueLink,
         @NotNull @Valid Settings settings,
         @NotNull @Valid Host host,
+
+        @Schema(description = "Organizer email address", example = "alice@example.com")
+        @NotBlank @Email @Size(max = 255) String organizerEmail,
+
+        @Schema(description = "Organizer display name", example = "Alice Nguyen")
+        @NotBlank @Size(max = 255) String organizerDisplayName,
+
+        @Schema(description = "Host IANA time zone id", example = "Asia/Ho_Chi_Minh")
+        @NotBlank @IanaZoneId
+        String zoneId,
+
         @Schema(nullable = true) @Valid @Nullable List<@Valid Invitee> invitees) {
 
     @Schema(description = "Jira issue link")
@@ -71,6 +83,15 @@ public record CreateInstantMeetingRequest(
                 accountId, host.displayName(), host.deviceId(), host.avatarUrl());
 
         return new CreateInstantMeetingCommand(
-                tenantId, title, description, issueLinkCmd, settingsCmd, hostCmd, inviteeCommands);
+                tenantId,
+                title,
+                description,
+                issueLinkCmd,
+                settingsCmd,
+                hostCmd,
+                organizerEmail,
+                organizerDisplayName,
+                zoneId,
+                inviteeCommands);
     }
 }

@@ -9,7 +9,7 @@ import java.util.UUID;
 @Schema(description = "Response for a successfully created instant meeting")
 public record CreateInstantMeetingResponse(Meeting meeting, LiveKit livekit) {
 
-    @Schema(description = "Meeting snapshot")
+    @Schema(name = "InstantMeetingSnapshot", description = "Instant meeting snapshot")
     public record Meeting(
             UUID id,
             String hostId,
@@ -20,6 +20,9 @@ public record CreateInstantMeetingResponse(Meeting meeting, LiveKit livekit) {
             String description,
             IssueLink issueLink,
             Settings settings,
+            String zoneId,
+            String organizerEmail,
+            String organizerDisplayName,
             Instant createdAt) {}
 
     public record IssueLink(String issueId, String issueKey, String projectKey) {}
@@ -59,6 +62,9 @@ public record CreateInstantMeetingResponse(Meeting meeting, LiveKit livekit) {
                 result.description(),
                 issueLink,
                 settings,
+                result.zoneId(),
+                result.organizerEmail(),
+                result.organizerDisplayName(),
                 result.createdAt());
 
         LiveKit livekit = new LiveKit(result.livekit().token(), result.livekit().roomName());

@@ -14,6 +14,9 @@ public record CreateInstantMeetingCommand(
         IssueLink issueLink,
         Settings settings,
         Host host,
+        String organizerEmail,
+        String organizerDisplayName,
+        String zoneId,
         List<Invitee> invitees)
         implements Command {
 

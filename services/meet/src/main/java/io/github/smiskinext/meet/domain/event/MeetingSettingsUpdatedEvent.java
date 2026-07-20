@@ -38,12 +38,12 @@ public record MeetingSettingsUpdatedEvent(
 
     @Override
     public String eventType() {
-        return "io.github.smiskinext.meet.meeting.settings-updated.v1";
+        return "meeting.settings.update";
     }
 
     @Override
     public String topic() {
-        return "meet.meeting.settings-updated";
+        return "meeting.settings.update";
     }
 
     @Override

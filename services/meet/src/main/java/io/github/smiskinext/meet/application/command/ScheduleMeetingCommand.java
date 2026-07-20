@@ -15,7 +15,10 @@ public record ScheduleMeetingCommand(
         IssueLink issueLink,
         Settings settings,
         String hostAccountId,
+        String organizerEmail,
+        String organizerDisplayName,
         TimeRange timeRange,
+        String zoneId,
         @Nullable List<Invitee> invitees)
         implements Command {
 

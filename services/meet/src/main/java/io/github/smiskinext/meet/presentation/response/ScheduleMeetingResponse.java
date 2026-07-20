@@ -9,7 +9,7 @@ import java.util.UUID;
 @Schema(description = "Response for a successfully created scheduled meeting")
 public record ScheduleMeetingResponse(Meeting meeting) {
 
-    @Schema(description = "Meeting snapshot")
+    @Schema(name = "ScheduledMeetingSnapshot", description = "Scheduled meeting snapshot")
     public record Meeting(
             UUID id,
             String hostId,
@@ -22,6 +22,11 @@ public record ScheduleMeetingResponse(Meeting meeting) {
             Settings settings,
             Instant startTime,
             Instant endTime,
+            String zoneId,
+            String organizerEmail,
+            String organizerDisplayName,
+            String calendarUid,
+            int calendarSequence,
             Instant createdAt) {}
 
     public record IssueLink(String issueId, String issueKey, String projectKey) {}
@@ -60,6 +65,11 @@ public record ScheduleMeetingResponse(Meeting meeting) {
                 settings,
                 result.startTime(),
                 result.endTime(),
+                result.zoneId(),
+                result.organizerEmail(),
+                result.organizerDisplayName(),
+                result.calendarUid(),
+                result.calendarSequence(),
                 result.createdAt());
 
         return new ScheduleMeetingResponse(meeting);

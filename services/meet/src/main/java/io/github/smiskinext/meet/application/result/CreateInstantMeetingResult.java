@@ -16,6 +16,9 @@ public record CreateInstantMeetingResult(
         String description,
         IssueLink issueLink,
         Settings settings,
+        String zoneId,
+        String organizerEmail,
+        String organizerDisplayName,
         Instant createdAt,
         LiveKit livekit) {
 

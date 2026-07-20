@@ -107,8 +107,11 @@ class ScheduleMeetingApplicationServiceTest {
                 new ScheduleMeetingCommand.IssueLink("ISS-1", "PROJ-1", "PROJ"),
                 new ScheduleMeetingCommand.Settings("ALLOW_ALL", 50, true, true, true, true),
                 "host-account",
+                "host@example.com",
+                "Host User",
                 new ScheduleMeetingCommand.TimeRange(
                         now.plus(1, ChronoUnit.HOURS), now.plus(2, ChronoUnit.HOURS)),
+                "Asia/Ho_Chi_Minh",
                 List.of(
                         new ScheduleMeetingCommand.Invitee("bob@test.com", "bob-account", "Bob"),
                         new ScheduleMeetingCommand.Invitee(
@@ -155,8 +158,11 @@ class ScheduleMeetingApplicationServiceTest {
                 new ScheduleMeetingCommand.IssueLink("ISS-1", "PROJ-1", "PROJ"),
                 new ScheduleMeetingCommand.Settings("ALLOW_ALL", 50, true, true, true, true),
                 "host-account",
+                "host@example.com",
+                "Host User",
                 new ScheduleMeetingCommand.TimeRange(
                         now.plus(1, ChronoUnit.HOURS), now.plus(2, ChronoUnit.HOURS)),
+                "Asia/Ho_Chi_Minh",
                 List.of());
     }
 }

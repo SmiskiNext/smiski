@@ -1,6 +1,7 @@
 package io.github.smiskinext.meet.presentation.request;
 
 import io.github.smiskinext.meet.application.command.ScheduleMeetingCommand;
+import io.github.smiskinext.meet.presentation.validation.IanaZoneId;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.*;
@@ -18,6 +19,14 @@ public record ScheduleMeetingRequest(
         @NotNull @Valid IssueLink issueLink,
         @NotNull @Valid Settings settings,
         @NotNull @Valid TimeRange timeRange,
+
+        @NotBlank @Email @Size(max = 255) String organizerEmail,
+        @NotBlank @Size(max = 255) String organizerDisplayName,
+
+        @Schema(description = "Host IANA time zone id", example = "Asia/Ho_Chi_Minh")
+        @NotBlank @IanaZoneId
+        String zoneId,
+
         @Schema(nullable = true) @Valid @Nullable List<@Valid Invitee> invitees) {
 
     @Schema(description = "Jira issue link")
@@ -74,7 +83,10 @@ public record ScheduleMeetingRequest(
                 issueLinkCmd,
                 settingsCmd,
                 accountId,
+                organizerEmail,
+                organizerDisplayName,
                 timeRangeCmd,
+                zoneId,
                 inviteeCommands);
     }
 }

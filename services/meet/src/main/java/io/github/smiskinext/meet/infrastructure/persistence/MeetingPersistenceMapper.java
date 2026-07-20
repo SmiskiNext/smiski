@@ -20,6 +20,10 @@ final class MeetingPersistenceMapper {
         return new MeetingJpaEntity(
                 meeting.getId().value(),
                 meeting.getHostId().value(),
+                meeting.getOrganizerEmail().value(),
+                meeting.getOrganizerDisplayName().value(),
+                meeting.getCalendarUid(),
+                meeting.getCalendarSequence(),
                 meeting.getShortCode().value(),
                 meeting.getTitle().value(),
                 meeting.getDescription(),
@@ -35,7 +39,8 @@ final class MeetingPersistenceMapper {
                 meeting.getDeletedAt().orElse(null),
                 meeting.getDeletedBy().map(AccountId::value).orElse(null),
                 meeting.getPurgeAfter().orElse(null),
-                meeting.getCreatedAt());
+                meeting.getCreatedAt(),
+                meeting.getTimeZone().value());
     }
 
     static Meeting toDomain(MeetingJpaEntity entity) {
@@ -62,6 +67,11 @@ final class MeetingPersistenceMapper {
                 MeetingType.valueOf(entity.getType()),
                 MeetingStatus.valueOf(entity.getStatus()),
                 entity.getSettings(),
+                MeetingTimeZone.of(entity.getZoneId()),
+                Email.of(entity.getOrganizerEmail()),
+                InviteeDisplayName.of(entity.getOrganizerDisplayName()),
+                entity.getCalendarUid(),
+                entity.getCalendarSequence(),
                 entity.getCreatedAt(),
                 entity.getCancelReason() != null
                         ? CancelReason.valueOf(entity.getCancelReason())

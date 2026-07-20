@@ -35,6 +35,11 @@ public class Meeting extends AggregateRoot<MeetingId> {
     private final AccountId hostId;
     private final ShortCode shortCode;
     private final MeetingType type;
+    private final Email organizerEmail;
+    private final InviteeDisplayName organizerDisplayName;
+    private final String calendarUid;
+    private MeetingTimeZone timeZone;
+    private int calendarSequence;
     private final Instant createdAt;
 
     private MeetingTitle title;
@@ -65,6 +70,11 @@ public class Meeting extends AggregateRoot<MeetingId> {
             MeetingType type,
             MeetingStatus status,
             MeetingSettings settings,
+            MeetingTimeZone timeZone,
+            Email organizerEmail,
+            InviteeDisplayName organizerDisplayName,
+            String calendarUid,
+            int calendarSequence,
             Instant createdAt) {
         this.tenantId = tenantId;
         this.id = id;
@@ -77,6 +87,11 @@ public class Meeting extends AggregateRoot<MeetingId> {
         this.type = type;
         this.status = status;
         this.settings = settings;
+        this.timeZone = timeZone;
+        this.organizerEmail = organizerEmail;
+        this.organizerDisplayName = organizerDisplayName;
+        this.calendarUid = calendarUid;
+        this.calendarSequence = calendarSequence;
         this.createdAt = createdAt;
     }
 
@@ -100,12 +115,16 @@ public class Meeting extends AggregateRoot<MeetingId> {
             JiraIssueLink issueLink,
             MeetingTimeRange timeRange,
             MeetingSettings settings,
+            MeetingTimeZone timeZone,
+            Email organizerEmail,
+            InviteeDisplayName organizerDisplayName,
             ShortCode shortCode) {
         Instant now = Instant.now();
         if (timeRange.start().isBefore(now.minus(CLOCK_SKEW_TOLERANCE))) {
             return Result.failure(new MeetingError.StartTimeInPast(timeRange.start()));
         }
         MeetingId id = MeetingId.of(UuidCreator.getTimeOrderedEpoch());
+        String calendarUid = UUID.randomUUID().toString();
         Meeting meeting = new Meeting(
                 tenantId,
                 id,
@@ -118,6 +137,11 @@ public class Meeting extends AggregateRoot<MeetingId> {
                 MeetingType.SCHEDULED,
                 MeetingStatus.SCHEDULED,
                 settings,
+                timeZone,
+                organizerEmail,
+                organizerDisplayName,
+                calendarUid,
+                0,
                 now);
         meeting.registerEvent(new MeetingCreatedEvent(
                 UUID.randomUUID(),
@@ -135,6 +159,11 @@ public class Meeting extends AggregateRoot<MeetingId> {
                 timeRange.start(),
                 timeRange.end(),
                 settings,
+                timeZone.value(),
+                organizerEmail.value(),
+                organizerDisplayName.value(),
+                calendarUid,
+                0,
                 now));
         return Result.success(meeting);
     }
@@ -150,6 +179,9 @@ public class Meeting extends AggregateRoot<MeetingId> {
             String description,
             JiraIssueLink issueLink,
             MeetingSettings settings,
+            MeetingTimeZone timeZone,
+            Email organizerEmail,
+            InviteeDisplayName organizerDisplayName,
             ShortCode shortCode) {
         MeetingId id = MeetingId.of(UuidCreator.getTimeOrderedEpoch());
         Instant now = Instant.now();
@@ -165,6 +197,11 @@ public class Meeting extends AggregateRoot<MeetingId> {
                 MeetingType.INSTANT,
                 MeetingStatus.SCHEDULED,
                 settings,
+                timeZone,
+                organizerEmail,
+                organizerDisplayName,
+                UUID.randomUUID().toString(),
+                0,
                 now);
         meeting.registerEvent(new MeetingCreatedEvent(
                 UUID.randomUUID(),
@@ -182,6 +219,11 @@ public class Meeting extends AggregateRoot<MeetingId> {
                 null,
                 null,
                 settings,
+                timeZone.value(),
+                organizerEmail.value(),
+                organizerDisplayName.value(),
+                meeting.calendarUid,
+                0,
                 now));
         return meeting;
     }
@@ -202,6 +244,11 @@ public class Meeting extends AggregateRoot<MeetingId> {
             MeetingType type,
             MeetingStatus status,
             MeetingSettings settings,
+            MeetingTimeZone timeZone,
+            Email organizerEmail,
+            InviteeDisplayName organizerDisplayName,
+            String calendarUid,
+            int calendarSequence,
             Instant createdAt,
             @Nullable CancelReason cancelReason,
             @Nullable Instant deletedAt,
@@ -219,6 +266,11 @@ public class Meeting extends AggregateRoot<MeetingId> {
                 type,
                 status,
                 settings,
+                timeZone,
+                organizerEmail,
+                organizerDisplayName,
+                calendarUid,
+                calendarSequence,
                 createdAt);
         meeting.endTime = endTime;
         meeting.cancelReason = cancelReason;
@@ -258,6 +310,11 @@ public class Meeting extends AggregateRoot<MeetingId> {
                 timeRange != null ? timeRange.start() : null,
                 null,
                 settings,
+                timeZone.value(),
+                organizerEmail.value(),
+                organizerDisplayName.value(),
+                calendarUid,
+                calendarSequence,
                 createdAt,
                 LiveKitRoomName.fromMeetingId(id).value(),
                 now));
@@ -282,55 +339,125 @@ public class Meeting extends AggregateRoot<MeetingId> {
 
     /**
      * Records that invitations have been sent for this meeting.
-     * Registers {@code MeetingInvitationsSentEvent} carrying the invitee details with embedded tokens.
+     * Registers {@code MeetingInvitationsCreatedEvent} carrying the invitee details with embedded tokens.
      *
      * <p>Does nothing when the invitee list is empty.
      *
      * @param invitees list of invitee info snapshots (each carrying its own token)
      */
-    public void recordInvitationsSent(List<MeetingInvitationsSentEvent.InviteeInfo> invitees) {
+    public void recordInvitationsSent(List<MeetingInvitationsCreatedEvent.InviteeInfo> invitees) {
         if (invitees.isEmpty()) {
             return;
         }
-        registerEvent(new MeetingInvitationsSentEvent(
+        registerEvent(new MeetingInvitationsCreatedEvent(
                 UUID.randomUUID(),
                 tenantId.value(),
                 id.value(),
                 title.value(),
                 shortCode.value(),
                 timeRange != null ? timeRange.start() : null,
+                timeRange != null ? timeRange.end() : null,
+                timeZone.value(),
+                organizerEmail.value(),
+                organizerDisplayName.value(),
+                calendarUid,
+                calendarSequence,
                 List.copyOf(invitees),
                 Instant.now()));
     }
 
-    /**
-     * Updates meeting settings when status is SCHEDULED or RUNNING.
-     * Registers {@code MeetingSettingsUpdatedEvent} with both old and new settings snapshots.
-     *
-     * @param newSettings the new settings to apply
-     * @param updatedBy   the account ID performing the update
-     * @return success, or failure with {@code InvalidStatusTransition} if meeting is COMPLETED/CANCELED
-     */
-    public Result<Void, MeetingError> updateSettings(
-            MeetingSettings newSettings, String updatedBy) {
-        if (status != MeetingStatus.SCHEDULED && status != MeetingStatus.RUNNING) {
+    public Result<Void, MeetingError> update(
+            AccountId updatedBy,
+            MeetingTitle newTitle,
+            String newDescription,
+            JiraIssueLink newIssueLink,
+            MeetingSettings newSettings,
+            MeetingTimeZone newTimeZone,
+            MeetingTimeRange newTimeRange) {
+        if (!hostId.equals(updatedBy)) {
+            return Result.failure(
+                    new MeetingError.NotAuthorized(updatedBy.value(), hostId.value()));
+        }
+        if (status == MeetingStatus.COMPLETED || status == MeetingStatus.CANCELED) {
             return Result.failure(
                     new MeetingError.InvalidStatusTransition(status, MeetingStatus.SCHEDULED));
         }
-        MeetingSettings oldSettings = this.settings;
-        this.settings = newSettings;
+
+        boolean scheduledFieldsChanged =
+                !timeZone.equals(newTimeZone) || !java.util.Objects.equals(timeRange, newTimeRange);
+        if (scheduledFieldsChanged && status != MeetingStatus.SCHEDULED) {
+            return Result.failure(
+                    new MeetingError.InvalidStatusTransition(status, MeetingStatus.SCHEDULED));
+        }
+        if (timeRange != null && newTimeRange == null) {
+            return Result.failure(
+                    new MeetingError.InvalidSettings("Scheduled meetings require a time range"));
+        }
+        if (scheduledFieldsChanged
+                && newTimeRange != null
+                && newTimeRange.start().isBefore(Instant.now().minus(CLOCK_SKEW_TOLERANCE))) {
+            return Result.failure(new MeetingError.StartTimeInPast(newTimeRange.start()));
+        }
+
+        MeetingInfoSnapshot oldInfo = infoSnapshot();
+        MeetingSettings oldSettings = settings;
+        boolean infoChanged = !title.equals(newTitle)
+                || !description.equals(newDescription)
+                || !issueLink.equals(newIssueLink)
+                || scheduledFieldsChanged;
+        boolean settingsChanged = !settings.equals(newSettings);
+
+        if (!infoChanged && !settingsChanged) {
+            return Result.success();
+        }
+
+        title = newTitle;
+        description = newDescription;
+        issueLink = newIssueLink;
+        settings = newSettings;
+        timeZone = newTimeZone;
+        timeRange = newTimeRange;
+
         Instant now = Instant.now();
-        registerEvent(new MeetingSettingsUpdatedEvent(
-                UUID.randomUUID(),
-                tenantId.value(),
-                id.value(),
-                hostId.value(),
-                updatedBy,
-                status,
-                oldSettings,
-                newSettings,
-                now));
+        if (infoChanged) {
+            calendarSequence++;
+            registerEvent(new MeetingInfoUpdatedEvent(
+                    UUID.randomUUID(),
+                    tenantId.value(),
+                    id.value(),
+                    hostId.value(),
+                    updatedBy.value(),
+                    status,
+                    oldInfo,
+                    infoSnapshot(),
+                    now));
+        }
+        if (settingsChanged) {
+            registerEvent(new MeetingSettingsUpdatedEvent(
+                    UUID.randomUUID(),
+                    tenantId.value(),
+                    id.value(),
+                    hostId.value(),
+                    updatedBy.value(),
+                    status,
+                    oldSettings,
+                    newSettings,
+                    now));
+        }
         return Result.success();
+    }
+
+    private MeetingInfoSnapshot infoSnapshot() {
+        return new MeetingInfoSnapshot(
+                title.value(),
+                description,
+                issueLink,
+                timeZone.value(),
+                timeRange,
+                organizerEmail.value(),
+                organizerDisplayName.value(),
+                calendarUid,
+                calendarSequence);
     }
 
     /**
@@ -467,5 +594,25 @@ public class Meeting extends AggregateRoot<MeetingId> {
 
     public JiraIssueLink getIssueLink() {
         return issueLink;
+    }
+
+    public MeetingTimeZone getTimeZone() {
+        return timeZone;
+    }
+
+    public Email getOrganizerEmail() {
+        return organizerEmail;
+    }
+
+    public InviteeDisplayName getOrganizerDisplayName() {
+        return organizerDisplayName;
+    }
+
+    public String getCalendarUid() {
+        return calendarUid;
+    }
+
+    public int getCalendarSequence() {
+        return calendarSequence;
     }
 }

@@ -30,6 +30,10 @@ CREATE TABLE meetings (
     tenant_id VARCHAR(255) NOT NULL,
     id UUID NOT NULL DEFAULT uuidv7 (),
     host_id VARCHAR(128) NOT NULL, -- Jira accountId
+    organizer_email VARCHAR(255) NOT NULL,
+    organizer_display_name VARCHAR(255) NOT NULL,
+    calendar_uid VARCHAR(255) NOT NULL,
+    calendar_sequence INTEGER NOT NULL DEFAULT 0,
     short_code VARCHAR(15) NOT NULL,
     issue_id VARCHAR(64) NOT NULL, -- Jira Issue id
     issue_key VARCHAR(64) NOT NULL, -- Jira Issue key, e.g. "PROJ-123"
@@ -38,6 +42,7 @@ CREATE TABLE meetings (
     description TEXT NOT NULL,
     start_time TIMESTAMPTZ,
     end_time TIMESTAMPTZ,
+    zone_id VARCHAR(64) NOT NULL, -- host IANA time zone, e.g. "Asia/Ho_Chi_Minh"
     type VARCHAR(20) NOT NULL CHECK (type IN ('INSTANT', 'SCHEDULED')),
     status VARCHAR(20) NOT NULL DEFAULT 'SCHEDULED' CHECK (
         status IN ('SCHEDULED', 'RUNNING', 'COMPLETED', 'CANCELED')
@@ -310,8 +315,8 @@ CREATE TABLE meeting_invitees (
     token_updated_at TIMESTAMPTZ,
     invited_at TIMESTAMPTZ NOT NULL DEFAULT now (),
     responded_at TIMESTAMPTZ,
+    removed_at TIMESTAMPTZ,
     CONSTRAINT pk_meeting_invitees PRIMARY KEY (tenant_id, id),
-    CONSTRAINT uq_meeting_invitees_meeting_email UNIQUE (tenant_id, meeting_id, email),
     CONSTRAINT fk_meeting_invitees_meeting FOREIGN KEY (tenant_id, meeting_id) REFERENCES meetings (tenant_id, id) ON DELETE CASCADE
 )
 PARTITION BY
@@ -402,6 +407,10 @@ CREATE INDEX idx_meeting_invitees_meeting ON meeting_invitees (tenant_id, meetin
 CREATE INDEX idx_meeting_invitees_email ON meeting_invitees (tenant_id, email);
 
 CREATE INDEX idx_meeting_invitees_account ON meeting_invitees (tenant_id, account_id);
+
+CREATE UNIQUE INDEX uq_meeting_invitees_active_meeting_email ON meeting_invitees (tenant_id, meeting_id, email)
+WHERE
+    removed_at IS NULL;
 
 CREATE UNIQUE INDEX uq_meeting_invitees_token_hash ON meeting_invitees (tenant_id, token_hash)
 WHERE
