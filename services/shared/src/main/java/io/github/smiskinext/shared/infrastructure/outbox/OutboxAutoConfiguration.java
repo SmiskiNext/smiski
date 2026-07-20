@@ -69,12 +69,18 @@ public class OutboxAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
+    public OutboxRelayTransactionDelegate outboxRelayTransactionDelegate(
+            OutboxStore outboxStore, OutboxProperties properties) {
+        return new OutboxRelayTransactionDelegate(outboxStore, properties);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
     public OutboxRelay outboxRelay(
-            OutboxStore outboxStore,
+            OutboxRelayTransactionDelegate transactionDelegate,
             OutboxTransport transport,
-            CloudEventEncoder cloudEventEncoder,
-            OutboxProperties properties) {
-        return new OutboxRelay(outboxStore, transport, cloudEventEncoder, properties);
+            CloudEventEncoder cloudEventEncoder) {
+        return new OutboxRelay(transactionDelegate, transport, cloudEventEncoder);
     }
 
     @Bean

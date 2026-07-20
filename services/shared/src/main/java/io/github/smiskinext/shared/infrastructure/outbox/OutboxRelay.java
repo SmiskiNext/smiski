@@ -7,14 +7,12 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Outbox relay with three transaction boundaries:
  *
  * <ol>
- *   <li>Short read transaction: claim a bounded batch via {@link OutboxStore}
+ *   <li>Short read transaction: claim a bounded batch via {@link OutboxRelayTransactionDelegate}
  *   <li>Transaction-free publish: fire async transport sends and await futures
  *   <li>Short write transactions: mark published rows, record failures independently
  * </ol>
@@ -23,24 +21,21 @@ public class OutboxRelay {
 
     private static final Logger log = LoggerFactory.getLogger(OutboxRelay.class);
 
-    private final OutboxStore outboxStore;
+    private final OutboxRelayTransactionDelegate transactionDelegate;
     private final OutboxTransport transport;
     private final CloudEventEncoder cloudEventEncoder;
-    private final OutboxProperties properties;
 
     public OutboxRelay(
-            OutboxStore outboxStore,
+            OutboxRelayTransactionDelegate transactionDelegate,
             OutboxTransport transport,
-            CloudEventEncoder cloudEventEncoder,
-            OutboxProperties properties) {
-        this.outboxStore = outboxStore;
+            CloudEventEncoder cloudEventEncoder) {
+        this.transactionDelegate = transactionDelegate;
         this.transport = transport;
         this.cloudEventEncoder = cloudEventEncoder;
-        this.properties = properties;
     }
 
     public void relay() {
-        List<OutboxStore.OutboxRow> batch = claimBatch();
+        List<OutboxStore.OutboxRow> batch = transactionDelegate.claimBatch();
         if (batch.isEmpty()) {
             return;
         }
@@ -51,16 +46,11 @@ public class OutboxRelay {
         publishBatch(batch, succeeded, failed);
 
         if (!succeeded.isEmpty()) {
-            markPublished(succeeded);
+            transactionDelegate.markPublished(succeeded);
         }
         for (FailedRow failedRow : failed) {
-            recordFailure(failedRow.id(), failedRow.error());
+            transactionDelegate.recordFailure(failedRow.id(), failedRow.error());
         }
-    }
-
-    @Transactional
-    public List<OutboxStore.OutboxRow> claimBatch() {
-        return outboxStore.claimBatch(properties.relay().batchSize());
     }
 
     private void publishBatch(
@@ -90,16 +80,6 @@ public class OutboxRelay {
                 failed.add(new FailedRow(send.id(), errorMessage));
             }
         }
-    }
-
-    @Transactional
-    public void markPublished(List<UUID> ids) {
-        outboxStore.markPublished(ids);
-    }
-
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public void recordFailure(UUID id, String error) {
-        outboxStore.recordFailure(id, error);
     }
 
     private record PendingSend(UUID id, CompletableFuture<Void> future) {}
