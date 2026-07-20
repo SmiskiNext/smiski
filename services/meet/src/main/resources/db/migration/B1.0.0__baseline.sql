@@ -57,6 +57,7 @@ CREATE TABLE meetings (
     deleted_by VARCHAR(128),
     purge_after TIMESTAMPTZ,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now (),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now (),
     CONSTRAINT pk_meetings PRIMARY KEY (tenant_id, id),
     CONSTRAINT fk_meetings_tenant FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id)
 )
@@ -294,7 +295,9 @@ WHERE
 -- row itself guarantees a single active invite code at any point in time.
 -- Rotating an invite overwrites the token_* columns; no token history is kept.
 -- token_hash is unique per tenant; EXPIRED is derived from token_expires_at and
--- is never persisted (status stays PENDING until USED or REVOKED).
+-- is never persisted (token_status stays PENDING until USED or REVOKED).
+-- The invitee status/role/rsvp columns mirror the iCalendar (RFC 5545) PARTSTAT,
+-- ROLE and RSVP attendee parameters.
 -- ============================================================================
 CREATE TABLE meeting_invitees (
     tenant_id VARCHAR(255) NOT NULL,
@@ -304,7 +307,23 @@ CREATE TABLE meeting_invitees (
     account_id VARCHAR(128) NOT NULL, -- Jira accountId (frontend-resolved)
     email VARCHAR(255) NOT NULL,
     display_name VARCHAR(255) NOT NULL,
-    status VARCHAR(20) NOT NULL DEFAULT 'PENDING' CHECK (status IN ('PENDING', 'ACCEPTED', 'DECLINED')),
+    role VARCHAR(20) NOT NULL DEFAULT 'REQ_PARTICIPANT' CHECK (
+        role IN (
+            'CHAIR',
+            'REQ_PARTICIPANT',
+            'OPT_PARTICIPANT',
+            'NON_PARTICIPANT'
+        )
+    ),
+    rsvp BOOLEAN NOT NULL DEFAULT TRUE,
+    status VARCHAR(20) NOT NULL DEFAULT 'NEEDS_ACTION' CHECK (
+        status IN (
+            'NEEDS_ACTION',
+            'ACCEPTED',
+            'DECLINED',
+            'TENTATIVE'
+        )
+    ),
     token_hash VARCHAR(64),
     token_status VARCHAR(20) CHECK (
         token_status IS NULL

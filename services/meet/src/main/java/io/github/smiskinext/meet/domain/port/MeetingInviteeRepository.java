@@ -40,12 +40,13 @@ public interface MeetingInviteeRepository {
     Optional<MeetingInvitee> findByMeetingIdAndAccountId(UUID meetingId, AccountId accountId);
 
     /**
-     * Returns pending invitees for the given registered account.
+     * Returns NEEDS_ACTION invitees for the given registered account.
      */
     List<MeetingInvitee> findPendingByAccountId(AccountId accountId);
 
     /**
-     * Returns the count of active (PENDING or ACCEPTED) invitees for the given meeting.
+     * Returns the count of active (NEEDS_ACTION, ACCEPTED or TENTATIVE) invitees for the
+     * given meeting.
      */
     long countActiveByMeetingId(UUID meetingId);
 

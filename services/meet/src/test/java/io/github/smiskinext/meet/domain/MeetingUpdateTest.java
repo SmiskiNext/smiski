@@ -213,6 +213,7 @@ class MeetingUpdateTest {
                 "calendar@example.com",
                 0,
                 start.minus(1, ChronoUnit.DAYS),
+                start.minus(1, ChronoUnit.DAYS),
                 null,
                 null,
                 null,

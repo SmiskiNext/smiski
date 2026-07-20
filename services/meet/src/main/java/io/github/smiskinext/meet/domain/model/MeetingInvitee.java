@@ -26,8 +26,13 @@ import org.jspecify.annotations.Nullable;
  * {@code accountId} is the resolved account identifier (always present — invitees must be
  * resolved to a Jira account); {@code email} is the stable invite key.
  *
- * <p>Status transitions: {@code PENDING → ACCEPTED}, {@code PENDING → DECLINED},
- * {@code ACCEPTED → DECLINED}.
+ * <p>Status transitions: {@code NEEDS_ACTION → ACCEPTED}, {@code NEEDS_ACTION → DECLINED},
+ * {@code NEEDS_ACTION → TENTATIVE}, {@code TENTATIVE → ACCEPTED/DECLINED},
+ * {@code ACCEPTED → DECLINED/TENTATIVE}.
+ *
+ * <p>{@code role} and {@code rsvp} mirror the iCalendar (RFC 5545) ROLE and RSVP attendee
+ * parameters: {@code role} declares the participation expectation and {@code rsvp} whether a
+ * response is requested from the invitee.
  *
  * <p>The invite token is carried inline on the invitee: each invitee holds at most one token,
  * so there is exactly one active invite code at any point in time. Rotating an invite overwrites
@@ -42,6 +47,8 @@ public class MeetingInvitee extends AggregateRoot<InviteeId> {
     private final AccountId accountId;
     private final Email email;
     private final InviteeDisplayName displayName;
+    private final InviteeRole role;
+    private final boolean rsvp;
     private InviteeStatus status;
     private final Instant invitedAt;
     private @Nullable Instant respondedAt;
@@ -56,6 +63,8 @@ public class MeetingInvitee extends AggregateRoot<InviteeId> {
             AccountId accountId,
             Email email,
             InviteeDisplayName displayName,
+            InviteeRole role,
+            boolean rsvp,
             InviteeStatus status,
             Instant invitedAt,
             @Nullable Instant respondedAt,
@@ -68,6 +77,8 @@ public class MeetingInvitee extends AggregateRoot<InviteeId> {
         this.accountId = accountId;
         this.email = email;
         this.displayName = displayName;
+        this.role = role;
+        this.rsvp = rsvp;
         this.status = status;
         this.invitedAt = invitedAt;
         this.respondedAt = respondedAt;
@@ -76,7 +87,7 @@ public class MeetingInvitee extends AggregateRoot<InviteeId> {
     }
 
     /**
-     * Factory method — creates a new PENDING invitation without an invite token.
+     * Factory method — creates a new NEEDS_ACTION invitation without an invite token.
      * Call {@link #assignToken(String, Instant)} after generating the token.
      */
     public static MeetingInvitee create(
@@ -85,7 +96,9 @@ public class MeetingInvitee extends AggregateRoot<InviteeId> {
             InviterId inviterId,
             AccountId accountId,
             Email email,
-            InviteeDisplayName displayName) {
+            InviteeDisplayName displayName,
+            InviteeRole role,
+            boolean rsvp) {
         return new MeetingInvitee(
                 tenantId,
                 InviteeId.of(UuidCreator.getTimeOrderedEpoch()),
@@ -94,7 +107,9 @@ public class MeetingInvitee extends AggregateRoot<InviteeId> {
                 accountId,
                 email,
                 displayName,
-                InviteeStatus.PENDING,
+                role,
+                rsvp,
+                InviteeStatus.NEEDS_ACTION,
                 Instant.now(),
                 null,
                 null,
@@ -112,6 +127,8 @@ public class MeetingInvitee extends AggregateRoot<InviteeId> {
             AccountId accountId,
             Email email,
             InviteeDisplayName displayName,
+            InviteeRole role,
+            boolean rsvp,
             InviteeStatus status,
             Instant invitedAt,
             @Nullable Instant respondedAt,
@@ -125,6 +142,8 @@ public class MeetingInvitee extends AggregateRoot<InviteeId> {
                 accountId,
                 email,
                 displayName,
+                role,
+                rsvp,
                 status,
                 invitedAt,
                 respondedAt,
@@ -277,6 +296,14 @@ public class MeetingInvitee extends AggregateRoot<InviteeId> {
 
     public InviteeDisplayName getDisplayName() {
         return displayName;
+    }
+
+    public InviteeRole getRole() {
+        return role;
+    }
+
+    public boolean isRsvp() {
+        return rsvp;
     }
 
     public InviteeStatus getStatus() {

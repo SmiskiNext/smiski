@@ -103,7 +103,9 @@ public class ScheduleMeetingApplicationService implements ScheduleMeetingUseCase
                         InviterId.of(hostAccountId.value()),
                         AccountId.of(inviteeCmd.accountId()),
                         Email.of(inviteeCmd.email()),
-                        InviteeDisplayName.of(inviteeCmd.displayName()));
+                        InviteeDisplayName.of(inviteeCmd.displayName()),
+                        InviteeRole.REQ_PARTICIPANT,
+                        true);
 
                 InviteTokenGenerator.TokenResult tokenResult = inviteTokenGenerator.generate();
 

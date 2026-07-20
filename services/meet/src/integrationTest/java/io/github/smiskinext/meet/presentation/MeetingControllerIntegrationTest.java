@@ -867,7 +867,7 @@ class MeetingControllerIntegrationTest {
                     meetingId);
             assertThat(invitees).hasSize(2);
             for (Map<String, Object> invitee : invitees) {
-                assertThat(invitee.get("status").toString()).isEqualTo("PENDING");
+                assertThat(invitee.get("status").toString()).isEqualTo("NEEDS_ACTION");
                 assertThat(invitee.get("token_hash")).isNotNull();
             }
 

@@ -41,6 +41,7 @@ public class Meeting extends AggregateRoot<MeetingId> {
     private MeetingTimeZone timeZone;
     private int calendarSequence;
     private final Instant createdAt;
+    private Instant updatedAt;
 
     private MeetingTitle title;
     private String description;
@@ -75,7 +76,8 @@ public class Meeting extends AggregateRoot<MeetingId> {
             InviteeDisplayName organizerDisplayName,
             String calendarUid,
             int calendarSequence,
-            Instant createdAt) {
+            Instant createdAt,
+            Instant updatedAt) {
         this.tenantId = tenantId;
         this.id = id;
         this.hostId = hostId;
@@ -93,6 +95,7 @@ public class Meeting extends AggregateRoot<MeetingId> {
         this.calendarUid = calendarUid;
         this.calendarSequence = calendarSequence;
         this.createdAt = createdAt;
+        this.updatedAt = updatedAt;
     }
 
     // -------------------------------------------------------------------------
@@ -142,6 +145,7 @@ public class Meeting extends AggregateRoot<MeetingId> {
                 organizerDisplayName,
                 calendarUid,
                 0,
+                now,
                 now);
         meeting.registerEvent(new MeetingCreatedEvent(
                 UUID.randomUUID(),
@@ -202,6 +206,7 @@ public class Meeting extends AggregateRoot<MeetingId> {
                 organizerDisplayName,
                 UUID.randomUUID().toString(),
                 0,
+                now,
                 now);
         meeting.registerEvent(new MeetingCreatedEvent(
                 UUID.randomUUID(),
@@ -250,6 +255,7 @@ public class Meeting extends AggregateRoot<MeetingId> {
             String calendarUid,
             int calendarSequence,
             Instant createdAt,
+            Instant updatedAt,
             @Nullable CancelReason cancelReason,
             @Nullable Instant deletedAt,
             @Nullable AccountId deletedBy,
@@ -271,7 +277,8 @@ public class Meeting extends AggregateRoot<MeetingId> {
                 organizerDisplayName,
                 calendarUid,
                 calendarSequence,
-                createdAt);
+                createdAt,
+                updatedAt);
         meeting.endTime = endTime;
         meeting.cancelReason = cancelReason;
         meeting.deletedAt = deletedAt;
@@ -294,6 +301,7 @@ public class Meeting extends AggregateRoot<MeetingId> {
         }
         status = MeetingStatus.RUNNING;
         Instant now = Instant.now();
+        this.updatedAt = now;
         registerEvent(new MeetingStartedEvent(
                 UUID.randomUUID(),
                 tenantId.value(),
@@ -332,6 +340,7 @@ public class Meeting extends AggregateRoot<MeetingId> {
         status = MeetingStatus.COMPLETED;
         Instant now = Instant.now();
         this.endTime = now;
+        this.updatedAt = now;
         registerEvent(new MeetingCompletedEvent(
                 UUID.randomUUID(), tenantId.value(), id.value(), hostId.value(), now));
         return Result.success();
@@ -419,6 +428,7 @@ public class Meeting extends AggregateRoot<MeetingId> {
         timeRange = newTimeRange;
 
         Instant now = Instant.now();
+        this.updatedAt = now;
         if (infoChanged) {
             calendarSequence++;
             registerEvent(new MeetingInfoUpdatedEvent(
@@ -497,6 +507,7 @@ public class Meeting extends AggregateRoot<MeetingId> {
         status = MeetingStatus.CANCELED;
         this.cancelReason = reason;
         Instant now = Instant.now();
+        this.updatedAt = now;
         registerEvent(new MeetingCanceledEvent(
                 UUID.randomUUID(),
                 tenantId.value(),
@@ -578,6 +589,10 @@ public class Meeting extends AggregateRoot<MeetingId> {
 
     public Instant getCreatedAt() {
         return createdAt;
+    }
+
+    public Instant getUpdatedAt() {
+        return updatedAt;
     }
 
     public Optional<Instant> getDeletedAt() {

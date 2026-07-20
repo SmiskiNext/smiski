@@ -3,6 +3,7 @@ package io.github.smiskinext.meet.infrastructure.persistence;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import io.github.smiskinext.meet.config.TestcontainersConfiguration;
+import io.github.smiskinext.meet.domain.model.InviteeRole;
 import io.github.smiskinext.meet.domain.model.MeetingInvitee;
 import io.github.smiskinext.meet.domain.model.valueobject.AccountId;
 import io.github.smiskinext.meet.domain.model.valueobject.Email;
@@ -102,6 +103,8 @@ class MeetingInviteeRepositoryAdapterIntegrationTest {
                 InviterId.of("host"),
                 AccountId.of(accountId),
                 Email.of(email),
-                InviteeDisplayName.of("Invitee"));
+                InviteeDisplayName.of("Invitee"),
+                InviteeRole.REQ_PARTICIPANT,
+                true);
     }
 }

@@ -36,6 +36,12 @@ public class MeetingInviteeJpaEntity {
     @Column(name = "display_name", nullable = false, length = 255)
     private String displayName;
 
+    @Column(name = "role", nullable = false, length = 20)
+    private String role;
+
+    @Column(name = "rsvp", nullable = false)
+    private boolean rsvp;
+
     @Column(nullable = false, length = 20)
     private String status;
 
@@ -72,6 +78,8 @@ public class MeetingInviteeJpaEntity {
             String accountId,
             String email,
             String displayName,
+            String role,
+            boolean rsvp,
             String status,
             Instant invitedAt,
             @Nullable Instant respondedAt,
@@ -87,6 +95,8 @@ public class MeetingInviteeJpaEntity {
         this.accountId = accountId;
         this.email = email;
         this.displayName = displayName;
+        this.role = role;
+        this.rsvp = rsvp;
         this.status = status;
         this.invitedAt = invitedAt;
         this.respondedAt = respondedAt;
@@ -124,6 +134,14 @@ public class MeetingInviteeJpaEntity {
 
     public String getDisplayName() {
         return displayName;
+    }
+
+    public String getRole() {
+        return role;
+    }
+
+    public boolean isRsvp() {
+        return rsvp;
     }
 
     public String getStatus() {

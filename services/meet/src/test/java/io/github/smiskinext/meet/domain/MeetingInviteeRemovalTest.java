@@ -2,6 +2,7 @@ package io.github.smiskinext.meet.domain;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import io.github.smiskinext.meet.domain.model.InviteeRole;
 import io.github.smiskinext.meet.domain.model.InviteeStatus;
 import io.github.smiskinext.meet.domain.model.MeetingInvitee;
 import io.github.smiskinext.meet.domain.model.valueobject.AccountId;
@@ -23,7 +24,9 @@ class MeetingInviteeRemovalTest {
                 InviterId.of("host"),
                 AccountId.of("account"),
                 Email.of("invitee@example.com"),
-                InviteeDisplayName.of("Invitee"));
+                InviteeDisplayName.of("Invitee"),
+                InviteeRole.REQ_PARTICIPANT,
+                true);
         invitee.assignToken("hash", java.time.Instant.now().plusSeconds(3600));
 
         invitee.remove();
@@ -32,7 +35,7 @@ class MeetingInviteeRemovalTest {
 
         assertThat(invitee.getRemovedAt()).hasValue(removedAt);
         assertThat(invitee.getId()).isNotNull();
-        assertThat(invitee.getStatus()).isEqualTo(InviteeStatus.PENDING);
+        assertThat(invitee.getStatus()).isEqualTo(InviteeStatus.NEEDS_ACTION);
         assertThat(invitee.getInviteToken()).isPresent();
         assertThat(invitee.accept().isFailure()).isTrue();
     }

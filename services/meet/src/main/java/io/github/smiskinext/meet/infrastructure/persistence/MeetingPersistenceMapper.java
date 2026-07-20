@@ -40,6 +40,7 @@ final class MeetingPersistenceMapper {
                 meeting.getDeletedBy().map(AccountId::value).orElse(null),
                 meeting.getPurgeAfter().orElse(null),
                 meeting.getCreatedAt(),
+                meeting.getUpdatedAt(),
                 meeting.getTimeZone().value());
     }
 
@@ -73,6 +74,7 @@ final class MeetingPersistenceMapper {
                 entity.getCalendarUid(),
                 entity.getCalendarSequence(),
                 entity.getCreatedAt(),
+                entity.getUpdatedAt(),
                 entity.getCancelReason() != null
                         ? CancelReason.valueOf(entity.getCancelReason())
                         : null,

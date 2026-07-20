@@ -1,6 +1,7 @@
 package io.github.smiskinext.meet.infrastructure.persistence;
 
 import io.github.smiskinext.meet.domain.model.InviteTokenStatus;
+import io.github.smiskinext.meet.domain.model.InviteeRole;
 import io.github.smiskinext.meet.domain.model.InviteeStatus;
 import io.github.smiskinext.meet.domain.model.MeetingInvitee;
 import io.github.smiskinext.meet.domain.model.valueobject.*;
@@ -23,6 +24,8 @@ final class MeetingInviteePersistenceMapper {
                 invitee.getAccountId().value(),
                 invitee.getEmail().value(),
                 invitee.getDisplayName().value(),
+                invitee.getRole().name(),
+                invitee.isRsvp(),
                 invitee.getStatus().name(),
                 invitee.getInvitedAt(),
                 invitee.getRespondedAt().orElse(null),
@@ -56,6 +59,8 @@ final class MeetingInviteePersistenceMapper {
                 AccountId.of(entity.getAccountId()),
                 Email.of(entity.getEmail()),
                 InviteeDisplayName.of(entity.getDisplayName()),
+                InviteeRole.valueOf(entity.getRole()),
+                entity.isRsvp(),
                 InviteeStatus.valueOf(entity.getStatus()),
                 entity.getInvitedAt(),
                 entity.getRespondedAt(),

@@ -34,14 +34,14 @@ class MeetingRecordInvitationsCreatedTest {
                         "acc-1",
                         "a@test.com",
                         "Alice",
-                        "PENDING",
+                        "NEEDS_ACTION",
                         "raw-token-1"),
                 new MeetingInvitationsCreatedEvent.InviteeInfo(
                         java.util.UUID.randomUUID(),
                         "acc-2",
                         "b@test.com",
                         "Bob",
-                        "PENDING",
+                        "NEEDS_ACTION",
                         "raw-token-2"));
 
         meeting.recordInvitationsSent(invitees);
