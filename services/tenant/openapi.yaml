@@ -117,14 +117,14 @@ paths:
             application/problem+json:
               schema:
                 $ref: "#/components/schemas/ProblemDetail"
-        "500":
-          description: Internal Server Error
+        "415":
+          description: Unsupported Media Type
           content:
             application/problem+json:
               schema:
                 $ref: "#/components/schemas/ProblemDetail"
-        "415":
-          description: Unsupported Media Type
+        "500":
+          description: Internal Server Error
           content:
             application/problem+json:
               schema:
@@ -201,14 +201,14 @@ paths:
             application/problem+json:
               schema:
                 $ref: "#/components/schemas/ProblemDetail"
-        "500":
-          description: Internal Server Error
+        "415":
+          description: Unsupported Media Type
           content:
             application/problem+json:
               schema:
                 $ref: "#/components/schemas/ProblemDetail"
-        "415":
-          description: Unsupported Media Type
+        "500":
+          description: Internal Server Error
           content:
             application/problem+json:
               schema:

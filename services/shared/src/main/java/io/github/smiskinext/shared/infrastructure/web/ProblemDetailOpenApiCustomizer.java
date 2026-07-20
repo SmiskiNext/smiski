@@ -6,8 +6,8 @@ import io.swagger.v3.oas.models.media.Content;
 import io.swagger.v3.oas.models.media.MediaType;
 import io.swagger.v3.oas.models.media.Schema;
 import io.swagger.v3.oas.models.responses.ApiResponse;
+import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import org.springdoc.core.customizers.GlobalOpenApiCustomizer;
 
 /**
@@ -24,7 +24,7 @@ public class ProblemDetailOpenApiCustomizer implements GlobalOpenApiCustomizer {
     private static final String PROBLEM_DETAIL_SCHEMA_NAME = "ProblemDetail";
     private static final String VIOLATION_SCHEMA_NAME = "Violation";
     private static final String PROBLEM_JSON = "application/problem+json";
-    private static final Set<String> COMMON_ERROR_STATUSES = Set.of("405", "415", "500");
+    private static final List<String> COMMON_ERROR_STATUSES = List.of("405", "415", "500");
 
     @Override
     public void customise(OpenAPI openApi) {
