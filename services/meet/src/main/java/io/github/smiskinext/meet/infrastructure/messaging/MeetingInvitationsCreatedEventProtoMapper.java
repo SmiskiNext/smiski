@@ -28,7 +28,14 @@ public class MeetingInvitationsCreatedEventProtoMapper
                 .setMeetingId(event.meetingId().toString())
                 .setTenantId(event.tenantId())
                 .setMeetingShortCode(event.meetingShortCode())
-                .setZoneId(event.zoneId());
+                .setZoneId(event.zoneId())
+                .setCalendarUid(event.calendarUid())
+                .setCalendarSequence(event.calendarSequence());
+
+        if (event.organizerEmail() != null) builder.setOrganizerEmail(event.organizerEmail());
+        if (event.organizerDisplayName() != null) {
+            builder.setOrganizerDisplayName(event.organizerDisplayName());
+        }
 
         if (event.meetingTitle() != null) {
             builder.setMeetingTitle(event.meetingTitle());
@@ -46,6 +53,8 @@ public class MeetingInvitationsCreatedEventProtoMapper
                             .setAccountId(invitee.accountId())
                             .setEmail(invitee.email())
                             .setDisplayName(invitee.displayName())
+                            .setInviteeId(invitee.inviteeId().toString())
+                            .setStatus(invitee.status())
                             .setToken(invitee.token());
             builder.addInvitees(inviteeBuilder.build());
         }

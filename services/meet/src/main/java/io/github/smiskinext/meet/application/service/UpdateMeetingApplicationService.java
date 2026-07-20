@@ -94,6 +94,10 @@ public class UpdateMeetingApplicationService implements UpdateMeetingUseCase {
                 meeting.getTimeRange().map(MeetingTimeRange::start).orElse(null),
                 meeting.getTimeRange().map(MeetingTimeRange::end).orElse(null),
                 meeting.getTimeZone().value(),
+                meeting.getOrganizerEmail().value(),
+                meeting.getOrganizerDisplayName().value(),
+                meeting.getCalendarUid(),
+                meeting.getCalendarSequence(),
                 meeting.getCreatedAt());
     }
 }

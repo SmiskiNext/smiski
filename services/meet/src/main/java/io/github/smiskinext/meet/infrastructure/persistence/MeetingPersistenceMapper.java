@@ -20,6 +20,10 @@ final class MeetingPersistenceMapper {
         return new MeetingJpaEntity(
                 meeting.getId().value(),
                 meeting.getHostId().value(),
+                meeting.getOrganizerEmail().value(),
+                meeting.getOrganizerDisplayName().value(),
+                meeting.getCalendarUid(),
+                meeting.getCalendarSequence(),
                 meeting.getShortCode().value(),
                 meeting.getTitle().value(),
                 meeting.getDescription(),
@@ -64,6 +68,10 @@ final class MeetingPersistenceMapper {
                 MeetingStatus.valueOf(entity.getStatus()),
                 entity.getSettings(),
                 MeetingTimeZone.of(entity.getZoneId()),
+                Email.of(entity.getOrganizerEmail()),
+                InviteeDisplayName.of(entity.getOrganizerDisplayName()),
+                entity.getCalendarUid(),
+                entity.getCalendarSequence(),
                 entity.getCreatedAt(),
                 entity.getCancelReason() != null
                         ? CancelReason.valueOf(entity.getCancelReason())

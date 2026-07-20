@@ -20,6 +20,9 @@ public record ScheduleMeetingRequest(
         @NotNull @Valid Settings settings,
         @NotNull @Valid TimeRange timeRange,
 
+        @NotBlank @Email @Size(max = 255) String organizerEmail,
+        @NotBlank @Size(max = 255) String organizerDisplayName,
+
         @Schema(description = "Host IANA time zone id", example = "Asia/Ho_Chi_Minh")
         @NotBlank @IanaZoneId
         String zoneId,
@@ -80,6 +83,8 @@ public record ScheduleMeetingRequest(
                 issueLinkCmd,
                 settingsCmd,
                 accountId,
+                organizerEmail,
+                organizerDisplayName,
                 timeRangeCmd,
                 zoneId,
                 inviteeCommands);

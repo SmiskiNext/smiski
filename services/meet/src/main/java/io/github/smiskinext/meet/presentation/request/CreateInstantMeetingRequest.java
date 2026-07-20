@@ -19,6 +19,12 @@ public record CreateInstantMeetingRequest(
         @NotNull @Valid Settings settings,
         @NotNull @Valid Host host,
 
+        @Schema(description = "Organizer email address", example = "alice@example.com")
+        @NotBlank @Email @Size(max = 255) String organizerEmail,
+
+        @Schema(description = "Organizer display name", example = "Alice Nguyen")
+        @NotBlank @Size(max = 255) String organizerDisplayName,
+
         @Schema(description = "Host IANA time zone id", example = "Asia/Ho_Chi_Minh")
         @NotBlank @IanaZoneId
         String zoneId,
@@ -83,6 +89,8 @@ public record CreateInstantMeetingRequest(
                 issueLinkCmd,
                 settingsCmd,
                 hostCmd,
+                organizerEmail,
+                organizerDisplayName,
                 zoneId,
                 inviteeCommands);
     }

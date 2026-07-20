@@ -82,6 +82,8 @@ public class ScheduleMeetingApplicationService implements ScheduleMeetingUseCase
                 timeRange,
                 settings,
                 timeZone,
+                Email.of(command.organizerEmail()),
+                InviteeDisplayName.of(command.organizerDisplayName()),
                 shortCode);
 
         if (scheduleResult instanceof Result.Failure<Meeting, MeetingError>(MeetingError error)) {
@@ -110,9 +112,11 @@ public class ScheduleMeetingApplicationService implements ScheduleMeetingUseCase
                 invitees.add(invitee);
 
                 inviteeInfos.add(new MeetingInvitationsCreatedEvent.InviteeInfo(
+                        invitee.getId().value(),
                         inviteeCmd.accountId(),
                         inviteeCmd.email(),
                         inviteeCmd.displayName(),
+                        invitee.getStatus().name(),
                         tokenResult.rawToken()));
             }
 
@@ -157,6 +161,10 @@ public class ScheduleMeetingApplicationService implements ScheduleMeetingUseCase
                 timeRange.start(),
                 timeRange.end(),
                 meeting.getTimeZone().value(),
+                meeting.getOrganizerEmail().value(),
+                meeting.getOrganizerDisplayName().value(),
+                meeting.getCalendarUid(),
+                meeting.getCalendarSequence(),
                 meeting.getCreatedAt());
     }
 }

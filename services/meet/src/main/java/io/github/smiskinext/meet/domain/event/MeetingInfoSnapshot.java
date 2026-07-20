@@ -8,4 +8,8 @@ public record MeetingInfoSnapshot(
         String description,
         JiraIssueLink issueLink,
         String zoneId,
-        MeetingTimeRange timeRange) {}
+        MeetingTimeRange timeRange,
+        String organizerEmail,
+        String organizerDisplayName,
+        String calendarUid,
+        int calendarSequence) {}

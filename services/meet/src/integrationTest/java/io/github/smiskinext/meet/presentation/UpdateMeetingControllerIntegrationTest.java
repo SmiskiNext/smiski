@@ -69,6 +69,10 @@ class UpdateMeetingControllerIntegrationTest {
                 .andExpect(jsonPath("$.meeting.zoneId").value("UTC"))
                 .andExpect(jsonPath("$.meeting.startTime").isNotEmpty())
                 .andExpect(jsonPath("$.meeting.endTime").isNotEmpty())
+                .andExpect(jsonPath("$.meeting.organizerEmail").value("host@example.com"))
+                .andExpect(jsonPath("$.meeting.organizerDisplayName").value("Host User"))
+                .andExpect(jsonPath("$.meeting.calendarUid").isNotEmpty())
+                .andExpect(jsonPath("$.meeting.calendarSequence").value(1))
                 .andExpect(jsonPath("$.meeting.createdAt").isNotEmpty())
                 .andExpect(jsonPath("$.meeting.tenantId").doesNotExist());
 
@@ -142,7 +146,8 @@ class UpdateMeetingControllerIntegrationTest {
                 "issueLink":{"issueId":"10001","issueKey":"PROJ-1","projectKey":"PROJ"},
                 "settings":{"admissionPolicy":"MANUAL_APPROVAL","maxParticipants":100,
                 "allowScreenShare":true,"chatEnabled":true,"allowMicrophone":true,"allowVideo":true},
-                "timeRange":{"startTime":"%s","endTime":"%s"},"zoneId":"Asia/Ho_Chi_Minh"}
+                "timeRange":{"startTime":"%s","endTime":"%s"},"zoneId":"Asia/Ho_Chi_Minh",
+                "organizerEmail":"host@example.com","organizerDisplayName":"Host User"}
                 """.formatted(start, start.plus(1, ChronoUnit.HOURS));
         MvcResult result = mockMvc.perform(post("/api/1/meetings:schedule")
                         .header("X-Account-Id", HOST_ID)

@@ -17,11 +17,17 @@ message MeetingInvitationsCreated {
   repeated InviteeInfo invitees = 6;
   string zone_id = 8;
   string end_time = 9;
+  string organizer_email = 10;
+  string organizer_display_name = 11;
+  string calendar_uid = 12;
+  int32 calendar_sequence = 13;
 
   message InviteeInfo {
     string account_id = 1;
     string email = 2;
     string display_name = 3;
     string token = 4;
+    string invitee_id = 5;
+    string status = 6;
   }
 }

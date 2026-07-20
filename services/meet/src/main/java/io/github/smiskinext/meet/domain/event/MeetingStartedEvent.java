@@ -27,6 +27,10 @@ public record MeetingStartedEvent(
         @Nullable Instant endTime,
         MeetingSettings settings,
         String zoneId,
+        String organizerEmail,
+        String organizerDisplayName,
+        String calendarUid,
+        int calendarSequence,
         Instant createdAt,
         String liveKitRoomName,
         Instant startedAt)

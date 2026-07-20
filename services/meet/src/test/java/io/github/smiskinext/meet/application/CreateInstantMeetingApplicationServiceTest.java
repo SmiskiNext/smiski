@@ -74,6 +74,8 @@ class CreateInstantMeetingApplicationServiceTest {
                 new CreateInstantMeetingCommand.Settings("ALLOW_ALL", 50, true, true, true, true),
                 new CreateInstantMeetingCommand.Host(
                         "host-account", "Alice", "device-1", "https://cdn.example.com/alice.png"),
+                "alice@example.com",
+                "Alice Nguyen",
                 "Asia/Ho_Chi_Minh",
                 List.of(
                         new CreateInstantMeetingCommand.Invitee(
@@ -93,10 +95,17 @@ class CreateInstantMeetingApplicationServiceTest {
         assertThat(value.livekit().roomName()).startsWith("meeting-");
         assertThat(value.title()).isEqualTo("Sprint Planning");
         assertThat(value.description()).isEqualTo("Daily standup for team");
+        assertThat(value.organizerEmail()).isEqualTo("alice@example.com");
+        assertThat(value.organizerDisplayName()).isEqualTo("Alice Nguyen");
         assertThat(value.issueLink()).isNotNull();
         assertThat(value.issueLink().issueId()).isEqualTo("ISS-1");
 
-        verify(meetingRepository).save(any(Meeting.class));
+        ArgumentCaptor<Meeting> meetingCaptor = ArgumentCaptor.forClass(Meeting.class);
+        verify(meetingRepository).save(meetingCaptor.capture());
+        assertThat(meetingCaptor.getValue().getOrganizerEmail().value())
+                .isEqualTo("alice@example.com");
+        assertThat(meetingCaptor.getValue().getOrganizerDisplayName().value())
+                .isEqualTo("Alice Nguyen");
         verify(meetingInviteeRepository).saveAll(argThat(list -> list.size() == 2));
 
         ArgumentCaptor<LiveKitTokenRequest> tokenRequestCaptor =
@@ -119,6 +128,8 @@ class CreateInstantMeetingApplicationServiceTest {
                 new CreateInstantMeetingCommand.IssueLink("ISS-1", "PROJ-1", "PROJ"),
                 new CreateInstantMeetingCommand.Settings("ALLOW_ALL", 50, true, true, true, true),
                 new CreateInstantMeetingCommand.Host("host-account", "Alice", "device-1", null),
+                "alice@example.com",
+                "Alice Nguyen",
                 "UTC",
                 List.of());
 
@@ -144,6 +155,8 @@ class CreateInstantMeetingApplicationServiceTest {
                 new CreateInstantMeetingCommand.IssueLink("ISS-1", "PROJ-1", "PROJ"),
                 new CreateInstantMeetingCommand.Settings("ALLOW_ALL", 50, true, true, true, true),
                 new CreateInstantMeetingCommand.Host("host-account", "Alice", "device-1", null),
+                "alice@example.com",
+                "Alice Nguyen",
                 "UTC",
                 List.of());
 

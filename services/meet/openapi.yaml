@@ -370,9 +370,15 @@ components:
       - settings
       - title
       - zoneId
-    Meeting:
+    UpdateMeetingResponse:
       type: object
-      description: Meeting snapshot
+      description: Updated meeting snapshot
+      properties:
+        meeting:
+          $ref: "#/components/schemas/UpdatedMeetingSnapshot"
+    UpdatedMeetingSnapshot:
+      type: object
+      description: Updated meeting snapshot
       properties:
         id:
           type: string
@@ -393,17 +399,26 @@ components:
           $ref: "#/components/schemas/IssueLink"
         settings:
           $ref: "#/components/schemas/Settings"
+        startTime:
+          type: string
+          format: date-time
+        endTime:
+          type: string
+          format: date-time
         zoneId:
           type: string
+        organizerEmail:
+          type: string
+        organizerDisplayName:
+          type: string
+        calendarUid:
+          type: string
+        calendarSequence:
+          type: integer
+          format: int32
         createdAt:
           type: string
           format: date-time
-    UpdateMeetingResponse:
-      type: object
-      description: Updated meeting snapshot
-      properties:
-        meeting:
-          $ref: "#/components/schemas/Meeting"
     Violation:
       type: object
       description: Field-level validation error
@@ -500,6 +515,15 @@ components:
           $ref: "#/components/schemas/Settings"
         timeRange:
           $ref: "#/components/schemas/TimeRange"
+        organizerEmail:
+          type: string
+          format: email
+          maxLength: 255
+          minLength: 0
+        organizerDisplayName:
+          type: string
+          maxLength: 255
+          minLength: 0
         zoneId:
           type: string
           description: Host IANA time zone id
@@ -514,6 +538,8 @@ components:
       required:
       - description
       - issueLink
+      - organizerDisplayName
+      - organizerEmail
       - settings
       - timeRange
       - title
@@ -523,7 +549,50 @@ components:
       description: Response for a successfully created scheduled meeting
       properties:
         meeting:
-          $ref: "#/components/schemas/Meeting"
+          $ref: "#/components/schemas/ScheduledMeetingSnapshot"
+    ScheduledMeetingSnapshot:
+      type: object
+      description: Scheduled meeting snapshot
+      properties:
+        id:
+          type: string
+          format: uuid
+        hostId:
+          type: string
+        shortCode:
+          type: string
+        type:
+          type: string
+        status:
+          type: string
+        title:
+          type: string
+        description:
+          type: string
+        issueLink:
+          $ref: "#/components/schemas/IssueLink"
+        settings:
+          $ref: "#/components/schemas/Settings"
+        startTime:
+          type: string
+          format: date-time
+        endTime:
+          type: string
+          format: date-time
+        zoneId:
+          type: string
+        organizerEmail:
+          type: string
+        organizerDisplayName:
+          type: string
+        calendarUid:
+          type: string
+        calendarSequence:
+          type: integer
+          format: int32
+        createdAt:
+          type: string
+          format: date-time
     CreateInstantMeetingRequest:
       type: object
       description: Request body for creating an instant meeting
@@ -544,6 +613,19 @@ components:
           $ref: "#/components/schemas/Settings"
         host:
           $ref: "#/components/schemas/Host"
+        organizerEmail:
+          type: string
+          format: email
+          description: Organizer email address
+          example: alice@example.com
+          maxLength: 255
+          minLength: 0
+        organizerDisplayName:
+          type: string
+          description: Organizer display name
+          example: Alice Nguyen
+          maxLength: 255
+          minLength: 0
         zoneId:
           type: string
           description: Host IANA time zone id
@@ -559,6 +641,8 @@ components:
       - description
       - host
       - issueLink
+      - organizerDisplayName
+      - organizerEmail
       - settings
       - title
       - zoneId
@@ -585,9 +669,41 @@ components:
       description: Response for a successfully created instant meeting
       properties:
         meeting:
-          $ref: "#/components/schemas/Meeting"
+          $ref: "#/components/schemas/InstantMeetingSnapshot"
         livekit:
           $ref: "#/components/schemas/LiveKit"
+    InstantMeetingSnapshot:
+      type: object
+      description: Instant meeting snapshot
+      properties:
+        id:
+          type: string
+          format: uuid
+        hostId:
+          type: string
+        shortCode:
+          type: string
+        type:
+          type: string
+        status:
+          type: string
+        title:
+          type: string
+        description:
+          type: string
+        issueLink:
+          $ref: "#/components/schemas/IssueLink"
+        settings:
+          $ref: "#/components/schemas/Settings"
+        zoneId:
+          type: string
+        organizerEmail:
+          type: string
+        organizerDisplayName:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
     LiveKit:
       type: object
       description: LiveKit access details for the host

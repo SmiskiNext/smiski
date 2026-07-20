@@ -1,5 +1,6 @@
 package io.github.smiskinext.meet.infrastructure.persistence;
 
+import io.github.smiskinext.meet.domain.model.InviteeStatus;
 import io.github.smiskinext.meet.domain.model.MeetingInvitee;
 import io.github.smiskinext.meet.domain.model.valueobject.AccountId;
 import io.github.smiskinext.meet.domain.model.valueobject.InviteeId;
@@ -34,40 +35,52 @@ public class MeetingInviteeRepositoryAdapter implements MeetingInviteeRepository
         return invitee;
     }
 
-    /** TODO: Implement in a later slice. */
     @Override
     public Optional<MeetingInvitee> findById(InviteeId id) {
-        throw new UnsupportedOperationException("Not implemented in create-instant-meeting slice");
+        return jpaRepository.findById(id.value()).map(MeetingInviteePersistenceMapper::toDomain);
     }
 
-    /** TODO: Implement in a later slice. */
     @Override
     public List<MeetingInvitee> findByMeetingId(UUID meetingId) {
-        throw new UnsupportedOperationException("Not implemented in create-instant-meeting slice");
+        return jpaRepository.findByMeetingIdAndRemovedAtIsNull(meetingId).stream()
+                .map(MeetingInviteePersistenceMapper::toDomain)
+                .toList();
     }
 
-    /** TODO: Implement in a later slice. */
     @Override
     public Optional<MeetingInvitee> findByMeetingIdAndAccountId(
             UUID meetingId, AccountId accountId) {
-        throw new UnsupportedOperationException("Not implemented in create-instant-meeting slice");
+        return jpaRepository
+                .findByMeetingIdAndAccountIdAndRemovedAtIsNull(meetingId, accountId.value())
+                .map(MeetingInviteePersistenceMapper::toDomain);
     }
 
-    /** TODO: Implement in a later slice. */
     @Override
     public List<MeetingInvitee> findPendingByAccountId(AccountId accountId) {
-        throw new UnsupportedOperationException("Not implemented in create-instant-meeting slice");
+        return jpaRepository
+                .findByAccountIdAndStatusAndRemovedAtIsNull(
+                        accountId.value(), InviteeStatus.PENDING.name())
+                .stream()
+                .map(MeetingInviteePersistenceMapper::toDomain)
+                .toList();
     }
 
-    /** TODO: Implement in a later slice. */
     @Override
     public long countActiveByMeetingId(UUID meetingId) {
-        throw new UnsupportedOperationException("Not implemented in create-instant-meeting slice");
+        return jpaRepository.countByMeetingIdAndStatusInAndRemovedAtIsNull(
+                meetingId, List.of(InviteeStatus.PENDING.name(), InviteeStatus.ACCEPTED.name()));
     }
 
-    /** TODO: Implement in a later slice. */
     @Override
     public List<InviteeSummary> findSummariesByMeetingId(UUID meetingId) {
-        throw new UnsupportedOperationException("Not implemented in create-instant-meeting slice");
+        return findByMeetingId(meetingId).stream()
+                .map(invitee -> new InviteeSummary(
+                        invitee.getAccountId().value(),
+                        invitee.getEmail().value(),
+                        invitee.getDisplayName().value(),
+                        invitee.getStatus().name(),
+                        invitee.getInvitedAt(),
+                        invitee.getRespondedAt().orElse(null)))
+                .toList();
     }
 }

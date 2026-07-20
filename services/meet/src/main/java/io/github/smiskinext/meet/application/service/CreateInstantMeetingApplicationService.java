@@ -80,6 +80,8 @@ public class CreateInstantMeetingApplicationService implements CreateInstantMeet
                 issueLink,
                 settings,
                 timeZone,
+                Email.of(command.organizerEmail()),
+                InviteeDisplayName.of(command.organizerDisplayName()),
                 shortCode);
 
         Result<Void, MeetingError> startResult = meeting.start();
@@ -110,9 +112,11 @@ public class CreateInstantMeetingApplicationService implements CreateInstantMeet
                 invitees.add(invitee);
 
                 inviteeInfos.add(new MeetingInvitationsCreatedEvent.InviteeInfo(
+                        invitee.getId().value(),
                         inviteeCmd.accountId(),
                         inviteeCmd.email(),
                         inviteeCmd.displayName(),
+                        invitee.getStatus().name(),
                         tokenResult.rawToken()));
             }
 
@@ -173,6 +177,8 @@ public class CreateInstantMeetingApplicationService implements CreateInstantMeet
                 issueLink,
                 settings,
                 meeting.getTimeZone().value(),
+                meeting.getOrganizerEmail().value(),
+                meeting.getOrganizerDisplayName().value(),
                 meeting.getCreatedAt(),
                 new CreateInstantMeetingResult.LiveKit(livekitToken, roomName.value()));
     }

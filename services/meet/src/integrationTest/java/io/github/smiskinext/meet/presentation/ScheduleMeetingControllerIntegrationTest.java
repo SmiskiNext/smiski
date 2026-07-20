@@ -73,6 +73,8 @@ class ScheduleMeetingControllerIntegrationTest {
                         "endTime": "%s"
                     },
                     "zoneId": "Asia/Ho_Chi_Minh",
+                    "organizerEmail": "host@example.com",
+                    "organizerDisplayName": "Host User",
                     "invitees": [
                         {"email": "bob@test.com", "accountId": "bob-account", "displayName": "Bob"}
                     ]
@@ -96,6 +98,10 @@ class ScheduleMeetingControllerIntegrationTest {
                 .andExpect(jsonPath("$.meeting.startTime").isNotEmpty())
                 .andExpect(jsonPath("$.meeting.endTime").isNotEmpty())
                 .andExpect(jsonPath("$.meeting.zoneId").value("Asia/Ho_Chi_Minh"))
+                .andExpect(jsonPath("$.meeting.organizerEmail").value("host@example.com"))
+                .andExpect(jsonPath("$.meeting.organizerDisplayName").value("Host User"))
+                .andExpect(jsonPath("$.meeting.calendarUid").isNotEmpty())
+                .andExpect(jsonPath("$.meeting.calendarSequence").value(0))
                 .andExpect(jsonPath("$.livekit").doesNotExist())
                 .andExpect(jsonPath("$.meeting.tenantId").doesNotExist())
                 .andReturn();
@@ -103,6 +109,17 @@ class ScheduleMeetingControllerIntegrationTest {
         String responseBody = result.getResponse().getContentAsString();
         assertThat(responseBody).doesNotContain("\"livekit\"");
         assertThat(responseBody).doesNotContain("\"tenantId\"");
+
+        String meetingId = JsonPath.read(responseBody, "$.meeting.id");
+        Map<String, Object> persisted = jdbcTemplate.queryForMap("""
+                SELECT organizer_email, organizer_display_name, calendar_uid, calendar_sequence
+                FROM meetings WHERE id = ?::uuid
+                """, meetingId);
+        assertThat(persisted.get("organizer_email")).isEqualTo("host@example.com");
+        assertThat(persisted.get("organizer_display_name")).isEqualTo("Host User");
+        assertThat(persisted.get("calendar_uid"))
+                .isEqualTo(JsonPath.read(responseBody, "$.meeting.calendarUid"));
+        assertThat(persisted.get("calendar_sequence")).isEqualTo(0);
     }
 
     @Test
@@ -421,6 +438,7 @@ class ScheduleMeetingControllerIntegrationTest {
                             "endTime": "%s"
                         },
                         "zoneId": "Mars/Phobos"
+                        ,"organizerEmail": "host@example.com", "organizerDisplayName": "Host User"
                     }
                     """.formatted(start, end);
 
@@ -457,6 +475,7 @@ class ScheduleMeetingControllerIntegrationTest {
                             "endTime": "%s"
                         },
                         "zoneId": "+07:00"
+                        ,"organizerEmail": "host@example.com", "organizerDisplayName": "Host User"
                     }
                     """.formatted(start, end);
 
@@ -499,6 +518,7 @@ class ScheduleMeetingControllerIntegrationTest {
                             "endTime": "%s"
                         },
                         "zoneId": "Asia/Ho_Chi_Minh"
+                        ,"organizerEmail": "host@example.com", "organizerDisplayName": "Host User"
                     }
                     """.formatted(start, end);
 
@@ -547,6 +567,7 @@ class ScheduleMeetingControllerIntegrationTest {
                             "endTime": "%s"
                         },
                         "zoneId": "Europe/Berlin"
+                        ,"organizerEmail": "host@example.com", "organizerDisplayName": "Host User"
                     }
                     """.formatted(start, end);
 
@@ -607,6 +628,8 @@ class ScheduleMeetingControllerIntegrationTest {
                             "endTime": "%s"
                         },
                         "zoneId": "America/New_York",
+                        "organizerEmail": "host@example.com",
+                        "organizerDisplayName": "Host User",
                         "invitees": [
                             {"email": "test@example.com", "accountId": "test-acc", "displayName": "Test"}
                         ]
@@ -804,6 +827,7 @@ class ScheduleMeetingControllerIntegrationTest {
                         "endTime": "%s"
                     },
                     "zoneId": "UTC"
+                    ,"organizerEmail": "host@example.com", "organizerDisplayName": "Host User"
                 }
                 """.formatted(start, end);
     }

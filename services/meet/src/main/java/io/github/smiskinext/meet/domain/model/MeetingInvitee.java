@@ -45,6 +45,7 @@ public class MeetingInvitee extends AggregateRoot<InviteeId> {
     private InviteeStatus status;
     private final Instant invitedAt;
     private @Nullable Instant respondedAt;
+    private @Nullable Instant removedAt;
     private @Nullable InviteToken inviteToken;
 
     private MeetingInvitee(
@@ -58,6 +59,7 @@ public class MeetingInvitee extends AggregateRoot<InviteeId> {
             InviteeStatus status,
             Instant invitedAt,
             @Nullable Instant respondedAt,
+            @Nullable Instant removedAt,
             @Nullable InviteToken inviteToken) {
         this.tenantId = tenantId;
         this.id = id;
@@ -69,6 +71,7 @@ public class MeetingInvitee extends AggregateRoot<InviteeId> {
         this.status = status;
         this.invitedAt = invitedAt;
         this.respondedAt = respondedAt;
+        this.removedAt = removedAt;
         this.inviteToken = inviteToken;
     }
 
@@ -94,6 +97,7 @@ public class MeetingInvitee extends AggregateRoot<InviteeId> {
                 InviteeStatus.PENDING,
                 Instant.now(),
                 null,
+                null,
                 null);
     }
 
@@ -111,6 +115,7 @@ public class MeetingInvitee extends AggregateRoot<InviteeId> {
             InviteeStatus status,
             Instant invitedAt,
             @Nullable Instant respondedAt,
+            @Nullable Instant removedAt,
             @Nullable InviteToken inviteToken) {
         return new MeetingInvitee(
                 tenantId,
@@ -123,6 +128,7 @@ public class MeetingInvitee extends AggregateRoot<InviteeId> {
                 status,
                 invitedAt,
                 respondedAt,
+                removedAt,
                 inviteToken);
     }
 
@@ -180,6 +186,12 @@ public class MeetingInvitee extends AggregateRoot<InviteeId> {
         });
     }
 
+    public void remove() {
+        if (removedAt == null) {
+            removedAt = Instant.now();
+        }
+    }
+
     /**
      * Accepts the invitation.
      *
@@ -187,6 +199,10 @@ public class MeetingInvitee extends AggregateRoot<InviteeId> {
      * if the current status does not allow transitioning to ACCEPTED
      */
     public Result<Void, MeetingError> accept() {
+        if (removedAt != null) {
+            return Result.failure(
+                    new MeetingError.InvalidInviteeTransition(status, InviteeStatus.ACCEPTED));
+        }
         if (!status.canTransitionTo(InviteeStatus.ACCEPTED)) {
             return Result.failure(
                     new MeetingError.InvalidInviteeTransition(status, InviteeStatus.ACCEPTED));
@@ -198,6 +214,9 @@ public class MeetingInvitee extends AggregateRoot<InviteeId> {
                 tenantId.value(),
                 meetingId.value(),
                 inviterId.value(),
+                id.value(),
+                email.value(),
+                InviteeStatus.ACCEPTED.name(),
                 respondedAt));
         return Result.success();
     }
@@ -209,6 +228,10 @@ public class MeetingInvitee extends AggregateRoot<InviteeId> {
      * if the current status does not allow transitioning to DECLINED
      */
     public Result<Void, MeetingError> decline() {
+        if (removedAt != null) {
+            return Result.failure(
+                    new MeetingError.InvalidInviteeTransition(status, InviteeStatus.DECLINED));
+        }
         if (!status.canTransitionTo(InviteeStatus.DECLINED)) {
             return Result.failure(
                     new MeetingError.InvalidInviteeTransition(status, InviteeStatus.DECLINED));
@@ -220,6 +243,9 @@ public class MeetingInvitee extends AggregateRoot<InviteeId> {
                 tenantId.value(),
                 meetingId.value(),
                 inviterId.value(),
+                id.value(),
+                email.value(),
+                InviteeStatus.DECLINED.name(),
                 respondedAt));
         return Result.success();
     }
@@ -263,6 +289,10 @@ public class MeetingInvitee extends AggregateRoot<InviteeId> {
 
     public Optional<Instant> getRespondedAt() {
         return Optional.ofNullable(respondedAt);
+    }
+
+    public Optional<Instant> getRemovedAt() {
+        return Optional.ofNullable(removedAt);
     }
 
     /**

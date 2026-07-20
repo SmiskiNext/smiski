@@ -18,6 +18,7 @@ class MeetingUpdateTest {
     @Test
     void scheduledHostUpdatePublishesOneEventPerChangedGroup() {
         Meeting meeting = scheduledMeeting();
+        String calendarUid = meeting.getCalendarUid();
         meeting.clearDomainEvents();
         MeetingSettings settings = new MeetingSettings(
                 io.github.smiskinext.meet.domain.model.AdmissionPolicy.ALLOW_ALL,
@@ -43,11 +44,14 @@ class MeetingUpdateTest {
         assertThat(meeting.getDomainEvents()).anyMatch(MeetingInfoUpdatedEvent.class::isInstance);
         assertThat(meeting.getDomainEvents())
                 .anyMatch(MeetingSettingsUpdatedEvent.class::isInstance);
+        assertThat(meeting.getCalendarUid()).isEqualTo(calendarUid);
+        assertThat(meeting.getCalendarSequence()).isEqualTo(1);
     }
 
     @Test
     void noOpUpdatePublishesNoEvent() {
         Meeting meeting = scheduledMeeting();
+        int initialSequence = meeting.getCalendarSequence();
         meeting.clearDomainEvents();
 
         Result<Void, MeetingError> result = meeting.update(
@@ -61,6 +65,38 @@ class MeetingUpdateTest {
 
         assertThat(result.isSuccess()).isTrue();
         assertThat(meeting.getDomainEvents()).isEmpty();
+        assertThat(meeting.getCalendarSequence()).isEqualTo(initialSequence);
+    }
+
+    @Test
+    void settingsOnlyUpdateDoesNotIncreaseCalendarSequence() {
+        Meeting meeting = scheduledMeeting();
+        String calendarUid = meeting.getCalendarUid();
+        int initialSequence = meeting.getCalendarSequence();
+        meeting.clearDomainEvents();
+        MeetingSettings settings = new MeetingSettings(
+                io.github.smiskinext.meet.domain.model.AdmissionPolicy.ALLOW_ALL,
+                25,
+                true,
+                true,
+                true,
+                true);
+
+        Result<Void, MeetingError> result = meeting.update(
+                AccountId.of("host"),
+                meeting.getTitle(),
+                meeting.getDescription(),
+                meeting.getIssueLink(),
+                settings,
+                meeting.getTimeZone(),
+                meeting.getTimeRange().orElseThrow());
+
+        assertThat(result.isSuccess()).isTrue();
+        assertThat(meeting.getDomainEvents())
+                .singleElement()
+                .isInstanceOf(MeetingSettingsUpdatedEvent.class);
+        assertThat(meeting.getCalendarUid()).isEqualTo(calendarUid);
+        assertThat(meeting.getCalendarSequence()).isEqualTo(initialSequence);
     }
 
     @Test
@@ -150,6 +186,8 @@ class MeetingUpdateTest {
                 MeetingTimeRange.of(start, start.plus(1, ChronoUnit.HOURS)),
                 MeetingSettings.defaults(),
                 MeetingTimeZone.of("Asia/Ho_Chi_Minh"),
+                Email.of("host@example.com"),
+                InviteeDisplayName.of("Host User"),
                 ShortCode.of("ABC123DEF0"));
         return ((Result.Success<Meeting, MeetingError>) result).value();
     }
@@ -170,6 +208,10 @@ class MeetingUpdateTest {
                 status,
                 MeetingSettings.defaults(),
                 MeetingTimeZone.of("Asia/Ho_Chi_Minh"),
+                Email.of("host@example.com"),
+                InviteeDisplayName.of("Host User"),
+                "calendar@example.com",
+                0,
                 start.minus(1, ChronoUnit.DAYS),
                 null,
                 null,

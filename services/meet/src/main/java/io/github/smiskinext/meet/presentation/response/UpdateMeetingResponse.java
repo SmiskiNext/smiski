@@ -8,6 +8,7 @@ import java.util.UUID;
 
 @Schema(description = "Updated meeting snapshot")
 public record UpdateMeetingResponse(Meeting meeting) {
+    @Schema(name = "UpdatedMeetingSnapshot", description = "Updated meeting snapshot")
     public record Meeting(
             UUID id,
             String hostId,
@@ -21,6 +22,10 @@ public record UpdateMeetingResponse(Meeting meeting) {
             Instant startTime,
             Instant endTime,
             String zoneId,
+            String organizerEmail,
+            String organizerDisplayName,
+            String calendarUid,
+            int calendarSequence,
             Instant createdAt) {}
 
     public record IssueLink(String issueId, String issueKey, String projectKey) {}
@@ -56,6 +61,10 @@ public record UpdateMeetingResponse(Meeting meeting) {
                 result.startTime(),
                 result.endTime(),
                 result.zoneId(),
+                result.organizerEmail(),
+                result.organizerDisplayName(),
+                result.calendarUid(),
+                result.calendarSequence(),
                 result.createdAt()));
     }
 }

@@ -44,6 +44,8 @@ public class MeetingInfoUpdatedEventProtoMapper
                 .setTitle(info.title())
                 .setDescription(info.description())
                 .setZoneId(info.zoneId())
+                .setCalendarUid(info.calendarUid())
+                .setCalendarSequence(info.calendarSequence())
                 .setIssueLink(IssueLink.newBuilder()
                         .setIssueId(info.issueLink().issueId())
                         .setIssueKey(info.issueLink().issueKey())
@@ -52,6 +54,10 @@ public class MeetingInfoUpdatedEventProtoMapper
         if (info.timeRange() != null) {
             builder.setStartTime(info.timeRange().start().toString())
                     .setEndTime(info.timeRange().end().toString());
+        }
+        if (info.organizerEmail() != null) builder.setOrganizerEmail(info.organizerEmail());
+        if (info.organizerDisplayName() != null) {
+            builder.setOrganizerDisplayName(info.organizerDisplayName());
         }
         return builder.build();
     }

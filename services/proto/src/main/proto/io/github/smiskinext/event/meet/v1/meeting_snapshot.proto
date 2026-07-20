@@ -20,6 +20,10 @@ message MeetingSnapshot {
   MeetingSettings settings = 12;
   string created_at = 13;
   string zone_id = 14;
+  string organizer_email = 15;
+  string organizer_display_name = 16;
+  string calendar_uid = 17;
+  int32 calendar_sequence = 18;
 }
 
 message MeetingSettings {
@@ -55,6 +59,10 @@ message MeetingInfoSnapshot {
   string zone_id = 4;
   string start_time = 5;
   string end_time = 6;
+  string organizer_email = 7;
+  string organizer_display_name = 8;
+  string calendar_uid = 9;
+  int32 calendar_sequence = 10;
 }
 
 message MeetingSettingsUpdated {

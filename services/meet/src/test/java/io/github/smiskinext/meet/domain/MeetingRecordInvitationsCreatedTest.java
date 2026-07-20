@@ -22,15 +22,27 @@ class MeetingRecordInvitationsCreatedTest {
                 JiraIssueLink.of("ISS-1", "PROJ-1", "PROJ"),
                 MeetingSettings.defaults(),
                 MeetingTimeZone.of("UTC"),
+                Email.of("host@test.com"),
+                InviteeDisplayName.of("Host"),
                 ShortCode.of("ABC123DEF0"));
         meeting.start();
         meeting.clearDomainEvents();
 
         List<MeetingInvitationsCreatedEvent.InviteeInfo> invitees = List.of(
                 new MeetingInvitationsCreatedEvent.InviteeInfo(
-                        "acc-1", "a@test.com", "Alice", "raw-token-1"),
+                        java.util.UUID.randomUUID(),
+                        "acc-1",
+                        "a@test.com",
+                        "Alice",
+                        "PENDING",
+                        "raw-token-1"),
                 new MeetingInvitationsCreatedEvent.InviteeInfo(
-                        "acc-2", "b@test.com", "Bob", "raw-token-2"));
+                        java.util.UUID.randomUUID(),
+                        "acc-2",
+                        "b@test.com",
+                        "Bob",
+                        "PENDING",
+                        "raw-token-2"));
 
         meeting.recordInvitationsSent(invitees);
 
@@ -56,6 +68,8 @@ class MeetingRecordInvitationsCreatedTest {
                 JiraIssueLink.of("ISS-1", "PROJ-1", "PROJ"),
                 MeetingSettings.defaults(),
                 MeetingTimeZone.of("UTC"),
+                Email.of("host@test.com"),
+                InviteeDisplayName.of("Host"),
                 ShortCode.of("ABC123DEF0"));
         meeting.start();
         meeting.clearDomainEvents();

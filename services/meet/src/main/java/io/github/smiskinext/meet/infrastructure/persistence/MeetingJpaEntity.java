@@ -27,6 +27,18 @@ public class MeetingJpaEntity {
     @Column(name = "host_id", nullable = false, length = 128)
     private String hostId;
 
+    @Column(name = "organizer_email", nullable = false, length = 255)
+    private String organizerEmail;
+
+    @Column(name = "organizer_display_name", nullable = false, length = 255)
+    private String organizerDisplayName;
+
+    @Column(name = "calendar_uid", nullable = false, length = 255)
+    private String calendarUid;
+
+    @Column(name = "calendar_sequence", nullable = false)
+    private int calendarSequence;
+
     @Column(name = "short_code", nullable = false, length = 15, unique = true)
     private String shortCode;
 
@@ -84,6 +96,10 @@ public class MeetingJpaEntity {
     public MeetingJpaEntity(
             UUID id,
             String hostId,
+            String organizerEmail,
+            String organizerDisplayName,
+            String calendarUid,
+            int calendarSequence,
             String shortCode,
             String title,
             String description,
@@ -103,6 +119,10 @@ public class MeetingJpaEntity {
             String zoneId) {
         this.id = id;
         this.hostId = hostId;
+        this.organizerEmail = organizerEmail;
+        this.organizerDisplayName = organizerDisplayName;
+        this.calendarUid = calendarUid;
+        this.calendarSequence = calendarSequence;
         this.shortCode = shortCode;
         this.title = title;
         this.description = description;
@@ -132,6 +152,22 @@ public class MeetingJpaEntity {
 
     public String getHostId() {
         return hostId;
+    }
+
+    public String getOrganizerEmail() {
+        return organizerEmail;
+    }
+
+    public String getOrganizerDisplayName() {
+        return organizerDisplayName;
+    }
+
+    public String getCalendarUid() {
+        return calendarUid;
+    }
+
+    public int getCalendarSequence() {
+        return calendarSequence;
     }
 
     public String getShortCode() {

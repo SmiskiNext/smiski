@@ -68,6 +68,8 @@ class MeetingControllerIntegrationTest {
                         "deviceId": "device-1",
                         "avatarUrl": "https://cdn.example.com/alice.png"
                     },
+                    "organizerEmail": "alice@example.com",
+                    "organizerDisplayName": "Alice",
                     "zoneId": "Asia/Ho_Chi_Minh",
                     "invitees": [
                         {"email": "bob@test.com", "accountId": "bob-account", "displayName": "Bob"}
@@ -87,6 +89,8 @@ class MeetingControllerIntegrationTest {
                 .andExpect(jsonPath("$.meeting.hostId").value("host-account"))
                 .andExpect(jsonPath("$.meeting.title").value("Sprint Planning"))
                 .andExpect(jsonPath("$.meeting.description").value("Daily standup for the team"))
+                .andExpect(jsonPath("$.meeting.organizerEmail").value("alice@example.com"))
+                .andExpect(jsonPath("$.meeting.organizerDisplayName").value("Alice"))
                 .andExpect(jsonPath("$.meeting.issueLink.issueId").value("10001"))
                 .andExpect(jsonPath("$.meeting.issueLink.issueKey").value("PROJ-1"))
                 .andExpect(jsonPath("$.meeting.issueLink.projectKey").value("PROJ"))
@@ -607,6 +611,8 @@ class MeetingControllerIntegrationTest {
                             "displayName": "Alice",
                             "deviceId": "device-1"
                         },
+                        "organizerEmail": "alice@example.com",
+                        "organizerDisplayName": "Alice",
                         "zoneId": "Asia/Ho_Chi_Minh"
                     }
                     """;
@@ -652,6 +658,8 @@ class MeetingControllerIntegrationTest {
                             "displayName": "Alice",
                             "deviceId": "device-1"
                         },
+                        "organizerEmail": "alice@example.com",
+                        "organizerDisplayName": "Alice",
                         "zoneId": "Europe/London"
                     }
                     """;
@@ -709,6 +717,8 @@ class MeetingControllerIntegrationTest {
                             "displayName": "Alice",
                             "deviceId": "device-1"
                         },
+                        "organizerEmail": "alice@example.com",
+                        "organizerDisplayName": "Alice",
                         "zoneId": "America/Chicago",
                         "invitees": [
                             {"email": "test@example.com", "accountId": "test-acc", "displayName": "Test"}
@@ -767,6 +777,8 @@ class MeetingControllerIntegrationTest {
                             "displayName": "HostUser",
                             "deviceId": "dev-42"
                         },
+                        "organizerEmail": "host@example.com",
+                        "organizerDisplayName": "Host User",
                         "zoneId": "UTC"
                     }
                     """;
@@ -829,6 +841,8 @@ class MeetingControllerIntegrationTest {
                             "displayName": "InvHost",
                             "deviceId": "dev-inv"
                         },
+                        "organizerEmail": "inv-host@example.com",
+                        "organizerDisplayName": "Invite Host",
                         "zoneId": "UTC",
                         "invitees": [
                             {"email": "alice@example.com", "accountId": "alice-acc", "displayName": "Alice"},

@@ -35,7 +35,11 @@ public class Meeting extends AggregateRoot<MeetingId> {
     private final AccountId hostId;
     private final ShortCode shortCode;
     private final MeetingType type;
+    private final Email organizerEmail;
+    private final InviteeDisplayName organizerDisplayName;
+    private final String calendarUid;
     private MeetingTimeZone timeZone;
+    private int calendarSequence;
     private final Instant createdAt;
 
     private MeetingTitle title;
@@ -67,6 +71,10 @@ public class Meeting extends AggregateRoot<MeetingId> {
             MeetingStatus status,
             MeetingSettings settings,
             MeetingTimeZone timeZone,
+            Email organizerEmail,
+            InviteeDisplayName organizerDisplayName,
+            String calendarUid,
+            int calendarSequence,
             Instant createdAt) {
         this.tenantId = tenantId;
         this.id = id;
@@ -80,6 +88,10 @@ public class Meeting extends AggregateRoot<MeetingId> {
         this.status = status;
         this.settings = settings;
         this.timeZone = timeZone;
+        this.organizerEmail = organizerEmail;
+        this.organizerDisplayName = organizerDisplayName;
+        this.calendarUid = calendarUid;
+        this.calendarSequence = calendarSequence;
         this.createdAt = createdAt;
     }
 
@@ -104,12 +116,15 @@ public class Meeting extends AggregateRoot<MeetingId> {
             MeetingTimeRange timeRange,
             MeetingSettings settings,
             MeetingTimeZone timeZone,
+            Email organizerEmail,
+            InviteeDisplayName organizerDisplayName,
             ShortCode shortCode) {
         Instant now = Instant.now();
         if (timeRange.start().isBefore(now.minus(CLOCK_SKEW_TOLERANCE))) {
             return Result.failure(new MeetingError.StartTimeInPast(timeRange.start()));
         }
         MeetingId id = MeetingId.of(UuidCreator.getTimeOrderedEpoch());
+        String calendarUid = UUID.randomUUID().toString();
         Meeting meeting = new Meeting(
                 tenantId,
                 id,
@@ -123,6 +138,10 @@ public class Meeting extends AggregateRoot<MeetingId> {
                 MeetingStatus.SCHEDULED,
                 settings,
                 timeZone,
+                organizerEmail,
+                organizerDisplayName,
+                calendarUid,
+                0,
                 now);
         meeting.registerEvent(new MeetingCreatedEvent(
                 UUID.randomUUID(),
@@ -141,6 +160,10 @@ public class Meeting extends AggregateRoot<MeetingId> {
                 timeRange.end(),
                 settings,
                 timeZone.value(),
+                organizerEmail.value(),
+                organizerDisplayName.value(),
+                calendarUid,
+                0,
                 now));
         return Result.success(meeting);
     }
@@ -157,6 +180,8 @@ public class Meeting extends AggregateRoot<MeetingId> {
             JiraIssueLink issueLink,
             MeetingSettings settings,
             MeetingTimeZone timeZone,
+            Email organizerEmail,
+            InviteeDisplayName organizerDisplayName,
             ShortCode shortCode) {
         MeetingId id = MeetingId.of(UuidCreator.getTimeOrderedEpoch());
         Instant now = Instant.now();
@@ -173,6 +198,10 @@ public class Meeting extends AggregateRoot<MeetingId> {
                 MeetingStatus.SCHEDULED,
                 settings,
                 timeZone,
+                organizerEmail,
+                organizerDisplayName,
+                UUID.randomUUID().toString(),
+                0,
                 now);
         meeting.registerEvent(new MeetingCreatedEvent(
                 UUID.randomUUID(),
@@ -191,6 +220,10 @@ public class Meeting extends AggregateRoot<MeetingId> {
                 null,
                 settings,
                 timeZone.value(),
+                organizerEmail.value(),
+                organizerDisplayName.value(),
+                meeting.calendarUid,
+                0,
                 now));
         return meeting;
     }
@@ -212,6 +245,10 @@ public class Meeting extends AggregateRoot<MeetingId> {
             MeetingStatus status,
             MeetingSettings settings,
             MeetingTimeZone timeZone,
+            Email organizerEmail,
+            InviteeDisplayName organizerDisplayName,
+            String calendarUid,
+            int calendarSequence,
             Instant createdAt,
             @Nullable CancelReason cancelReason,
             @Nullable Instant deletedAt,
@@ -230,6 +267,10 @@ public class Meeting extends AggregateRoot<MeetingId> {
                 status,
                 settings,
                 timeZone,
+                organizerEmail,
+                organizerDisplayName,
+                calendarUid,
+                calendarSequence,
                 createdAt);
         meeting.endTime = endTime;
         meeting.cancelReason = cancelReason;
@@ -270,6 +311,10 @@ public class Meeting extends AggregateRoot<MeetingId> {
                 null,
                 settings,
                 timeZone.value(),
+                organizerEmail.value(),
+                organizerDisplayName.value(),
+                calendarUid,
+                calendarSequence,
                 createdAt,
                 LiveKitRoomName.fromMeetingId(id).value(),
                 now));
@@ -313,6 +358,10 @@ public class Meeting extends AggregateRoot<MeetingId> {
                 timeRange != null ? timeRange.start() : null,
                 timeRange != null ? timeRange.end() : null,
                 timeZone.value(),
+                organizerEmail.value(),
+                organizerDisplayName.value(),
+                calendarUid,
+                calendarSequence,
                 List.copyOf(invitees),
                 Instant.now()));
     }
@@ -371,6 +420,7 @@ public class Meeting extends AggregateRoot<MeetingId> {
 
         Instant now = Instant.now();
         if (infoChanged) {
+            calendarSequence++;
             registerEvent(new MeetingInfoUpdatedEvent(
                     UUID.randomUUID(),
                     tenantId.value(),
@@ -399,7 +449,15 @@ public class Meeting extends AggregateRoot<MeetingId> {
 
     private MeetingInfoSnapshot infoSnapshot() {
         return new MeetingInfoSnapshot(
-                title.value(), description, issueLink, timeZone.value(), timeRange);
+                title.value(),
+                description,
+                issueLink,
+                timeZone.value(),
+                timeRange,
+                organizerEmail.value(),
+                organizerDisplayName.value(),
+                calendarUid,
+                calendarSequence);
     }
 
     /**
@@ -540,5 +598,21 @@ public class Meeting extends AggregateRoot<MeetingId> {
 
     public MeetingTimeZone getTimeZone() {
         return timeZone;
+    }
+
+    public Email getOrganizerEmail() {
+        return organizerEmail;
+    }
+
+    public InviteeDisplayName getOrganizerDisplayName() {
+        return organizerDisplayName;
+    }
+
+    public String getCalendarUid() {
+        return calendarUid;
+    }
+
+    public int getCalendarSequence() {
+        return calendarSequence;
     }
 }

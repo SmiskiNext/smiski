@@ -19,6 +19,10 @@ public record ScheduleMeetingResult(
         Instant startTime,
         Instant endTime,
         String zoneId,
+        String organizerEmail,
+        String organizerDisplayName,
+        String calendarUid,
+        int calendarSequence,
         Instant createdAt) {
 
     public record IssueLink(String issueId, String issueKey, String projectKey) {}

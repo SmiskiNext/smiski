@@ -88,6 +88,8 @@ class UpdateMeetingApplicationServiceTest {
                 MeetingTimeRange.of(start, start.plus(1, ChronoUnit.HOURS)),
                 MeetingSettings.defaults(),
                 MeetingTimeZone.of("Asia/Ho_Chi_Minh"),
+                Email.of("host@example.com"),
+                InviteeDisplayName.of("Host User"),
                 ShortCode.of("ABC123DEF0"));
         Meeting meeting = ((Result.Success<Meeting, MeetingError>) result).value();
         meeting.clearDomainEvents();

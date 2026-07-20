@@ -32,6 +32,10 @@ public record MeetingInvitationsCreatedEvent(
         @Nullable Instant startTime,
         @Nullable Instant endTime,
         String zoneId,
+        String organizerEmail,
+        String organizerDisplayName,
+        String calendarUid,
+        int calendarSequence,
         List<InviteeInfo> invitees,
         Instant occurredAt)
         implements PublishableEvent {
@@ -44,7 +48,13 @@ public record MeetingInvitationsCreatedEvent(
      * @param displayName the user's full name at invite time
      * @param token       the raw invite token for building the join URL
      */
-    public record InviteeInfo(String accountId, String email, String displayName, String token) {}
+    public record InviteeInfo(
+            UUID inviteeId,
+            String accountId,
+            String email,
+            String displayName,
+            String status,
+            String token) {}
 
     @Override
     public String aggregateId() {

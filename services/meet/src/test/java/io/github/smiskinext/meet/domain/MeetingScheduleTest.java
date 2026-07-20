@@ -39,6 +39,8 @@ class MeetingScheduleTest {
                 timeRange,
                 SETTINGS,
                 TIME_ZONE,
+                Email.of("host@example.com"),
+                InviteeDisplayName.of("Host User"),
                 SHORT_CODE);
 
         assertThat(result.isSuccess()).isTrue();
@@ -47,6 +49,8 @@ class MeetingScheduleTest {
         assertThat(meeting.getStatus().name()).isEqualTo("SCHEDULED");
         assertThat(meeting.getStartTime()).hasValue(start);
         assertThat(meeting.getEndTime()).hasValue(end);
+        assertThat(meeting.getCalendarUid()).isNotBlank();
+        assertThat(meeting.getCalendarSequence()).isZero();
     }
 
     @Test
@@ -65,6 +69,8 @@ class MeetingScheduleTest {
                 timeRange,
                 SETTINGS,
                 TIME_ZONE,
+                Email.of("host@example.com"),
+                InviteeDisplayName.of("Host User"),
                 SHORT_CODE);
 
         assertThat(result.isSuccess()).isTrue();
@@ -88,6 +94,8 @@ class MeetingScheduleTest {
                 timeRange,
                 SETTINGS,
                 TIME_ZONE,
+                Email.of("host@example.com"),
+                InviteeDisplayName.of("Host User"),
                 SHORT_CODE);
 
         assertThat(result.isFailure()).isTrue();
@@ -112,6 +120,8 @@ class MeetingScheduleTest {
                 timeRange,
                 SETTINGS,
                 TIME_ZONE,
+                Email.of("host@example.com"),
+                InviteeDisplayName.of("Host User"),
                 SHORT_CODE);
 
         assertThat(result.isSuccess()).isTrue();
