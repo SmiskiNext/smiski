@@ -16,7 +16,6 @@ import io.github.smiskinext.meet.domain.port.*;
 import io.github.smiskinext.shared.domain.AggregateRoot;
 import io.github.smiskinext.shared.domain.EventPublisher;
 import io.github.smiskinext.shared.domain.Result;
-import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Function;
@@ -30,7 +29,6 @@ class CreateInstantMeetingApplicationServiceTest {
     private MeetingInviteeRepository meetingInviteeRepository;
     private EventPublisher eventPublisher;
     private LiveKitPort liveKitPort;
-    private InviteTokenGenerator inviteTokenGenerator;
     private ShortCodeAllocator shortCodeAllocator;
     private CreateInstantMeetingApplicationService service;
 
@@ -41,15 +39,11 @@ class CreateInstantMeetingApplicationServiceTest {
         meetingInviteeRepository = mock(MeetingInviteeRepository.class);
         eventPublisher = mock(EventPublisher.class);
         liveKitPort = mock(LiveKitPort.class);
-        inviteTokenGenerator = mock(InviteTokenGenerator.class);
         shortCodeAllocator = mock(ShortCodeAllocator.class);
 
         when(meetingRepository.save(any(Meeting.class))).thenAnswer(inv -> inv.getArgument(0));
         when(meetingInviteeRepository.saveAll(anyList())).thenAnswer(inv -> inv.getArgument(0));
         when(liveKitPort.generateToken(any())).thenReturn(Result.success("mock-livekit-token"));
-        when(inviteTokenGenerator.generate())
-                .thenReturn(new InviteTokenGenerator.TokenResult(
-                        "raw-token", "hash-abc", Instant.now().plusSeconds(86400)));
         when(shortCodeAllocator.allocate(any())).thenAnswer(inv -> {
             Function<ShortCode, Object> action = inv.getArgument(0);
             return Optional.of(action.apply(ShortCode.of("abc123def0")));
@@ -60,7 +54,6 @@ class CreateInstantMeetingApplicationServiceTest {
                 meetingInviteeRepository,
                 eventPublisher,
                 liveKitPort,
-                inviteTokenGenerator,
                 shortCodeAllocator);
     }
 

@@ -17,7 +17,7 @@ import org.junit.jupiter.api.Test;
 class MeetingInviteeRemovalTest {
 
     @Test
-    void removePreservesInviteeIdentityStatusAndTokenHistory() {
+    void removeIsIdempotentAndPreservesInviteeIdentityAndStatus() {
         MeetingInvitee invitee = MeetingInvitee.create(
                 TenantId.of("tenant"),
                 MeetingId.of(UUID.randomUUID()),
@@ -27,7 +27,6 @@ class MeetingInviteeRemovalTest {
                 InviteeDisplayName.of("Invitee"),
                 InviteeRole.REQ_PARTICIPANT,
                 true);
-        invitee.assignToken("hash", java.time.Instant.now().plusSeconds(3600));
 
         invitee.remove();
         var removedAt = invitee.getRemovedAt().orElseThrow();
@@ -36,7 +35,6 @@ class MeetingInviteeRemovalTest {
         assertThat(invitee.getRemovedAt()).hasValue(removedAt);
         assertThat(invitee.getId()).isNotNull();
         assertThat(invitee.getStatus()).isEqualTo(InviteeStatus.NEEDS_ACTION);
-        assertThat(invitee.getInviteToken()).isPresent();
         assertThat(invitee.accept().isFailure()).isTrue();
     }
 }

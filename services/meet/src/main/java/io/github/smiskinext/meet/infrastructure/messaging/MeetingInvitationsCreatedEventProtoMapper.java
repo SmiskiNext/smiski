@@ -54,8 +54,7 @@ public class MeetingInvitationsCreatedEventProtoMapper
                             .setEmail(invitee.email())
                             .setDisplayName(invitee.displayName())
                             .setInviteeId(invitee.inviteeId().toString())
-                            .setStatus(invitee.status())
-                            .setToken(invitee.token());
+                            .setStatus(invitee.status());
             builder.addInvitees(inviteeBuilder.build());
         }
 

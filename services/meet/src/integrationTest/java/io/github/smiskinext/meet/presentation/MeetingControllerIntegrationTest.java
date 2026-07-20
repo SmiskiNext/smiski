@@ -863,12 +863,10 @@ class MeetingControllerIntegrationTest {
                     JsonPath.read(result.getResponse().getContentAsString(), "$.meeting.id");
 
             List<Map<String, Object>> invitees = jdbcTemplate.queryForList(
-                    "SELECT status, token_hash FROM meeting_invitees WHERE meeting_id = ?::uuid",
-                    meetingId);
+                    "SELECT status FROM meeting_invitees WHERE meeting_id = ?::uuid", meetingId);
             assertThat(invitees).hasSize(2);
             for (Map<String, Object> invitee : invitees) {
                 assertThat(invitee.get("status").toString()).isEqualTo("NEEDS_ACTION");
-                assertThat(invitee.get("token_hash")).isNotNull();
             }
 
             List<String> columns = jdbcTemplate.queryForList(

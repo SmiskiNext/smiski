@@ -23,10 +23,12 @@ message MeetingInvitationsCreated {
   int32 calendar_sequence = 13;
 
   message InviteeInfo {
+    reserved 4;
+    reserved "token";
+
     string account_id = 1;
     string email = 2;
     string display_name = 3;
-    string token = 4;
     string invitee_id = 5;
     string status = 6;
   }

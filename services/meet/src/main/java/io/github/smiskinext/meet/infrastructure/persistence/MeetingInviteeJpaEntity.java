@@ -54,21 +54,6 @@ public class MeetingInviteeJpaEntity {
     @Column(name = "removed_at")
     private @Nullable Instant removedAt;
 
-    @Column(name = "token_hash", length = 64)
-    private @Nullable String tokenHash;
-
-    @Column(name = "token_status", length = 20)
-    private @Nullable String tokenStatus;
-
-    @Column(name = "token_expires_at")
-    private @Nullable Instant tokenExpiresAt;
-
-    @Column(name = "token_created_at")
-    private @Nullable Instant tokenCreatedAt;
-
-    @Column(name = "token_updated_at")
-    private @Nullable Instant tokenUpdatedAt;
-
     protected MeetingInviteeJpaEntity() {}
 
     public MeetingInviteeJpaEntity(
@@ -83,12 +68,7 @@ public class MeetingInviteeJpaEntity {
             String status,
             Instant invitedAt,
             @Nullable Instant respondedAt,
-            @Nullable Instant removedAt,
-            @Nullable String tokenHash,
-            @Nullable String tokenStatus,
-            @Nullable Instant tokenExpiresAt,
-            @Nullable Instant tokenCreatedAt,
-            @Nullable Instant tokenUpdatedAt) {
+            @Nullable Instant removedAt) {
         this.id = id;
         this.meetingId = meetingId;
         this.inviterId = inviterId;
@@ -101,11 +81,6 @@ public class MeetingInviteeJpaEntity {
         this.invitedAt = invitedAt;
         this.respondedAt = respondedAt;
         this.removedAt = removedAt;
-        this.tokenHash = tokenHash;
-        this.tokenStatus = tokenStatus;
-        this.tokenExpiresAt = tokenExpiresAt;
-        this.tokenCreatedAt = tokenCreatedAt;
-        this.tokenUpdatedAt = tokenUpdatedAt;
     }
 
     public UUID getId() {
@@ -158,25 +133,5 @@ public class MeetingInviteeJpaEntity {
 
     public @Nullable Instant getRemovedAt() {
         return removedAt;
-    }
-
-    public @Nullable String getTokenHash() {
-        return tokenHash;
-    }
-
-    public @Nullable String getTokenStatus() {
-        return tokenStatus;
-    }
-
-    public @Nullable Instant getTokenExpiresAt() {
-        return tokenExpiresAt;
-    }
-
-    public @Nullable Instant getTokenCreatedAt() {
-        return tokenCreatedAt;
-    }
-
-    public @Nullable Instant getTokenUpdatedAt() {
-        return tokenUpdatedAt;
     }
 }

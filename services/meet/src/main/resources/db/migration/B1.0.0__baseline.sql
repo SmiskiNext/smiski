@@ -290,12 +290,6 @@ WHERE
 -- ============================================================================
 -- meeting_invitees
 --
--- The invite token lives inline on the invitee row (token_* columns) instead of
--- a separate invite_tokens table: each invitee holds at most one token, so the
--- row itself guarantees a single active invite code at any point in time.
--- Rotating an invite overwrites the token_* columns; no token history is kept.
--- token_hash is unique per tenant; EXPIRED is derived from token_expires_at and
--- is never persisted (token_status stays PENDING until USED or REVOKED).
 -- The invitee status/role/rsvp columns mirror the iCalendar (RFC 5545) PARTSTAT,
 -- ROLE and RSVP attendee parameters.
 -- ============================================================================
@@ -324,14 +318,6 @@ CREATE TABLE meeting_invitees (
             'TENTATIVE'
         )
     ),
-    token_hash VARCHAR(64),
-    token_status VARCHAR(20) CHECK (
-        token_status IS NULL
-        OR token_status IN ('PENDING', 'USED', 'REVOKED', 'EXPIRED')
-    ),
-    token_expires_at TIMESTAMPTZ,
-    token_created_at TIMESTAMPTZ,
-    token_updated_at TIMESTAMPTZ,
     invited_at TIMESTAMPTZ NOT NULL DEFAULT now (),
     responded_at TIMESTAMPTZ,
     removed_at TIMESTAMPTZ,
@@ -430,14 +416,6 @@ CREATE INDEX idx_meeting_invitees_account ON meeting_invitees (tenant_id, accoun
 CREATE UNIQUE INDEX uq_meeting_invitees_active_meeting_email ON meeting_invitees (tenant_id, meeting_id, email)
 WHERE
     removed_at IS NULL;
-
-CREATE UNIQUE INDEX uq_meeting_invitees_token_hash ON meeting_invitees (tenant_id, token_hash)
-WHERE
-    token_hash IS NOT NULL;
-
-CREATE INDEX idx_meeting_invitees_token_status ON meeting_invitees (tenant_id, meeting_id, token_status)
-WHERE
-    token_status IS NOT NULL;
 
 -- ============================================================================
 -- outbox_event (BIGSERIAL -> UUIDv7; poller scans globally, tenant-scoped PK)

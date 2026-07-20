@@ -6,7 +6,6 @@ import io.github.smiskinext.meet.domain.event.InviteeAcceptedEvent;
 import io.github.smiskinext.meet.domain.event.InviteeDeclinedEvent;
 import io.github.smiskinext.meet.domain.model.valueobject.AccountId;
 import io.github.smiskinext.meet.domain.model.valueobject.Email;
-import io.github.smiskinext.meet.domain.model.valueobject.InviteToken;
 import io.github.smiskinext.meet.domain.model.valueobject.InviteeDisplayName;
 import io.github.smiskinext.meet.domain.model.valueobject.InviteeId;
 import io.github.smiskinext.meet.domain.model.valueobject.InviterId;
@@ -33,10 +32,6 @@ import org.jspecify.annotations.Nullable;
  * <p>{@code role} and {@code rsvp} mirror the iCalendar (RFC 5545) ROLE and RSVP attendee
  * parameters: {@code role} declares the participation expectation and {@code rsvp} whether a
  * response is requested from the invitee.
- *
- * <p>The invite token is carried inline on the invitee: each invitee holds at most one token,
- * so there is exactly one active invite code at any point in time. Rotating an invite overwrites
- * the token fields; no token history is retained.
  */
 public class MeetingInvitee extends AggregateRoot<InviteeId> {
 
@@ -53,7 +48,6 @@ public class MeetingInvitee extends AggregateRoot<InviteeId> {
     private final Instant invitedAt;
     private @Nullable Instant respondedAt;
     private @Nullable Instant removedAt;
-    private @Nullable InviteToken inviteToken;
 
     private MeetingInvitee(
             TenantId tenantId,
@@ -68,8 +62,7 @@ public class MeetingInvitee extends AggregateRoot<InviteeId> {
             InviteeStatus status,
             Instant invitedAt,
             @Nullable Instant respondedAt,
-            @Nullable Instant removedAt,
-            @Nullable InviteToken inviteToken) {
+            @Nullable Instant removedAt) {
         this.tenantId = tenantId;
         this.id = id;
         this.meetingId = meetingId;
@@ -83,12 +76,10 @@ public class MeetingInvitee extends AggregateRoot<InviteeId> {
         this.invitedAt = invitedAt;
         this.respondedAt = respondedAt;
         this.removedAt = removedAt;
-        this.inviteToken = inviteToken;
     }
 
     /**
-     * Factory method — creates a new NEEDS_ACTION invitation without an invite token.
-     * Call {@link #assignToken(String, Instant)} after generating the token.
+     * Factory method — creates a new NEEDS_ACTION invitation.
      */
     public static MeetingInvitee create(
             TenantId tenantId,
@@ -112,7 +103,6 @@ public class MeetingInvitee extends AggregateRoot<InviteeId> {
                 InviteeStatus.NEEDS_ACTION,
                 Instant.now(),
                 null,
-                null,
                 null);
     }
 
@@ -132,8 +122,7 @@ public class MeetingInvitee extends AggregateRoot<InviteeId> {
             InviteeStatus status,
             Instant invitedAt,
             @Nullable Instant respondedAt,
-            @Nullable Instant removedAt,
-            @Nullable InviteToken inviteToken) {
+            @Nullable Instant removedAt) {
         return new MeetingInvitee(
                 tenantId,
                 id,
@@ -147,62 +136,7 @@ public class MeetingInvitee extends AggregateRoot<InviteeId> {
                 status,
                 invitedAt,
                 respondedAt,
-                removedAt,
-                inviteToken);
-    }
-
-    /**
-     * Assigns a fresh invite token to this invitee, guaranteeing a single active invite code.
-     *
-     * @param tokenHash SHA-256 hash of the raw token string (the raw token is never stored)
-     * @param expiresAt future instant at which the token expires
-     * @return {@code Result.success()} on success, or {@code Result.failure(InvalidInviteToken)}
-     *     when a PENDING token already exists or {@code expiresAt} is not in the future
-     */
-    public Result<Void, MeetingError> assignToken(String tokenHash, Instant expiresAt) {
-        if (inviteToken != null && inviteToken.status() == InviteTokenStatus.PENDING) {
-            return Result.failure(
-                    new MeetingError.InvalidInviteToken(
-                            "Invitee already has an active invite token; revoke it before assigning a new one"));
-        }
-        return InviteToken.issue(tokenHash, expiresAt).map(token -> {
-            this.inviteToken = token;
-            return null;
-        });
-    }
-
-    /**
-     * Transitions the invite token to {@code USED}.
-     *
-     * @return {@code Result.success()} on success, or {@code Result.failure(InvalidInviteToken)}
-     *     when no token is present or the current status forbids the transition
-     */
-    public Result<Void, MeetingError> markTokenUsed() {
-        if (inviteToken == null) {
-            return Result.failure(
-                    new MeetingError.InvalidInviteToken("Invitee has no invite token"));
-        }
-        return inviteToken.markUsed().map(token -> {
-            this.inviteToken = token;
-            return null;
-        });
-    }
-
-    /**
-     * Transitions the invite token to {@code REVOKED}.
-     *
-     * @return {@code Result.success()} on success, or {@code Result.failure(InvalidInviteToken)}
-     *     when no token is present or the current status forbids the transition
-     */
-    public Result<Void, MeetingError> revokeToken() {
-        if (inviteToken == null) {
-            return Result.failure(
-                    new MeetingError.InvalidInviteToken("Invitee has no invite token"));
-        }
-        return inviteToken.revoke().map(token -> {
-            this.inviteToken = token;
-            return null;
-        });
+                removedAt);
     }
 
     public void remove() {
@@ -320,12 +254,5 @@ public class MeetingInvitee extends AggregateRoot<InviteeId> {
 
     public Optional<Instant> getRemovedAt() {
         return Optional.ofNullable(removedAt);
-    }
-
-    /**
-     * Returns the current invite token, if one has been assigned.
-     */
-    public Optional<InviteToken> getInviteToken() {
-        return Optional.ofNullable(inviteToken);
     }
 }

@@ -10,9 +10,6 @@ import org.jspecify.annotations.Nullable;
  * Published when a meeting is scheduled with a non-empty invitee list.
  * Carries enough information for the notification service to send invitation emails.
  *
- * <p>Each invitee has a per-invitee invite token embedded directly in {@link InviteeInfo}.
- * The token-based link should be used by the notification service to build the join URL.
- *
  * @param eventId          unique identifier for this event occurrence
  * @param meetingId        ID of the meeting aggregate
  * @param meetingTitle     human-readable title of the meeting
@@ -20,7 +17,7 @@ import org.jspecify.annotations.Nullable;
  * @param startTime        scheduled start time, or {@code null} for instant meetings
  * @param endTime          scheduled end time, or {@code null} for instant meetings
  * @param zoneId           host IANA time zone id
- * @param invitees         list of resolved invitees with display info and tokens
+ * @param invitees         list of resolved invitees with display info
  * @param occurredAt       timestamp when the event occurred
  */
 public record MeetingInvitationsCreatedEvent(
@@ -46,15 +43,9 @@ public record MeetingInvitationsCreatedEvent(
      * @param accountId   resolved Jira account ID (always present — invitees are frontend-resolved)
      * @param email       the invite target email
      * @param displayName the user's full name at invite time
-     * @param token       the raw invite token for building the join URL
      */
     public record InviteeInfo(
-            UUID inviteeId,
-            String accountId,
-            String email,
-            String displayName,
-            String status,
-            String token) {}
+            UUID inviteeId, String accountId, String email, String displayName, String status) {}
 
     @Override
     public String aggregateId() {
