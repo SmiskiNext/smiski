@@ -1,24 +1,69 @@
+# Smiski — Forge app manifest
+#
+# Declares the two Custom UI surfaces for the embedded-meeting module:
+#   1. jira:issueContext — per-Issue quick access in Jira's right sidebar
+#   2. jira:projectPage — project-wide meeting management (dashboard + room)
+#
+# Both modules render the SAME Custom UI bundle (static/smiski-ui). The frontend
+# branches on the Forge module context (moduleKey) to mount the correct root
+# component. See static/smiski-ui/src/App.tsx.
+#
+# NOTE: All resolver/function handlers are STUB placeholders — no business logic
+# is wired up yet. See src/index.ts.
+
 modules:
-    jira:issuePanel:
-        - key: smiski-hello-world-panel
-          resource: main
-          resolver:
-              function: resolver
-          viewportSize: medium
-          title: smiski
-          icon: https://developer.atlassian.com/platform/forge/images/issue-panel-icon.svg
-    function:
-        - key: resolver
-          handler: index.handler
+  jira:issueContext:
+    - key: smiski-issue-context
+      resource: main
+      resolver:
+        function: resolver
+      title: Smiski Meetings
+      label: Smiski Meetings
+      description: Meetings linked to this Jira issue
+      icon: https://developer.atlassian.com/platform/forge/images/issue-panel-icon.svg
+
+  jira:projectPage:
+    - key: smiski-project-page
+      resource: main
+      resolver:
+        function: resolver
+      title: Smiski Meetings
+      layout: blank
+      icon: https://developer.atlassian.com/platform/forge/images/issue-panel-icon.svg
+
+  function:
+    - key: resolver
+      handler: index.handler
+
 resources:
-    - key: main
-      path: static/hello-world/build
+  # Single Vite build output shared by both modules.
+  # `pnpm --filter smiski-ui build` emits to static/smiski-ui/dist
+  - key: main
+    path: static/smiski-ui/dist
+
 permissions:
-    scopes:
-        - read:jira-work
+  scopes:
+    - read:jira-work
+    - read:jira-user     # current user (/myself) + assignable project member lookup
+    # - read:me            # TODO: enable if we need the invoking user's identity/profile
+    # - offline_access     # TODO: enable if the identity bridge needs refresh tokens
+
+  # TODO: Egress — the app talks to the backend ONLY through the Kong Gateway.
+  # Fill in the real gateway origin(s) before deploying. `backend` covers Forge
+  # `fetch` from the resolver; `client` covers fetch/WebSocket from Custom UI
+  # (needed for the LiveKit client SDK inside the meeting room).
+  external:
+    fetch:
+      backend:
+        - 'https://TODO-kong-gateway.smiski.example' # Kong API Gateway
+      client:
+        - 'https://TODO-kong-gateway.smiski.example' # meeting/token endpoints
+        # LiveKit Cloud signalling (real project — Kong entry above is still TODO)
+        - 'wss://smiski-meeting-2rcpqikr.livekit.cloud'
+
 app:
-    runtime:
-        name: nodejs24.x
-        memoryMB: 256
-        architecture: arm64
-    id: ari:cloud:ecosystem::app/253a4c6c-4a64-40b1-bb43-b88cde614029
+  runtime:
+    name: nodejs24.x
+    memoryMB: 256
+    architecture: arm64
+  id: ari:cloud:ecosystem::app/5e00d851-2813-4c0b-b447-c4fd5ba7b150
