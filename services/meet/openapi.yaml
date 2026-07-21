@@ -78,6 +78,79 @@ paths:
         type: integer
         format: int32
       example: 1
+  /api/{version}/meetings/{id}/invitees:
+    put:
+      tags:
+      - meeting-controller
+      summary: Replace a meeting's invitee list
+      description: "Replaces the full invitee list of a SCHEDULED meeting as its host.\
+        \ Invitees are matched by accountId: new entries are created, existing entries\
+        \ have their display name updated, and absent entries are removed."
+      operationId: updateInvitees
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateMeetingInviteesRequest"
+        required: true
+      responses:
+        "200":
+          description: Invitees synchronized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UpdateMeetingInviteesResponse"
+        "400":
+          description: Validation error or missing account
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "403":
+          description: Only the host may modify invitees
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "404":
+          description: Meeting not found
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "405":
+          description: Method Not Allowed
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "415":
+          description: Unsupported Media Type
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "500":
+          description: Internal Server Error
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+    parameters:
+    - name: version
+      in: path
+      required: true
+      schema:
+        type: integer
+        format: int32
+      example: 1
   /api/{version}/meetings:schedule:
     post:
       tags:
@@ -484,17 +557,61 @@ components:
         email:
           type: string
           format: email
-          minLength: 1
+          maxLength: 255
+          minLength: 0
         accountId:
           type: string
           minLength: 1
         displayName:
           type: string
-          minLength: 1
+          maxLength: 255
+          minLength: 0
       required:
       - accountId
       - displayName
       - email
+    UpdateMeetingInviteesRequest:
+      type: object
+      description: Request body for replacing the invitee list of a meeting
+      properties:
+        invitees:
+          type: array
+          description: Full invitee list to synchronize
+          items:
+            $ref: "#/components/schemas/Invitee"
+      required:
+      - invitees
+    MeetingInviteeSnapshot:
+      type: object
+      description: Meeting invitee snapshot
+      properties:
+        id:
+          type: string
+          format: uuid
+        accountId:
+          type: string
+        email:
+          type: string
+        displayName:
+          type: string
+        role:
+          type: string
+        status:
+          type: string
+        invitedAt:
+          type: string
+          format: date-time
+        respondedAt:
+          type: string
+          format: date-time
+    UpdateMeetingInviteesResponse:
+      type: object
+      description: Response containing the current active invitee list of a meeting
+      properties:
+        invitees:
+          type: array
+          items:
+            $ref: "#/components/schemas/MeetingInviteeSnapshot"
     ScheduleMeetingRequest:
       type: object
       description: Request body for creating a scheduled meeting

@@ -4,16 +4,20 @@ import io.github.smiskinext.meet.application.command.CreateInstantMeetingCommand
 import io.github.smiskinext.meet.application.command.ScheduleMeetingCommand;
 import io.github.smiskinext.meet.application.result.CreateInstantMeetingResult;
 import io.github.smiskinext.meet.application.result.ScheduleMeetingResult;
+import io.github.smiskinext.meet.application.result.UpdateMeetingInviteesResult;
 import io.github.smiskinext.meet.application.result.UpdateMeetingResult;
 import io.github.smiskinext.meet.application.usecase.CreateInstantMeetingUseCase;
 import io.github.smiskinext.meet.application.usecase.ScheduleMeetingUseCase;
+import io.github.smiskinext.meet.application.usecase.UpdateMeetingInviteesUseCase;
 import io.github.smiskinext.meet.application.usecase.UpdateMeetingUseCase;
 import io.github.smiskinext.meet.domain.MeetingError;
 import io.github.smiskinext.meet.presentation.request.CreateInstantMeetingRequest;
 import io.github.smiskinext.meet.presentation.request.ScheduleMeetingRequest;
+import io.github.smiskinext.meet.presentation.request.UpdateMeetingInviteesRequest;
 import io.github.smiskinext.meet.presentation.request.UpdateMeetingRequest;
 import io.github.smiskinext.meet.presentation.response.CreateInstantMeetingResponse;
 import io.github.smiskinext.meet.presentation.response.ScheduleMeetingResponse;
+import io.github.smiskinext.meet.presentation.response.UpdateMeetingInviteesResponse;
 import io.github.smiskinext.meet.presentation.response.UpdateMeetingResponse;
 import io.github.smiskinext.shared.domain.Result;
 import io.github.smiskinext.shared.infrastructure.identity.AccountContext;
@@ -44,16 +48,19 @@ public class MeetingController {
     private final CreateInstantMeetingUseCase createInstantMeetingUseCase;
     private final ScheduleMeetingUseCase scheduleMeetingUseCase;
     private final UpdateMeetingUseCase updateMeetingUseCase;
+    private final UpdateMeetingInviteesUseCase updateMeetingInviteesUseCase;
     private final ResultResponder responder;
 
     public MeetingController(
             CreateInstantMeetingUseCase createInstantMeetingUseCase,
             ScheduleMeetingUseCase scheduleMeetingUseCase,
             UpdateMeetingUseCase updateMeetingUseCase,
+            UpdateMeetingInviteesUseCase updateMeetingInviteesUseCase,
             ResultResponder responder) {
         this.createInstantMeetingUseCase = createInstantMeetingUseCase;
         this.scheduleMeetingUseCase = scheduleMeetingUseCase;
         this.updateMeetingUseCase = updateMeetingUseCase;
+        this.updateMeetingInviteesUseCase = updateMeetingInviteesUseCase;
         this.responder = responder;
     }
 
@@ -106,6 +113,61 @@ public class MeetingController {
         Result<UpdateMeetingResult, MeetingError> result = updateMeetingUseCase.execute(
                 request.toCommand(id, accountId, TenantContext.getCurrentTenant()));
         return responder.ok(result.map(UpdateMeetingResponse::from));
+    }
+
+    @Operation(
+            summary = "Replace a meeting's invitee list",
+            description = "Replaces the full invitee list of a SCHEDULED meeting as its host. "
+                    + "Invitees are matched by accountId: new entries are created, existing entries "
+                    + "have their display name updated, and absent entries are removed.")
+    @ApiResponses({
+        @ApiResponse(
+                responseCode = "200",
+                description = "Invitees synchronized",
+                content =
+                        @Content(
+                                mediaType = "application/json",
+                                schema =
+                                        @Schema(
+                                                implementation =
+                                                        UpdateMeetingInviteesResponse.class))),
+        @ApiResponse(
+                responseCode = "400",
+                description = "Validation error or missing account",
+                content =
+                        @Content(
+                                mediaType = "application/problem+json",
+                                schema = @Schema(implementation = ProblemDetailSchema.class))),
+        @ApiResponse(
+                responseCode = "403",
+                description = "Only the host may modify invitees",
+                content =
+                        @Content(
+                                mediaType = "application/problem+json",
+                                schema = @Schema(implementation = ProblemDetailSchema.class))),
+        @ApiResponse(
+                responseCode = "404",
+                description = "Meeting not found",
+                content =
+                        @Content(
+                                mediaType = "application/problem+json",
+                                schema = @Schema(implementation = ProblemDetailSchema.class)))
+    })
+    @PutMapping("/meetings/{id}/invitees")
+    public ResponseEntity<Object> updateInvitees(
+            @PathVariable UUID id, @Valid @RequestBody UpdateMeetingInviteesRequest request) {
+        String accountId = AccountContext.getCurrentAccount().orElse(null);
+        if (accountId == null) {
+            return ResponseEntity.badRequest()
+                    .contentType(org.springframework.http.MediaType.APPLICATION_PROBLEM_JSON)
+                    .body(org.springframework.http.ProblemDetail.forStatusAndDetail(
+                            org.springframework.http.HttpStatus.BAD_REQUEST,
+                            "X-Account-Id header is required"));
+        }
+        Result<UpdateMeetingInviteesResult, MeetingError> result =
+                updateMeetingInviteesUseCase.execute(
+                        request.toCommand(id, accountId, TenantContext.getCurrentTenant()));
+        return responder.ok(result.map(UpdateMeetingInviteesResponse::from));
     }
 
     @Operation(
