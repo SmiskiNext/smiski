@@ -12,8 +12,9 @@
         "openapi:meet": "./services/gradlew -p services/meet generateOpenApiDocsFromTests",
         "openapi:record": "./services/gradlew -p services/record generateOpenApiDocsFromTests",
         "openapi:generate": "pnpm run openapi:tenant && pnpm run openapi:meet && pnpm run openapi:record",
-        "openapi:lint": "redocly lint services/tenant/openapi.yaml services/meet/openapi.yaml services/record/openapi.yaml",
-        "openapi": "pnpm run openapi:generate && pnpm run openapi:lint"
+        "openapi:join": "redocly join services/tenant/openapi.yaml services/meet/openapi.yaml services/record/openapi.yaml --prefix-components-with-info-prop title -o services/openapi.yaml && redocly bundle services/openapi.yaml --config services/redocly-merge.yaml -o services/openapi.yaml",
+        "openapi:lint": "redocly lint services/tenant/openapi.yaml services/meet/openapi.yaml services/record/openapi.yaml services/openapi.yaml",
+        "openapi": "pnpm run openapi:generate && pnpm run openapi:join && pnpm run openapi:lint"
     },
     "keywords": [],
     "author": "",

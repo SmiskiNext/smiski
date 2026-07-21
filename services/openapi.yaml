@@ -1,0 +1,1569 @@
+openapi: 3.1.0
+info:
+    title: Smiski API
+    version: 1.0.0
+    description: Unified API surface across tenant, meet, and record services.
+servers:
+    - url: http://localhost:8080
+      description: API Gateway
+tags:
+    - name: tenant-controller
+      x-displayName: tenant-controller
+    - name: meeting-controller
+      x-displayName: meeting-controller
+paths:
+    /api/{version}/tenants:
+        post:
+            tags:
+                - tenant-controller
+            summary: Register a tenant
+            description:
+                Registers a new tenant installation or acknowledges a
+                reinstall/redelivery. Returns 201 on first install with a
+                Location header, 200 on reinstall.
+            operationId: register
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/Tenant_RegisterTenantRequest'
+                required: true
+            responses:
+                '200':
+                    description: Tenant already exists (reinstall/redelivery)
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/Tenant_TenantResponse'
+                            examples:
+                                reinstall:
+                                    description: reinstall
+                                    value:
+                                        installationId: install-new-789
+                                        appId: app-1
+                                        appVersion: 2.0.0
+                                        environmentId: null
+                                        siteUrl: null
+                                        installerAccountId: null
+                                        status: ACTIVE
+                                        installedAt: '2025-01-15T10:30:00Z'
+                                        updatedAt: '2025-06-15T10:30:00Z'
+                                        uninstalledAt: null
+                                        purgeAfter: null
+                '201':
+                    description: Tenant registered (first install)
+                    headers:
+                        Location:
+                            description:
+                                URI of the newly created tenant resource
+                            style: simple
+                            schema:
+                                type: string
+                                format: uri
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/Tenant_TenantResponse'
+                            examples:
+                                created:
+                                    description: created
+                                    value:
+                                        installationId: install-xyz-456
+                                        appId: app-1
+                                        appVersion: 1.0.0
+                                        environmentId: env-1
+                                        siteUrl: https://example.atlassian.net
+                                        installerAccountId: installer-1
+                                        status: ACTIVE
+                                        installedAt: '2025-01-15T10:30:00Z'
+                                        updatedAt: '2025-01-15T10:30:00Z'
+                                        uninstalledAt: null
+                                        purgeAfter: null
+                '400':
+                    description: Bad Request
+                    content:
+                        application/problem+json:
+                            schema:
+                                $ref: '#/components/schemas/Tenant_ProblemDetail'
+                            examples:
+                                validationError:
+                                    summary: Validation failure
+                                    description: validationError
+                                    value:
+                                        type: about:blank
+                                        title: Bad Request
+                                        status: 400
+                                        detail:
+                                            The request body failed validation
+                                        code: VALIDATION_ERROR
+                                        traceId: 6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a
+                                        errors:
+                                            - field: id
+                                              code: REQUIRED
+                                              message: must not be blank
+                                malformedRequest:
+                                    summary: Malformed JSON body
+                                    description: malformedRequest
+                                    value:
+                                        type: about:blank
+                                        title: Bad Request
+                                        status: 400
+                                        detail:
+                                            The request body could not be read
+                                        code: MALFORMED_REQUEST
+                                        traceId: 6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a
+                                missingTenantContext:
+                                    summary: Missing X-Tenant-ID header
+                                    description: missingTenantContext
+                                    value:
+                                        type: about:blank
+                                        title: Bad Request
+                                        status: 400
+                                        detail:
+                                            Tenant context is required but was
+                                            not provided
+                                        code: MISSING_TENANT_CONTEXT
+                                        traceId: 6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a
+                '405':
+                    description: Method Not Allowed
+                    content:
+                        application/problem+json:
+                            schema:
+                                $ref: '#/components/schemas/Tenant_ProblemDetail'
+                '415':
+                    description: Unsupported Media Type
+                    content:
+                        application/problem+json:
+                            schema:
+                                $ref: '#/components/schemas/Tenant_ProblemDetail'
+                '500':
+                    description: Internal Server Error
+                    content:
+                        application/problem+json:
+                            schema:
+                                $ref: '#/components/schemas/Tenant_ProblemDetail'
+        delete:
+            tags:
+                - tenant-controller
+            summary: Uninstall a tenant
+            description:
+                Records a Forge app uninstall. Marks the tenant as UNINSTALLED
+                and schedules purge. Idempotent for already-uninstalled tenants.
+            operationId: uninstall
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/Tenant_UninstallTenantRequest'
+            responses:
+                '200':
+                    description: Tenant uninstalled (or already uninstalled)
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/Tenant_UninstallTenantResponse'
+                            examples:
+                                uninstalled:
+                                    description: uninstalled
+                                    value:
+                                        installationId: install-xyz-456
+                                        appId: app-1
+                                        appVersion: 1.0.0
+                                        environmentId: null
+                                        siteUrl: null
+                                        installerAccountId: null
+                                        status: UNINSTALLED
+                                        installedAt: '2025-01-15T10:30:00Z'
+                                        updatedAt: '2025-06-15T10:30:00Z'
+                                        uninstalledAt: '2025-06-15T10:30:00Z'
+                                        purgeAfter: '2025-07-15T10:30:00Z'
+                '400':
+                    description: Missing tenant context
+                    content:
+                        application/problem+json:
+                            schema:
+                                $ref: '#/components/schemas/Tenant_ProblemDetail'
+                            examples:
+                                missingTenantContext:
+                                    description: missingTenantContext
+                                    value:
+                                        type: about:blank
+                                        title: Bad Request
+                                        status: 400
+                                        detail:
+                                            Tenant context is required but was
+                                            not provided
+                                        code: MISSING_TENANT_CONTEXT
+                                        traceId: 6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a
+                '404':
+                    description: Tenant not found
+                    content:
+                        application/problem+json:
+                            schema:
+                                $ref: '#/components/schemas/Tenant_ProblemDetail'
+                            examples:
+                                notFound:
+                                    description: notFound
+                                    value:
+                                        type: about:blank
+                                        title: Tenant Not Found
+                                        status: 404
+                                        detail:
+                                            No tenant exists for the given cloud
+                                            ID
+                                        code: TENANT_NOT_FOUND
+                                        traceId: 6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a
+                '405':
+                    description: Method Not Allowed
+                    content:
+                        application/problem+json:
+                            schema:
+                                $ref: '#/components/schemas/Tenant_ProblemDetail'
+                '415':
+                    description: Unsupported Media Type
+                    content:
+                        application/problem+json:
+                            schema:
+                                $ref: '#/components/schemas/Tenant_ProblemDetail'
+                '500':
+                    description: Internal Server Error
+                    content:
+                        application/problem+json:
+                            schema:
+                                $ref: '#/components/schemas/Tenant_ProblemDetail'
+        parameters:
+            - name: version
+              in: path
+              required: true
+              schema:
+                  type: integer
+                  format: int32
+              example: 1
+    /api/{version}/meetings/{id}:
+        put:
+            tags:
+                - meeting-controller
+            summary: Update a meeting
+            description:
+                Updates a meeting as its host. Information and settings are
+                mutable while scheduled or running; scheduled details are
+                mutable only while scheduled.
+            operationId: update
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                      type: string
+                      format: uuid
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/Meet_UpdateMeetingRequest'
+                required: true
+            responses:
+                '200':
+                    description: Meeting updated
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/Meet_UpdateMeetingResponse'
+                            examples:
+                                updated:
+                                    description: updated
+                                    value:
+                                        meeting:
+                                            id: 0195e0c2-8f3a-7c21-b9d4-2f1a6e7c8d90
+                                            hostId: account-123
+                                            shortCode: abc-defg-hij
+                                            type: SCHEDULED
+                                            status: SCHEDULED
+                                            title: Sprint planning
+                                            description: Plan the next sprint
+                                            issueLink:
+                                                issueId: '10001'
+                                                issueKey: PROJ-1
+                                                projectKey: PROJ
+                                            settings:
+                                                admissionPolicy: ALLOW_ALL
+                                                maxParticipants: 50
+                                                allowScreenShare: true
+                                                chatEnabled: true
+                                                allowMicrophone: true
+                                                allowVideo: true
+                                            startTime: '2025-02-01T14:00:00Z'
+                                            endTime: '2025-02-01T15:00:00Z'
+                                            zoneId: Asia/Ho_Chi_Minh
+                                            organizerEmail: host@example.com
+                                            organizerDisplayName: Host User
+                                            calendarUid: meeting-0195e0c2@smiski.app
+                                            calendarSequence: 1
+                                            createdAt: '2025-01-15T10:30:00Z'
+                '400':
+                    description: Validation error or missing account
+                    content:
+                        application/problem+json:
+                            schema:
+                                $ref: '#/components/schemas/Meet_ProblemDetail'
+                            examples:
+                                validationError:
+                                    summary: Validation failure
+                                    description: validationError
+                                    value:
+                                        type: about:blank
+                                        title: Bad Request
+                                        status: 400
+                                        detail:
+                                            The request body failed validation
+                                        code: VALIDATION_ERROR
+                                        traceId: 6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a
+                                        errors:
+                                            - field: title
+                                              code: REQUIRED
+                                              message: must not be blank
+                                missingAccount:
+                                    summary: Missing X-Account-Id header
+                                    description: missingAccount
+                                    value:
+                                        type: about:blank
+                                        title: Bad Request
+                                        status: 400
+                                        detail: X-Account-Id header is required
+                                        code: VALIDATION_ERROR
+                                        traceId: 6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a
+                '403':
+                    description: Only the host may update the meeting
+                    content:
+                        application/problem+json:
+                            schema:
+                                $ref: '#/components/schemas/Meet_ProblemDetail'
+                            examples:
+                                notOwner:
+                                    description: notOwner
+                                    value:
+                                        type: about:blank
+                                        title: Forbidden
+                                        status: 403
+                                        detail:
+                                            Only the host may update the meeting
+                                        code: NOT_OWNER
+                                        traceId: 6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a
+                '404':
+                    description: Meeting not found
+                    content:
+                        application/problem+json:
+                            schema:
+                                $ref: '#/components/schemas/Meet_ProblemDetail'
+                            examples:
+                                notFound:
+                                    description: notFound
+                                    value:
+                                        type: about:blank
+                                        title: Not Found
+                                        status: 404
+                                        detail: Meeting not found
+                                        code: MEETING_NOT_FOUND
+                                        traceId: 6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a
+                '405':
+                    description: Method Not Allowed
+                    content:
+                        application/problem+json:
+                            schema:
+                                $ref: '#/components/schemas/Meet_ProblemDetail'
+                '415':
+                    description: Unsupported Media Type
+                    content:
+                        application/problem+json:
+                            schema:
+                                $ref: '#/components/schemas/Meet_ProblemDetail'
+                '500':
+                    description: Internal Server Error
+                    content:
+                        application/problem+json:
+                            schema:
+                                $ref: '#/components/schemas/Meet_ProblemDetail'
+        parameters:
+            - name: version
+              in: path
+              required: true
+              schema:
+                  type: integer
+                  format: int32
+              example: 1
+    /api/{version}/meetings/{id}/invitees:
+        put:
+            tags:
+                - meeting-controller
+            summary: Replace a meeting's invitee list
+            description:
+                'Replaces the full invitee list of a SCHEDULED meeting as its
+                host. Invitees are matched by accountId: new entries are
+                created, existing entries have their display name updated, and
+                absent entries are removed.'
+            operationId: updateInvitees
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                      type: string
+                      format: uuid
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/Meet_UpdateMeetingInviteesRequest'
+                required: true
+            responses:
+                '200':
+                    description: Invitees synchronized
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/Meet_UpdateMeetingInviteesResponse'
+                            examples:
+                                synchronized:
+                                    description: synchronized
+                                    value:
+                                        invitees:
+                                            - id: 0195e0c2-8f3a-7c21-b9d4-3a2b1c4d5e60
+                                              accountId: account-456
+                                              email: alice@example.com
+                                              displayName: Alice Nguyen
+                                              role: PARTICIPANT
+                                              status: PENDING
+                                              invitedAt: '2025-01-15T10:35:00Z'
+                                              respondedAt: null
+                                            - id: 0195e0c2-8f3a-7c21-b9d4-4b3c2d5e6f70
+                                              accountId: account-789
+                                              email: bob@example.com
+                                              displayName: Bob Tran
+                                              role: PARTICIPANT
+                                              status: ACCEPTED
+                                              invitedAt: '2025-01-15T10:35:00Z'
+                                              respondedAt: '2025-01-15T11:00:00Z'
+                '400':
+                    description: Validation error or missing account
+                    content:
+                        application/problem+json:
+                            schema:
+                                $ref: '#/components/schemas/Meet_ProblemDetail'
+                            examples:
+                                validationError:
+                                    summary: Validation failure
+                                    description: validationError
+                                    value:
+                                        type: about:blank
+                                        title: Bad Request
+                                        status: 400
+                                        detail:
+                                            The request body failed validation
+                                        code: VALIDATION_ERROR
+                                        traceId: 6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a
+                                        errors:
+                                            - field: invitees[0].email
+                                              code: EMAIL
+                                              message:
+                                                  must be a well-formed email
+                                                  address
+                                missingAccount:
+                                    summary: Missing X-Account-Id header
+                                    description: missingAccount
+                                    value:
+                                        type: about:blank
+                                        title: Bad Request
+                                        status: 400
+                                        detail: X-Account-Id header is required
+                                        code: VALIDATION_ERROR
+                                        traceId: 6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a
+                '403':
+                    description: Only the host may modify invitees
+                    content:
+                        application/problem+json:
+                            schema:
+                                $ref: '#/components/schemas/Meet_ProblemDetail'
+                            examples:
+                                notOwner:
+                                    description: notOwner
+                                    value:
+                                        type: about:blank
+                                        title: Forbidden
+                                        status: 403
+                                        detail:
+                                            Only the host may modify invitees
+                                        code: NOT_OWNER
+                                        traceId: 6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a
+                '404':
+                    description: Meeting not found
+                    content:
+                        application/problem+json:
+                            schema:
+                                $ref: '#/components/schemas/Meet_ProblemDetail'
+                            examples:
+                                notFound:
+                                    description: notFound
+                                    value:
+                                        type: about:blank
+                                        title: Not Found
+                                        status: 404
+                                        detail: Meeting not found
+                                        code: MEETING_NOT_FOUND
+                                        traceId: 6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a
+                '405':
+                    description: Method Not Allowed
+                    content:
+                        application/problem+json:
+                            schema:
+                                $ref: '#/components/schemas/Meet_ProblemDetail'
+                '415':
+                    description: Unsupported Media Type
+                    content:
+                        application/problem+json:
+                            schema:
+                                $ref: '#/components/schemas/Meet_ProblemDetail'
+                '500':
+                    description: Internal Server Error
+                    content:
+                        application/problem+json:
+                            schema:
+                                $ref: '#/components/schemas/Meet_ProblemDetail'
+        parameters:
+            - name: version
+              in: path
+              required: true
+              schema:
+                  type: integer
+                  format: int32
+              example: 1
+    /api/{version}/meetings:schedule:
+        post:
+            tags:
+                - meeting-controller
+            summary: Create a scheduled meeting
+            description:
+                Creates a new SCHEDULED meeting with a future time range. The
+                meeting stays in SCHEDULED status and no LiveKit token is
+                issued.
+            operationId: schedule
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/Meet_ScheduleMeetingRequest'
+                required: true
+            responses:
+                '201':
+                    description: Scheduled meeting created
+                    headers:
+                        Location:
+                            description: URI of the newly created meeting
+                            style: simple
+                            schema:
+                                type: string
+                                format: uri
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/Meet_ScheduleMeetingResponse'
+                            examples:
+                                created:
+                                    description: created
+                                    value:
+                                        meeting:
+                                            id: 0195e0c2-8f3a-7c21-b9d4-2f1a6e7c8d90
+                                            hostId: account-123
+                                            shortCode: abc-defg-hij
+                                            type: SCHEDULED
+                                            status: SCHEDULED
+                                            title: Sprint planning
+                                            description: Plan the next sprint
+                                            issueLink:
+                                                issueId: '10001'
+                                                issueKey: PROJ-1
+                                                projectKey: PROJ
+                                            settings:
+                                                admissionPolicy: OPEN
+                                                maxParticipants: 50
+                                                allowScreenShare: true
+                                                chatEnabled: true
+                                                allowMicrophone: true
+                                                allowVideo: true
+                                            startTime: '2025-02-01T14:00:00Z'
+                                            endTime: '2025-02-01T15:00:00Z'
+                                            createdAt: '2025-01-15T10:30:00Z'
+                '400':
+                    description:
+                        Validation error, missing account header, or start time
+                        in past
+                    content:
+                        application/problem+json:
+                            schema:
+                                $ref: '#/components/schemas/Meet_ProblemDetail'
+                            examples:
+                                validationError:
+                                    summary: Validation failure
+                                    description: validationError
+                                    value:
+                                        type: about:blank
+                                        title: Bad Request
+                                        status: 400
+                                        detail:
+                                            The request body failed validation
+                                        code: VALIDATION_ERROR
+                                        traceId: 6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a
+                                        errors:
+                                            - field: settings
+                                              code: REQUIRED
+                                              message: must not be null
+                                startTimeInPast:
+                                    summary: Start time is in the past
+                                    description: startTimeInPast
+                                    value:
+                                        type: about:blank
+                                        title: Start time is in the past
+                                        status: 400
+                                        detail:
+                                            'The scheduled start time is in the
+                                            past: {0}.'
+                                        code: MEETING_START_IN_PAST
+                                        traceId: 6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a
+                '405':
+                    description: Method Not Allowed
+                    content:
+                        application/problem+json:
+                            schema:
+                                $ref: '#/components/schemas/Meet_ProblemDetail'
+                '415':
+                    description: Unsupported Media Type
+                    content:
+                        application/problem+json:
+                            schema:
+                                $ref: '#/components/schemas/Meet_ProblemDetail'
+                '500':
+                    description: Internal Server Error
+                    content:
+                        application/problem+json:
+                            schema:
+                                $ref: '#/components/schemas/Meet_ProblemDetail'
+        parameters:
+            - name: version
+              in: path
+              required: true
+              schema:
+                  type: integer
+                  format: int32
+              example: 1
+    /api/{version}/meetings:instant:
+        post:
+            tags:
+                - meeting-controller
+            summary: Create an instant meeting
+            description:
+                Creates a new INSTANT meeting, auto-starts it to RUNNING,
+                registers invitees with invite tokens, and returns a meeting
+                snapshot plus a LiveKit HOST access token.
+            operationId: createInstant
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/Meet_CreateInstantMeetingRequest'
+                required: true
+            responses:
+                '201':
+                    description: Instant meeting created
+                    headers:
+                        Location:
+                            description: URI of the newly created meeting
+                            style: simple
+                            schema:
+                                type: string
+                                format: uri
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/Meet_CreateInstantMeetingResponse'
+                            examples:
+                                created:
+                                    description: created
+                                    value:
+                                        meeting:
+                                            id: 0195e0c2-8f3a-7c21-b9d4-2f1a6e7c8d90
+                                            hostId: account-123
+                                            shortCode: abc-defg-hij
+                                            type: INSTANT
+                                            status: RUNNING
+                                            title: Daily standup
+                                            description: Quick sync on progress
+                                            issueLink:
+                                                issueId: '10001'
+                                                issueKey: PROJ-1
+                                                projectKey: PROJ
+                                            settings:
+                                                admissionPolicy: OPEN
+                                                maxParticipants: 50
+                                                allowScreenShare: true
+                                                chatEnabled: true
+                                                allowMicrophone: true
+                                                allowVideo: true
+                                            createdAt: '2025-01-15T10:30:00Z'
+                                        livekit:
+                                            token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.example.token
+                                            roomName: meeting-0195e0c2
+                '400':
+                    description: Validation error or missing account header
+                    content:
+                        application/problem+json:
+                            schema:
+                                $ref: '#/components/schemas/Meet_ProblemDetail'
+                            examples:
+                                validationError:
+                                    summary: Validation failure
+                                    description: validationError
+                                    value:
+                                        type: about:blank
+                                        title: Bad Request
+                                        status: 400
+                                        detail:
+                                            The request body failed validation
+                                        code: VALIDATION_ERROR
+                                        traceId: 6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a
+                                        errors:
+                                            - field: settings
+                                              code: REQUIRED
+                                              message: must not be null
+                                missingAccount:
+                                    summary: Missing X-Account-Id header
+                                    description: missingAccount
+                                    value:
+                                        type: about:blank
+                                        title: Bad Request
+                                        status: 400
+                                        detail: X-Account-Id header is required
+                                        code: VALIDATION_ERROR
+                                        traceId: 6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a
+                '405':
+                    description: Method Not Allowed
+                    content:
+                        application/problem+json:
+                            schema:
+                                $ref: '#/components/schemas/Meet_ProblemDetail'
+                '415':
+                    description: Unsupported Media Type
+                    content:
+                        application/problem+json:
+                            schema:
+                                $ref: '#/components/schemas/Meet_ProblemDetail'
+                '500':
+                    description: Internal Server Error
+                    content:
+                        application/problem+json:
+                            schema:
+                                $ref: '#/components/schemas/Meet_ProblemDetail'
+        parameters:
+            - name: version
+              in: path
+              required: true
+              schema:
+                  type: integer
+                  format: int32
+              example: 1
+components:
+    schemas:
+        Tenant_App:
+            type: object
+            description: Application metadata for the installation
+            properties:
+                id:
+                    type: string
+                    description: Unique application identifier
+                    example: app-1
+                    minLength: 1
+                version:
+                    type: string
+                    description: Application version
+                    example: 1.0.0
+                name:
+                    type:
+                        - string
+                        - 'null'
+                    description: Human-readable application name
+                    example: My App
+                ownerAccountId:
+                    type:
+                        - string
+                        - 'null'
+                    description: Account ID of the application owner
+                    example: owner-abc-123
+            required:
+                - id
+                - version
+        Tenant_Environment:
+            type: object
+            description: Environment context for the installation
+            properties:
+                id:
+                    type:
+                        - string
+                        - 'null'
+                    description: Environment identifier
+                    example: env-prod-1
+        Tenant_RegisterTenantRequest:
+            type: object
+            description: Request body for registering a tenant installation
+            properties:
+                id:
+                    type: string
+                    description: Unique installation identifier
+                    example: install-xyz-456
+                    minLength: 1
+                installerAccountId:
+                    type:
+                        - string
+                        - 'null'
+                    description: Account ID of the user who installed the app
+                    example: account-abc-123
+                app:
+                    $ref: '#/components/schemas/Tenant_App'
+                environment:
+                    type: 'null'
+                    $ref: '#/components/schemas/Tenant_Environment'
+                siteUrl:
+                    type:
+                        - string
+                        - 'null'
+                    description: Base URL of the Atlassian site
+                    example: https://mysite.atlassian.net
+            required:
+                - app
+                - id
+        Tenant_TenantResponse:
+            type: object
+            description: Tenant registration result
+            properties:
+                installationId:
+                    type: string
+                    description: Installation identifier
+                    example: install-xyz-456
+                appId:
+                    type: string
+                    description: Application identifier
+                    example: app-1
+                appVersion:
+                    type:
+                        - string
+                        - 'null'
+                    description: Application version
+                    example: 1.0.0
+                environmentId:
+                    type:
+                        - string
+                        - 'null'
+                    description: Environment identifier
+                    example: env-1
+                siteUrl:
+                    type:
+                        - string
+                        - 'null'
+                    description: Atlassian site URL
+                    example: https://example.atlassian.net
+                installerAccountId:
+                    type:
+                        - string
+                        - 'null'
+                    description: Account ID of the installer
+                    example: installer-1
+                status:
+                    type: string
+                    description: Current tenant status
+                    enum:
+                        - ACTIVE
+                        - SUSPENDED
+                        - UNINSTALLED
+                    example: ACTIVE
+                installedAt:
+                    type: string
+                    format: date-time
+                    description: Timestamp of initial installation
+                    example: '2025-01-15T10:30:00Z'
+                updatedAt:
+                    type: string
+                    format: date-time
+                    description: Timestamp of last update
+                    example: '2025-01-15T10:30:00Z'
+                uninstalledAt:
+                    type:
+                        - string
+                        - 'null'
+                    format: date-time
+                    description: Timestamp when the tenant was uninstalled
+                    example: '2025-06-15T10:30:00Z'
+                purgeAfter:
+                    type:
+                        - string
+                        - 'null'
+                    format: date-time
+                    description: Timestamp after which tenant data may be purged
+                    example: '2025-07-15T10:30:00Z'
+        Tenant_Violation:
+            type: object
+            description: Field-level validation error
+            properties:
+                field:
+                    type: string
+                    description: Request field that failed validation
+                    example: app.id
+                code:
+                    type: string
+                    description: Machine-readable violation category
+                    enum:
+                        - REQUIRED
+                        - INVALID_FORMAT
+                        - TOO_SHORT
+                        - TOO_LONG
+                        - INVALID_VALUE
+                    example: REQUIRED
+                message:
+                    type:
+                        - string
+                        - 'null'
+                    description: Server-localized human-readable message
+                    example: must not be blank
+        Tenant_ProblemDetail:
+            type: object
+            description: RFC 9457 Problem Details response body
+            properties:
+                type:
+                    type: string
+                    description: URI reference identifying the problem type
+                    example: about:blank
+                title:
+                    type: string
+                    description: Short human-readable summary of the problem
+                    example: Bad Request
+                status:
+                    type: integer
+                    format: int32
+                    description: HTTP status code
+                    example: 400
+                detail:
+                    type: string
+                    description:
+                        Human-readable explanation specific to this occurrence
+                    example: The request body failed validation
+                code:
+                    type: string
+                    description: Machine-readable error code
+                    example: VALIDATION_ERROR
+                traceId:
+                    type: string
+                    description: Distributed trace identifier for correlation
+                    example: 6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a
+                errors:
+                    type: array
+                    description:
+                        Field-level validation errors (present when code is
+                        VALIDATION_ERROR)
+                    items:
+                        $ref: '#/components/schemas/Tenant_Violation'
+        Tenant_UninstallTenantRequest:
+            type: object
+            description: Forge preUninstall life-cycle event payload
+            properties:
+                id:
+                    type: string
+                    description: Installation identifier
+                    example: install-xyz-456
+                app:
+                    type: 'null'
+                    $ref: '#/components/schemas/Tenant_App'
+                    description: Application metadata
+        Tenant_UninstallTenantResponse:
+            type: object
+            description: Tenant uninstall result
+            properties:
+                installationId:
+                    type: string
+                    description: Installation identifier
+                    example: install-xyz-456
+                appId:
+                    type: string
+                    description: Application identifier
+                    example: app-1
+                appVersion:
+                    type:
+                        - string
+                        - 'null'
+                    description: Application version
+                    example: 1.0.0
+                environmentId:
+                    type:
+                        - string
+                        - 'null'
+                    description: Environment identifier
+                    example: env-1
+                siteUrl:
+                    type:
+                        - string
+                        - 'null'
+                    description: Atlassian site URL
+                    example: https://example.atlassian.net
+                installerAccountId:
+                    type:
+                        - string
+                        - 'null'
+                    description: Account ID of the installer
+                    example: installer-1
+                status:
+                    type: string
+                    description: Current tenant status
+                    enum:
+                        - ACTIVE
+                        - SUSPENDED
+                        - UNINSTALLED
+                    example: UNINSTALLED
+                installedAt:
+                    type: string
+                    format: date-time
+                    description: Timestamp of initial installation
+                    example: '2025-01-15T10:30:00Z'
+                updatedAt:
+                    type: string
+                    format: date-time
+                    description: Timestamp of last update
+                    example: '2025-06-15T10:30:00Z'
+                uninstalledAt:
+                    type:
+                        - string
+                        - 'null'
+                    format: date-time
+                    description: Timestamp when the tenant was uninstalled
+                    example: '2025-06-15T10:30:00Z'
+                purgeAfter:
+                    type:
+                        - string
+                        - 'null'
+                    format: date-time
+                    description: Timestamp after which tenant data may be purged
+                    example: '2025-07-15T10:30:00Z'
+        Meet_IssueLink:
+            type: object
+            properties:
+                issueId:
+                    type: string
+                issueKey:
+                    type: string
+                projectKey:
+                    type: string
+        Meet_Settings:
+            type: object
+            properties:
+                admissionPolicy:
+                    type: string
+                maxParticipants:
+                    type: integer
+                    format: int32
+                allowScreenShare:
+                    type: boolean
+                chatEnabled:
+                    type: boolean
+                allowMicrophone:
+                    type: boolean
+                allowVideo:
+                    type: boolean
+        Meet_TimeRange:
+            type: object
+            properties:
+                startTime:
+                    type: string
+                    format: date-time
+                endTime:
+                    type: string
+                    format: date-time
+            required:
+                - endTime
+                - startTime
+        Meet_UpdateMeetingRequest:
+            type: object
+            description: Full meeting update request
+            properties:
+                title:
+                    type: string
+                    maxLength: 255
+                    minLength: 0
+                description:
+                    type: string
+                    minLength: 1
+                issueLink:
+                    $ref: '#/components/schemas/Meet_IssueLink'
+                settings:
+                    $ref: '#/components/schemas/Meet_Settings'
+                zoneId:
+                    type: string
+                    minLength: 1
+                timeRange:
+                    $ref: '#/components/schemas/Meet_TimeRange'
+                timeRangeValid:
+                    type: boolean
+            required:
+                - description
+                - issueLink
+                - settings
+                - title
+                - zoneId
+        Meet_UpdateMeetingResponse:
+            type: object
+            description: Updated meeting snapshot
+            properties:
+                meeting:
+                    $ref: '#/components/schemas/Meet_UpdatedMeetingSnapshot'
+        Meet_UpdatedMeetingSnapshot:
+            type: object
+            description: Updated meeting snapshot
+            properties:
+                id:
+                    type: string
+                    format: uuid
+                hostId:
+                    type: string
+                shortCode:
+                    type: string
+                type:
+                    type: string
+                status:
+                    type: string
+                title:
+                    type: string
+                description:
+                    type: string
+                issueLink:
+                    $ref: '#/components/schemas/Meet_IssueLink'
+                settings:
+                    $ref: '#/components/schemas/Meet_Settings'
+                startTime:
+                    type: string
+                    format: date-time
+                endTime:
+                    type: string
+                    format: date-time
+                zoneId:
+                    type: string
+                organizerEmail:
+                    type: string
+                organizerDisplayName:
+                    type: string
+                calendarUid:
+                    type: string
+                calendarSequence:
+                    type: integer
+                    format: int32
+                createdAt:
+                    type: string
+                    format: date-time
+        Meet_Violation:
+            type: object
+            description: Field-level validation error
+            properties:
+                field:
+                    type: string
+                    description: Request field that failed validation
+                    example: app.id
+                code:
+                    type: string
+                    description: Machine-readable violation category
+                    enum:
+                        - REQUIRED
+                        - INVALID_FORMAT
+                        - TOO_SHORT
+                        - TOO_LONG
+                        - INVALID_VALUE
+                    example: REQUIRED
+                message:
+                    type:
+                        - string
+                        - 'null'
+                    description: Server-localized human-readable message
+                    example: must not be blank
+        Meet_ProblemDetail:
+            type: object
+            description: RFC 9457 Problem Details response body
+            properties:
+                type:
+                    type: string
+                    description: URI reference identifying the problem type
+                    example: about:blank
+                title:
+                    type: string
+                    description: Short human-readable summary of the problem
+                    example: Bad Request
+                status:
+                    type: integer
+                    format: int32
+                    description: HTTP status code
+                    example: 400
+                detail:
+                    type: string
+                    description:
+                        Human-readable explanation specific to this occurrence
+                    example: The request body failed validation
+                code:
+                    type: string
+                    description: Machine-readable error code
+                    example: VALIDATION_ERROR
+                traceId:
+                    type: string
+                    description: Distributed trace identifier for correlation
+                    example: 6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a
+                errors:
+                    type: array
+                    description:
+                        Field-level validation errors (present when code is
+                        VALIDATION_ERROR)
+                    items:
+                        $ref: '#/components/schemas/Meet_Violation'
+        Meet_Invitee:
+            type: object
+            description: Meeting invitee
+            properties:
+                email:
+                    type: string
+                    format: email
+                    maxLength: 255
+                    minLength: 0
+                accountId:
+                    type: string
+                    minLength: 1
+                displayName:
+                    type: string
+                    maxLength: 255
+                    minLength: 0
+            required:
+                - accountId
+                - displayName
+                - email
+        Meet_UpdateMeetingInviteesRequest:
+            type: object
+            description:
+                Request body for replacing the invitee list of a meeting
+            properties:
+                invitees:
+                    type: array
+                    description: Full invitee list to synchronize
+                    items:
+                        $ref: '#/components/schemas/Meet_Invitee'
+            required:
+                - invitees
+        Meet_MeetingInviteeSnapshot:
+            type: object
+            description: Meeting invitee snapshot
+            properties:
+                id:
+                    type: string
+                    format: uuid
+                accountId:
+                    type: string
+                email:
+                    type: string
+                displayName:
+                    type: string
+                role:
+                    type: string
+                status:
+                    type: string
+                invitedAt:
+                    type: string
+                    format: date-time
+                respondedAt:
+                    type: string
+                    format: date-time
+        Meet_UpdateMeetingInviteesResponse:
+            type: object
+            description:
+                Response containing the current active invitee list of a meeting
+            properties:
+                invitees:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/Meet_MeetingInviteeSnapshot'
+        Meet_ScheduleMeetingRequest:
+            type: object
+            description: Request body for creating a scheduled meeting
+            properties:
+                title:
+                    type: string
+                    description: Meeting title
+                    example: Sprint Planning
+                    minLength: 1
+                description:
+                    type: string
+                    description: Meeting description
+                    example: Weekly sprint planning session
+                    minLength: 1
+                issueLink:
+                    $ref: '#/components/schemas/Meet_IssueLink'
+                settings:
+                    $ref: '#/components/schemas/Meet_Settings'
+                timeRange:
+                    $ref: '#/components/schemas/Meet_TimeRange'
+                organizerEmail:
+                    type: string
+                    format: email
+                    maxLength: 255
+                    minLength: 0
+                organizerDisplayName:
+                    type: string
+                    maxLength: 255
+                    minLength: 0
+                zoneId:
+                    type: string
+                    description: Host IANA time zone id
+                    example: Asia/Ho_Chi_Minh
+                    minLength: 1
+                invitees:
+                    type:
+                        - array
+                        - 'null'
+                    items:
+                        $ref: '#/components/schemas/Meet_Invitee'
+            required:
+                - description
+                - issueLink
+                - organizerDisplayName
+                - organizerEmail
+                - settings
+                - timeRange
+                - title
+                - zoneId
+        Meet_ScheduleMeetingResponse:
+            type: object
+            description: Response for a successfully created scheduled meeting
+            properties:
+                meeting:
+                    $ref: '#/components/schemas/Meet_ScheduledMeetingSnapshot'
+        Meet_ScheduledMeetingSnapshot:
+            type: object
+            description: Scheduled meeting snapshot
+            properties:
+                id:
+                    type: string
+                    format: uuid
+                hostId:
+                    type: string
+                shortCode:
+                    type: string
+                type:
+                    type: string
+                status:
+                    type: string
+                title:
+                    type: string
+                description:
+                    type: string
+                issueLink:
+                    $ref: '#/components/schemas/Meet_IssueLink'
+                settings:
+                    $ref: '#/components/schemas/Meet_Settings'
+                startTime:
+                    type: string
+                    format: date-time
+                endTime:
+                    type: string
+                    format: date-time
+                zoneId:
+                    type: string
+                organizerEmail:
+                    type: string
+                organizerDisplayName:
+                    type: string
+                calendarUid:
+                    type: string
+                calendarSequence:
+                    type: integer
+                    format: int32
+                createdAt:
+                    type: string
+                    format: date-time
+        Meet_CreateInstantMeetingRequest:
+            type: object
+            description: Request body for creating an instant meeting
+            properties:
+                title:
+                    type: string
+                    description: Meeting title
+                    example: Sprint Planning
+                    minLength: 1
+                description:
+                    type: string
+                    description: Meeting description
+                    example: Daily standup for the team
+                    minLength: 1
+                issueLink:
+                    $ref: '#/components/schemas/Meet_IssueLink'
+                settings:
+                    $ref: '#/components/schemas/Meet_Settings'
+                host:
+                    $ref: '#/components/schemas/Meet_Host'
+                organizerEmail:
+                    type: string
+                    format: email
+                    description: Organizer email address
+                    example: alice@example.com
+                    maxLength: 255
+                    minLength: 0
+                organizerDisplayName:
+                    type: string
+                    description: Organizer display name
+                    example: Alice Nguyen
+                    maxLength: 255
+                    minLength: 0
+                zoneId:
+                    type: string
+                    description: Host IANA time zone id
+                    example: Asia/Ho_Chi_Minh
+                    minLength: 1
+                invitees:
+                    type:
+                        - array
+                        - 'null'
+                    items:
+                        $ref: '#/components/schemas/Meet_Invitee'
+            required:
+                - description
+                - host
+                - issueLink
+                - organizerDisplayName
+                - organizerEmail
+                - settings
+                - title
+                - zoneId
+        Meet_Host:
+            type: object
+            description: Host participant info
+            properties:
+                displayName:
+                    type: string
+                    minLength: 1
+                deviceId:
+                    type: string
+                    minLength: 1
+                avatarUrl:
+                    type:
+                        - string
+                        - 'null'
+                    description: Host avatar URL
+            required:
+                - deviceId
+                - displayName
+        Meet_CreateInstantMeetingResponse:
+            type: object
+            description: Response for a successfully created instant meeting
+            properties:
+                meeting:
+                    $ref: '#/components/schemas/Meet_InstantMeetingSnapshot'
+                livekit:
+                    $ref: '#/components/schemas/Meet_LiveKit'
+        Meet_InstantMeetingSnapshot:
+            type: object
+            description: Instant meeting snapshot
+            properties:
+                id:
+                    type: string
+                    format: uuid
+                hostId:
+                    type: string
+                shortCode:
+                    type: string
+                type:
+                    type: string
+                status:
+                    type: string
+                title:
+                    type: string
+                description:
+                    type: string
+                issueLink:
+                    $ref: '#/components/schemas/Meet_IssueLink'
+                settings:
+                    $ref: '#/components/schemas/Meet_Settings'
+                zoneId:
+                    type: string
+                organizerEmail:
+                    type: string
+                organizerDisplayName:
+                    type: string
+                createdAt:
+                    type: string
+                    format: date-time
+        Meet_LiveKit:
+            type: object
+            description: LiveKit access details for the host
+            properties:
+                token:
+                    type: string
+                roomName:
+                    type: string
+        Record_ProblemDetail:
+            description: RFC 9457 Problem Details response body
+            properties:
+                type:
+                    type: string
+                    description: URI reference identifying the problem type
+                    example: about:blank
+                title:
+                    type: string
+                    description: Short human-readable summary of the problem
+                    example: Bad Request
+                status:
+                    type: integer
+                    format: int32
+                    description: HTTP status code
+                    example: 400
+                detail:
+                    type: string
+                    description:
+                        Human-readable explanation specific to this occurrence
+                    example: The request body failed validation
+                code:
+                    type: string
+                    description: Machine-readable error code
+                    example: VALIDATION_ERROR
+                traceId:
+                    type: string
+                    description: Distributed trace identifier for correlation
+                    example: 6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a
+                errors:
+                    type: array
+                    description:
+                        Field-level validation errors (present when code is
+                        VALIDATION_ERROR)
+                    items:
+                        $ref: '#/components/schemas/Record_Violation'
+        Record_Violation:
+            description: Field-level validation error
+            properties:
+                field:
+                    type: string
+                    description: Request field that failed validation
+                    example: app.id
+                code:
+                    type: string
+                    description: Machine-readable violation category
+                    enum:
+                        - REQUIRED
+                        - INVALID_FORMAT
+                        - TOO_SHORT
+                        - TOO_LONG
+                        - INVALID_VALUE
+                    example: REQUIRED
+                message:
+                    type: string
+                    description: Server-localized human-readable message
+                    example: must not be blank
+x-tagGroups:
+    - name: Tenant
+      tags:
+          - tenant-controller
+    - name: Meet
+      tags:
+          - meeting-controller
