@@ -3,25 +3,31 @@ package io.github.smiskinext.meet.presentation;
 import io.github.smiskinext.meet.application.command.CreateInstantMeetingCommand;
 import io.github.smiskinext.meet.application.command.ScheduleMeetingCommand;
 import io.github.smiskinext.meet.application.result.CreateInstantMeetingResult;
+import io.github.smiskinext.meet.application.result.ListMeetingsResult;
 import io.github.smiskinext.meet.application.result.ScheduleMeetingResult;
 import io.github.smiskinext.meet.application.result.UpdateMeetingInviteesResult;
 import io.github.smiskinext.meet.application.result.UpdateMeetingResult;
 import io.github.smiskinext.meet.application.usecase.CreateInstantMeetingUseCase;
+import io.github.smiskinext.meet.application.usecase.ListMeetingsUseCase;
 import io.github.smiskinext.meet.application.usecase.ScheduleMeetingUseCase;
 import io.github.smiskinext.meet.application.usecase.UpdateMeetingInviteesUseCase;
 import io.github.smiskinext.meet.application.usecase.UpdateMeetingUseCase;
+import io.github.smiskinext.meet.domain.ListMeetingsError;
 import io.github.smiskinext.meet.domain.MeetingError;
 import io.github.smiskinext.meet.presentation.request.CreateInstantMeetingRequest;
+import io.github.smiskinext.meet.presentation.request.ListMeetingsRequest;
 import io.github.smiskinext.meet.presentation.request.ScheduleMeetingRequest;
 import io.github.smiskinext.meet.presentation.request.UpdateMeetingInviteesRequest;
 import io.github.smiskinext.meet.presentation.request.UpdateMeetingRequest;
 import io.github.smiskinext.meet.presentation.response.CreateInstantMeetingResponse;
+import io.github.smiskinext.meet.presentation.response.MeetingSummaryResponse;
 import io.github.smiskinext.meet.presentation.response.ScheduleMeetingResponse;
 import io.github.smiskinext.meet.presentation.response.UpdateMeetingInviteesResponse;
 import io.github.smiskinext.meet.presentation.response.UpdateMeetingResponse;
 import io.github.smiskinext.shared.domain.Result;
 import io.github.smiskinext.shared.infrastructure.identity.AccountContext;
 import io.github.smiskinext.shared.infrastructure.tenancy.TenantContext;
+import io.github.smiskinext.shared.infrastructure.web.PageResponse;
 import io.github.smiskinext.shared.infrastructure.web.ProblemDetailSchema;
 import io.github.smiskinext.shared.infrastructure.web.ResultResponder;
 import io.swagger.v3.oas.annotations.Operation;
@@ -33,7 +39,9 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import jakarta.validation.Valid;
 import java.net.URI;
+import java.util.List;
 import java.util.UUID;
+import org.jspecify.annotations.Nullable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -49,6 +57,7 @@ public class MeetingController {
     private final ScheduleMeetingUseCase scheduleMeetingUseCase;
     private final UpdateMeetingUseCase updateMeetingUseCase;
     private final UpdateMeetingInviteesUseCase updateMeetingInviteesUseCase;
+    private final ListMeetingsUseCase listMeetingsUseCase;
     private final ResultResponder responder;
 
     public MeetingController(
@@ -56,12 +65,125 @@ public class MeetingController {
             ScheduleMeetingUseCase scheduleMeetingUseCase,
             UpdateMeetingUseCase updateMeetingUseCase,
             UpdateMeetingInviteesUseCase updateMeetingInviteesUseCase,
+            ListMeetingsUseCase listMeetingsUseCase,
             ResultResponder responder) {
         this.createInstantMeetingUseCase = createInstantMeetingUseCase;
         this.scheduleMeetingUseCase = scheduleMeetingUseCase;
         this.updateMeetingUseCase = updateMeetingUseCase;
         this.updateMeetingInviteesUseCase = updateMeetingInviteesUseCase;
+        this.listMeetingsUseCase = listMeetingsUseCase;
         this.responder = responder;
+    }
+
+    @Operation(
+            summary = "List tenant meetings",
+            description = "Lists meetings in the caller's tenant with optional creator, status, "
+                    + "issue, and text filters, two sort modes, and opaque keyset pagination. "
+                    + "The request body is optional; an empty body lists with defaults.")
+    @ApiResponses({
+        @ApiResponse(
+                responseCode = "200",
+                description = "Page of tenant meetings",
+                content =
+                        @Content(
+                                mediaType = "application/json",
+                                schema = @Schema(implementation = MeetingListPage.class),
+                                examples = @ExampleObject(name = "page", value = """
+                        {
+                          "data": [
+                            {
+                              "id": "0195e0c2-8f3a-7c21-b9d4-2f1a6e7c8d90",
+                              "hostId": "account-123",
+                              "shortCode": "abc-defg-hij",
+                              "title": "Sprint planning",
+                              "description": "Plan the next sprint",
+                              "issueKey": "SMISKI-102",
+                              "type": "SCHEDULED",
+                              "status": "SCHEDULED",
+                              "startTime": "2025-02-01T14:00:00Z",
+                              "endTime": "2025-02-01T15:00:00Z",
+                              "createdAt": "2025-01-15T10:30:00Z",
+                              "settings": {
+                                "admissionPolicy": "MANUAL_APPROVAL",
+                                "maxParticipants": 50,
+                                "allowScreenShare": true,
+                                "chatEnabled": true,
+                                "allowMicrophone": true,
+                                "allowVideo": true
+                              }
+                            }
+                          ],
+                          "meta": {"size": 1, "hasNext": true, "nextPageToken": "Uy5leUov..."}
+                        }"""))),
+        @ApiResponse(
+                responseCode = "400",
+                description = "Missing account header, page-size validation, or invalid cursor",
+                content =
+                        @Content(
+                                mediaType = "application/problem+json",
+                                schema = @Schema(implementation = ProblemDetailSchema.class),
+                                examples = {
+                                    @ExampleObject(
+                                            name = "invalidCursor",
+                                            summary = "Invalid or sort-mismatched page token",
+                                            value = """
+                            {
+                              "type": "about:blank",
+                              "title": "Invalid page cursor",
+                              "status": 400,
+                              "detail": "The page cursor is invalid; restart from the first page.",
+                              "code": "INVALID_CURSOR",
+                              "traceId": "6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a"
+                            }"""),
+                                    @ExampleObject(
+                                            name = "missingAccount",
+                                            summary = "Missing X-Account-Id header",
+                                            value = """
+                            {
+                              "type": "about:blank",
+                              "title": "Bad Request",
+                              "status": 400,
+                              "detail": "X-Account-Id header is required",
+                              "code": "VALIDATION_ERROR",
+                              "traceId": "6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a"
+                            }""")
+                                }))
+    })
+    @PostMapping("/meetings")
+    public ResponseEntity<Object> list(
+            @Valid @RequestBody(required = false) ListMeetingsRequest request) {
+        String accountId = AccountContext.getCurrentAccount().orElse(null);
+        if (accountId == null) {
+            return ResponseEntity.badRequest()
+                    .contentType(org.springframework.http.MediaType.APPLICATION_PROBLEM_JSON)
+                    .body(org.springframework.http.ProblemDetail.forStatusAndDetail(
+                            org.springframework.http.HttpStatus.BAD_REQUEST,
+                            "X-Account-Id header is required"));
+        }
+
+        ListMeetingsRequest effectiveRequest = request != null
+                ? request
+                : new ListMeetingsRequest(null, null, null, null, null, null, null);
+        String tenantId = TenantContext.getCurrentTenant();
+
+        Result<ListMeetingsResult, ListMeetingsError> result =
+                listMeetingsUseCase.execute(effectiveRequest.toQuery(tenantId, accountId));
+
+        return responder.ok(result.map(MeetingController::toPage));
+    }
+
+    private static PageResponse<MeetingSummaryResponse> toPage(ListMeetingsResult result) {
+        List<MeetingSummaryResponse> items =
+                result.items().stream().map(MeetingSummaryResponse::from).toList();
+        return PageResponse.cursor(items, result.nextPageToken());
+    }
+
+    @Schema(name = "MeetingListPage", description = "Paginated list of tenant meetings")
+    private record MeetingListPage(List<MeetingSummaryResponse> data, PageMetaSchema meta) {
+
+        @Schema(name = "MeetingListPageMeta")
+        private record PageMetaSchema(
+                int size, boolean hasNext, @Nullable String nextPageToken) {}
     }
 
     @Operation(

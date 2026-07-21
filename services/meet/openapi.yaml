@@ -293,6 +293,107 @@ paths:
         type: integer
         format: int32
       example: 1
+  /api/{version}/meetings:
+    post:
+      tags:
+      - meeting-controller
+      summary: List tenant meetings
+      description: "Lists meetings in the caller's tenant with optional creator, status,\
+        \ issue, and text filters, two sort modes, and opaque keyset pagination. The\
+        \ request body is optional; an empty body lists with defaults."
+      operationId: list
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ListMeetingsRequest"
+      responses:
+        "200":
+          description: Page of tenant meetings
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MeetingListPage"
+              examples:
+                page:
+                  description: page
+                  value:
+                    data:
+                    - id: 0195e0c2-8f3a-7c21-b9d4-2f1a6e7c8d90
+                      hostId: account-123
+                      shortCode: abc-defg-hij
+                      title: Sprint planning
+                      description: Plan the next sprint
+                      issueKey: SMISKI-102
+                      type: SCHEDULED
+                      status: SCHEDULED
+                      startTime: 2025-02-01T14:00:00Z
+                      endTime: 2025-02-01T15:00:00Z
+                      createdAt: 2025-01-15T10:30:00Z
+                      settings:
+                        admissionPolicy: MANUAL_APPROVAL
+                        maxParticipants: 50
+                        allowScreenShare: true
+                        chatEnabled: true
+                        allowMicrophone: true
+                        allowVideo: true
+                    meta:
+                      size: 1
+                      hasNext: true
+                      nextPageToken: Uy5leUov...
+        "400":
+          description: "Missing account header, page-size validation, or invalid cursor"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+              examples:
+                invalidCursor:
+                  summary: Invalid or sort-mismatched page token
+                  description: invalidCursor
+                  value:
+                    type: about:blank
+                    title: Invalid page cursor
+                    status: 400
+                    detail: The page cursor is invalid; restart from the first page.
+                    code: INVALID_CURSOR
+                    traceId: 6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a
+                missingAccount:
+                  summary: Missing X-Account-Id header
+                  description: missingAccount
+                  value:
+                    type: about:blank
+                    title: Bad Request
+                    status: 400
+                    detail: X-Account-Id header is required
+                    code: VALIDATION_ERROR
+                    traceId: 6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a
+        "405":
+          description: Method Not Allowed
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "415":
+          description: Unsupported Media Type
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "500":
+          description: Internal Server Error
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+    parameters:
+    - name: version
+      in: path
+      required: true
+      schema:
+        type: integer
+        format: int32
+      example: 1
   /api/{version}/meetings:schedule:
     post:
       tags:
@@ -754,6 +855,140 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/MeetingInviteeSnapshot"
+    ListMeetingsRequest:
+      type: object
+      description: Filters and pagination for listing tenant meetings
+      properties:
+        creatorId:
+          type:
+          - string
+          - "null"
+          description: Filter to a single host account id
+        search:
+          type:
+          - string
+          - "null"
+          description: Case-insensitive substring over title and issue key
+        statuses:
+          type:
+          - array
+          - "null"
+          description: Restrict to these statuses; empty means any
+          items:
+            type: string
+            enum:
+            - SCHEDULED
+            - RUNNING
+            - COMPLETED
+            - CANCELED
+        issueKey:
+          type:
+          - string
+          - "null"
+          description: Exact linked Jira issue key
+          example: SMISKI-102
+        sort:
+          type:
+          - string
+          - "null"
+          description: Ordering mode
+          enum:
+          - CREATED_AT
+          - START_TIME
+        pageSize:
+          type:
+          - integer
+          - "null"
+          format: int32
+          description: "Page size (default 20, max 50)"
+          example: 20
+          maximum: 50
+          minimum: 1
+        pageToken:
+          type:
+          - string
+          - "null"
+          description: Opaque cursor from a previous response
+    MeetingListPage:
+      type: object
+      description: Paginated list of tenant meetings
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/MeetingSummary"
+        meta:
+          $ref: "#/components/schemas/MeetingListPageMeta"
+    MeetingListPageMeta:
+      type: object
+      properties:
+        size:
+          type: integer
+          format: int32
+        hasNext:
+          type: boolean
+        nextPageToken:
+          type: string
+    MeetingSummary:
+      type: object
+      description: Meeting summary for the tenant listing
+      properties:
+        id:
+          type: string
+          format: uuid
+        hostId:
+          type: string
+        shortCode:
+          type: string
+        title:
+          type: string
+        description:
+          type: string
+        issueKey:
+          type: string
+        type:
+          type: string
+          enum:
+          - INSTANT
+          - SCHEDULED
+        status:
+          type: string
+          enum:
+          - SCHEDULED
+          - RUNNING
+          - COMPLETED
+          - CANCELED
+        startTime:
+          type:
+          - string
+          - "null"
+          format: date-time
+          description: Scheduled start time; null for meetings without one
+        endTime:
+          type: string
+          format: date-time
+        createdAt:
+          type: string
+          format: date-time
+        settings:
+          $ref: "#/components/schemas/MeetingSummarySettings"
+    MeetingSummarySettings:
+      type: object
+      description: Meeting room settings
+      properties:
+        admissionPolicy:
+          type: string
+        maxParticipants:
+          type: integer
+          format: int32
+        allowScreenShare:
+          type: boolean
+        chatEnabled:
+          type: boolean
+        allowMicrophone:
+          type: boolean
+        allowVideo:
+          type: boolean
     ScheduleMeetingRequest:
       type: object
       description: Request body for creating a scheduled meeting
