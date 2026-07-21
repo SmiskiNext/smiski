@@ -13,7 +13,6 @@ import io.github.smiskinext.meet.domain.MeetingError;
 import io.github.smiskinext.meet.domain.event.MeetingCreatedEvent;
 import io.github.smiskinext.meet.domain.model.Meeting;
 import io.github.smiskinext.meet.domain.model.valueobject.ShortCode;
-import io.github.smiskinext.meet.domain.port.InviteTokenGenerator;
 import io.github.smiskinext.meet.domain.port.MeetingInviteeRepository;
 import io.github.smiskinext.meet.domain.port.MeetingRepository;
 import io.github.smiskinext.shared.domain.AggregateRoot;
@@ -34,7 +33,6 @@ class ScheduleMeetingApplicationServiceTest {
     private MeetingRepository meetingRepository;
     private MeetingInviteeRepository meetingInviteeRepository;
     private EventPublisher eventPublisher;
-    private InviteTokenGenerator inviteTokenGenerator;
     private ShortCodeAllocator shortCodeAllocator;
     private ScheduleMeetingApplicationService service;
 
@@ -44,25 +42,17 @@ class ScheduleMeetingApplicationServiceTest {
         meetingRepository = mock(MeetingRepository.class);
         meetingInviteeRepository = mock(MeetingInviteeRepository.class);
         eventPublisher = mock(EventPublisher.class);
-        inviteTokenGenerator = mock(InviteTokenGenerator.class);
         shortCodeAllocator = mock(ShortCodeAllocator.class);
 
         when(meetingRepository.save(any(Meeting.class))).thenAnswer(inv -> inv.getArgument(0));
         when(meetingInviteeRepository.saveAll(anyList())).thenAnswer(inv -> inv.getArgument(0));
-        when(inviteTokenGenerator.generate())
-                .thenReturn(new InviteTokenGenerator.TokenResult(
-                        "raw-token", "hash-abc", Instant.now().plusSeconds(86400)));
         when(shortCodeAllocator.allocate(any())).thenAnswer(inv -> {
             Function<ShortCode, Object> action = inv.getArgument(0);
             return Optional.of(action.apply(ShortCode.of("abc123def0")));
         });
 
         service = new ScheduleMeetingApplicationService(
-                meetingRepository,
-                meetingInviteeRepository,
-                eventPublisher,
-                inviteTokenGenerator,
-                shortCodeAllocator);
+                meetingRepository, meetingInviteeRepository, eventPublisher, shortCodeAllocator);
     }
 
     @Test
@@ -98,7 +88,7 @@ class ScheduleMeetingApplicationServiceTest {
     }
 
     @Test
-    void inviteesPersistedWithHashedTokensAndInvitationsEventEnqueued() {
+    void inviteesPersistedAndInvitationsEventEnqueued() {
         Instant now = Instant.now();
         ScheduleMeetingCommand command = new ScheduleMeetingCommand(
                 "tenant-1",
@@ -121,7 +111,6 @@ class ScheduleMeetingApplicationServiceTest {
 
         assertThat(result.isSuccess()).isTrue();
         verify(meetingInviteeRepository).saveAll(argThat(list -> list.size() == 2));
-        verify(inviteTokenGenerator, times(2)).generate();
     }
 
     @Test

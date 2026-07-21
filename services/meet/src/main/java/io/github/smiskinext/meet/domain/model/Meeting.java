@@ -41,6 +41,7 @@ public class Meeting extends AggregateRoot<MeetingId> {
     private MeetingTimeZone timeZone;
     private int calendarSequence;
     private final Instant createdAt;
+    private Instant updatedAt;
 
     private MeetingTitle title;
     private String description;
@@ -75,7 +76,8 @@ public class Meeting extends AggregateRoot<MeetingId> {
             InviteeDisplayName organizerDisplayName,
             String calendarUid,
             int calendarSequence,
-            Instant createdAt) {
+            Instant createdAt,
+            Instant updatedAt) {
         this.tenantId = tenantId;
         this.id = id;
         this.hostId = hostId;
@@ -93,6 +95,7 @@ public class Meeting extends AggregateRoot<MeetingId> {
         this.calendarUid = calendarUid;
         this.calendarSequence = calendarSequence;
         this.createdAt = createdAt;
+        this.updatedAt = updatedAt;
     }
 
     // -------------------------------------------------------------------------
@@ -142,6 +145,7 @@ public class Meeting extends AggregateRoot<MeetingId> {
                 organizerDisplayName,
                 calendarUid,
                 0,
+                now,
                 now);
         meeting.registerEvent(new MeetingCreatedEvent(
                 UUID.randomUUID(),
@@ -202,6 +206,7 @@ public class Meeting extends AggregateRoot<MeetingId> {
                 organizerDisplayName,
                 UUID.randomUUID().toString(),
                 0,
+                now,
                 now);
         meeting.registerEvent(new MeetingCreatedEvent(
                 UUID.randomUUID(),
@@ -250,6 +255,7 @@ public class Meeting extends AggregateRoot<MeetingId> {
             String calendarUid,
             int calendarSequence,
             Instant createdAt,
+            Instant updatedAt,
             @Nullable CancelReason cancelReason,
             @Nullable Instant deletedAt,
             @Nullable AccountId deletedBy,
@@ -271,7 +277,8 @@ public class Meeting extends AggregateRoot<MeetingId> {
                 organizerDisplayName,
                 calendarUid,
                 calendarSequence,
-                createdAt);
+                createdAt,
+                updatedAt);
         meeting.endTime = endTime;
         meeting.cancelReason = cancelReason;
         meeting.deletedAt = deletedAt;
@@ -294,6 +301,7 @@ public class Meeting extends AggregateRoot<MeetingId> {
         }
         status = MeetingStatus.RUNNING;
         Instant now = Instant.now();
+        this.updatedAt = now;
         registerEvent(new MeetingStartedEvent(
                 UUID.randomUUID(),
                 tenantId.value(),
@@ -332,6 +340,7 @@ public class Meeting extends AggregateRoot<MeetingId> {
         status = MeetingStatus.COMPLETED;
         Instant now = Instant.now();
         this.endTime = now;
+        this.updatedAt = now;
         registerEvent(new MeetingCompletedEvent(
                 UUID.randomUUID(), tenantId.value(), id.value(), hostId.value(), now));
         return Result.success();
@@ -350,6 +359,64 @@ public class Meeting extends AggregateRoot<MeetingId> {
             return;
         }
         registerEvent(new MeetingInvitationsCreatedEvent(
+                UUID.randomUUID(),
+                tenantId.value(),
+                id.value(),
+                title.value(),
+                shortCode.value(),
+                timeRange != null ? timeRange.start() : null,
+                timeRange != null ? timeRange.end() : null,
+                timeZone.value(),
+                organizerEmail.value(),
+                organizerDisplayName.value(),
+                calendarUid,
+                calendarSequence,
+                List.copyOf(invitees),
+                Instant.now()));
+    }
+
+    /**
+     * Records that one or more invitees had their display name updated for this meeting.
+     * Registers {@code MeetingInvitationsUpdatedEvent} carrying only the affected invitees.
+     *
+     * <p>Does nothing when the invitee list is empty. Does not change {@code calendarSequence}.
+     *
+     * @param invitees list of updated invitee info snapshots
+     */
+    public void recordInviteesUpdated(List<MeetingInvitationsUpdatedEvent.InviteeInfo> invitees) {
+        if (invitees.isEmpty()) {
+            return;
+        }
+        registerEvent(new MeetingInvitationsUpdatedEvent(
+                UUID.randomUUID(),
+                tenantId.value(),
+                id.value(),
+                title.value(),
+                shortCode.value(),
+                timeRange != null ? timeRange.start() : null,
+                timeRange != null ? timeRange.end() : null,
+                timeZone.value(),
+                organizerEmail.value(),
+                organizerDisplayName.value(),
+                calendarUid,
+                calendarSequence,
+                List.copyOf(invitees),
+                Instant.now()));
+    }
+
+    /**
+     * Records that one or more invitees were removed from this meeting.
+     * Registers {@code MeetingInvitationsDeletedEvent} carrying only the removed invitees.
+     *
+     * <p>Does nothing when the invitee list is empty. Does not change {@code calendarSequence}.
+     *
+     * @param invitees list of removed invitee info snapshots
+     */
+    public void recordInviteesRemoved(List<MeetingInvitationsDeletedEvent.InviteeInfo> invitees) {
+        if (invitees.isEmpty()) {
+            return;
+        }
+        registerEvent(new MeetingInvitationsDeletedEvent(
                 UUID.randomUUID(),
                 tenantId.value(),
                 id.value(),
@@ -419,6 +486,7 @@ public class Meeting extends AggregateRoot<MeetingId> {
         timeRange = newTimeRange;
 
         Instant now = Instant.now();
+        this.updatedAt = now;
         if (infoChanged) {
             calendarSequence++;
             registerEvent(new MeetingInfoUpdatedEvent(
@@ -497,6 +565,7 @@ public class Meeting extends AggregateRoot<MeetingId> {
         status = MeetingStatus.CANCELED;
         this.cancelReason = reason;
         Instant now = Instant.now();
+        this.updatedAt = now;
         registerEvent(new MeetingCanceledEvent(
                 UUID.randomUUID(),
                 tenantId.value(),
@@ -578,6 +647,10 @@ public class Meeting extends AggregateRoot<MeetingId> {
 
     public Instant getCreatedAt() {
         return createdAt;
+    }
+
+    public Instant getUpdatedAt() {
+        return updatedAt;
     }
 
     public Optional<Instant> getDeletedAt() {

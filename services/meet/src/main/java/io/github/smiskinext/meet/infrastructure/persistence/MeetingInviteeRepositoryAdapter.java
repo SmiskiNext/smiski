@@ -59,7 +59,7 @@ public class MeetingInviteeRepositoryAdapter implements MeetingInviteeRepository
     public List<MeetingInvitee> findPendingByAccountId(AccountId accountId) {
         return jpaRepository
                 .findByAccountIdAndStatusAndRemovedAtIsNull(
-                        accountId.value(), InviteeStatus.PENDING.name())
+                        accountId.value(), InviteeStatus.NEEDS_ACTION.name())
                 .stream()
                 .map(MeetingInviteePersistenceMapper::toDomain)
                 .toList();
@@ -68,7 +68,11 @@ public class MeetingInviteeRepositoryAdapter implements MeetingInviteeRepository
     @Override
     public long countActiveByMeetingId(UUID meetingId) {
         return jpaRepository.countByMeetingIdAndStatusInAndRemovedAtIsNull(
-                meetingId, List.of(InviteeStatus.PENDING.name(), InviteeStatus.ACCEPTED.name()));
+                meetingId,
+                List.of(
+                        InviteeStatus.NEEDS_ACTION.name(),
+                        InviteeStatus.ACCEPTED.name(),
+                        InviteeStatus.TENTATIVE.name()));
     }
 
     @Override

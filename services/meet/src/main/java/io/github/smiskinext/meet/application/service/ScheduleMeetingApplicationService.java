@@ -8,7 +8,6 @@ import io.github.smiskinext.meet.domain.MeetingError;
 import io.github.smiskinext.meet.domain.event.MeetingInvitationsCreatedEvent;
 import io.github.smiskinext.meet.domain.model.*;
 import io.github.smiskinext.meet.domain.model.valueobject.*;
-import io.github.smiskinext.meet.domain.port.InviteTokenGenerator;
 import io.github.smiskinext.meet.domain.port.MeetingInviteeRepository;
 import io.github.smiskinext.meet.domain.port.MeetingRepository;
 import io.github.smiskinext.shared.domain.EventPublisher;
@@ -24,19 +23,16 @@ public class ScheduleMeetingApplicationService implements ScheduleMeetingUseCase
     private final MeetingRepository meetingRepository;
     private final MeetingInviteeRepository meetingInviteeRepository;
     private final EventPublisher eventPublisher;
-    private final InviteTokenGenerator inviteTokenGenerator;
     private final ShortCodeAllocator shortCodeAllocator;
 
     public ScheduleMeetingApplicationService(
             MeetingRepository meetingRepository,
             MeetingInviteeRepository meetingInviteeRepository,
             EventPublisher eventPublisher,
-            InviteTokenGenerator inviteTokenGenerator,
             ShortCodeAllocator shortCodeAllocator) {
         this.meetingRepository = meetingRepository;
         this.meetingInviteeRepository = meetingInviteeRepository;
         this.eventPublisher = eventPublisher;
-        this.inviteTokenGenerator = inviteTokenGenerator;
         this.shortCodeAllocator = shortCodeAllocator;
     }
 
@@ -103,11 +99,9 @@ public class ScheduleMeetingApplicationService implements ScheduleMeetingUseCase
                         InviterId.of(hostAccountId.value()),
                         AccountId.of(inviteeCmd.accountId()),
                         Email.of(inviteeCmd.email()),
-                        InviteeDisplayName.of(inviteeCmd.displayName()));
-
-                InviteTokenGenerator.TokenResult tokenResult = inviteTokenGenerator.generate();
-
-                invitee.assignToken(tokenResult.tokenHash(), tokenResult.expiresAt());
+                        InviteeDisplayName.of(inviteeCmd.displayName()),
+                        InviteeRole.REQ_PARTICIPANT,
+                        true);
 
                 invitees.add(invitee);
 
@@ -116,8 +110,7 @@ public class ScheduleMeetingApplicationService implements ScheduleMeetingUseCase
                         inviteeCmd.accountId(),
                         inviteeCmd.email(),
                         inviteeCmd.displayName(),
-                        invitee.getStatus().name(),
-                        tokenResult.rawToken()));
+                        invitee.getStatus().name()));
             }
 
             meeting.recordInvitationsSent(inviteeInfos);

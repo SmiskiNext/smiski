@@ -88,6 +88,9 @@ public class MeetingJpaEntity {
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
+    @Column(name = "updated_at", nullable = false)
+    private Instant updatedAt;
+
     @Column(name = "zone_id", nullable = false, length = 64)
     private String zoneId;
 
@@ -116,6 +119,7 @@ public class MeetingJpaEntity {
             @Nullable String deletedBy,
             @Nullable Instant purgeAfter,
             Instant createdAt,
+            Instant updatedAt,
             String zoneId) {
         this.id = id;
         this.hostId = hostId;
@@ -139,6 +143,7 @@ public class MeetingJpaEntity {
         this.deletedBy = deletedBy;
         this.purgeAfter = purgeAfter;
         this.createdAt = createdAt;
+        this.updatedAt = updatedAt;
         this.zoneId = zoneId;
     }
 
@@ -220,6 +225,10 @@ public class MeetingJpaEntity {
 
     public Instant getCreatedAt() {
         return createdAt;
+    }
+
+    public Instant getUpdatedAt() {
+        return updatedAt;
     }
 
     public @Nullable Instant getDeletedAt() {

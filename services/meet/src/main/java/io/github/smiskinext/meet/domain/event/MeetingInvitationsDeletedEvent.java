@@ -7,20 +7,24 @@ import java.util.UUID;
 import org.jspecify.annotations.Nullable;
 
 /**
- * Published when a meeting is scheduled with a non-empty invitee list.
- * Carries enough information for the notification service to send invitation emails.
+ * Published when one or more meeting invitees are removed during an invitee-list replacement.
+ * Carries the meeting context together with only the removed invitees.
  *
- * @param eventId          unique identifier for this event occurrence
- * @param meetingId        ID of the meeting aggregate
- * @param meetingTitle     human-readable title of the meeting
- * @param meetingShortCode short alphanumeric code for the meeting join URL
- * @param startTime        scheduled start time, or {@code null} for instant meetings
- * @param endTime          scheduled end time, or {@code null} for instant meetings
- * @param zoneId           host IANA time zone id
- * @param invitees         list of resolved invitees with display info
- * @param occurredAt       timestamp when the event occurred
+ * @param eventId              unique identifier for this event occurrence
+ * @param meetingId            ID of the meeting aggregate
+ * @param meetingTitle         human-readable title of the meeting
+ * @param meetingShortCode     short alphanumeric code for the meeting join URL
+ * @param startTime            scheduled start time, or {@code null} for instant meetings
+ * @param endTime              scheduled end time, or {@code null} for instant meetings
+ * @param zoneId               host IANA time zone id
+ * @param organizerEmail       organizer email at invite time
+ * @param organizerDisplayName organizer display name at invite time
+ * @param calendarUid          calendar uid of the meeting
+ * @param calendarSequence     calendar sequence of the meeting
+ * @param invitees             list of removed invitees with display info
+ * @param occurredAt           timestamp when the event occurred
  */
-public record MeetingInvitationsCreatedEvent(
+public record MeetingInvitationsDeletedEvent(
         UUID eventId,
         String tenantId,
         UUID meetingId,
@@ -40,9 +44,11 @@ public record MeetingInvitationsCreatedEvent(
     /**
      * Minimal invitee info needed by the notification service.
      *
+     * @param inviteeId   the invitee identity
      * @param accountId   resolved Jira account ID (always present — invitees are frontend-resolved)
      * @param email       the invite target email
-     * @param displayName the user's full name at invite time
+     * @param displayName the user's display name at removal time
+     * @param status      the invitation status at removal time
      */
     public record InviteeInfo(
             UUID inviteeId, String accountId, String email, String displayName, String status) {}
@@ -59,17 +65,17 @@ public record MeetingInvitationsCreatedEvent(
 
     @Override
     public String eventType() {
-        return "io.github.smiskinext.meet.meeting.invitations.created.v1";
+        return "io.github.smiskinext.meet.meeting.invitations.deleted.v1";
     }
 
     @Override
     public String topic() {
-        return "meet.meeting.invitations.created";
+        return "meet.meeting.invitations.deleted";
     }
 
     @Override
     public String toString() {
-        return "MeetingInvitationsCreatedEvent[eventId="
+        return "MeetingInvitationsDeletedEvent[eventId="
                 + eventId
                 + ", meetingId="
                 + meetingId

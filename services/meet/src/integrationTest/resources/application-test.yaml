@@ -33,5 +33,3 @@ app:
     sse:
         timeout-ms: 300000
         join-request-timeout-ms: 600000
-    invite:
-        token-expiry-days: 7

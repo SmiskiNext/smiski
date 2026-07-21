@@ -2,29 +2,29 @@ package io.github.smiskinext.meet.infrastructure.messaging;
 
 import com.google.protobuf.Message;
 
-import io.github.smiskinext.event.meet.v1.MeetingInvitationsCreated;
-import io.github.smiskinext.meet.domain.event.MeetingInvitationsCreatedEvent;
+import io.github.smiskinext.event.meet.v1.MeetingInvitationsUpdated;
+import io.github.smiskinext.meet.domain.event.MeetingInvitationsUpdatedEvent;
 import io.github.smiskinext.shared.infrastructure.outbox.OutboxEventProtoMapper;
 
 import org.springframework.stereotype.Component;
 
 @Component
-public class MeetingInvitationsCreatedEventProtoMapper
-        implements OutboxEventProtoMapper<MeetingInvitationsCreatedEvent> {
+public class MeetingInvitationsUpdatedEventProtoMapper
+        implements OutboxEventProtoMapper<MeetingInvitationsUpdatedEvent> {
 
     @Override
-    public Class<MeetingInvitationsCreatedEvent> eventType() {
-        return MeetingInvitationsCreatedEvent.class;
+    public Class<MeetingInvitationsUpdatedEvent> eventType() {
+        return MeetingInvitationsUpdatedEvent.class;
     }
 
     @Override
     public String dataSchema() {
-        return "io.github.smiskinext.event.meet.v1.MeetingInvitationsCreated";
+        return "io.github.smiskinext.event.meet.v1.MeetingInvitationsUpdated";
     }
 
     @Override
-    public Message toProto(MeetingInvitationsCreatedEvent event) {
-        MeetingInvitationsCreated.Builder builder = MeetingInvitationsCreated.newBuilder()
+    public Message toProto(MeetingInvitationsUpdatedEvent event) {
+        MeetingInvitationsUpdated.Builder builder = MeetingInvitationsUpdated.newBuilder()
                 .setMeetingId(event.meetingId().toString())
                 .setTenantId(event.tenantId())
                 .setMeetingShortCode(event.meetingShortCode())
@@ -47,9 +47,9 @@ public class MeetingInvitationsCreatedEventProtoMapper
             builder.setEndTime(event.endTime().toString());
         }
 
-        for (MeetingInvitationsCreatedEvent.InviteeInfo invitee : event.invitees()) {
-            MeetingInvitationsCreated.InviteeInfo.Builder inviteeBuilder =
-                    MeetingInvitationsCreated.InviteeInfo.newBuilder()
+        for (MeetingInvitationsUpdatedEvent.InviteeInfo invitee : event.invitees()) {
+            MeetingInvitationsUpdated.InviteeInfo.Builder inviteeBuilder =
+                    MeetingInvitationsUpdated.InviteeInfo.newBuilder()
                             .setAccountId(invitee.accountId())
                             .setEmail(invitee.email())
                             .setDisplayName(invitee.displayName())

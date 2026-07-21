@@ -5,31 +5,25 @@ package io.github.smiskinext.event.meet.v1;
 option java_multiple_files = true;
 option java_package = "io.github.smiskinext.event.meet.v1";
 
-message MeetingInvitationsCreated {
-  reserved 7;
-  reserved "invitee_tokens";
-
+message MeetingInvitationsDeleted {
   string meeting_id = 1;
   string tenant_id = 2;
   string meeting_title = 3;
   string meeting_short_code = 4;
   string start_time = 5;
   repeated InviteeInfo invitees = 6;
-  string zone_id = 8;
-  string end_time = 9;
-  string organizer_email = 10;
-  string organizer_display_name = 11;
-  string calendar_uid = 12;
-  int32 calendar_sequence = 13;
+  string zone_id = 7;
+  string end_time = 8;
+  string organizer_email = 9;
+  string organizer_display_name = 10;
+  string calendar_uid = 11;
+  int32 calendar_sequence = 12;
 
   message InviteeInfo {
-    reserved 4;
-    reserved "token";
-
     string account_id = 1;
     string email = 2;
     string display_name = 3;
-    string invitee_id = 5;
-    string status = 6;
+    string invitee_id = 4;
+    string status = 5;
   }
 }

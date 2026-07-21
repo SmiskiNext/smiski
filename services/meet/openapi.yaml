@@ -34,24 +34,239 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/UpdateMeetingResponse"
+              examples:
+                updated:
+                  description: updated
+                  value:
+                    meeting:
+                      id: 0195e0c2-8f3a-7c21-b9d4-2f1a6e7c8d90
+                      hostId: account-123
+                      shortCode: abc-defg-hij
+                      type: SCHEDULED
+                      status: SCHEDULED
+                      title: Sprint planning
+                      description: Plan the next sprint
+                      issueLink:
+                        issueId: "10001"
+                        issueKey: PROJ-1
+                        projectKey: PROJ
+                      settings:
+                        admissionPolicy: ALLOW_ALL
+                        maxParticipants: 50
+                        allowScreenShare: true
+                        chatEnabled: true
+                        allowMicrophone: true
+                        allowVideo: true
+                      startTime: 2025-02-01T14:00:00Z
+                      endTime: 2025-02-01T15:00:00Z
+                      zoneId: Asia/Ho_Chi_Minh
+                      organizerEmail: host@example.com
+                      organizerDisplayName: Host User
+                      calendarUid: meeting-0195e0c2@smiski.app
+                      calendarSequence: 1
+                      createdAt: 2025-01-15T10:30:00Z
         "400":
           description: Validation error or missing account
           content:
             application/problem+json:
               schema:
                 $ref: "#/components/schemas/ProblemDetail"
+              examples:
+                validationError:
+                  summary: Validation failure
+                  description: validationError
+                  value:
+                    type: about:blank
+                    title: Bad Request
+                    status: 400
+                    detail: The request body failed validation
+                    code: VALIDATION_ERROR
+                    traceId: 6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a
+                    errors:
+                    - field: title
+                      code: REQUIRED
+                      message: must not be blank
+                missingAccount:
+                  summary: Missing X-Account-Id header
+                  description: missingAccount
+                  value:
+                    type: about:blank
+                    title: Bad Request
+                    status: 400
+                    detail: X-Account-Id header is required
+                    code: VALIDATION_ERROR
+                    traceId: 6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a
         "403":
           description: Only the host may update the meeting
           content:
             application/problem+json:
               schema:
                 $ref: "#/components/schemas/ProblemDetail"
+              examples:
+                notOwner:
+                  description: notOwner
+                  value:
+                    type: about:blank
+                    title: Forbidden
+                    status: 403
+                    detail: Only the host may update the meeting
+                    code: NOT_OWNER
+                    traceId: 6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a
         "404":
           description: Meeting not found
           content:
             application/problem+json:
               schema:
                 $ref: "#/components/schemas/ProblemDetail"
+              examples:
+                notFound:
+                  description: notFound
+                  value:
+                    type: about:blank
+                    title: Not Found
+                    status: 404
+                    detail: Meeting not found
+                    code: MEETING_NOT_FOUND
+                    traceId: 6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a
+        "405":
+          description: Method Not Allowed
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "415":
+          description: Unsupported Media Type
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "500":
+          description: Internal Server Error
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+    parameters:
+    - name: version
+      in: path
+      required: true
+      schema:
+        type: integer
+        format: int32
+      example: 1
+  /api/{version}/meetings/{id}/invitees:
+    put:
+      tags:
+      - meeting-controller
+      summary: Replace a meeting's invitee list
+      description: "Replaces the full invitee list of a SCHEDULED meeting as its host.\
+        \ Invitees are matched by accountId: new entries are created, existing entries\
+        \ have their display name updated, and absent entries are removed."
+      operationId: updateInvitees
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateMeetingInviteesRequest"
+        required: true
+      responses:
+        "200":
+          description: Invitees synchronized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UpdateMeetingInviteesResponse"
+              examples:
+                synchronized:
+                  description: synchronized
+                  value:
+                    invitees:
+                    - id: 0195e0c2-8f3a-7c21-b9d4-3a2b1c4d5e60
+                      accountId: account-456
+                      email: alice@example.com
+                      displayName: Alice Nguyen
+                      role: PARTICIPANT
+                      status: PENDING
+                      invitedAt: 2025-01-15T10:35:00Z
+                      respondedAt: null
+                    - id: 0195e0c2-8f3a-7c21-b9d4-4b3c2d5e6f70
+                      accountId: account-789
+                      email: bob@example.com
+                      displayName: Bob Tran
+                      role: PARTICIPANT
+                      status: ACCEPTED
+                      invitedAt: 2025-01-15T10:35:00Z
+                      respondedAt: 2025-01-15T11:00:00Z
+        "400":
+          description: Validation error or missing account
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+              examples:
+                validationError:
+                  summary: Validation failure
+                  description: validationError
+                  value:
+                    type: about:blank
+                    title: Bad Request
+                    status: 400
+                    detail: The request body failed validation
+                    code: VALIDATION_ERROR
+                    traceId: 6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a
+                    errors:
+                    - field: "invitees[0].email"
+                      code: EMAIL
+                      message: must be a well-formed email address
+                missingAccount:
+                  summary: Missing X-Account-Id header
+                  description: missingAccount
+                  value:
+                    type: about:blank
+                    title: Bad Request
+                    status: 400
+                    detail: X-Account-Id header is required
+                    code: VALIDATION_ERROR
+                    traceId: 6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a
+        "403":
+          description: Only the host may modify invitees
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+              examples:
+                notOwner:
+                  description: notOwner
+                  value:
+                    type: about:blank
+                    title: Forbidden
+                    status: 403
+                    detail: Only the host may modify invitees
+                    code: NOT_OWNER
+                    traceId: 6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a
+        "404":
+          description: Meeting not found
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+              examples:
+                notFound:
+                  description: notFound
+                  value:
+                    type: about:blank
+                    title: Not Found
+                    status: 404
+                    detail: Meeting not found
+                    code: MEETING_NOT_FOUND
+                    traceId: 6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a
         "405":
           description: Method Not Allowed
           content:
@@ -484,17 +699,61 @@ components:
         email:
           type: string
           format: email
-          minLength: 1
+          maxLength: 255
+          minLength: 0
         accountId:
           type: string
           minLength: 1
         displayName:
           type: string
-          minLength: 1
+          maxLength: 255
+          minLength: 0
       required:
       - accountId
       - displayName
       - email
+    UpdateMeetingInviteesRequest:
+      type: object
+      description: Request body for replacing the invitee list of a meeting
+      properties:
+        invitees:
+          type: array
+          description: Full invitee list to synchronize
+          items:
+            $ref: "#/components/schemas/Invitee"
+      required:
+      - invitees
+    MeetingInviteeSnapshot:
+      type: object
+      description: Meeting invitee snapshot
+      properties:
+        id:
+          type: string
+          format: uuid
+        accountId:
+          type: string
+        email:
+          type: string
+        displayName:
+          type: string
+        role:
+          type: string
+        status:
+          type: string
+        invitedAt:
+          type: string
+          format: date-time
+        respondedAt:
+          type: string
+          format: date-time
+    UpdateMeetingInviteesResponse:
+      type: object
+      description: Response containing the current active invitee list of a meeting
+      properties:
+        invitees:
+          type: array
+          items:
+            $ref: "#/components/schemas/MeetingInviteeSnapshot"
     ScheduleMeetingRequest:
       type: object
       description: Request body for creating a scheduled meeting

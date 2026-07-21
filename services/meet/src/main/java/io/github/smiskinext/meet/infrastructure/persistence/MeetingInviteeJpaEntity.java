@@ -36,6 +36,12 @@ public class MeetingInviteeJpaEntity {
     @Column(name = "display_name", nullable = false, length = 255)
     private String displayName;
 
+    @Column(name = "role", nullable = false, length = 20)
+    private String role;
+
+    @Column(name = "rsvp", nullable = false)
+    private boolean rsvp;
+
     @Column(nullable = false, length = 20)
     private String status;
 
@@ -48,21 +54,6 @@ public class MeetingInviteeJpaEntity {
     @Column(name = "removed_at")
     private @Nullable Instant removedAt;
 
-    @Column(name = "token_hash", length = 64)
-    private @Nullable String tokenHash;
-
-    @Column(name = "token_status", length = 20)
-    private @Nullable String tokenStatus;
-
-    @Column(name = "token_expires_at")
-    private @Nullable Instant tokenExpiresAt;
-
-    @Column(name = "token_created_at")
-    private @Nullable Instant tokenCreatedAt;
-
-    @Column(name = "token_updated_at")
-    private @Nullable Instant tokenUpdatedAt;
-
     protected MeetingInviteeJpaEntity() {}
 
     public MeetingInviteeJpaEntity(
@@ -72,30 +63,24 @@ public class MeetingInviteeJpaEntity {
             String accountId,
             String email,
             String displayName,
+            String role,
+            boolean rsvp,
             String status,
             Instant invitedAt,
             @Nullable Instant respondedAt,
-            @Nullable Instant removedAt,
-            @Nullable String tokenHash,
-            @Nullable String tokenStatus,
-            @Nullable Instant tokenExpiresAt,
-            @Nullable Instant tokenCreatedAt,
-            @Nullable Instant tokenUpdatedAt) {
+            @Nullable Instant removedAt) {
         this.id = id;
         this.meetingId = meetingId;
         this.inviterId = inviterId;
         this.accountId = accountId;
         this.email = email;
         this.displayName = displayName;
+        this.role = role;
+        this.rsvp = rsvp;
         this.status = status;
         this.invitedAt = invitedAt;
         this.respondedAt = respondedAt;
         this.removedAt = removedAt;
-        this.tokenHash = tokenHash;
-        this.tokenStatus = tokenStatus;
-        this.tokenExpiresAt = tokenExpiresAt;
-        this.tokenCreatedAt = tokenCreatedAt;
-        this.tokenUpdatedAt = tokenUpdatedAt;
     }
 
     public UUID getId() {
@@ -126,6 +111,14 @@ public class MeetingInviteeJpaEntity {
         return displayName;
     }
 
+    public String getRole() {
+        return role;
+    }
+
+    public boolean isRsvp() {
+        return rsvp;
+    }
+
     public String getStatus() {
         return status;
     }
@@ -140,25 +133,5 @@ public class MeetingInviteeJpaEntity {
 
     public @Nullable Instant getRemovedAt() {
         return removedAt;
-    }
-
-    public @Nullable String getTokenHash() {
-        return tokenHash;
-    }
-
-    public @Nullable String getTokenStatus() {
-        return tokenStatus;
-    }
-
-    public @Nullable Instant getTokenExpiresAt() {
-        return tokenExpiresAt;
-    }
-
-    public @Nullable Instant getTokenCreatedAt() {
-        return tokenCreatedAt;
-    }
-
-    public @Nullable Instant getTokenUpdatedAt() {
-        return tokenUpdatedAt;
     }
 }

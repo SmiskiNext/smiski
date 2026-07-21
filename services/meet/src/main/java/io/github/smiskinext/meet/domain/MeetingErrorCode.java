@@ -29,7 +29,6 @@ public enum MeetingErrorCode implements ErrorCode {
     CAN_NOT_KICK_SELF(ErrorCategory.VALIDATION),
     USER_NOT_IN_MEETING(ErrorCategory.NOT_FOUND),
     INVALID_KICK_TARGET(ErrorCategory.VALIDATION),
-    INVALID_INVITE_TOKEN(ErrorCategory.VALIDATION),
     PARTIAL_APPROVAL_FAILURE(ErrorCategory.CONFLICT),
     CANNOT_MUTE_SELF(ErrorCategory.VALIDATION),
     MEETING_NOT_RUNNING(ErrorCategory.CONFLICT),

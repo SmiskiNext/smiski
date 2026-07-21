@@ -2,29 +2,29 @@ package io.github.smiskinext.meet.infrastructure.messaging;
 
 import com.google.protobuf.Message;
 
-import io.github.smiskinext.event.meet.v1.MeetingInvitationsCreated;
-import io.github.smiskinext.meet.domain.event.MeetingInvitationsCreatedEvent;
+import io.github.smiskinext.event.meet.v1.MeetingInvitationsDeleted;
+import io.github.smiskinext.meet.domain.event.MeetingInvitationsDeletedEvent;
 import io.github.smiskinext.shared.infrastructure.outbox.OutboxEventProtoMapper;
 
 import org.springframework.stereotype.Component;
 
 @Component
-public class MeetingInvitationsCreatedEventProtoMapper
-        implements OutboxEventProtoMapper<MeetingInvitationsCreatedEvent> {
+public class MeetingInvitationsDeletedEventProtoMapper
+        implements OutboxEventProtoMapper<MeetingInvitationsDeletedEvent> {
 
     @Override
-    public Class<MeetingInvitationsCreatedEvent> eventType() {
-        return MeetingInvitationsCreatedEvent.class;
+    public Class<MeetingInvitationsDeletedEvent> eventType() {
+        return MeetingInvitationsDeletedEvent.class;
     }
 
     @Override
     public String dataSchema() {
-        return "io.github.smiskinext.event.meet.v1.MeetingInvitationsCreated";
+        return "io.github.smiskinext.event.meet.v1.MeetingInvitationsDeleted";
     }
 
     @Override
-    public Message toProto(MeetingInvitationsCreatedEvent event) {
-        MeetingInvitationsCreated.Builder builder = MeetingInvitationsCreated.newBuilder()
+    public Message toProto(MeetingInvitationsDeletedEvent event) {
+        MeetingInvitationsDeleted.Builder builder = MeetingInvitationsDeleted.newBuilder()
                 .setMeetingId(event.meetingId().toString())
                 .setTenantId(event.tenantId())
                 .setMeetingShortCode(event.meetingShortCode())
@@ -47,9 +47,9 @@ public class MeetingInvitationsCreatedEventProtoMapper
             builder.setEndTime(event.endTime().toString());
         }
 
-        for (MeetingInvitationsCreatedEvent.InviteeInfo invitee : event.invitees()) {
-            MeetingInvitationsCreated.InviteeInfo.Builder inviteeBuilder =
-                    MeetingInvitationsCreated.InviteeInfo.newBuilder()
+        for (MeetingInvitationsDeletedEvent.InviteeInfo invitee : event.invitees()) {
+            MeetingInvitationsDeleted.InviteeInfo.Builder inviteeBuilder =
+                    MeetingInvitationsDeleted.InviteeInfo.newBuilder()
                             .setAccountId(invitee.accountId())
                             .setEmail(invitee.email())
                             .setDisplayName(invitee.displayName())

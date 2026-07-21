@@ -13,7 +13,7 @@ import org.junit.jupiter.api.Test;
 class MeetingRecordInvitationsCreatedTest {
 
     @Test
-    void registersEventWithCorrectInviteesAndEmbeddedTokens() {
+    void registersEventWithCorrectInvitees() {
         Meeting meeting = Meeting.instant(
                 TenantId.of("tenant-1"),
                 AccountId.of("host-1"),
@@ -34,15 +34,9 @@ class MeetingRecordInvitationsCreatedTest {
                         "acc-1",
                         "a@test.com",
                         "Alice",
-                        "PENDING",
-                        "raw-token-1"),
+                        "NEEDS_ACTION"),
                 new MeetingInvitationsCreatedEvent.InviteeInfo(
-                        java.util.UUID.randomUUID(),
-                        "acc-2",
-                        "b@test.com",
-                        "Bob",
-                        "PENDING",
-                        "raw-token-2"));
+                        java.util.UUID.randomUUID(), "acc-2", "b@test.com", "Bob", "NEEDS_ACTION"));
 
         meeting.recordInvitationsSent(invitees);
 
@@ -54,8 +48,8 @@ class MeetingRecordInvitationsCreatedTest {
         assertThat(event.meetingId()).isEqualTo(meeting.getId().value());
         assertThat(event.tenantId()).isEqualTo("tenant-1");
         assertThat(event.invitees()).hasSize(2);
-        assertThat(event.invitees().get(0).token()).isEqualTo("raw-token-1");
-        assertThat(event.invitees().get(1).token()).isEqualTo("raw-token-2");
+        assertThat(event.invitees().get(0).accountId()).isEqualTo("acc-1");
+        assertThat(event.invitees().get(1).accountId()).isEqualTo("acc-2");
     }
 
     @Test

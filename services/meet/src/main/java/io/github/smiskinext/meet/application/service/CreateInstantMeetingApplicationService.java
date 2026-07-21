@@ -8,7 +8,9 @@ import io.github.smiskinext.meet.domain.MeetingError;
 import io.github.smiskinext.meet.domain.event.MeetingInvitationsCreatedEvent;
 import io.github.smiskinext.meet.domain.model.*;
 import io.github.smiskinext.meet.domain.model.valueobject.*;
-import io.github.smiskinext.meet.domain.port.*;
+import io.github.smiskinext.meet.domain.port.LiveKitPort;
+import io.github.smiskinext.meet.domain.port.MeetingInviteeRepository;
+import io.github.smiskinext.meet.domain.port.MeetingRepository;
 import io.github.smiskinext.shared.domain.EventPublisher;
 import io.github.smiskinext.shared.domain.Result;
 import io.github.smiskinext.shared.domain.valueobject.TenantId;
@@ -23,7 +25,6 @@ public class CreateInstantMeetingApplicationService implements CreateInstantMeet
     private final MeetingInviteeRepository meetingInviteeRepository;
     private final EventPublisher eventPublisher;
     private final LiveKitPort liveKitPort;
-    private final InviteTokenGenerator inviteTokenGenerator;
     private final ShortCodeAllocator shortCodeAllocator;
 
     public CreateInstantMeetingApplicationService(
@@ -31,13 +32,11 @@ public class CreateInstantMeetingApplicationService implements CreateInstantMeet
             MeetingInviteeRepository meetingInviteeRepository,
             EventPublisher eventPublisher,
             LiveKitPort liveKitPort,
-            InviteTokenGenerator inviteTokenGenerator,
             ShortCodeAllocator shortCodeAllocator) {
         this.meetingRepository = meetingRepository;
         this.meetingInviteeRepository = meetingInviteeRepository;
         this.eventPublisher = eventPublisher;
         this.liveKitPort = liveKitPort;
-        this.inviteTokenGenerator = inviteTokenGenerator;
         this.shortCodeAllocator = shortCodeAllocator;
     }
 
@@ -103,11 +102,9 @@ public class CreateInstantMeetingApplicationService implements CreateInstantMeet
                         InviterId.of(hostAccountId.value()),
                         AccountId.of(inviteeCmd.accountId()),
                         Email.of(inviteeCmd.email()),
-                        InviteeDisplayName.of(inviteeCmd.displayName()));
-
-                InviteTokenGenerator.TokenResult tokenResult = inviteTokenGenerator.generate();
-
-                invitee.assignToken(tokenResult.tokenHash(), tokenResult.expiresAt());
+                        InviteeDisplayName.of(inviteeCmd.displayName()),
+                        InviteeRole.REQ_PARTICIPANT,
+                        true);
 
                 invitees.add(invitee);
 
@@ -116,8 +113,7 @@ public class CreateInstantMeetingApplicationService implements CreateInstantMeet
                         inviteeCmd.accountId(),
                         inviteeCmd.email(),
                         inviteeCmd.displayName(),
-                        invitee.getStatus().name(),
-                        tokenResult.rawToken()));
+                        invitee.getStatus().name()));
             }
 
             meeting.recordInvitationsSent(inviteeInfos);
