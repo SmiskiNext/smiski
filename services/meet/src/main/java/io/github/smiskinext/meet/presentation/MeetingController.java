@@ -76,28 +76,108 @@ public class MeetingController {
                 content =
                         @Content(
                                 mediaType = "application/json",
-                                schema = @Schema(implementation = UpdateMeetingResponse.class))),
+                                schema = @Schema(implementation = UpdateMeetingResponse.class),
+                                examples = @ExampleObject(name = "updated", value = """
+                        {
+                          "meeting": {
+                            "id": "0195e0c2-8f3a-7c21-b9d4-2f1a6e7c8d90",
+                            "hostId": "account-123",
+                            "shortCode": "abc-defg-hij",
+                            "type": "SCHEDULED",
+                            "status": "SCHEDULED",
+                            "title": "Sprint planning",
+                            "description": "Plan the next sprint",
+                            "issueLink": {
+                              "issueId": "10001",
+                              "issueKey": "PROJ-1",
+                              "projectKey": "PROJ"
+                            },
+                            "settings": {
+                              "admissionPolicy": "ALLOW_ALL",
+                              "maxParticipants": 50,
+                              "allowScreenShare": true,
+                              "chatEnabled": true,
+                              "allowMicrophone": true,
+                              "allowVideo": true
+                            },
+                            "startTime": "2025-02-01T14:00:00Z",
+                            "endTime": "2025-02-01T15:00:00Z",
+                            "zoneId": "Asia/Ho_Chi_Minh",
+                            "organizerEmail": "host@example.com",
+                            "organizerDisplayName": "Host User",
+                            "calendarUid": "meeting-0195e0c2@smiski.app",
+                            "calendarSequence": 1,
+                            "createdAt": "2025-01-15T10:30:00Z"
+                          }
+                        }"""))),
         @ApiResponse(
                 responseCode = "400",
                 description = "Validation error or missing account",
                 content =
                         @Content(
                                 mediaType = "application/problem+json",
-                                schema = @Schema(implementation = ProblemDetailSchema.class))),
+                                schema = @Schema(implementation = ProblemDetailSchema.class),
+                                examples = {
+                                    @ExampleObject(
+                                            name = "validationError",
+                                            summary = "Validation failure",
+                                            value = """
+                            {
+                              "type": "about:blank",
+                              "title": "Bad Request",
+                              "status": 400,
+                              "detail": "The request body failed validation",
+                              "code": "VALIDATION_ERROR",
+                              "traceId": "6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a",
+                              "errors": [
+                                {"field": "title", "code": "REQUIRED", "message": "must not be blank"}
+                              ]
+                            }"""),
+                                    @ExampleObject(
+                                            name = "missingAccount",
+                                            summary = "Missing X-Account-Id header",
+                                            value = """
+                            {
+                              "type": "about:blank",
+                              "title": "Bad Request",
+                              "status": 400,
+                              "detail": "X-Account-Id header is required",
+                              "code": "VALIDATION_ERROR",
+                              "traceId": "6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a"
+                            }""")
+                                })),
         @ApiResponse(
                 responseCode = "403",
                 description = "Only the host may update the meeting",
                 content =
                         @Content(
                                 mediaType = "application/problem+json",
-                                schema = @Schema(implementation = ProblemDetailSchema.class))),
+                                schema = @Schema(implementation = ProblemDetailSchema.class),
+                                examples = @ExampleObject(name = "notOwner", value = """
+                        {
+                          "type": "about:blank",
+                          "title": "Forbidden",
+                          "status": 403,
+                          "detail": "Only the host may update the meeting",
+                          "code": "NOT_OWNER",
+                          "traceId": "6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a"
+                        }"""))),
         @ApiResponse(
                 responseCode = "404",
                 description = "Meeting not found",
                 content =
                         @Content(
                                 mediaType = "application/problem+json",
-                                schema = @Schema(implementation = ProblemDetailSchema.class)))
+                                schema = @Schema(implementation = ProblemDetailSchema.class),
+                                examples = @ExampleObject(name = "notFound", value = """
+                        {
+                          "type": "about:blank",
+                          "title": "Not Found",
+                          "status": 404,
+                          "detail": "Meeting not found",
+                          "code": "MEETING_NOT_FOUND",
+                          "traceId": "6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a"
+                        }""")))
     })
     @PutMapping("/meetings/{id}")
     public ResponseEntity<Object> update(
@@ -130,28 +210,100 @@ public class MeetingController {
                                 schema =
                                         @Schema(
                                                 implementation =
-                                                        UpdateMeetingInviteesResponse.class))),
+                                                        UpdateMeetingInviteesResponse.class),
+                                examples = @ExampleObject(name = "synchronized", value = """
+                        {
+                          "invitees": [
+                            {
+                              "id": "0195e0c2-8f3a-7c21-b9d4-3a2b1c4d5e60",
+                              "accountId": "account-456",
+                              "email": "alice@example.com",
+                              "displayName": "Alice Nguyen",
+                              "role": "PARTICIPANT",
+                              "status": "PENDING",
+                              "invitedAt": "2025-01-15T10:35:00Z",
+                              "respondedAt": null
+                            },
+                            {
+                              "id": "0195e0c2-8f3a-7c21-b9d4-4b3c2d5e6f70",
+                              "accountId": "account-789",
+                              "email": "bob@example.com",
+                              "displayName": "Bob Tran",
+                              "role": "PARTICIPANT",
+                              "status": "ACCEPTED",
+                              "invitedAt": "2025-01-15T10:35:00Z",
+                              "respondedAt": "2025-01-15T11:00:00Z"
+                            }
+                          ]
+                        }"""))),
         @ApiResponse(
                 responseCode = "400",
                 description = "Validation error or missing account",
                 content =
                         @Content(
                                 mediaType = "application/problem+json",
-                                schema = @Schema(implementation = ProblemDetailSchema.class))),
+                                schema = @Schema(implementation = ProblemDetailSchema.class),
+                                examples = {
+                                    @ExampleObject(
+                                            name = "validationError",
+                                            summary = "Validation failure",
+                                            value = """
+                            {
+                              "type": "about:blank",
+                              "title": "Bad Request",
+                              "status": 400,
+                              "detail": "The request body failed validation",
+                              "code": "VALIDATION_ERROR",
+                              "traceId": "6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a",
+                              "errors": [
+                                {"field": "invitees[0].email", "code": "EMAIL", "message": "must be a well-formed email address"}
+                              ]
+                            }"""),
+                                    @ExampleObject(
+                                            name = "missingAccount",
+                                            summary = "Missing X-Account-Id header",
+                                            value = """
+                            {
+                              "type": "about:blank",
+                              "title": "Bad Request",
+                              "status": 400,
+                              "detail": "X-Account-Id header is required",
+                              "code": "VALIDATION_ERROR",
+                              "traceId": "6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a"
+                            }""")
+                                })),
         @ApiResponse(
                 responseCode = "403",
                 description = "Only the host may modify invitees",
                 content =
                         @Content(
                                 mediaType = "application/problem+json",
-                                schema = @Schema(implementation = ProblemDetailSchema.class))),
+                                schema = @Schema(implementation = ProblemDetailSchema.class),
+                                examples = @ExampleObject(name = "notOwner", value = """
+                        {
+                          "type": "about:blank",
+                          "title": "Forbidden",
+                          "status": 403,
+                          "detail": "Only the host may modify invitees",
+                          "code": "NOT_OWNER",
+                          "traceId": "6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a"
+                        }"""))),
         @ApiResponse(
                 responseCode = "404",
                 description = "Meeting not found",
                 content =
                         @Content(
                                 mediaType = "application/problem+json",
-                                schema = @Schema(implementation = ProblemDetailSchema.class)))
+                                schema = @Schema(implementation = ProblemDetailSchema.class),
+                                examples = @ExampleObject(name = "notFound", value = """
+                        {
+                          "type": "about:blank",
+                          "title": "Not Found",
+                          "status": 404,
+                          "detail": "Meeting not found",
+                          "code": "MEETING_NOT_FOUND",
+                          "traceId": "6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a"
+                        }""")))
     })
     @PutMapping("/meetings/{id}/invitees")
     public ResponseEntity<Object> updateInvitees(
