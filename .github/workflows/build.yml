@@ -87,19 +87,16 @@ jobs:
                   CI: 'true'
 
             - name: Install Forge CLI
-              run: npm i -g @forge/cli
-
-            - name: Forge login
               run:
-                  forge settings set usage-analytics false && forge login
-                  --non-interactive -u "$FORGE_EMAIL" -t "$FORGE_API_TOKEN"
-              env:
-                  FORGE_EMAIL: ${{ secrets.FORGE_EMAIL }}
-                  FORGE_API_TOKEN: ${{ secrets.FORGE_API_TOKEN }}
+                  npm i -g @forge/cli && forge settings set usage-analytics
+                  false
 
             - name: Forge lint
               run: forge lint
               working-directory: app
+              env:
+                  FORGE_EMAIL: ${{ secrets.FORGE_EMAIL }}
+                  FORGE_API_TOKEN: ${{ secrets.FORGE_API_TOKEN }}
 
     scripts:
         name: Scripts
