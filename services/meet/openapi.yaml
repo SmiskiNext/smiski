@@ -5,6 +5,10 @@ info:
 servers:
 - url: http://localhost:8080
   description: API Gateway
+tags:
+- name: meeting-controller
+  description: "Meeting lifecycle: schedule, create instant, update, list, delete\
+    \ meetings and manage invitees"
 paths:
   /api/{version}/meetings/{id}:
     put:
@@ -326,7 +330,7 @@ paths:
                     traceId: 6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a
                     errors:
                     - field: "invitees[0].email"
-                      code: EMAIL
+                      code: INVALID_FORMAT
                       message: must be a well-formed email address
                 missingAccount:
                   summary: Missing X-Account-Id header
@@ -1075,8 +1079,11 @@ components:
           type: string
           format: date-time
         respondedAt:
-          type: string
+          type:
+          - string
+          - "null"
           format: date-time
+          description: Timestamp when the invitee responded; null if not yet responded
     UpdateMeetingInviteesResponse:
       type: object
       description: Response containing the current active invitee list of a meeting

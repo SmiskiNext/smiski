@@ -5,6 +5,9 @@ info:
 servers:
 - url: http://localhost:8080
   description: API Gateway
+tags:
+- name: tenant-controller
+  description: "Tenant lifecycle: register (install) and uninstall Forge app tenants"
 paths:
   /api/{version}/tenants:
     post:

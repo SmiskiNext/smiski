@@ -45,6 +45,7 @@ import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import java.net.URI;
 import java.util.List;
@@ -59,6 +60,10 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 @RestController
+@Tag(
+        name = "meeting-controller",
+        description =
+                "Meeting lifecycle: schedule, create instant, update, list, delete meetings and manage invitees")
 public class MeetingController {
 
     private final CreateInstantMeetingUseCase createInstantMeetingUseCase;
@@ -384,7 +389,7 @@ public class MeetingController {
                               "code": "VALIDATION_ERROR",
                               "traceId": "6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a",
                               "errors": [
-                                {"field": "invitees[0].email", "code": "EMAIL", "message": "must be a well-formed email address"}
+                                {"field": "invitees[0].email", "code": "INVALID_FORMAT", "message": "must be a well-formed email address"}
                               ]
                             }"""),
                                     @ExampleObject(

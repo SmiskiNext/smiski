@@ -19,6 +19,10 @@ public record UpdateMeetingInviteesResponse(List<Invitee> invitees) {
             String role,
             String status,
             Instant invitedAt,
+
+            @Schema(
+                    description = "Timestamp when the invitee responded; null if not yet responded",
+                    nullable = true)
             @Nullable Instant respondedAt) {}
 
     public static UpdateMeetingInviteesResponse from(UpdateMeetingInviteesResult result) {
