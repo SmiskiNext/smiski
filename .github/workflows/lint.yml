@@ -52,8 +52,8 @@ jobs:
                   ./services/gradlew -p services/${{ matrix.service }}
                   spotlessCheck
 
-    biome-app:
-        name: Biome (app)
+    lint-app:
+        name: Lint (app)
         needs: changes
         if: needs.changes.outputs.app == 'true'
         runs-on: ubuntu-latest
@@ -80,8 +80,8 @@ jobs:
             - name: Install dependencies
               run: pnpm install --frozen-lockfile
 
-            - name: Biome check
-              run: pnpm biome check
+            - name: Lint check
+              run: pnpm lint
               working-directory: app
 
     biome-scripts:
@@ -174,7 +174,7 @@ jobs:
 
     lint-success:
         name: Lint Success
-        needs: [spotless, biome-app, biome-scripts, proto, docs]
+        needs: [spotless, lint-app, biome-scripts, proto, docs]
         if: always()
         runs-on: ubuntu-latest
         steps:
