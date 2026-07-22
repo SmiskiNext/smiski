@@ -2,9 +2,11 @@ package io.github.smiskinext.meet.presentation;
 
 import io.github.smiskinext.meet.application.command.CreateInstantMeetingCommand;
 import io.github.smiskinext.meet.application.command.ScheduleMeetingCommand;
+import io.github.smiskinext.meet.application.query.GetMeetingQuery;
 import io.github.smiskinext.meet.application.result.BatchDeleteMeetingsResult;
 import io.github.smiskinext.meet.application.result.CreateInstantMeetingResult;
 import io.github.smiskinext.meet.application.result.DeleteMeetingResult;
+import io.github.smiskinext.meet.application.result.GetMeetingResult;
 import io.github.smiskinext.meet.application.result.ListMeetingsResult;
 import io.github.smiskinext.meet.application.result.ScheduleMeetingResult;
 import io.github.smiskinext.meet.application.result.UpdateMeetingInviteesResult;
@@ -12,6 +14,7 @@ import io.github.smiskinext.meet.application.result.UpdateMeetingResult;
 import io.github.smiskinext.meet.application.usecase.BatchDeleteMeetingsUseCase;
 import io.github.smiskinext.meet.application.usecase.CreateInstantMeetingUseCase;
 import io.github.smiskinext.meet.application.usecase.DeleteMeetingUseCase;
+import io.github.smiskinext.meet.application.usecase.GetMeetingUseCase;
 import io.github.smiskinext.meet.application.usecase.ListMeetingsUseCase;
 import io.github.smiskinext.meet.application.usecase.ScheduleMeetingUseCase;
 import io.github.smiskinext.meet.application.usecase.UpdateMeetingInviteesUseCase;
@@ -27,6 +30,7 @@ import io.github.smiskinext.meet.presentation.request.UpdateMeetingRequest;
 import io.github.smiskinext.meet.presentation.response.BatchDeleteMeetingsResponse;
 import io.github.smiskinext.meet.presentation.response.CreateInstantMeetingResponse;
 import io.github.smiskinext.meet.presentation.response.DeleteMeetingResponse;
+import io.github.smiskinext.meet.presentation.response.GetMeetingResponse;
 import io.github.smiskinext.meet.presentation.response.MeetingListPageResponse;
 import io.github.smiskinext.meet.presentation.response.MeetingSummaryResponse;
 import io.github.smiskinext.meet.presentation.response.ScheduleMeetingResponse;
@@ -52,6 +56,7 @@ import java.util.List;
 import java.util.UUID;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -71,6 +76,7 @@ public class MeetingController {
     private final UpdateMeetingUseCase updateMeetingUseCase;
     private final UpdateMeetingInviteesUseCase updateMeetingInviteesUseCase;
     private final ListMeetingsUseCase listMeetingsUseCase;
+    private final GetMeetingUseCase getMeetingUseCase;
     private final DeleteMeetingUseCase deleteMeetingUseCase;
     private final BatchDeleteMeetingsUseCase batchDeleteMeetingsUseCase;
     private final ResultResponder responder;
@@ -81,6 +87,7 @@ public class MeetingController {
             UpdateMeetingUseCase updateMeetingUseCase,
             UpdateMeetingInviteesUseCase updateMeetingInviteesUseCase,
             ListMeetingsUseCase listMeetingsUseCase,
+            GetMeetingUseCase getMeetingUseCase,
             DeleteMeetingUseCase deleteMeetingUseCase,
             BatchDeleteMeetingsUseCase batchDeleteMeetingsUseCase,
             ResultResponder responder) {
@@ -89,6 +96,7 @@ public class MeetingController {
         this.updateMeetingUseCase = updateMeetingUseCase;
         this.updateMeetingInviteesUseCase = updateMeetingInviteesUseCase;
         this.listMeetingsUseCase = listMeetingsUseCase;
+        this.getMeetingUseCase = getMeetingUseCase;
         this.deleteMeetingUseCase = deleteMeetingUseCase;
         this.batchDeleteMeetingsUseCase = batchDeleteMeetingsUseCase;
         this.responder = responder;
@@ -195,6 +203,120 @@ public class MeetingController {
         List<MeetingSummaryResponse> items =
                 result.items().stream().map(MeetingSummaryResponse::from).toList();
         return PageResponse.cursor(items, result.nextPageToken());
+    }
+
+    @Operation(
+            summary = "Get a meeting with its people",
+            description =
+                    "Returns a single meeting in the caller's tenant together with its active "
+                            + "invitee list and its distinct joined-participant list. Any authenticated "
+                            + "tenant member may read the meeting; access is not restricted to the host.")
+    @ApiResponses({
+        @ApiResponse(
+                responseCode = "200",
+                description = "Meeting detail with invitees and participants",
+                content =
+                        @Content(
+                                mediaType = "application/json",
+                                schema = @Schema(implementation = GetMeetingResponse.class),
+                                examples = @ExampleObject(name = "detail", value = """
+                        {
+                          "meeting": {
+                            "id": "0195e0c2-8f3a-7c21-b9d4-2f1a6e7c8d90",
+                            "hostId": "account-123",
+                            "shortCode": "abc-defg-hij",
+                            "type": "SCHEDULED",
+                            "status": "SCHEDULED",
+                            "title": "Sprint planning",
+                            "description": "Plan the next sprint",
+                            "issueLink": {
+                              "issueId": "10001",
+                              "issueKey": "PROJ-1",
+                              "projectKey": "PROJ"
+                            },
+                            "settings": {
+                              "admissionPolicy": "MANUAL_APPROVAL",
+                              "maxParticipants": 50,
+                              "allowScreenShare": true,
+                              "chatEnabled": true,
+                              "allowMicrophone": true,
+                              "allowVideo": true
+                            },
+                            "startTime": "2025-02-01T14:00:00Z",
+                            "endTime": "2025-02-01T15:00:00Z",
+                            "zoneId": "Asia/Ho_Chi_Minh",
+                            "organizerEmail": "host@example.com",
+                            "organizerDisplayName": "Host User",
+                            "calendarUid": "meeting-0195e0c2@smiski.app",
+                            "calendarSequence": 1,
+                            "createdAt": "2025-01-15T10:30:00Z"
+                          },
+                          "invitees": [
+                            {
+                              "accountId": "account-456",
+                              "email": "alice@example.com",
+                              "displayName": "Alice Nguyen",
+                              "status": "ACCEPTED",
+                              "invitedAt": "2025-01-15T10:35:00Z",
+                              "respondedAt": "2025-01-15T11:00:00Z"
+                            }
+                          ],
+                          "participants": [
+                            {
+                              "accountId": "account-456",
+                              "displayName": "Alice Nguyen",
+                              "role": "PARTICIPANT",
+                              "joinedAt": "2025-02-01T14:01:00Z",
+                              "leftAt": null
+                            }
+                          ]
+                        }"""))),
+        @ApiResponse(
+                responseCode = "400",
+                description = "Missing account header",
+                content =
+                        @Content(
+                                mediaType = "application/problem+json",
+                                schema = @Schema(implementation = ProblemDetailSchema.class),
+                                examples = @ExampleObject(name = "missingAccount", value = """
+                        {
+                          "type": "about:blank",
+                          "title": "Bad Request",
+                          "status": 400,
+                          "detail": "X-Account-Id header is required",
+                          "code": "VALIDATION_ERROR",
+                          "traceId": "6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a"
+                        }"""))),
+        @ApiResponse(
+                responseCode = "404",
+                description = "Meeting not found, soft-deleted, or in another tenant",
+                content =
+                        @Content(
+                                mediaType = "application/problem+json",
+                                schema = @Schema(implementation = ProblemDetailSchema.class),
+                                examples = @ExampleObject(name = "notFound", value = """
+                        {
+                          "type": "about:blank",
+                          "title": "Meeting not found",
+                          "status": 404,
+                          "detail": "No meeting matches the given identifier.",
+                          "code": "MEETING_NOT_FOUND",
+                          "traceId": "6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a"
+                        }""")))
+    })
+    @GetMapping("/meetings/{id}")
+    public ResponseEntity<Object> get(@PathVariable UUID id) {
+        String accountId = AccountContext.getCurrentAccount().orElse(null);
+        if (accountId == null) {
+            return ResponseEntity.badRequest()
+                    .contentType(org.springframework.http.MediaType.APPLICATION_PROBLEM_JSON)
+                    .body(org.springframework.http.ProblemDetail.forStatusAndDetail(
+                            org.springframework.http.HttpStatus.BAD_REQUEST,
+                            "X-Account-Id header is required"));
+        }
+        Result<GetMeetingResult, MeetingError> result = getMeetingUseCase.execute(
+                new GetMeetingQuery(id, TenantContext.getCurrentTenant(), accountId));
+        return responder.ok(result.map(GetMeetingResponse::from));
     }
 
     @Operation(

@@ -11,6 +11,122 @@ tags:
     \ meetings and manage invitees"
 paths:
   /api/{version}/meetings/{id}:
+    get:
+      tags:
+      - meeting-controller
+      summary: Get a meeting with its people
+      description: Returns a single meeting in the caller's tenant together with its
+        active invitee list and its distinct joined-participant list. Any authenticated
+        tenant member may read the meeting; access is not restricted to the host.
+      operationId: get
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: Meeting detail with invitees and participants
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GetMeetingResponse"
+              examples:
+                detail:
+                  description: detail
+                  value:
+                    meeting:
+                      id: 0195e0c2-8f3a-7c21-b9d4-2f1a6e7c8d90
+                      hostId: account-123
+                      shortCode: abc-defg-hij
+                      type: SCHEDULED
+                      status: SCHEDULED
+                      title: Sprint planning
+                      description: Plan the next sprint
+                      issueLink:
+                        issueId: "10001"
+                        issueKey: PROJ-1
+                        projectKey: PROJ
+                      settings:
+                        admissionPolicy: MANUAL_APPROVAL
+                        maxParticipants: 50
+                        allowScreenShare: true
+                        chatEnabled: true
+                        allowMicrophone: true
+                        allowVideo: true
+                      startTime: 2025-02-01T14:00:00Z
+                      endTime: 2025-02-01T15:00:00Z
+                      zoneId: Asia/Ho_Chi_Minh
+                      organizerEmail: host@example.com
+                      organizerDisplayName: Host User
+                      calendarUid: meeting-0195e0c2@smiski.app
+                      calendarSequence: 1
+                      createdAt: 2025-01-15T10:30:00Z
+                    invitees:
+                    - accountId: account-456
+                      email: alice@example.com
+                      displayName: Alice Nguyen
+                      status: ACCEPTED
+                      invitedAt: 2025-01-15T10:35:00Z
+                      respondedAt: 2025-01-15T11:00:00Z
+                    participants:
+                    - accountId: account-456
+                      displayName: Alice Nguyen
+                      role: PARTICIPANT
+                      joinedAt: 2025-02-01T14:01:00Z
+                      leftAt: null
+        "400":
+          description: Missing account header
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+              examples:
+                missingAccount:
+                  description: missingAccount
+                  value:
+                    type: about:blank
+                    title: Bad Request
+                    status: 400
+                    detail: X-Account-Id header is required
+                    code: VALIDATION_ERROR
+                    traceId: 6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a
+        "404":
+          description: "Meeting not found, soft-deleted, or in another tenant"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+              examples:
+                notFound:
+                  description: notFound
+                  value:
+                    type: about:blank
+                    title: Meeting not found
+                    status: 404
+                    detail: No meeting matches the given identifier.
+                    code: MEETING_NOT_FOUND
+                    traceId: 6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a
+        "405":
+          description: Method Not Allowed
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "415":
+          description: Unsupported Media Type
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "500":
+          description: Internal Server Error
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
     put:
       tags:
       - meeting-controller
@@ -1512,6 +1628,112 @@ components:
           format: date-time
         deletedBy:
           type: string
+    GetMeetingResponse:
+      type: object
+      description: A single meeting with its invitees and joined participants
+      properties:
+        meeting:
+          $ref: "#/components/schemas/MeetingDetailSnapshot"
+        invitees:
+          type: array
+          items:
+            $ref: "#/components/schemas/MeetingDetailInvitee"
+        participants:
+          type: array
+          items:
+            $ref: "#/components/schemas/MeetingDetailParticipant"
+    MeetingDetailInvitee:
+      type: object
+      description: Active invitee with RSVP status
+      properties:
+        accountId:
+          type: string
+        email:
+          type: string
+        displayName:
+          type: string
+        status:
+          type: string
+        invitedAt:
+          type: string
+          format: date-time
+        respondedAt:
+          type:
+          - string
+          - "null"
+          format: date-time
+          description: Timestamp when the invitee responded; null if not yet responded
+    MeetingDetailParticipant:
+      type: object
+      description: Distinct joined participant
+      properties:
+        accountId:
+          type: string
+        displayName:
+          type:
+          - string
+          - "null"
+          description: Cached display name; null when unknown
+        role:
+          type: string
+        joinedAt:
+          type: string
+          format: date-time
+        leftAt:
+          type:
+          - string
+          - "null"
+          format: date-time
+          description: Latest leave time; null while the participant is still present
+    MeetingDetailSnapshot:
+      type: object
+      description: Meeting detail snapshot
+      properties:
+        id:
+          type: string
+          format: uuid
+        hostId:
+          type: string
+        shortCode:
+          type: string
+        type:
+          type: string
+        status:
+          type: string
+        title:
+          type: string
+        description:
+          type: string
+        issueLink:
+          $ref: "#/components/schemas/IssueLink"
+        settings:
+          $ref: "#/components/schemas/Settings"
+        startTime:
+          type:
+          - string
+          - "null"
+          format: date-time
+          description: Scheduled start time; null for instant meetings
+        endTime:
+          type:
+          - string
+          - "null"
+          format: date-time
+          description: End time; null until scheduled or ended
+        zoneId:
+          type: string
+        organizerEmail:
+          type: string
+        organizerDisplayName:
+          type: string
+        calendarUid:
+          type: string
+        calendarSequence:
+          type: integer
+          format: int32
+        createdAt:
+          type: string
+          format: date-time
     DeleteMeetingResponse:
       type: object
       description: Snapshot of a soft-deleted meeting
