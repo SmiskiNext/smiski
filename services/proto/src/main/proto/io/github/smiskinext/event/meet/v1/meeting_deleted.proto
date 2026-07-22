@@ -1,0 +1,14 @@
+syntax = "proto3";
+
+package io.github.smiskinext.event.meet.v1;
+
+import "io/github/smiskinext/event/meet/v1/meeting_snapshot.proto";
+
+option java_multiple_files = true;
+option java_package = "io.github.smiskinext.event.meet.v1";
+
+message MeetingDeleted {
+  MeetingSnapshot snapshot = 1;
+  string deleted_by = 2;
+  string deleted_at = 3;
+}

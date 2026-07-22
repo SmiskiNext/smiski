@@ -13,6 +13,7 @@ public record MeetingSummary(
         String shortCode,
         @Nullable String title,
         @Nullable String description,
+        String issueKey,
         @Nullable Instant startTime,
         @Nullable Instant endTime,
         MeetingType type,

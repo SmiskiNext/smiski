@@ -347,4 +347,17 @@ public sealed interface MeetingError extends DomainError {
             return new Object[] {startTime};
         }
     }
+
+    /** The meeting is in RUNNING status and must be ended before it can be deleted. */
+    record CannotDeleteRunningMeeting(UUID meetingId) implements MeetingError {
+        @Override
+        public ErrorCode errorCode() {
+            return MeetingErrorCode.CANNOT_DELETE_RUNNING_MEETING;
+        }
+
+        @Override
+        public Object[] messageArgs() {
+            return new Object[] {meetingId};
+        }
+    }
 }
