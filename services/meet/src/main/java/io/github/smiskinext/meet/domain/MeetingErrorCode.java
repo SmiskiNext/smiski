@@ -34,7 +34,8 @@ public enum MeetingErrorCode implements ErrorCode {
     MEETING_NOT_RUNNING(ErrorCategory.CONFLICT),
     TRACK_NOT_FOUND(ErrorCategory.NOT_FOUND),
     PARTICIPANT_NOT_FOUND(ErrorCategory.NOT_FOUND),
-    MEETING_START_IN_PAST(ErrorCategory.VALIDATION);
+    MEETING_START_IN_PAST(ErrorCategory.VALIDATION),
+    CANNOT_DELETE_RUNNING_MEETING(ErrorCategory.CONFLICT);
 
     private final ErrorCategory category;
 

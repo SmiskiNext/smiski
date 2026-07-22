@@ -78,6 +78,11 @@ public class MeetingRepositoryAdapter implements MeetingRepository {
     }
 
     @Override
+    public Optional<Meeting> findActiveByIdWithLock(UUID id) {
+        return jpaRepository.findActiveByIdWithLock(id).map(MeetingPersistenceMapper::toDomain);
+    }
+
+    @Override
     public Optional<Meeting> findByShortCode(ShortCode shortCode) {
         return jpaRepository
                 .findByShortCode(shortCode.value())

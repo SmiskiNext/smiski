@@ -2,24 +2,31 @@ package io.github.smiskinext.meet.presentation;
 
 import io.github.smiskinext.meet.application.command.CreateInstantMeetingCommand;
 import io.github.smiskinext.meet.application.command.ScheduleMeetingCommand;
+import io.github.smiskinext.meet.application.result.BatchDeleteMeetingsResult;
 import io.github.smiskinext.meet.application.result.CreateInstantMeetingResult;
+import io.github.smiskinext.meet.application.result.DeleteMeetingResult;
 import io.github.smiskinext.meet.application.result.ListMeetingsResult;
 import io.github.smiskinext.meet.application.result.ScheduleMeetingResult;
 import io.github.smiskinext.meet.application.result.UpdateMeetingInviteesResult;
 import io.github.smiskinext.meet.application.result.UpdateMeetingResult;
+import io.github.smiskinext.meet.application.usecase.BatchDeleteMeetingsUseCase;
 import io.github.smiskinext.meet.application.usecase.CreateInstantMeetingUseCase;
+import io.github.smiskinext.meet.application.usecase.DeleteMeetingUseCase;
 import io.github.smiskinext.meet.application.usecase.ListMeetingsUseCase;
 import io.github.smiskinext.meet.application.usecase.ScheduleMeetingUseCase;
 import io.github.smiskinext.meet.application.usecase.UpdateMeetingInviteesUseCase;
 import io.github.smiskinext.meet.application.usecase.UpdateMeetingUseCase;
 import io.github.smiskinext.meet.domain.ListMeetingsError;
 import io.github.smiskinext.meet.domain.MeetingError;
+import io.github.smiskinext.meet.presentation.request.BatchDeleteMeetingsRequest;
 import io.github.smiskinext.meet.presentation.request.CreateInstantMeetingRequest;
 import io.github.smiskinext.meet.presentation.request.ListMeetingsRequest;
 import io.github.smiskinext.meet.presentation.request.ScheduleMeetingRequest;
 import io.github.smiskinext.meet.presentation.request.UpdateMeetingInviteesRequest;
 import io.github.smiskinext.meet.presentation.request.UpdateMeetingRequest;
+import io.github.smiskinext.meet.presentation.response.BatchDeleteMeetingsResponse;
 import io.github.smiskinext.meet.presentation.response.CreateInstantMeetingResponse;
+import io.github.smiskinext.meet.presentation.response.DeleteMeetingResponse;
 import io.github.smiskinext.meet.presentation.response.MeetingSummaryResponse;
 import io.github.smiskinext.meet.presentation.response.ScheduleMeetingResponse;
 import io.github.smiskinext.meet.presentation.response.UpdateMeetingInviteesResponse;
@@ -43,6 +50,7 @@ import java.util.List;
 import java.util.UUID;
 import org.jspecify.annotations.Nullable;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -58,6 +66,8 @@ public class MeetingController {
     private final UpdateMeetingUseCase updateMeetingUseCase;
     private final UpdateMeetingInviteesUseCase updateMeetingInviteesUseCase;
     private final ListMeetingsUseCase listMeetingsUseCase;
+    private final DeleteMeetingUseCase deleteMeetingUseCase;
+    private final BatchDeleteMeetingsUseCase batchDeleteMeetingsUseCase;
     private final ResultResponder responder;
 
     public MeetingController(
@@ -66,12 +76,16 @@ public class MeetingController {
             UpdateMeetingUseCase updateMeetingUseCase,
             UpdateMeetingInviteesUseCase updateMeetingInviteesUseCase,
             ListMeetingsUseCase listMeetingsUseCase,
+            DeleteMeetingUseCase deleteMeetingUseCase,
+            BatchDeleteMeetingsUseCase batchDeleteMeetingsUseCase,
             ResultResponder responder) {
         this.createInstantMeetingUseCase = createInstantMeetingUseCase;
         this.scheduleMeetingUseCase = scheduleMeetingUseCase;
         this.updateMeetingUseCase = updateMeetingUseCase;
         this.updateMeetingInviteesUseCase = updateMeetingInviteesUseCase;
         this.listMeetingsUseCase = listMeetingsUseCase;
+        this.deleteMeetingUseCase = deleteMeetingUseCase;
+        this.batchDeleteMeetingsUseCase = batchDeleteMeetingsUseCase;
         this.responder = responder;
     }
 
@@ -665,5 +679,216 @@ public class MeetingController {
                     .toUri();
             return location;
         });
+    }
+
+    @Operation(
+            summary = "Delete a meeting",
+            description =
+                    "Soft-deletes a meeting as its host. Running meetings must be ended first, "
+                            + "and already-deleted meetings are treated as not found.")
+    @ApiResponses({
+        @ApiResponse(
+                responseCode = "200",
+                description = "Meeting deleted; returns the deleted meeting snapshot",
+                content =
+                        @Content(
+                                mediaType = "application/json",
+                                schema = @Schema(implementation = DeleteMeetingResponse.class))),
+        @ApiResponse(
+                responseCode = "400",
+                description = "Missing account header",
+                content =
+                        @Content(
+                                mediaType = "application/problem+json",
+                                schema = @Schema(implementation = ProblemDetailSchema.class),
+                                examples = @ExampleObject(name = "missingAccount", value = """
+                        {
+                          "type": "about:blank",
+                          "title": "Bad Request",
+                          "status": 400,
+                          "detail": "X-Account-Id header is required",
+                          "code": "VALIDATION_ERROR",
+                          "traceId": "6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a"
+                        }"""))),
+        @ApiResponse(
+                responseCode = "403",
+                description = "Only the host may delete the meeting",
+                content =
+                        @Content(
+                                mediaType = "application/problem+json",
+                                schema = @Schema(implementation = ProblemDetailSchema.class),
+                                examples = @ExampleObject(name = "notAuthorized", value = """
+                        {
+                          "type": "about:blank",
+                          "title": "Not authorized",
+                          "status": 403,
+                          "detail": "You are not the host of this meeting.",
+                          "code": "NOT_AUTHORIZED",
+                          "traceId": "6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a"
+                        }"""))),
+        @ApiResponse(
+                responseCode = "404",
+                description = "Meeting not found or already deleted",
+                content =
+                        @Content(
+                                mediaType = "application/problem+json",
+                                schema = @Schema(implementation = ProblemDetailSchema.class),
+                                examples = @ExampleObject(name = "notFound", value = """
+                        {
+                          "type": "about:blank",
+                          "title": "Meeting not found",
+                          "status": 404,
+                          "detail": "No meeting matches the given identifier.",
+                          "code": "MEETING_NOT_FOUND",
+                          "traceId": "6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a"
+                        }"""))),
+        @ApiResponse(
+                responseCode = "409",
+                description = "The meeting is running and cannot be deleted",
+                content =
+                        @Content(
+                                mediaType = "application/problem+json",
+                                schema = @Schema(implementation = ProblemDetailSchema.class),
+                                examples = @ExampleObject(name = "running", value = """
+                        {
+                          "type": "about:blank",
+                          "title": "Cannot delete a running meeting",
+                          "status": 409,
+                          "detail": "The meeting is running and must be ended before deletion.",
+                          "code": "CANNOT_DELETE_RUNNING_MEETING",
+                          "traceId": "6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a"
+                        }""")))
+    })
+    @DeleteMapping("/meetings/{id}")
+    public ResponseEntity<Object> delete(@PathVariable UUID id) {
+        String accountId = AccountContext.getCurrentAccount().orElse(null);
+        if (accountId == null) {
+            return ResponseEntity.badRequest()
+                    .contentType(org.springframework.http.MediaType.APPLICATION_PROBLEM_JSON)
+                    .body(org.springframework.http.ProblemDetail.forStatusAndDetail(
+                            org.springframework.http.HttpStatus.BAD_REQUEST,
+                            "X-Account-Id header is required"));
+        }
+        Result<DeleteMeetingResult, MeetingError> result = deleteMeetingUseCase.execute(
+                new io.github.smiskinext.meet.application.command.DeleteMeetingCommand(
+                        id, TenantContext.getCurrentTenant(), accountId));
+        return responder.ok(result.map(DeleteMeetingResponse::from));
+    }
+
+    @Operation(
+            summary = "Batch delete meetings",
+            description = "Atomically soft-deletes a non-empty list of meetings as their host. "
+                    + "The batch is all-or-nothing: if any meeting is not found, already deleted, "
+                    + "running, or hosted by another account, no meeting is deleted.")
+    @ApiResponses({
+        @ApiResponse(
+                responseCode = "200",
+                description = "All listed meetings deleted; returns the deleted meeting snapshots",
+                content =
+                        @Content(
+                                mediaType = "application/json",
+                                schema =
+                                        @Schema(
+                                                implementation =
+                                                        BatchDeleteMeetingsResponse.class))),
+        @ApiResponse(
+                responseCode = "400",
+                description = "Validation error or missing account header",
+                content =
+                        @Content(
+                                mediaType = "application/problem+json",
+                                schema = @Schema(implementation = ProblemDetailSchema.class),
+                                examples = {
+                                    @ExampleObject(
+                                            name = "validationError",
+                                            summary = "Empty identifier list",
+                                            value = """
+                            {
+                              "type": "about:blank",
+                              "title": "Bad Request",
+                              "status": 400,
+                              "detail": "The request body failed validation",
+                              "code": "VALIDATION_ERROR",
+                              "traceId": "6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a",
+                              "errors": [
+                                {"field": "meetingIds", "code": "REQUIRED", "message": "must not be empty"}
+                              ]
+                            }"""),
+                                    @ExampleObject(
+                                            name = "missingAccount",
+                                            summary = "Missing X-Account-Id header",
+                                            value = """
+                            {
+                              "type": "about:blank",
+                              "title": "Bad Request",
+                              "status": 400,
+                              "detail": "X-Account-Id header is required",
+                              "code": "VALIDATION_ERROR",
+                              "traceId": "6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a"
+                            }""")
+                                })),
+        @ApiResponse(
+                responseCode = "403",
+                description = "Only the host may delete the meetings",
+                content =
+                        @Content(
+                                mediaType = "application/problem+json",
+                                schema = @Schema(implementation = ProblemDetailSchema.class),
+                                examples = @ExampleObject(name = "notAuthorized", value = """
+                        {
+                          "type": "about:blank",
+                          "title": "Not authorized",
+                          "status": 403,
+                          "detail": "You are not the host of this meeting.",
+                          "code": "NOT_AUTHORIZED",
+                          "traceId": "6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a"
+                        }"""))),
+        @ApiResponse(
+                responseCode = "404",
+                description = "A listed meeting was not found or already deleted",
+                content =
+                        @Content(
+                                mediaType = "application/problem+json",
+                                schema = @Schema(implementation = ProblemDetailSchema.class),
+                                examples = @ExampleObject(name = "notFound", value = """
+                        {
+                          "type": "about:blank",
+                          "title": "Meeting not found",
+                          "status": 404,
+                          "detail": "No meeting matches the given identifier.",
+                          "code": "MEETING_NOT_FOUND",
+                          "traceId": "6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a"
+                        }"""))),
+        @ApiResponse(
+                responseCode = "409",
+                description = "A listed meeting is running and cannot be deleted",
+                content =
+                        @Content(
+                                mediaType = "application/problem+json",
+                                schema = @Schema(implementation = ProblemDetailSchema.class),
+                                examples = @ExampleObject(name = "running", value = """
+                        {
+                          "type": "about:blank",
+                          "title": "Cannot delete a running meeting",
+                          "status": 409,
+                          "detail": "The meeting is running and must be ended before deletion.",
+                          "code": "CANNOT_DELETE_RUNNING_MEETING",
+                          "traceId": "6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a"
+                        }""")))
+    })
+    @PostMapping("/meetings:batchDelete")
+    public ResponseEntity<Object> batchDelete(
+            @Valid @RequestBody BatchDeleteMeetingsRequest request) {
+        String accountId = AccountContext.getCurrentAccount().orElse(null);
+        if (accountId == null) {
+            return ResponseEntity.badRequest()
+                    .contentType(org.springframework.http.MediaType.APPLICATION_PROBLEM_JSON)
+                    .body(org.springframework.http.ProblemDetail.forStatusAndDetail(
+                            org.springframework.http.HttpStatus.BAD_REQUEST,
+                            "X-Account-Id header is required"));
+        }
+        Result<BatchDeleteMeetingsResult, MeetingError> result = batchDeleteMeetingsUseCase.execute(
+                request.toCommand(accountId, TenantContext.getCurrentTenant()));
+        return responder.ok(result.map(BatchDeleteMeetingsResponse::from));
     }
 }

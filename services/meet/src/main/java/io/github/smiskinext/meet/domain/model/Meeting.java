@@ -580,6 +580,57 @@ public class Meeting extends AggregateRoot<MeetingId> {
         return Result.success();
     }
 
+    /**
+     * Soft-deletes the meeting as its host. Registers {@code MeetingDeletedEvent} on success.
+     *
+     * <p>Only the host may delete the meeting, and a meeting in {@link MeetingStatus#RUNNING} status
+     * must be ended first. On success the deletion timestamp and deleting account are recorded and
+     * {@code updatedAt} is refreshed, while {@code purgeAfter} is left null for a later purge job to
+     * compute.
+     *
+     * @param deletedBy the account performing the deletion
+     * @return success, or failure with {@link MeetingError.NotAuthorized} when the caller is not the
+     *     host, or {@link MeetingError.CannotDeleteRunningMeeting} when the meeting is running
+     */
+    public Result<Void, MeetingError> delete(AccountId deletedBy) {
+        if (!hostId.equals(deletedBy)) {
+            return Result.failure(
+                    new MeetingError.NotAuthorized(deletedBy.value(), hostId.value()));
+        }
+        if (status == MeetingStatus.RUNNING) {
+            return Result.failure(new MeetingError.CannotDeleteRunningMeeting(id.value()));
+        }
+        Instant now = Instant.now();
+        this.deletedAt = now;
+        this.deletedBy = deletedBy;
+        this.updatedAt = now;
+        registerEvent(new MeetingDeletedEvent(
+                UUID.randomUUID(),
+                tenantId.value(),
+                id.value(),
+                hostId.value(),
+                shortCode.value(),
+                type.name(),
+                status.name(),
+                title.value(),
+                description,
+                issueLink.issueId(),
+                issueLink.issueKey(),
+                issueLink.projectKey(),
+                timeRange != null ? timeRange.start() : null,
+                timeRange != null ? timeRange.end() : null,
+                settings,
+                timeZone.value(),
+                organizerEmail.value(),
+                organizerDisplayName.value(),
+                calendarUid,
+                calendarSequence,
+                createdAt,
+                deletedBy.value(),
+                now));
+        return Result.success();
+    }
+
     // -------------------------------------------------------------------------
     // Accessors
     // -------------------------------------------------------------------------

@@ -32,6 +32,12 @@ public interface MeetingRepository {
      */
     Optional<Meeting> findByIdWithLock(UUID id);
 
+    /**
+     * Finds an active (not soft-deleted) meeting by ID with a pessimistic write lock. Soft-deleted
+     * and unknown meetings both return an empty result, so callers cannot distinguish them.
+     */
+    Optional<Meeting> findActiveByIdWithLock(UUID id);
+
     Optional<Meeting> findByShortCode(ShortCode shortCode);
 
     /**

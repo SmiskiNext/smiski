@@ -146,6 +146,109 @@ paths:
             application/problem+json:
               schema:
                 $ref: "#/components/schemas/ProblemDetail"
+    delete:
+      tags:
+      - meeting-controller
+      summary: Delete a meeting
+      description: "Soft-deletes a meeting as its host. Running meetings must be ended\
+        \ first, and already-deleted meetings are treated as not found."
+      operationId: delete
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: Meeting deleted; returns the deleted meeting snapshot
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DeleteMeetingResponse"
+        "400":
+          description: Missing account header
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+              examples:
+                missingAccount:
+                  description: missingAccount
+                  value:
+                    type: about:blank
+                    title: Bad Request
+                    status: 400
+                    detail: X-Account-Id header is required
+                    code: VALIDATION_ERROR
+                    traceId: 6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a
+        "403":
+          description: Only the host may delete the meeting
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+              examples:
+                notAuthorized:
+                  description: notAuthorized
+                  value:
+                    type: about:blank
+                    title: Not authorized
+                    status: 403
+                    detail: You are not the host of this meeting.
+                    code: NOT_AUTHORIZED
+                    traceId: 6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a
+        "404":
+          description: Meeting not found or already deleted
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+              examples:
+                notFound:
+                  description: notFound
+                  value:
+                    type: about:blank
+                    title: Meeting not found
+                    status: 404
+                    detail: No meeting matches the given identifier.
+                    code: MEETING_NOT_FOUND
+                    traceId: 6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a
+        "409":
+          description: The meeting is running and cannot be deleted
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+              examples:
+                running:
+                  description: running
+                  value:
+                    type: about:blank
+                    title: Cannot delete a running meeting
+                    status: 409
+                    detail: The meeting is running and must be ended before deletion.
+                    code: CANNOT_DELETE_RUNNING_MEETING
+                    traceId: 6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a
+        "405":
+          description: Method Not Allowed
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "415":
+          description: Unsupported Media Type
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "500":
+          description: Internal Server Error
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
     parameters:
     - name: version
       in: path
@@ -592,6 +695,133 @@ paths:
                     status: 400
                     detail: X-Account-Id header is required
                     code: VALIDATION_ERROR
+                    traceId: 6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a
+        "405":
+          description: Method Not Allowed
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "415":
+          description: Unsupported Media Type
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "500":
+          description: Internal Server Error
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+    parameters:
+    - name: version
+      in: path
+      required: true
+      schema:
+        type: integer
+        format: int32
+      example: 1
+  /api/{version}/meetings:batchDelete:
+    post:
+      tags:
+      - meeting-controller
+      summary: Batch delete meetings
+      description: "Atomically soft-deletes a non-empty list of meetings as their\
+        \ host. The batch is all-or-nothing: if any meeting is not found, already\
+        \ deleted, running, or hosted by another account, no meeting is deleted."
+      operationId: batchDelete
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BatchDeleteMeetingsRequest"
+        required: true
+      responses:
+        "200":
+          description: All listed meetings deleted; returns the deleted meeting snapshots
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BatchDeleteMeetingsResponse"
+        "400":
+          description: Validation error or missing account header
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+              examples:
+                validationError:
+                  summary: Empty identifier list
+                  description: validationError
+                  value:
+                    type: about:blank
+                    title: Bad Request
+                    status: 400
+                    detail: The request body failed validation
+                    code: VALIDATION_ERROR
+                    traceId: 6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a
+                    errors:
+                    - field: meetingIds
+                      code: REQUIRED
+                      message: must not be empty
+                missingAccount:
+                  summary: Missing X-Account-Id header
+                  description: missingAccount
+                  value:
+                    type: about:blank
+                    title: Bad Request
+                    status: 400
+                    detail: X-Account-Id header is required
+                    code: VALIDATION_ERROR
+                    traceId: 6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a
+        "403":
+          description: Only the host may delete the meetings
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+              examples:
+                notAuthorized:
+                  description: notAuthorized
+                  value:
+                    type: about:blank
+                    title: Not authorized
+                    status: 403
+                    detail: You are not the host of this meeting.
+                    code: NOT_AUTHORIZED
+                    traceId: 6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a
+        "404":
+          description: A listed meeting was not found or already deleted
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+              examples:
+                notFound:
+                  description: notFound
+                  value:
+                    type: about:blank
+                    title: Meeting not found
+                    status: 404
+                    detail: No meeting matches the given identifier.
+                    code: MEETING_NOT_FOUND
+                    traceId: 6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a
+        "409":
+          description: A listed meeting is running and cannot be deleted
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+              examples:
+                running:
+                  description: running
+                  value:
+                    type: about:blank
+                    title: Cannot delete a running meeting
+                    status: 409
+                    detail: The meeting is running and must be ended before deletion.
+                    code: CANNOT_DELETE_RUNNING_MEETING
                     traceId: 6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a
         "405":
           description: Method Not Allowed
@@ -1206,3 +1436,78 @@ components:
           type: string
         roomName:
           type: string
+    BatchDeleteMeetingsRequest:
+      type: object
+      description: Batch meeting soft-delete request
+      properties:
+        meetingIds:
+          type: array
+          description: Identifiers of the meetings to delete
+          items:
+            type: string
+            format: uuid
+          minItems: 1
+      required:
+      - meetingIds
+    BatchDeleteMeetingsResponse:
+      type: object
+      description: Snapshots of the meetings deleted in a batch
+      properties:
+        meetings:
+          type: array
+          items:
+            $ref: "#/components/schemas/DeletedMeetingSnapshot"
+    DeletedMeetingSnapshot:
+      type: object
+      description: Deleted meeting snapshot
+      properties:
+        id:
+          type: string
+          format: uuid
+        hostId:
+          type: string
+        shortCode:
+          type: string
+        type:
+          type: string
+        status:
+          type: string
+        title:
+          type: string
+        description:
+          type: string
+        issueLink:
+          $ref: "#/components/schemas/IssueLink"
+        settings:
+          $ref: "#/components/schemas/Settings"
+        startTime:
+          type: string
+          format: date-time
+        endTime:
+          type: string
+          format: date-time
+        zoneId:
+          type: string
+        organizerEmail:
+          type: string
+        organizerDisplayName:
+          type: string
+        calendarUid:
+          type: string
+        calendarSequence:
+          type: integer
+          format: int32
+        createdAt:
+          type: string
+          format: date-time
+        deletedAt:
+          type: string
+          format: date-time
+        deletedBy:
+          type: string
+    DeleteMeetingResponse:
+      type: object
+      description: Snapshot of a soft-deleted meeting
+      properties:
+        meeting:
+          $ref: "#/components/schemas/DeletedMeetingSnapshot"
