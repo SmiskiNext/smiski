@@ -5,11 +5,11 @@ import io.github.smiskinext.meet.application.query.GetMeetingQuery;
 import io.github.smiskinext.meet.application.result.GetMeetingResult;
 import io.github.smiskinext.meet.application.usecase.GetMeetingUseCase;
 import io.github.smiskinext.meet.domain.MeetingError;
-import io.github.smiskinext.meet.domain.model.Meeting;
 import io.github.smiskinext.meet.domain.port.MeetingInviteeRepository;
 import io.github.smiskinext.meet.domain.port.MeetingRepository;
 import io.github.smiskinext.meet.domain.port.ParticipationLogRepository;
 import io.github.smiskinext.meet.domain.projection.InviteeSummary;
+import io.github.smiskinext.meet.domain.projection.MeetingDetail;
 import io.github.smiskinext.meet.domain.projection.ParticipantSummary;
 import io.github.smiskinext.shared.domain.Result;
 import java.util.List;
@@ -43,8 +43,9 @@ public class GetMeetingApplicationService implements GetMeetingUseCase {
 
     @Override
     public Result<GetMeetingResult, MeetingError> execute(GetMeetingQuery query) {
-        Meeting meeting = meetingRepository.findById(query.meetingId()).orElse(null);
-        if (meeting == null || meeting.getDeletedAt().isPresent()) {
+        MeetingDetail meeting =
+                meetingRepository.findDetailById(query.meetingId()).orElse(null);
+        if (meeting == null) {
             return Result.failure(new MeetingError.MeetingNotFound(query.meetingId()));
         }
 

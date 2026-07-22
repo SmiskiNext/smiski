@@ -22,4 +22,13 @@ public interface MeetingJpaRepository
     @Query("select meeting from MeetingJpaEntity meeting"
             + " where meeting.id = :id and meeting.deletedAt is null")
     Optional<MeetingJpaEntity> findActiveByIdWithLock(@Param("id") UUID id);
+
+    @Query(
+            "select new io.github.smiskinext.meet.infrastructure.persistence.MeetingDetailProjection("
+                    + "m.id, m.hostId, m.shortCode, m.type, m.status, m.title, m.description,"
+                    + " m.issueId, m.issueKey, m.projectKey, m.settings, m.startTime, m.endTime,"
+                    + " m.zoneId, m.organizerEmail, m.organizerDisplayName, m.calendarUid,"
+                    + " m.calendarSequence, m.createdAt)"
+                    + " from MeetingJpaEntity m where m.id = :id and m.deletedAt is null")
+    Optional<MeetingDetailProjection> findDetailById(@Param("id") UUID id);
 }

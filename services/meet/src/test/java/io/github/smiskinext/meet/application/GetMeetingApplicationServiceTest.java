@@ -12,22 +12,16 @@ import io.github.smiskinext.meet.application.result.GetMeetingResult;
 import io.github.smiskinext.meet.application.service.GetMeetingApplicationService;
 import io.github.smiskinext.meet.domain.MeetingError;
 import io.github.smiskinext.meet.domain.model.AdmissionPolicy;
-import io.github.smiskinext.meet.domain.model.Meeting;
-import io.github.smiskinext.meet.domain.model.valueobject.AccountId;
-import io.github.smiskinext.meet.domain.model.valueobject.Email;
-import io.github.smiskinext.meet.domain.model.valueobject.InviteeDisplayName;
-import io.github.smiskinext.meet.domain.model.valueobject.JiraIssueLink;
+import io.github.smiskinext.meet.domain.model.MeetingStatus;
+import io.github.smiskinext.meet.domain.model.MeetingType;
 import io.github.smiskinext.meet.domain.model.valueobject.MeetingSettings;
-import io.github.smiskinext.meet.domain.model.valueobject.MeetingTimeZone;
-import io.github.smiskinext.meet.domain.model.valueobject.MeetingTitle;
-import io.github.smiskinext.meet.domain.model.valueobject.ShortCode;
 import io.github.smiskinext.meet.domain.port.MeetingInviteeRepository;
 import io.github.smiskinext.meet.domain.port.MeetingRepository;
 import io.github.smiskinext.meet.domain.port.ParticipationLogRepository;
 import io.github.smiskinext.meet.domain.projection.InviteeSummary;
+import io.github.smiskinext.meet.domain.projection.MeetingDetail;
 import io.github.smiskinext.meet.domain.projection.ParticipantSummary;
 import io.github.smiskinext.shared.domain.Result;
-import io.github.smiskinext.shared.domain.valueobject.TenantId;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
@@ -56,9 +50,9 @@ class GetMeetingApplicationServiceTest {
 
     @Test
     void existingMeetingReturnsMeetingWithInviteesAndParticipants() {
-        Meeting meeting = instantMeeting();
-        UUID meetingId = meeting.getId().value();
-        when(meetingRepository.findById(meetingId)).thenReturn(Optional.of(meeting));
+        UUID meetingId = UUID.randomUUID();
+        when(meetingRepository.findDetailById(meetingId))
+                .thenReturn(Optional.of(meetingDetail(meetingId)));
         Instant invitedAt = Instant.parse("2025-01-15T10:35:00Z");
         Instant joinedAt = Instant.parse("2025-01-15T11:00:00Z");
         when(meetingInviteeRepository.findSummariesByMeetingId(meetingId))
@@ -95,7 +89,7 @@ class GetMeetingApplicationServiceTest {
     @Test
     void absentMeetingYieldsMeetingNotFound() {
         UUID meetingId = UUID.randomUUID();
-        when(meetingRepository.findById(meetingId)).thenReturn(Optional.empty());
+        when(meetingRepository.findDetailById(meetingId)).thenReturn(Optional.empty());
 
         Result<GetMeetingResult, MeetingError> result =
                 service.execute(new GetMeetingQuery(meetingId, TENANT, ACCOUNT));
@@ -110,10 +104,8 @@ class GetMeetingApplicationServiceTest {
 
     @Test
     void softDeletedMeetingYieldsMeetingNotFound() {
-        Meeting meeting = instantMeeting();
-        UUID meetingId = meeting.getId().value();
-        meeting.delete(AccountId.of("host-1"));
-        when(meetingRepository.findById(meetingId)).thenReturn(Optional.of(meeting));
+        UUID meetingId = UUID.randomUUID();
+        when(meetingRepository.findDetailById(meetingId)).thenReturn(Optional.empty());
 
         Result<GetMeetingResult, MeetingError> result =
                 service.execute(new GetMeetingQuery(meetingId, TENANT, ACCOUNT));
@@ -128,9 +120,9 @@ class GetMeetingApplicationServiceTest {
 
     @Test
     void emptyInviteeAndParticipantListsStillSucceed() {
-        Meeting meeting = instantMeeting();
-        UUID meetingId = meeting.getId().value();
-        when(meetingRepository.findById(meetingId)).thenReturn(Optional.of(meeting));
+        UUID meetingId = UUID.randomUUID();
+        when(meetingRepository.findDetailById(meetingId))
+                .thenReturn(Optional.of(meetingDetail(meetingId)));
         when(meetingInviteeRepository.findSummariesByMeetingId(meetingId)).thenReturn(List.of());
         when(participationLogRepository.findDistinctParticipantSummariesByMeetingId(meetingId))
                 .thenReturn(List.of());
@@ -144,17 +136,26 @@ class GetMeetingApplicationServiceTest {
         assertThat(value.participants()).isEmpty();
     }
 
-    private static Meeting instantMeeting() {
-        return Meeting.instant(
-                TenantId.of(TENANT),
-                AccountId.of("host-1"),
-                MeetingTitle.of("Sprint planning"),
+    private static MeetingDetail meetingDetail(UUID meetingId) {
+        return new MeetingDetail(
+                meetingId,
+                "host-1",
+                "abc-defg-hij",
+                MeetingType.INSTANT,
+                MeetingStatus.RUNNING,
+                "Sprint planning",
                 "Plan the next sprint",
-                JiraIssueLink.of("10001", "PROJ-1", "PROJ"),
+                "10001",
+                "PROJ-1",
+                "PROJ",
                 new MeetingSettings(AdmissionPolicy.MANUAL_APPROVAL, 50, true, true, true, true),
-                MeetingTimeZone.of("UTC"),
-                Email.of("host@example.com"),
-                InviteeDisplayName.of("Host User"),
-                ShortCode.of("abc-defg-hij"));
+                null,
+                null,
+                "UTC",
+                "host@example.com",
+                "Host User",
+                "calendar-uid",
+                0,
+                Instant.parse("2025-01-15T10:30:00Z"));
     }
 }

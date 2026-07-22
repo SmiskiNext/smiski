@@ -77,14 +77,6 @@ public class MeetingInviteeRepositoryAdapter implements MeetingInviteeRepository
 
     @Override
     public List<InviteeSummary> findSummariesByMeetingId(UUID meetingId) {
-        return findByMeetingId(meetingId).stream()
-                .map(invitee -> new InviteeSummary(
-                        invitee.getAccountId().value(),
-                        invitee.getEmail().value(),
-                        invitee.getDisplayName().value(),
-                        invitee.getStatus().name(),
-                        invitee.getInvitedAt(),
-                        invitee.getRespondedAt().orElse(null)))
-                .toList();
+        return jpaRepository.findSummaryProjectionsByMeetingId(meetingId);
     }
 }

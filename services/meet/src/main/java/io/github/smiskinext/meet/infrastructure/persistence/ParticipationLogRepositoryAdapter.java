@@ -90,43 +90,44 @@ public class ParticipationLogRepositoryAdapter implements ParticipationLogReposi
 
     @Override
     public List<ParticipantSummary> findDistinctParticipantSummariesByMeetingId(UUID meetingId) {
-        Map<String, List<ParticipationLogJpaEntity>> sessionsByAccount = new LinkedHashMap<>();
-        for (ParticipationLogJpaEntity session : jpaRepository.findByMeetingId(meetingId)) {
+        Map<String, List<ParticipantSummary>> sessionsByAccount = new LinkedHashMap<>();
+        for (ParticipantSummary session :
+                jpaRepository.findParticipantProjectionsByMeetingId(meetingId)) {
             sessionsByAccount
-                    .computeIfAbsent(session.getAccountId(), account -> new ArrayList<>())
+                    .computeIfAbsent(session.accountId(), account -> new ArrayList<>())
                     .add(session);
         }
         List<ParticipantSummary> participants = new ArrayList<>(sessionsByAccount.size());
-        for (List<ParticipationLogJpaEntity> sessions : sessionsByAccount.values()) {
+        for (List<ParticipantSummary> sessions : sessionsByAccount.values()) {
             participants.add(collapse(sessions));
         }
         return participants;
     }
 
-    private static ParticipantSummary collapse(List<ParticipationLogJpaEntity> sessions) {
-        ParticipationLogJpaEntity mostRecent = sessions.getFirst();
-        Instant earliestJoinedAt = mostRecent.getJoinedAt();
+    private static ParticipantSummary collapse(List<ParticipantSummary> sessions) {
+        ParticipantSummary mostRecent = sessions.getFirst();
+        Instant earliestJoinedAt = mostRecent.joinedAt();
         boolean anyStillOpen = false;
         Instant latestLeftAt = null;
-        for (ParticipationLogJpaEntity session : sessions) {
-            if (session.getJoinedAt().isBefore(earliestJoinedAt)) {
-                earliestJoinedAt = session.getJoinedAt();
+        for (ParticipantSummary session : sessions) {
+            if (session.joinedAt().isBefore(earliestJoinedAt)) {
+                earliestJoinedAt = session.joinedAt();
             }
-            if (session.getJoinedAt().isAfter(mostRecent.getJoinedAt())) {
+            if (session.joinedAt().isAfter(mostRecent.joinedAt())) {
                 mostRecent = session;
             }
-            if (session.getLeftAt() == null) {
+            if (session.leftAt() == null) {
                 anyStillOpen = true;
-            } else if (latestLeftAt == null || session.getLeftAt().isAfter(latestLeftAt)) {
-                latestLeftAt = session.getLeftAt();
+            } else if (latestLeftAt == null || session.leftAt().isAfter(latestLeftAt)) {
+                latestLeftAt = session.leftAt();
             }
         }
         return new ParticipantSummary(
-                mostRecent.getId(),
-                mostRecent.getMeetingId(),
-                mostRecent.getAccountId(),
-                mostRecent.getDisplayName(),
-                mostRecent.getRole(),
+                mostRecent.id(),
+                mostRecent.meetingId(),
+                mostRecent.accountId(),
+                mostRecent.displayName(),
+                mostRecent.role(),
                 earliestJoinedAt,
                 anyStillOpen ? null : latestLeftAt);
     }
