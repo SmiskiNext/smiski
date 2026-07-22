@@ -6,16 +6,34 @@ All notable changes to this project will be documented in this file.
 """
 body = """
 {% if version %}\
-    ## [{{ version | trim_start_matches(pat="v") }}] - {{ timestamp | date(format="%Y-%m-%d") }}
+## [{{ version | trim_start_matches(pat="v") }}] - {{ timestamp | date(format="%Y-%m-%d") }}
 {% else %}\
-    ## [Unreleased]
+## [Unreleased]
 {% endif %}\
-{% for group, commits in commits | group_by(attribute="group") %}
-    ### {{ group | striptags | trim | upper_first }}
-    {% for commit in commits %}
-        - {% if commit.scope %}**{{ commit.scope }}**: {% endif %}{{ commit.message | upper_first }}\
-    {% endfor %}
-{% endfor %}\n
+{% for section in ["Services", "App", "Other"] %}\
+{% set improvements = commits | filter(attribute="group", value=section ~ "|Improvements") %}\
+{% set bugfixes = commits | filter(attribute="group", value=section ~ "|Bugfixes") %}\
+{% if improvements | length > 0 or bugfixes | length > 0 %}
+### {{ section }}
+{% if improvements | length > 0 and bugfixes | length > 0 %}
+#### Improvements
+{% for commit in improvements %}\
+- `{{ commit.id | truncate(length=7, end="") }}` {{ commit.message }}
+{% endfor %}
+#### Bugfixes
+{% for commit in bugfixes %}\
+- `{{ commit.id | truncate(length=7, end="") }}` {{ commit.message }}
+{% endfor %}\
+{% else %}
+{% for commit in improvements %}\
+- `{{ commit.id | truncate(length=7, end="") }}` {{ commit.message }}
+{% endfor %}\
+{% for commit in bugfixes %}\
+- `{{ commit.id | truncate(length=7, end="") }}` {{ commit.message }}
+{% endfor %}\
+{% endif %}\
+{% endif %}\
+{% endfor %}
 """
 trim = true
 footer = ""
@@ -25,16 +43,23 @@ conventional_commits = true
 filter_unconventional = true
 split_commits = false
 commit_parsers = [
-    { message = "^feat", group = "Features" },
-    { message = "^fix", group = "Bug Fixes" },
-    { message = "^perf", group = "Performance" },
-    { message = "^refactor", group = "Other Changes" },
     { message = "^chore", skip = true },
     { message = "^ci", skip = true },
     { message = "^docs", skip = true },
     { message = "^style", skip = true },
+    { message = "^fix\\((tenant|meet|record|notification)\\)", group = "Services|Bugfixes" },
+    { message = "^fix\\(app\\)", group = "App|Bugfixes" },
+    { message = "^fix", group = "Other|Bugfixes" },
+    { message = "^\\w+\\((tenant|meet|record|notification)\\)", group = "Services|Improvements" },
+    { message = "^\\w+\\(app\\)", group = "App|Improvements" },
+    { message = ".*", group = "Other|Improvements" },
 ]
 filter_commits = true
-tag_pattern = "v[0-9]*"
+tag_pattern = "v?[0-9]+.*"
 topo_order = false
 sort_commits = "oldest"
+
+[bump]
+features_always_bump_minor = true
+breaking_always_bump_major = true
+no_increment_regex = "^(chore|ci|docs|style)"
