@@ -60,3 +60,6 @@ local.properties
 
 # leftover
 zms/
+
+# Release changelog (generated in CI, never committed)
+UPCOMING_CHANGELOG.md

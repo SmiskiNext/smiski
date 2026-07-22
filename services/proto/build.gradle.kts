@@ -11,7 +11,6 @@ plugins {
 }
 
 group = "io.github.smiskinext.services"
-version = "0.0.1-SNAPSHOT"
 
 val libs = the<LibrariesForLibs>()
 

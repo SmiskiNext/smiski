@@ -1,0 +1,175 @@
+name: Release
+
+on:
+    workflow_dispatch:
+        inputs:
+            bump:
+                description:
+                    Version bump level. Use auto to derive from conventional
+                    commits.
+                type: choice
+                required: false
+                default: auto
+                options:
+                    - auto
+                    - major
+                    - minor
+                    - patch
+
+permissions:
+    contents: write
+    packages: write
+
+concurrency:
+    group: release-${{ github.workflow }}-${{ github.ref }}
+    cancel-in-progress: false
+
+jobs:
+    version:
+        name: Resolve version
+        runs-on: ubuntu-latest
+        outputs:
+            version: ${{ steps.resolve.outputs.version }}
+        steps:
+            - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+              with:
+                  fetch-depth: 0
+
+            - uses: jdx/mise-action@e6a8b3978addb5a52f2b4cd9d91eafa7f0ab959d # v4
+
+            - name: Resolve version
+              id: resolve
+              env:
+                  BUMP: ${{ inputs.bump }}
+              run: |
+                  set -euo pipefail
+                  if [ -z "${BUMP:-}" ] || [ "$BUMP" = "auto" ]; then
+                    resolved="$(git cliff --bumped-version)"
+                  else
+                    latest="$(git tag --list 'v[0-9]*' --sort=-v:refname | head -n1)"
+                    base="${latest#v}"
+                    if [ -z "$base" ]; then
+                      base="0.0.0"
+                    fi
+                    major="${base%%.*}"
+                    rest="${base#*.}"
+                    minor="${rest%%.*}"
+                    patch="${rest#*.}"
+                    case "$BUMP" in
+                      major) major=$((major + 1)); minor=0; patch=0 ;;
+                      minor) minor=$((minor + 1)); patch=0 ;;
+                      patch) patch=$((patch + 1)) ;;
+                    esac
+                    resolved="v${major}.${minor}.${patch}"
+                  fi
+                  version="${resolved#v}"
+                  if ! printf '%s' "$version" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$'; then
+                    echo "::error::Resolved version '$version' is not a valid X.Y.Z string."
+                    exit 1
+                  fi
+                  echo "version=$version" >> "$GITHUB_OUTPUT"
+                  echo "Resolved release version: $version"
+
+    gate:
+        name: Gate (${{ matrix.service }})
+        needs: version
+        runs-on: ubuntu-latest
+        strategy:
+            fail-fast: true
+            matrix:
+                service: [tenant, meet, record, notification]
+        steps:
+            - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+
+            - uses: jdx/mise-action@e6a8b3978addb5a52f2b4cd9d91eafa7f0ab959d # v4
+
+            - uses: gradle/actions/setup-gradle@3f131e8634966bd73d06cc69884922b02e6faf92 # v6
+
+            - name: Assemble and test
+              run:
+                  ./services/gradlew -p services/${{ matrix.service }} assemble
+                  test integrationTest
+
+    publish:
+        name: Publish (${{ matrix.service }})
+        needs: [version, gate]
+        runs-on: ubuntu-latest
+        strategy:
+            fail-fast: true
+            matrix:
+                service: [tenant, meet, record, notification]
+        env:
+            VERSION: ${{ needs.version.outputs.version }}
+        steps:
+            - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+
+            - uses: jdx/mise-action@e6a8b3978addb5a52f2b4cd9d91eafa7f0ab959d # v4
+
+            - uses: gradle/actions/setup-gradle@3f131e8634966bd73d06cc69884922b02e6faf92 # v6
+
+            - name: Build image
+              run:
+                  ./services/gradlew -p services/${{ matrix.service }}
+                  bootBuildImage
+
+            - name: Log in to GHCR
+              run:
+                  echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u
+                  "${{ github.actor }}" --password-stdin
+
+            - name: Tag and push
+              run: |
+                  set -euo pipefail
+                  image="ghcr.io/smiskinext/${{ matrix.service }}"
+                  docker tag "$image:$VERSION" "$image:latest"
+                  docker push "$image:$VERSION"
+                  docker push "$image:latest"
+
+    release:
+        name: Changelog and release
+        needs: [version, gate, publish]
+        runs-on: ubuntu-latest
+        timeout-minutes: 20
+        env:
+            VERSION: ${{ needs.version.outputs.version }}
+        steps:
+            - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+              with:
+                  fetch-depth: 0
+
+            - uses: jdx/mise-action@e6a8b3978addb5a52f2b4cd9d91eafa7f0ab959d # v4
+
+            - name: Install opencode
+              run: npm install -g opencode-ai@1.17.20
+
+            - name: Generate changelog
+              timeout-minutes: 15
+              env:
+                  OPENCODE_CONFIG:
+                      ${{ github.workspace }}/.github/opencode/opencode.jsonc
+                  ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+                  ANTHROPIC_API_URL: ${{ secrets.ANTHROPIC_API_URL }}
+              run: opencode run --command changelog
+
+            - name: Verify changelog is not empty
+              run: |
+                  set -euo pipefail
+                  if [ ! -s UPCOMING_CHANGELOG.md ]; then
+                    echo "::error::UPCOMING_CHANGELOG.md is missing or empty."
+                    exit 1
+                  fi
+
+            - name: Create and push tag
+              run: |
+                  set -euo pipefail
+                  git config user.name "github-actions[bot]"
+                  git config user.email "github-actions[bot]@users.noreply.github.com"
+                  git -c tag.gpgSign=false tag "v$VERSION" "${{ github.sha }}"
+                  git push origin "v$VERSION"
+
+            - name: Create GitHub Release
+              env:
+                  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+              run:
+                  gh release create "v$VERSION" --target "${{ github.sha }}"
+                  --title "v$VERSION" --notes-file UPCOMING_CHANGELOG.md
