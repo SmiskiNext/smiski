@@ -110,3 +110,18 @@ pre-push:
                 >/dev/null; then echo "[openapi-drift] $spec is out of date.
                 Run: pnpm run openapi:$s and commit the regenerated spec.";
                 rc=1; fi; cp "$backup" "$spec"; rm -f "$backup"; done; exit $rc
+
+        openapi-merge-drift:
+            priority: 4
+            glob: 'services/{tenant,meet,record}/**'
+            run: >
+                svcs=$(for f in {push_files}; do case "$f" in services/tenant/*)
+                echo tenant ;; services/meet/*) echo meet ;; services/record/*)
+                echo record ;; esac; done | sort -u); [ -z "$svcs" ] && exit 0;
+                rc=0; spec="services/openapi.yaml"; backup="$(mktemp)"; cp
+                "$spec" "$backup"; if ! pnpm run openapi:join; then cp "$backup"
+                "$spec"; rm -f "$backup"; exit 1; fi; if ! diff -q "$backup"
+                "$spec" >/dev/null; then echo "[openapi-merge-drift] $spec is
+                out of date. Run: pnpm run openapi and commit the regenerated
+                combined spec."; rc=1; fi; cp "$backup" "$spec"; rm -f
+                "$backup"; exit $rc

@@ -118,6 +118,19 @@ jobs:
                   pnpm exec redocly lint services/${{ matrix.service
                   }}/openapi.yaml
 
+            - name: Generate combined spec
+              run: pnpm run openapi:join
+
+            - name: Check combined spec for drift
+              run: |
+                  if ! git diff --exit-code -- 'services/openapi.yaml'; then
+                    echo "::error::Combined OpenAPI spec is out of date. Run 'pnpm run openapi' locally and commit the result."
+                    exit 1
+                  fi
+
+            - name: Lint combined spec
+              run: pnpm exec redocly lint services/openapi.yaml
+
     test-success:
         name: Test Success
         needs: [java, openapi]
