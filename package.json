@@ -5,7 +5,6 @@
     "type": "module",
     "scripts": {
         "preinstall": "npx only-allow pnpm",
-        "smiski": "pnpm --filter @smiskinext/scripts smiski --",
         "lint": "markdownlint-cli2 --fix '**/*.md'",
         "format": "prettier --write '**/*.{md,json,toml,yaml,yml,sh,sql}'",
         "openapi:tenant": "./services/gradlew -p services/tenant generateOpenApiDocsFromTests",
