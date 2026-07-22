@@ -27,6 +27,7 @@ import io.github.smiskinext.meet.presentation.request.UpdateMeetingRequest;
 import io.github.smiskinext.meet.presentation.response.BatchDeleteMeetingsResponse;
 import io.github.smiskinext.meet.presentation.response.CreateInstantMeetingResponse;
 import io.github.smiskinext.meet.presentation.response.DeleteMeetingResponse;
+import io.github.smiskinext.meet.presentation.response.MeetingListPageResponse;
 import io.github.smiskinext.meet.presentation.response.MeetingSummaryResponse;
 import io.github.smiskinext.meet.presentation.response.ScheduleMeetingResponse;
 import io.github.smiskinext.meet.presentation.response.UpdateMeetingInviteesResponse;
@@ -48,7 +49,6 @@ import jakarta.validation.Valid;
 import java.net.URI;
 import java.util.List;
 import java.util.UUID;
-import org.jspecify.annotations.Nullable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -101,7 +101,7 @@ public class MeetingController {
                 content =
                         @Content(
                                 mediaType = "application/json",
-                                schema = @Schema(implementation = MeetingListPage.class),
+                                schema = @Schema(implementation = MeetingListPageResponse.class),
                                 examples = @ExampleObject(name = "page", value = """
                         {
                           "data": [
@@ -190,14 +190,6 @@ public class MeetingController {
         List<MeetingSummaryResponse> items =
                 result.items().stream().map(MeetingSummaryResponse::from).toList();
         return PageResponse.cursor(items, result.nextPageToken());
-    }
-
-    @Schema(name = "MeetingListPage", description = "Paginated list of tenant meetings")
-    private record MeetingListPage(List<MeetingSummaryResponse> data, PageMetaSchema meta) {
-
-        @Schema(name = "MeetingListPageMeta")
-        private record PageMetaSchema(
-                int size, boolean hasNext, @Nullable String nextPageToken) {}
     }
 
     @Operation(
