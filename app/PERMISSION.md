@@ -23,9 +23,9 @@
 
 All Meeting business logic relies on only **2 custom permissions**:
 
-| Permission | Meaning |
-|---|---|
-| **View Meeting** | View meeting info, view history, view detail, join a Running meeting, view recording if available. |
+| Permission       | Meaning                                                                                                                                    |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| **View Meeting** | View meeting info, view history, view detail, join a Running meeting, view recording if available.                                         |
 | **Edit Meeting** | Everything in View Meeting **plus** create meetings (instant/scheduled), start meetings, edit, cancel, end meetings, start/stop recording. |
 
 **Containment relationship:** `Edit Meeting ⊇ View Meeting`. A user with Edit Meeting automatically
@@ -34,11 +34,11 @@ parallel flags.
 
 ### Business actors / roles (descriptive only — NOT the authorization mechanism)
 
-| Actor | Role |
-|---|---|
-| Jira Admin / Project Admin | Configures the app, declares custom permissions, sets up the permission scheme, assigns users to project roles. |
-| Meeting Manager / Host | Person who manages meetings → maps to **Edit Meeting**. |
-| Participant (Developer, Tester/QA, BA, Viewer...) | Person who attends/views meetings → maps to **View Meeting**. |
+| Actor                                             | Role                                                                                                            |
+| ------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| Jira Admin / Project Admin                        | Configures the app, declares custom permissions, sets up the permission scheme, assigns users to project roles. |
+| Meeting Manager / Host                            | Person who manages meetings → maps to **Edit Meeting**.                                                         |
+| Participant (Developer, Tester/QA, BA, Viewer...) | Person who attends/views meetings → maps to **View Meeting**.                                                   |
 
 Important note: **"Host" is a per-meeting concept** (the creator of that specific meeting, stored in
 `host_id` / the `HOST` role of the participation log), **distinct from permission**. A user with
@@ -49,44 +49,44 @@ never substitute a "current user == host_id" check for the actual Edit Meeting p
 
 ## 3. Permission matrix by function
 
-| Function | View Meeting | Edit Meeting |
-|---|---|---|
-| View meeting list | ✅ | ✅ |
-| View meeting detail | ✅ | ✅ |
-| View meeting history | ✅ | ✅ |
-| Join a Running meeting | ✅ | ✅ |
-| View recording | ✅ | ✅ |
-| Search and filter meetings | ✅ | ✅ |
-| Start Instant Meeting | ❌ | ✅ |
-| Schedule Meeting | ❌ | ✅ |
-| Manage Meeting (Edit/Cancel/End) | ❌ | ✅ |
-| Start/Stop Recording | ❌ | ✅ |
+| Function                         | View Meeting | Edit Meeting |
+| -------------------------------- | ------------ | ------------ |
+| View meeting list                | ✅           | ✅           |
+| View meeting detail              | ✅           | ✅           |
+| View meeting history             | ✅           | ✅           |
+| Join a Running meeting           | ✅           | ✅           |
+| View recording                   | ✅           | ✅           |
+| Search and filter meetings       | ✅           | ✅           |
+| Start Instant Meeting            | ❌           | ✅           |
+| Schedule Meeting                 | ❌           | ✅           |
+| Manage Meeting (Edit/Cancel/End) | ❌           | ✅           |
+| Start/Stop Recording             | ❌           | ✅           |
 
 ## 4. Permission matrix by Use Case
 
-| Use Case | Required permission |
-|---|---|
-| UC-01 Start Instant Meeting | Edit Meeting |
-| UC-02 Schedule Meeting | Edit Meeting |
-| UC-03 Start Scheduled Meeting | Edit Meeting |
-| UC-04 Manage Meeting (Edit/Cancel/End) | Edit Meeting |
-| UC-05 Join Meeting | View **or** Edit Meeting |
-| UC-06 View Meeting Detail | View **or** Edit Meeting |
-| UC-07 View Meeting History | View **or** Edit Meeting |
-| UC-08 Record Meeting (Start/Stop) | Edit Meeting |
-| UC-09 View Recording | View **or** Edit Meeting |
-| UC-10 Search and Filter Meeting | View **or** Edit Meeting |
+| Use Case                               | Required permission      |
+| -------------------------------------- | ------------------------ |
+| UC-01 Start Instant Meeting            | Edit Meeting             |
+| UC-02 Schedule Meeting                 | Edit Meeting             |
+| UC-03 Start Scheduled Meeting          | Edit Meeting             |
+| UC-04 Manage Meeting (Edit/Cancel/End) | Edit Meeting             |
+| UC-05 Join Meeting                     | View **or** Edit Meeting |
+| UC-06 View Meeting Detail              | View **or** Edit Meeting |
+| UC-07 View Meeting History             | View **or** Edit Meeting |
+| UC-08 Record Meeting (Start/Stop)      | Edit Meeting             |
+| UC-09 View Recording                   | View **or** Edit Meeting |
+| UC-10 Search and Filter Meeting        | View **or** Edit Meeting |
 
 ## 5. Action-visibility rules by Meeting state (permission × state)
 
 A meeting has 4 states: `Scheduled → Running → Completed`, or `Scheduled → Canceled`.
 
-| Meeting State | With View Meeting only | With Edit Meeting |
-|---|---|---|
-| **Scheduled** | View only (View Detail) | View Detail, Edit, Start, Cancel |
-| **Running** | Join, View Detail | Join, View Detail, End, Start/Stop Recording |
-| **Completed** | View Detail, View Recording (if any) | View Detail, View Recording (if any) |
-| **Canceled** | View Detail | View Detail |
+| Meeting State | With View Meeting only               | With Edit Meeting                            |
+| ------------- | ------------------------------------ | -------------------------------------------- |
+| **Scheduled** | View only (View Detail)              | View Detail, Edit, Start, Cancel             |
+| **Running**   | Join, View Detail                    | Join, View Detail, End, Start/Stop Recording |
+| **Completed** | View Detail, View Recording (if any) | View Detail, View Recording (if any)         |
+| **Canceled**  | View Detail                          | View Detail                                  |
 
 This is a **two-dimensional matrix**: which actions are visible/allowed = f(permission, current
 meeting state). Example: a user with Edit Meeting must NOT see Edit/Cancel/End on a meeting that is
@@ -129,6 +129,7 @@ Per the original design (section 3.6.4):
 > logic**, to prevent unauthorized operations."
 
 In other words:
+
 - **Frontend (Issue Panel / Project Page — React inside Forge Custom UI):** only responsible for
   hiding/showing actions based on permission + state, for UX purposes — must NOT be treated as a
   security layer.

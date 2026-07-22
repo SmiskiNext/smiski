@@ -2,7 +2,8 @@
 
 > Module họp trực tuyến được nhúng trong Jira thông qua Forge, vận hành bởi LiveKit.
 >
-> **Trạng thái:** Bản nháp · **Đối tượng đọc:** Kỹ sư, người review · **Phạm vi:** Các backend service (`tenant`, `meet`, `record`, `notification`) và hạ tầng hỗ trợ.
+> **Trạng thái:** Bản nháp · **Đối tượng đọc:** Kỹ sư, người review · **Phạm vi:**
+> Các backend service (`tenant`, `meet`, `record`, `notification`) và hạ tầng hỗ trợ.
 >
 > Sơ đồ được viết bằng [D2](https://d2lang.com). Mỗi khối code `d2` là một
 > sơ đồ độc lập — hãy trích xuất nó trước khi render (D2 không parse Markdown).
@@ -37,12 +38,12 @@ cơ sở dữ liệu riêng (database-per-service) và giao tiếp bất đồng
 không có hệ thống đăng nhập riêng — và toàn bộ dữ liệu được phân vùng theo
 `tenant_id`, chính là `cloudId` của Jira.
 
-| Service | Trách nhiệm | Kho lưu trữ |
-| --- | --- | --- |
-| `tenant` | Nguồn dữ liệu gốc cho tenancy: cài đặt / nâng cấp / gỡ Forge app | Postgres · Kafka |
-| `meet` | Lõi cuộc họp: CRUD, yêu cầu tham gia, cấp token LiveKit | Postgres (primary + replica) · Valkey · Kafka · LiveKit |
-| `record` | Vòng đời ghi hình độc lập, dẫn dắt bởi LiveKit Egress | Postgres · Kafka · LiveKit Egress · RustFS |
-| `notification` | Trung tâm SSE thời gian thực và email mời họp | Valkey · Kafka (không có database) |
+| Service        | Trách nhiệm                                                      | Kho lưu trữ                                             |
+| -------------- | ---------------------------------------------------------------- | ------------------------------------------------------- |
+| `tenant`       | Nguồn dữ liệu gốc cho tenancy: cài đặt / nâng cấp / gỡ Forge app | Postgres · Kafka                                        |
+| `meet`         | Lõi cuộc họp: CRUD, yêu cầu tham gia, cấp token LiveKit          | Postgres (primary + replica) · Valkey · Kafka · LiveKit |
+| `record`       | Vòng đời ghi hình độc lập, dẫn dắt bởi LiveKit Egress            | Postgres · Kafka · LiveKit Egress · RustFS              |
+| `notification` | Trung tâm SSE thời gian thực và email mời họp                    | Valkey · Kafka (không có database)                      |
 
 ---
 
@@ -343,11 +344,11 @@ primary -> replica: "streaming replication (async WAL)"
 
 **Định tuyến theo yêu cầu độ mới (freshness):**
 
-| Nhóm | Ví dụ | Định tuyến |
-| --- | --- | --- |
-| Read-your-own-write | vừa tạo cuộc họp, xem chi tiết | PRIMARY |
-| Eventually consistent | lịch sử, truy vết UC07, danh sách theo host | REPLICA |
-| Thời gian thực | danh sách người tham gia trực tiếp (UC04) | Valkey |
+| Nhóm                  | Ví dụ                                       | Định tuyến |
+| --------------------- | ------------------------------------------- | ---------- |
+| Read-your-own-write   | vừa tạo cuộc họp, xem chi tiết              | PRIMARY    |
+| Eventually consistent | lịch sử, truy vết UC07, danh sách theo host | REPLICA    |
+| Thời gian thực        | danh sách người tham gia trực tiếp (UC04)   | Valkey     |
 
 ---
 
@@ -444,31 +445,31 @@ notif -> valkey.idemc
 
 ## 12. Tác vụ theo lịch
 
-| Service | Job | Chu kỳ | Mục đích |
-| --- | --- | --- | --- |
-| tất cả Postgres | OutboxPoller | 500 ms | Publish outbox lên Kafka (`FOR UPDATE SKIP LOCKED`) |
-| meet | JoinRequestExpiryJob | 1 phút | Phát sự kiện EXPIRED cho SSE |
-| meet | ArchiveEndedMeetingsJob | hằng ngày | **Chỉ bật khi số dòng/phân vùng vượt ngưỡng** |
-| record | RecordingRetentionJob | hằng ngày | Soft-delete sau 15 ngày, hard-delete sau 30 ngày |
-| record | EgressTimeoutJob | 5 phút | Đánh dấu các recording PENDING quá hạn thành FAILED |
-| tenant | PurgeTenantJob | hằng ngày | Purge sau thời gian ân hạn (Option B) |
+| Service         | Job                     | Chu kỳ    | Mục đích                                            |
+| --------------- | ----------------------- | --------- | --------------------------------------------------- |
+| tất cả Postgres | OutboxPoller            | 500 ms    | Publish outbox lên Kafka (`FOR UPDATE SKIP LOCKED`) |
+| meet            | JoinRequestExpiryJob    | 1 phút    | Phát sự kiện EXPIRED cho SSE                        |
+| meet            | ArchiveEndedMeetingsJob | hằng ngày | **Chỉ bật khi số dòng/phân vùng vượt ngưỡng**       |
+| record          | RecordingRetentionJob   | hằng ngày | Soft-delete sau 15 ngày, hard-delete sau 30 ngày    |
+| record          | EgressTimeoutJob        | 5 phút    | Đánh dấu các recording PENDING quá hạn thành FAILED |
+| tenant          | PurgeTenantJob          | hằng ngày | Purge sau thời gian ân hạn (Option B)               |
 
 ---
 
 ## 13. Quyết định thiết kế
 
-| # | Chủ đề | Quyết định |
-| --- | --- | --- |
-| Q1 | Yêu cầu tham gia + SSE | `notification` là trung tâm thời gian thực; `meet` chỉ publish sự kiện; fan-out qua Valkey Pub/Sub |
-| Q2 | Phân giải danh tính người được mời | Hoàn toàn event-carried — đã loại bỏ tra cứu gRPC |
-| Q3 | Quyền sở hữu LiveKit | Chỉ nằm trong `meet` (token) và `record` (egress); `tenant` không liên quan |
-| #1 | Gỡ cài đặt | Hai lựa chọn: A purge ngay lập tức / B thời gian ân hạn (mặc định) |
-| #2 | Lưu giữ recording | Cố định 15 ngày soft / 30 ngày hard |
-| #3 | Lưu trữ lịch sử cuộc họp | Giữ nguyên tại chỗ; chỉ archive sang bảng lạnh khi đạt ngưỡng |
-| #4 | Publish outbox | Poller `@Scheduled` (`SKIP LOCKED`), không dùng CDC |
-| CQRS | Cấp độ | Cấp độ 2 hybrid: command tới primary, query tới replica + Valkey |
-| Replica | Phạm vi | `meet` trước tiên; `record` hoãn lại (không nặng DB); tenant/notification không cần |
-| Idempotency | Nơi lưu | Valkey (`idem:*`, TTL 1h) |
+| #           | Chủ đề                             | Quyết định                                                                                         |
+| ----------- | ---------------------------------- | -------------------------------------------------------------------------------------------------- |
+| Q1          | Yêu cầu tham gia + SSE             | `notification` là trung tâm thời gian thực; `meet` chỉ publish sự kiện; fan-out qua Valkey Pub/Sub |
+| Q2          | Phân giải danh tính người được mời | Hoàn toàn event-carried — đã loại bỏ tra cứu gRPC                                                  |
+| Q3          | Quyền sở hữu LiveKit               | Chỉ nằm trong `meet` (token) và `record` (egress); `tenant` không liên quan                        |
+| #1          | Gỡ cài đặt                         | Hai lựa chọn: A purge ngay lập tức / B thời gian ân hạn (mặc định)                                 |
+| #2          | Lưu giữ recording                  | Cố định 15 ngày soft / 30 ngày hard                                                                |
+| #3          | Lưu trữ lịch sử cuộc họp           | Giữ nguyên tại chỗ; chỉ archive sang bảng lạnh khi đạt ngưỡng                                      |
+| #4          | Publish outbox                     | Poller `@Scheduled` (`SKIP LOCKED`), không dùng CDC                                                |
+| CQRS        | Cấp độ                             | Cấp độ 2 hybrid: command tới primary, query tới replica + Valkey                                   |
+| Replica     | Phạm vi                            | `meet` trước tiên; `record` hoãn lại (không nặng DB); tenant/notification không cần                |
+| Idempotency | Nơi lưu                            | Valkey (`idem:*`, TTL 1h)                                                                          |
 
 ---
 
@@ -494,7 +495,7 @@ notif -> valkey.idemc
 D2 không parse Markdown, vì vậy đưa file này trực tiếp vào `d2` sẽ lỗi. Hãy
 trích xuất từng khối `d2` ra file riêng trước, ví dụ:
 
-```sh
+````sh
 awk '
 /^```d2$/ {n++; f=sprintf("diagram-%02d.d2", n); inb=1; next}
 /^```$/   {inb=0; next}
@@ -502,6 +503,6 @@ inb       {print > f}
 ' docs/architecture.md
 
 for f in diagram-*.d2; do d2 "$f" "${f%.d2}.svg"; done
-```
+````
 
 Ngoài ra, có thể dùng trình xem Markdown hoặc plugin IDE có hỗ trợ D2 sẵn.

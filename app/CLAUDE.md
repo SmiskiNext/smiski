@@ -31,7 +31,7 @@ Two pnpm workspace packages:
 - **root** (`package.json`) — the Forge app itself: `manifest.yml` + `src/index.ts`
   (resolver). Plain TypeScript, no framework.
 - **`static/smiski-ui/`** — the Custom UI frontend: Vite + React 18 + TypeScript +
-  Tailwind v4 + TanStack Query. This is the *only* UI bundle; both Forge modules
+  Tailwind v4 + TanStack Query. This is the _only_ UI bundle; both Forge modules
   (`jira:issueContext` and `jira:projectPage`, declared in `manifest.yml`) render it
   and branch at runtime on `context.moduleKey` (see `App.tsx`).
 
