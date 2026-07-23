@@ -12,6 +12,7 @@ import type { ProjectMember } from '../domain';
 interface JiraCurrentUserResponse {
   accountId?: string;
   displayName?: string;
+  emailAddress?: string;
   avatarUrls?: Record<string, string>;
 }
 
@@ -32,6 +33,7 @@ export async function getCurrentJiraUser(): Promise<ProjectMember> {
   return {
     accountId: user.accountId,
     displayName: user.displayName,
+    email: user.emailAddress,
     avatarUrl: user.avatarUrls?.['48x48'],
   };
 }

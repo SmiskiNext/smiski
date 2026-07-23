@@ -48,18 +48,18 @@ permissions:
     # - read:me            # TODO: enable if we need the invoking user's identity/profile
     # - offline_access     # TODO: enable if the identity bridge needs refresh tokens
 
-  # TODO: Egress — the app talks to the backend ONLY through the Kong Gateway.
+  # TODO: Egress — the app talks to the backend ONLY through the Caddy API gateway.
   # Fill in the real gateway origin(s) before deploying. `backend` covers Forge
   # `fetch` from the resolver; `client` covers fetch/WebSocket from Custom UI
   # (needed for the LiveKit client SDK inside the meeting room).
   external:
     fetch:
       backend:
-        - 'https://TODO-kong-gateway.smiski.example' # Kong API Gateway
+        - address: 'https://TODO-caddy-gateway.smiski.example' # Caddy API gateway
       client:
-        - 'https://TODO-kong-gateway.smiski.example' # meeting/token endpoints
-        # LiveKit Cloud signalling (real project — Kong entry above is still TODO)
-        - 'wss://smiski-meeting-2rcpqikr.livekit.cloud'
+        - address: 'https://TODO-caddy-gateway.smiski.example' # meeting/token endpoints
+        # LiveKit Cloud signalling (real project — Caddy entry above is still TODO)
+        - address: 'wss://smiski-meeting-2rcpqikr.livekit.cloud'
 
 app:
   runtime:

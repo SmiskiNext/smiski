@@ -56,7 +56,7 @@ room without requiring users to leave Jira.
 | Meeting persistence   | Mocked                 | Meetings and participant rosters are stored in memory and mirrored to `localStorage`.                      |
 | Jira issue lookup     | Implemented            | Calls Jira REST API through `@forge/bridge` in a real Forge context; uses fixtures in Vite development.    |
 | Permission resolution | Mocked                 | The frontend models `Edit Meeting` as including `View Meeting`; no real Jira permission lookup exists yet. |
-| Kong/backend API      | Stubbed                | Typed clients exist, but meeting, participant, and recording calls are not connected.                      |
+| Caddy/backend API     | Stubbed                | Typed clients exist, but meeting, participant, and recording calls are not connected.                      |
 | LiveKit room          | Prototype              | The client connection is implemented; a temporary Forge resolver mints room tokens directly.               |
 | Recording             | Mocked                 | Types, hooks, and mock operations exist; no recording service is connected.                                |
 | Automated tests       | Partial                | Pure permission-policy and issue-list filtering behavior are covered with Vitest.                          |
@@ -126,7 +126,7 @@ the future API clients. Replacing the mock data source should therefore require 
 ### Planned backend boundary
 
 The intended production design keeps business logic outside the Forge app. The Forge resolver
-should remain a thin identity-aware bridge to services exposed through Kong Gateway, while the
+should remain a thin identity-aware bridge to services exposed through the Caddy API gateway, while the
 backend enforces authorization, lifecycle rules, tenant isolation, and persistence.
 
 The main integration points are:
@@ -139,7 +139,7 @@ The main integration points are:
    permissions.
 5. Move LiveKit token issuance to the meeting service and authorize every token request against
    the meeting and participant roster.
-6. Replace placeholder Kong origins and review the minimum required Forge scopes and egress rules.
+6. Replace placeholder Caddy origins and review the minimum required Forge scopes and egress rules.
 
 See [architecture.vi.md](architecture.vi.md) for the broader system design and
 [PERMISSION.md](PERMISSION.md) for the meeting authorization model.
@@ -185,6 +185,27 @@ available for UI development.
 
 Mock meetings and participant selections may persist between reloads in `localStorage`. Clear the
 site data for the Vite origin to restore the initial fixtures.
+
+### Environment files
+
+Forge CLI and resolver shell variables:
+
+```bash
+cp .env.example .env
+set -a
+. ./.env
+set +a
+pnpm exec forge lint
+```
+
+Custom UI Vite variables:
+
+```bash
+cp static/smiski-ui/.env.example static/smiski-ui/.env.local
+pnpm ui:dev
+```
+
+Do not commit `.env`, `.env.local`, Forge API tokens, or real LiveKit secrets.
 
 ## Available commands
 
@@ -251,7 +272,7 @@ The manifest currently declares:
 - `jira:projectPage` with module key `smiski-project-page`
 - one shared Custom UI resource at `static/smiski-ui/dist`
 - the `read:jira-work` scope for Jira issue search
-- placeholder Kong Gateway egress origins
+- placeholder Caddy API gateway egress origins
 - a LiveKit client WebSocket origin
 
 Replace all placeholder gateway origins before deployment to a real environment. After adding or
@@ -283,7 +304,7 @@ Before a production release:
 - Enforce authorization and meeting-state transitions on the backend for every mutation.
 - Replace the direct LiveKit token-minting shim with an authorized backend endpoint.
 - Replace mock current-user and project-member data with tenant-aware identities.
-- Configure real Kong Gateway origins and remove placeholder egress entries.
+- Configure real Caddy API gateway origins and remove placeholder egress entries.
 - Review and minimize Forge scopes and external permissions.
 - Add contract, integration, and end-to-end coverage for both Jira modules.
 - Define operational logging, monitoring, error handling, and recovery behavior.

@@ -7,5 +7,6 @@ export interface ProjectMember {
   /** Jira accountId — stable identity used everywhere else (Meeting.hostId, Participant.accountId, ...). */
   accountId: string;
   displayName: string;
+  email?: string;
   avatarUrl?: string;
 }

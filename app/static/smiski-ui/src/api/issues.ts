@@ -2,7 +2,7 @@
  * Jira issues API — real data, straight from the host Jira instance.
  *
  * Unlike `meetings`/`participants`/`recordings` (which target the still-unbuilt
- * Kong Gateway backend), issues come from Jira ITSELF via `@forge/bridge`'s
+ * backend gateway), issues come from Jira ITSELF via `@forge/bridge`'s
  * `requestJira`. That call is a first-class Forge capability — it runs as the
  * invoking user and only needs the `read:jira-work` scope (already granted in
  * manifest.yml), so this works today with no backend.

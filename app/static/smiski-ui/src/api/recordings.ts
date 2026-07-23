@@ -1,21 +1,34 @@
 /**
- * Recordings API — typed client signatures for the `record` service via Kong
- * (STUB). Recording is out-of-scope for the initial module (DOCS1.md); these
- * signatures exist for the project-page placeholder controls. No fetch logic.
+ * Recordings API — typed client signatures for the `record` service via the backend gateway
+ * once recording leaves prototype/mock mode.
  */
 import type { Recording } from '../domain';
+import { apiRequest } from './client';
+import { recordingEndpoints } from './endpoints';
+import { recordingFromBackend } from './mappers';
 
 /** Fetch the recording (if any) attached to a meeting. */
-export async function getMeetingRecording(_meetingId: string): Promise<Recording | null> {
-  throw new Error('Not implemented: getMeetingRecording');
+export async function getMeetingRecording(meetingId: string): Promise<Recording | null> {
+  const payload = await apiRequest<unknown>(recordingEndpoints.byMeeting(meetingId));
+  return recordingFromBackend(payload);
 }
 
 /** Start recording a running meeting (requires EDIT_MEETING). */
-export async function startRecording(_meetingId: string): Promise<Recording> {
-  throw new Error('Not implemented: startRecording');
+export async function startRecording(meetingId: string): Promise<Recording> {
+  const payload = await apiRequest<unknown>(recordingEndpoints.start(meetingId), {
+    method: 'POST',
+  });
+  const recording = recordingFromBackend(payload);
+  if (!recording) throw new Error('Backend did not return a recording.');
+  return recording;
 }
 
 /** Stop an in-progress recording (requires EDIT_MEETING). */
-export async function stopRecording(_meetingId: string): Promise<Recording> {
-  throw new Error('Not implemented: stopRecording');
+export async function stopRecording(meetingId: string): Promise<Recording> {
+  const payload = await apiRequest<unknown>(recordingEndpoints.stop(meetingId), {
+    method: 'POST',
+  });
+  const recording = recordingFromBackend(payload);
+  if (!recording) throw new Error('Backend did not return a recording.');
+  return recording;
 }

@@ -1,7 +1,7 @@
 packages:
     - scripts
     - sdks/typescript
-    - app
+    - app/static/smiski-ui
 allowBuilds:
     '@firebase/util': false
     '@forge/cli': false

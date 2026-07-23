@@ -2,7 +2,7 @@
  * Project members API — real data, straight from the host Jira instance.
  *
  * Like `issues.ts` (and unlike `meetings`/`participants`/`recordings`, which
- * target the still-unbuilt Kong Gateway backend), this calls Jira ITSELF via
+ * target the still-unbuilt backend gateway), this calls Jira ITSELF via
  * `@forge/bridge`'s `requestJira`, running as the invoking user. Needs the
  * `read:jira-user` scope (see manifest.yml) in addition to `read:jira-work`.
  */
@@ -12,6 +12,7 @@ import type { ProjectMember } from '../domain';
 interface JiraAssignableUser {
   accountId: string;
   displayName: string;
+  emailAddress?: string;
   avatarUrls?: Record<string, string>;
 }
 
@@ -42,6 +43,7 @@ export async function getProjectMembers(
   return users.map((user) => ({
     accountId: user.accountId,
     displayName: user.displayName,
+    email: user.emailAddress,
     avatarUrl: user.avatarUrls?.['48x48'],
   }));
 }
