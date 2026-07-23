@@ -1,0 +1,42 @@
+{
+    "name": "@smiskinext/smiski-ts",
+    "version": "0.0.0",
+    "description": "TypeScript client for the Smiski API",
+    "type": "module",
+    "license": "Apache-2.0",
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/smiskinext/smiski.git",
+        "directory": "sdks/typescript"
+    },
+    "homepage": "https://github.com/smiskinext/smiski/tree/dev/sdks/typescript",
+    "bugs": "https://github.com/smiskinext/smiski/issues",
+    "files": [
+        "dist"
+    ],
+    "exports": {
+        ".": {
+            "types": "./dist/index.d.ts",
+            "import": "./dist/index.js"
+        }
+    },
+    "main": "./dist/index.js",
+    "types": "./dist/index.d.ts",
+    "publishConfig": {
+        "registry": "https://npm.pkg.github.com",
+        "access": "restricted"
+    },
+    "scripts": {
+        "generate": "openapi-ts",
+        "typecheck": "tsc --noEmit",
+        "build": "tsc -p tsconfig.build.json",
+        "pack:check": "pnpm pack --pack-destination .pack && node scripts/smoke-pack.mjs"
+    },
+    "dependencies": {
+        "zod": "^4.0.0"
+    },
+    "devDependencies": {
+        "@hey-api/openapi-ts": "0.90.10",
+        "typescript": "5.9.3"
+    }
+}

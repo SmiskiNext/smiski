@@ -4,10 +4,11 @@
 
 ### Requirement: Release workflow trigger
 
-The release SHALL be a dedicated GitHub Actions workflow triggered only by
-`workflow_dispatch` on the `dev` branch. It SHALL expose an optional `bump`
-input accepting exactly one of `major`, `minor`, or `patch`. The workflow SHALL
-NOT run on `push`, `pull_request`, or `schedule` events.
+The backend release SHALL be a dedicated GitHub Actions workflow triggered only
+by `workflow_dispatch`. Its release jobs SHALL proceed only when the dispatched
+ref is `refs/heads/dev`. It SHALL expose an optional `bump` choice accepting
+`auto`, `major`, `minor`, or `patch`, with `auto` as the default. The workflow
+SHALL NOT run on `push`, `pull_request`, or `schedule` events.
 
 #### Scenario: Manual dispatch on dev
 
@@ -20,6 +21,19 @@ NOT run on `push`, `pull_request`, or `schedule` events.
 - **THEN** the workflow proceeds using the version derived from conventional
   commits (see version derivation)
 
+#### Scenario: Auto bump selected
+
+- **WHEN** the workflow is dispatched with `bump=auto`
+- **THEN** the workflow proceeds using the version derived from conventional
+  commits
+
+#### Scenario: Dispatch from a non-dev ref
+
+- **WHEN** a maintainer dispatches the backend release workflow from any ref
+  other than `refs/heads/dev`
+- **THEN** release jobs do not resolve a version, run gates, publish images,
+  create a tag, or create a GitHub Release
+
 #### Scenario: No automatic trigger
 
 - **WHEN** a commit is pushed to `dev` or a pull request is opened
@@ -31,15 +45,16 @@ The workflow SHALL derive the next semantic version from conventional commits
 since the most recent `v*` tag using git-cliff. When no `v*` tag exists, the
 baseline SHALL be `0.0.0`. `feat` commits SHALL raise the minor level, `fix`
 commits SHALL raise the patch level, and a breaking change (`!` or
-`BREAKING CHANGE`) SHALL raise the major level. When the `bump` input is
-provided, it SHALL override the derived level and select that bump against the
-latest tag. The resolved version SHALL be a valid `X.Y.Z` string, and the tag
-form SHALL be `vX.Y.Z`.
+`BREAKING CHANGE`) SHALL raise the major level. When `bump` is `auto` or
+omitted, the workflow SHALL use that derived version. When `bump` is explicitly
+`major`, `minor`, or `patch`, it SHALL override derivation and select that bump
+against the latest tag. The resolved version SHALL be a valid `X.Y.Z` string,
+and the tag form SHALL be `vX.Y.Z`.
 
 #### Scenario: Derive from commits
 
 - **WHEN** the latest tag is `v1.2.3` and the commits since it include a `feat`
-  but no breaking change, and no `bump` input is given
+  but no breaking change, and `bump=auto` or no `bump` input is given
 - **THEN** the resolved version is `1.3.0`
 
 #### Scenario: Manual bump overrides derivation
@@ -235,3 +250,146 @@ control that groups runs without cancelling an in-progress release.
   concurrency group
 - **THEN** the in-progress run is allowed to complete rather than being
   cancelled
+
+### Requirement: API-derived TypeScript SDK generation
+
+The repository SHALL generate `@smiskinext/smiski-ts` from the merged
+`services/openapi.yaml` contract using the pinned `@hey-api/openapi-ts` 0.90.10
+generator. Generation SHALL emit TypeScript operations and types for every
+operation in the merged contract. Regeneration SHALL replace stale generated
+output rather than preserve files that are no longer produced by the contract.
+
+#### Scenario: Generate from the merged contract
+
+- **WHEN** the SDK generation command runs
+- **THEN** its input is `services/openapi.yaml` and its generated output
+  contains the operations and types represented by that contract
+
+#### Scenario: Remove stale generated output
+
+- **WHEN** an operation is removed from the merged OpenAPI contract and the SDK
+  is regenerated
+- **THEN** generated files no longer export that operation or its generated
+  types
+
+### Requirement: Public Zod v4 schemas
+
+SDK generation SHALL produce Zod v4 schemas for the generated API models and
+operation data. The package's public root entry point SHALL export those schemas
+alongside the generated operations and types. `zod` SHALL be a runtime package
+dependency so an installed SDK can execute the exported schemas and operation
+validators without relying on consumer development dependencies.
+
+#### Scenario: Consumer imports a generated schema
+
+- **WHEN** a consumer installs the packed SDK and imports a generated schema
+  such as `zMeetScheduleMeetingRequest` from `@smiskinext/smiski-ts`
+- **THEN** the imported value exposes the Zod parsing API at runtime
+
+#### Scenario: Runtime dependency is installed
+
+- **WHEN** the SDK tarball is installed in a clean consumer project
+- **THEN** its Zod schemas and validators resolve `zod` without the consumer
+  declaring `zod` separately
+
+### Requirement: Runtime request and response validation
+
+Every generated SDK operation SHALL validate its complete request data with its
+generated Zod request schema before invoking the transport. Every operation
+SHALL validate a successful response with its generated Zod response schema
+before returning it to the caller. Validation failures SHALL reject with a Zod
+validation error and SHALL NOT return unvalidated data.
+
+#### Scenario: Invalid request is rejected before fetch
+
+- **WHEN** a caller invokes an SDK operation with request data that violates its
+  generated request schema
+- **THEN** the operation rejects with a Zod validation error and does not invoke
+  `fetch`
+
+#### Scenario: Malformed successful response is rejected
+
+- **WHEN** the transport returns a 2xx response whose body violates the
+  operation's generated response schema
+- **THEN** the operation rejects with a Zod validation error instead of
+  returning the malformed body
+
+#### Scenario: Every generated operation has both validators
+
+- **WHEN** generated SDK operations are inspected
+- **THEN** each operation is wired to one generated request validator and one
+  generated response validator
+
+### Requirement: SDK continuous validation
+
+The SDK validation workflow SHALL run for relevant pull requests and pushes. It
+SHALL regenerate service and merged OpenAPI documents, regenerate the SDK, and
+fail if tracked OpenAPI or generated SDK files differ. After the drift check it
+SHALL typecheck and build the SDK, pack the distributable tarball, install that
+tarball in a clean temporary consumer project, and execute smoke assertions for
+the public schema export and request/response validation behavior.
+
+#### Scenario: Generated drift is detected
+
+- **WHEN** regeneration changes a tracked service OpenAPI document, the merged
+  OpenAPI document, or `sdks/typescript/src/generated`
+- **THEN** SDK validation fails at the generated-file drift check
+
+#### Scenario: Packed artifact passes consumer smoke test
+
+- **WHEN** generation is current and the SDK typecheck and build pass
+- **THEN** CI installs the packed tarball in a clean temporary project and
+  verifies a public schema, pre-fetch request rejection, and malformed-2xx
+  response rejection
+
+### Requirement: SDK release trigger and Changesets versioning
+
+SDK release automation SHALL be distinct from the manually dispatched backend
+release. The SDK release workflow SHALL run on pushes to `dev` and SHALL use
+Changesets metadata for `@smiskinext/smiski-ts`. When unreleased changesets are
+present, it SHALL create or update a release pull request targeting `dev`. The
+release pull request SHALL apply the requested semantic version changes and
+consume the included changesets.
+
+#### Scenario: Push with an unreleased changeset
+
+- **WHEN** a commit containing an unreleased SDK changeset reaches `dev`
+- **THEN** the SDK release workflow creates or updates a Changesets release pull
+  request for `@smiskinext/smiski-ts`
+
+#### Scenario: Backend release remains manual
+
+- **WHEN** a normal commit is pushed to `dev`
+- **THEN** the SDK release workflow may run, but the backend release workflow is
+  not automatically dispatched
+
+### Requirement: SDK publication to GitHub Packages
+
+SDK release automation SHALL, after a Changesets release pull request is merged
+to `dev`, install all required dependencies from a clean checkout, build the
+versioned SDK, and execute the root `release:sdk` command. That command SHALL
+publish `@smiskinext/smiski-ts` to `https://npm.pkg.github.com` with restricted
+access using the workflow token, and SHALL fail rather than silently succeed if
+versioning, build, authentication, or publication fails. The root package
+scripts, Changesets dependency, lockfiles, and pnpm workspace behavior SHALL be
+internally consistent with this clean-checkout path.
+
+#### Scenario: Release pull request is merged
+
+- **WHEN** a Changesets release pull request is merged to `dev`
+- **THEN** a clean workflow checkout can install dependencies, invoke
+  `pnpm release:sdk`, and publish the versioned SDK to restricted GitHub
+  Packages
+
+#### Scenario: Release command is unavailable
+
+- **WHEN** the workflow cannot resolve the root `release:sdk` command or the
+  Changesets CLI from a clean checkout
+- **THEN** the SDK release job fails and does not report a successful publish
+
+#### Scenario: Package-manager model is coherent
+
+- **WHEN** root SDK validation and release commands run from a clean checkout
+- **THEN** workspace membership, `--ignore-workspace` usage, and lockfile
+  selection follow one documented dependency model and install the same required
+  SDK and Changesets dependencies

@@ -1,0 +1,104 @@
+name: SDK
+
+on:
+    pull_request:
+        branches: [dev, main]
+        paths:
+            - 'sdks/typescript/**'
+            - 'services/openapi.yaml'
+            - 'services/tenant/openapi.yaml'
+            - 'services/meet/openapi.yaml'
+            - 'services/record/openapi.yaml'
+            - 'services/tenant/src/**'
+            - 'services/meet/src/**'
+            - 'services/record/src/**'
+            - 'services/shared/src/**'
+            - 'services/proto/src/**'
+            - 'services/tenant/build.gradle.kts'
+            - 'services/meet/build.gradle.kts'
+            - 'services/record/build.gradle.kts'
+            - 'services/shared/build.gradle.kts'
+            - 'services/proto/build.gradle.kts'
+            - 'services/**/settings.gradle.kts'
+            - 'services/**/gradle.properties'
+            - 'services/gradle/**'
+            - 'services/redocly-merge.yaml'
+            - 'build-logic/**'
+            - 'gradle/libs.versions.toml'
+            - 'gradle.properties'
+            - 'package.json'
+            - 'pnpm-lock.yaml'
+            - 'pnpm-workspace.yaml'
+            - '.github/workflows/sdk.yml'
+    push:
+        branches: [dev, main]
+        paths:
+            - 'sdks/typescript/**'
+            - 'services/openapi.yaml'
+            - 'services/tenant/openapi.yaml'
+            - 'services/meet/openapi.yaml'
+            - 'services/record/openapi.yaml'
+            - 'services/tenant/src/**'
+            - 'services/meet/src/**'
+            - 'services/record/src/**'
+            - 'services/shared/src/**'
+            - 'services/proto/src/**'
+            - 'services/tenant/build.gradle.kts'
+            - 'services/meet/build.gradle.kts'
+            - 'services/record/build.gradle.kts'
+            - 'services/shared/build.gradle.kts'
+            - 'services/proto/build.gradle.kts'
+            - 'services/**/settings.gradle.kts'
+            - 'services/**/gradle.properties'
+            - 'services/gradle/**'
+            - 'services/redocly-merge.yaml'
+            - 'build-logic/**'
+            - 'gradle/libs.versions.toml'
+            - 'gradle.properties'
+            - 'package.json'
+            - 'pnpm-lock.yaml'
+            - 'pnpm-workspace.yaml'
+            - '.github/workflows/sdk.yml'
+
+permissions:
+    contents: read
+
+concurrency:
+    group: sdk-${{ github.workflow }}-${{ github.ref }}
+    cancel-in-progress: true
+
+jobs:
+    validate:
+        name: Validate TypeScript SDK
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+
+            - uses: jdx/mise-action@e6a8b3978addb5a52f2b4cd9d91eafa7f0ab959d # v4
+
+            - name: Install dependencies
+              run: pnpm install --frozen-lockfile
+
+            - name: Install SDK dependencies
+              run: pnpm run sdk:install
+
+            - name: Regenerate OpenAPI
+              run: pnpm run openapi
+
+            - name: Regenerate SDK
+              run: pnpm run sdk:generate
+
+            - name: Check generated files
+              run: >-
+                  git diff --exit-code -- services/tenant/openapi.yaml
+                  services/meet/openapi.yaml services/record/openapi.yaml
+                  services/openapi.yaml sdks/typescript/src/generated
+
+            - name: Typecheck SDK
+              run: pnpm run sdk:typecheck
+
+            - name: Build SDK
+              run: pnpm run sdk:build
+
+            - name: Pack SDK
+              run: pnpm run sdk:pack

@@ -1,0 +1,47 @@
+name: SDK Release
+
+on:
+    push:
+        branches: [dev]
+
+permissions:
+    contents: write
+    packages: write
+    pull-requests: write
+
+concurrency:
+    group: sdk-release-${{ github.workflow }}-${{ github.ref }}
+    cancel-in-progress: false
+
+jobs:
+    release:
+        name: Create or publish SDK release
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+              with:
+                  fetch-depth: 0
+
+            - uses: jdx/mise-action@e6a8b3978addb5a52f2b4cd9d91eafa7f0ab959d # v4
+
+            - name: Install dependencies
+              run: pnpm install --frozen-lockfile
+
+            - name: Configure GitHub Packages
+              run: |
+                  printf '%s\n' '@smiskinext:registry=https://npm.pkg.github.com' '//npm.pkg.github.com/:_authToken=${NODE_AUTH_TOKEN}' > "$HOME/.npmrc"
+              env:
+                  NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+            - name: Create release PR or publish SDK
+              id: changesets
+              uses: changesets/action@c47fa68bd43bb8ae0bae7e558622593deebf5955 # v2.0.0-next.3
+              with:
+                  publish-script: pnpm release:sdk
+                  pr-title: 'chore(sdk): release SDK'
+                  commit-message: 'chore(sdk): release SDK'
+                  pr-base-branch: dev
+                  create-github-releases: false
+              env:
+                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+                  NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

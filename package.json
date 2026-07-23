@@ -13,7 +13,12 @@
         "openapi:generate": "pnpm run openapi:tenant && pnpm run openapi:meet && pnpm run openapi:record",
         "openapi:join": "redocly join services/tenant/openapi.yaml services/meet/openapi.yaml services/record/openapi.yaml --prefix-components-with-info-prop title -o services/openapi.yaml && redocly bundle services/openapi.yaml --config services/redocly-merge.yaml -o services/openapi.yaml",
         "openapi:lint": "redocly lint services/tenant/openapi.yaml services/meet/openapi.yaml services/record/openapi.yaml services/openapi.yaml",
-        "openapi": "pnpm run openapi:generate && pnpm run openapi:join && pnpm run openapi:lint"
+        "openapi": "pnpm run openapi:generate && pnpm run openapi:join && pnpm run openapi:lint",
+        "sdk:install": "pnpm --dir sdks/typescript --ignore-workspace install --frozen-lockfile",
+        "sdk:generate": "pnpm --dir sdks/typescript --ignore-workspace run generate",
+        "sdk:typecheck": "pnpm --dir sdks/typescript --ignore-workspace run typecheck",
+        "sdk:build": "pnpm --dir sdks/typescript --ignore-workspace run build",
+        "sdk:pack": "pnpm --dir sdks/typescript --ignore-workspace run pack:check"
     },
     "keywords": [],
     "author": "",
