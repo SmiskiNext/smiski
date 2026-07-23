@@ -79,9 +79,6 @@ jobs:
             - name: Install dependencies
               run: pnpm install --frozen-lockfile
 
-            - name: Install SDK dependencies
-              run: pnpm run sdk:install
-
             - name: Regenerate OpenAPI
               run: pnpm run openapi
 
