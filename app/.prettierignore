@@ -1,6 +1,0 @@
-node_modules
-dist
-build
-.forge
-pnpm-lock.yaml
-package-lock.json
