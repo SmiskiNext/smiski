@@ -1,9 +1,9 @@
-import { useLayoutEffect, useState, type RefObject } from 'react';
+import { type RefObject, useLayoutEffect, useState } from 'react';
 
 export interface FloatingPosition {
-  top: number;
-  left: number;
-  width: number;
+    top: number;
+    left: number;
+    width: number;
 }
 
 /**
@@ -16,29 +16,33 @@ export interface FloatingPosition {
  * sibling content).
  */
 export function useFloatingPosition(
-  triggerRef: RefObject<HTMLElement | null>,
-  isOpen: boolean,
+    triggerRef: RefObject<HTMLElement | null>,
+    isOpen: boolean,
 ): FloatingPosition | null {
-  const [position, setPosition] = useState<FloatingPosition | null>(null);
+    const [position, setPosition] = useState<FloatingPosition | null>(null);
 
-  useLayoutEffect(() => {
-    if (!isOpen) {
-      setPosition(null);
-      return;
-    }
-    const update = () => {
-      const rect = triggerRef.current?.getBoundingClientRect();
-      if (!rect) return;
-      setPosition({ top: rect.bottom + 4, left: rect.left, width: rect.width });
-    };
-    update();
-    window.addEventListener('scroll', update, true);
-    window.addEventListener('resize', update);
-    return () => {
-      window.removeEventListener('scroll', update, true);
-      window.removeEventListener('resize', update);
-    };
-  }, [isOpen, triggerRef]);
+    useLayoutEffect(() => {
+        if (!isOpen) {
+            setPosition(null);
+            return;
+        }
+        const update = () => {
+            const rect = triggerRef.current?.getBoundingClientRect();
+            if (!rect) return;
+            setPosition({
+                top: rect.bottom + 4,
+                left: rect.left,
+                width: rect.width,
+            });
+        };
+        update();
+        window.addEventListener('scroll', update, true);
+        window.addEventListener('resize', update);
+        return () => {
+            window.removeEventListener('scroll', update, true);
+            window.removeEventListener('resize', update);
+        };
+    }, [isOpen, triggerRef]);
 
-  return position;
+    return position;
 }

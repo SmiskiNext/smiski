@@ -11,24 +11,26 @@ import { listIssueMeetings } from '../mocks/db';
 import { queryKeys } from './queryKeys';
 
 export interface UseIssueMeetingsResult {
-  meetings: Meeting[];
-  loading: boolean;
-  error: Error | null;
-  refresh: () => void;
+    meetings: Meeting[];
+    loading: boolean;
+    error: Error | null;
+    refresh: () => void;
 }
 
 export function useIssueMeetings(issueKey?: string): UseIssueMeetingsResult {
-  const query = useQuery({
-    queryKey: issueKey ? queryKeys.issueMeetings(issueKey) : ['meetings', 'issue', 'none'],
-    // TODO: swap for api.getIssueMeetings(issueKey) once the backend is wired up.
-    queryFn: () => listIssueMeetings(issueKey as string),
-    enabled: Boolean(issueKey),
-  });
+    const query = useQuery({
+        queryKey: issueKey
+            ? queryKeys.issueMeetings(issueKey)
+            : ['meetings', 'issue', 'none'],
+        // TODO: swap for api.getIssueMeetings(issueKey) once the backend is wired up.
+        queryFn: () => listIssueMeetings(issueKey as string),
+        enabled: Boolean(issueKey),
+    });
 
-  return {
-    meetings: query.data ?? [],
-    loading: query.isLoading,
-    error: query.error as Error | null,
-    refresh: () => query.refetch(),
-  };
+    return {
+        meetings: query.data ?? [],
+        loading: query.isLoading,
+        error: query.error as Error | null,
+        refresh: () => query.refetch(),
+    };
 }

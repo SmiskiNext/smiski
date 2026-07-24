@@ -4,59 +4,69 @@
  * the outer modal container and backdrop.
  */
 import { view } from '@forge/bridge';
-import { ActiveMeetingWarningDialog, MeetingDetailDialog } from '../../components/shared';
-import { useMeetingParticipants } from '../../hooks/useMeetingParticipants';
-import { MeetingRoom } from '../project-page/meeting-room/MeetingRoom';
 import {
-  ACTIVE_MEETING_WARNING_MODAL_KIND,
-  MEETING_ROOM_MODAL_KIND,
-  type ActiveMeetingWarningModalResult,
-  type IssuePanelModalContext,
-  type MeetingDetailModalContext,
+    ActiveMeetingWarningDialog,
+    MeetingDetailDialog,
+} from '../../components/shared';
+import { useMeetingParticipants } from '../../hooks/useMeetingParticipants';
+import {
+    ACTIVE_MEETING_WARNING_MODAL_KIND,
+    type ActiveMeetingWarningModalResult,
+    type IssuePanelModalContext,
+    MEETING_ROOM_MODAL_KIND,
+    type MeetingDetailModalContext,
 } from '../../utils/issuePanelModalContext';
+import { MeetingRoom } from '../project-page/meeting-room/MeetingRoom';
 
 export interface IssuePanelModalRootProps {
-  payload: IssuePanelModalContext;
+    payload: IssuePanelModalContext;
 }
 
 export function IssuePanelModalRoot({ payload }: IssuePanelModalRootProps) {
-  if (payload.kind === ACTIVE_MEETING_WARNING_MODAL_KIND) {
-    const close = (result: ActiveMeetingWarningModalResult) => {
-      void view.close(result);
-    };
+    if (payload.kind === ACTIVE_MEETING_WARNING_MODAL_KIND) {
+        const close = (result: ActiveMeetingWarningModalResult) => {
+            void view.close(result);
+        };
 
-    return (
-      <ActiveMeetingWarningDialog
-        conflictingMeeting={payload.conflictingMeeting}
-        chrome="embedded"
-        onClose={() => close({ confirmed: false })}
-        onConfirm={() => close({ confirmed: true })}
-      />
-    );
-  }
+        return (
+            <ActiveMeetingWarningDialog
+                conflictingMeeting={payload.conflictingMeeting}
+                chrome='embedded'
+                onClose={() => close({ confirmed: false })}
+                onConfirm={() => close({ confirmed: true })}
+            />
+        );
+    }
 
-  if (payload.kind === MEETING_ROOM_MODAL_KIND) {
-    return (
-      <MeetingRoom meetingId={payload.meetingId} onLeave={() => void view.close()} />
-    );
-  }
+    if (payload.kind === MEETING_ROOM_MODAL_KIND) {
+        return (
+            <MeetingRoom
+                meetingId={payload.meetingId}
+                onLeave={() => void view.close()}
+            />
+        );
+    }
 
-  return <MeetingDetailModalContent payload={payload} />;
+    return <MeetingDetailModalContent payload={payload} />;
 }
 
-function MeetingDetailModalContent({ payload }: { payload: MeetingDetailModalContext }) {
-  const { participants, loading } = useMeetingParticipants(
-    payload.meeting.id,
-    payload.meeting.projectKey,
-  );
+function MeetingDetailModalContent({
+    payload,
+}: {
+    payload: MeetingDetailModalContext;
+}) {
+    const { participants, loading } = useMeetingParticipants(
+        payload.meeting.id,
+        payload.meeting.projectKey,
+    );
 
-  return (
-    <MeetingDetailDialog
-      meeting={payload.meeting}
-      participants={participants}
-      isLoading={loading}
-      chrome="embedded"
-      onClose={() => void view.close()}
-    />
-  );
+    return (
+        <MeetingDetailDialog
+            meeting={payload.meeting}
+            participants={participants}
+            isLoading={loading}
+            chrome='embedded'
+            onClose={() => void view.close()}
+        />
+    );
 }

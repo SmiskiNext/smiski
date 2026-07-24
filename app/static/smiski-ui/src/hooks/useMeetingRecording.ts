@@ -4,36 +4,44 @@
  * `api.getMeetingRecording` / `api.startRecording` / `api.stopRecording`.
  */
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { getMeetingRecording, startRecording, stopRecording } from '../mocks/db';
+import {
+    getMeetingRecording,
+    startRecording,
+    stopRecording,
+} from '../mocks/db';
 import { queryKeys } from './queryKeys';
 
 export function useMeetingRecording(meetingId?: string) {
-  const query = useQuery({
-    queryKey: meetingId ? queryKeys.recording(meetingId) : ['recording', 'none'],
-    queryFn: () => getMeetingRecording(meetingId as string),
-    enabled: Boolean(meetingId),
-  });
+    const query = useQuery({
+        queryKey: meetingId
+            ? queryKeys.recording(meetingId)
+            : ['recording', 'none'],
+        queryFn: () => getMeetingRecording(meetingId as string),
+        enabled: Boolean(meetingId),
+    });
 
-  return {
-    recording: query.data ?? null,
-    loading: query.isLoading,
-    error: query.error as Error | null,
-  };
+    return {
+        recording: query.data ?? null,
+        loading: query.isLoading,
+        error: query.error as Error | null,
+    };
 }
 
 export function useRecordingMutations(meetingId: string) {
-  const queryClient = useQueryClient();
-  const invalidate = () =>
-    queryClient.invalidateQueries({ queryKey: queryKeys.recording(meetingId) });
+    const queryClient = useQueryClient();
+    const invalidate = () =>
+        queryClient.invalidateQueries({
+            queryKey: queryKeys.recording(meetingId),
+        });
 
-  const start = useMutation({
-    mutationFn: () => startRecording(meetingId),
-    onSuccess: invalidate,
-  });
-  const stop = useMutation({
-    mutationFn: () => stopRecording(meetingId),
-    onSuccess: invalidate,
-  });
+    const start = useMutation({
+        mutationFn: () => startRecording(meetingId),
+        onSuccess: invalidate,
+    });
+    const stop = useMutation({
+        mutationFn: () => stopRecording(meetingId),
+        onSuccess: invalidate,
+    });
 
-  return { start, stop };
+    return { start, stop };
 }

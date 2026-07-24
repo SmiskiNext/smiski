@@ -6,14 +6,14 @@
 import type { MeetingStatus } from '../../domain';
 
 export interface MeetingStatusOption {
-  value: MeetingStatus | '';
-  label: string;
+    value: MeetingStatus | '';
+    label: string;
 }
 
 export const MEETING_STATUS_FILTER_OPTIONS: MeetingStatusOption[] = [
-  { value: '', label: 'All statuses' },
-  { value: 'RUNNING', label: 'Running' },
-  { value: 'SCHEDULED', label: 'Scheduled' },
-  { value: 'COMPLETED', label: 'Completed' },
-  { value: 'CANCELED', label: 'Canceled' },
+    { value: '', label: 'All statuses' },
+    { value: 'RUNNING', label: 'Running' },
+    { value: 'SCHEDULED', label: 'Scheduled' },
+    { value: 'COMPLETED', label: 'Completed' },
+    { value: 'CANCELED', label: 'Canceled' },
 ];

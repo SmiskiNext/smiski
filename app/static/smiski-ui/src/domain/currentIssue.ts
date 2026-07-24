@@ -5,7 +5,7 @@
  * (never optional/loading) once App.tsx resolves the Forge module context.
  */
 export interface CurrentIssueContextValue {
-  issueKey: string;
-  issueId: string;
-  projectKey: string;
+    issueKey: string;
+    issueId: string;
+    projectKey: string;
 }

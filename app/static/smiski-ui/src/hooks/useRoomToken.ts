@@ -11,25 +11,30 @@ import { getRoomToken } from '../api/meetings';
 import { queryKeys } from './queryKeys';
 
 export interface UseRoomTokenResult {
-  token: string | null;
-  url: string | null;
-  loading: boolean;
-  error: Error | null;
+    token: string | null;
+    url: string | null;
+    loading: boolean;
+    error: Error | null;
 }
 
-export function useRoomToken(meetingId?: string, enabled = true): UseRoomTokenResult {
-  const query = useQuery({
-    queryKey: meetingId ? queryKeys.roomToken(meetingId) : ['room-token', 'none'],
-    queryFn: () => getRoomToken(meetingId as string),
-    enabled: enabled && Boolean(meetingId) && !import.meta.env.DEV,
-    staleTime: Infinity,
-    retry: false,
-  });
+export function useRoomToken(
+    meetingId?: string,
+    enabled = true,
+): UseRoomTokenResult {
+    const query = useQuery({
+        queryKey: meetingId
+            ? queryKeys.roomToken(meetingId)
+            : ['room-token', 'none'],
+        queryFn: () => getRoomToken(meetingId as string),
+        enabled: enabled && Boolean(meetingId) && !import.meta.env.DEV,
+        staleTime: Infinity,
+        retry: false,
+    });
 
-  return {
-    token: query.data?.token ?? null,
-    url: query.data?.url ?? null,
-    loading: query.isLoading,
-    error: query.error as Error | null,
-  };
+    return {
+        token: query.data?.token ?? null,
+        url: query.data?.url ?? null,
+        loading: query.isLoading,
+        error: query.error as Error | null,
+    };
 }

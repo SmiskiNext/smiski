@@ -5,48 +5,55 @@
  * `vite dev` has no Forge bridge, so it falls back to the local in-page
  * <ScheduleMeetingModal> (isDevOpen/devPayload) instead — see call sites.
  */
-import { useState } from 'react';
+
 import { Modal as ForgeModal } from '@forge/bridge';
 import { useQueryClient } from '@tanstack/react-query';
+import { useState } from 'react';
 import type { Meeting } from '../domain';
 import {
-  SCHEDULE_MEETING_MODAL_KIND,
-  type ScheduleMeetingModalContext,
-  type ScheduleMeetingModalResult,
+    SCHEDULE_MEETING_MODAL_KIND,
+    type ScheduleMeetingModalContext,
+    type ScheduleMeetingModalResult,
 } from '../utils/scheduleMeetingModalContext';
 
 export interface OpenScheduleMeetingPayload {
-  issueKey?: string;
-  projectKey?: string;
-  meeting?: Meeting;
+    issueKey?: string;
+    projectKey?: string;
+    meeting?: Meeting;
 }
 
-export function useIssuePanelScheduleModal(onSubmitted?: (meetingId: string) => void) {
-  const [devPayload, setDevPayload] = useState<OpenScheduleMeetingPayload | null>(null);
-  const queryClient = useQueryClient();
+export function useIssuePanelScheduleModal(
+    onSubmitted?: (meetingId: string) => void,
+) {
+    const [devPayload, setDevPayload] =
+        useState<OpenScheduleMeetingPayload | null>(null);
+    const queryClient = useQueryClient();
 
-  const open = (payload: OpenScheduleMeetingPayload) => {
-    if (import.meta.env.DEV) {
-      setDevPayload(payload);
-      return;
-    }
-    const context: ScheduleMeetingModalContext = { kind: SCHEDULE_MEETING_MODAL_KIND, ...payload };
-    new ForgeModal({
-      context,
-      size: 'large',
-      onClose: (result: ScheduleMeetingModalResult | undefined) => {
-        if (result?.submitted) {
-          queryClient.invalidateQueries({ queryKey: ['meetings'] });
-          if (result.meetingId) onSubmitted?.(result.meetingId);
+    const open = (payload: OpenScheduleMeetingPayload) => {
+        if (import.meta.env.DEV) {
+            setDevPayload(payload);
+            return;
         }
-      },
-    }).open();
-  };
+        const context: ScheduleMeetingModalContext = {
+            kind: SCHEDULE_MEETING_MODAL_KIND,
+            ...payload,
+        };
+        new ForgeModal({
+            context,
+            size: 'large',
+            onClose: (result: ScheduleMeetingModalResult | undefined) => {
+                if (result?.submitted) {
+                    queryClient.invalidateQueries({ queryKey: ['meetings'] });
+                    if (result.meetingId) onSubmitted?.(result.meetingId);
+                }
+            },
+        }).open();
+    };
 
-  return {
-    open,
-    isDevOpen: devPayload !== null,
-    devPayload,
-    closeDev: () => setDevPayload(null),
-  };
+    return {
+        open,
+        isDevOpen: devPayload !== null,
+        devPayload,
+        closeDev: () => setDevPayload(null),
+    };
 }

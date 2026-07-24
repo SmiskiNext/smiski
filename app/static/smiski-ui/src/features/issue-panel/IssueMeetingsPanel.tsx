@@ -9,173 +9,208 @@
  * this narrow panel; standalone development falls back to the Project Page.
  */
 import { useState } from 'react';
-import type { CurrentIssueContextValue, MeetingAction } from '../../domain';
-import { useIssueMeetings } from '../../hooks/useIssueMeetings';
-import { useMeetingPermissions } from '../../hooks/useMeetingPermission';
-import { useMeetingParticipants } from '../../hooks/useMeetingParticipants';
-import { useCancelMeeting, useEndMeeting, useStartMeeting } from '../../hooks/useMeetingMutations';
-import { useIssuePanelScheduleModal } from '../../hooks/useIssuePanelScheduleModal';
-import { useIssuePanelMeetingDetailModal } from '../../hooks/useIssuePanelMeetingDetailModal';
-import { useIssuePanelMeetingRoomModal } from '../../hooks/useIssuePanelMeetingRoomModal';
 import {
-  EmptyState,
-  ErrorState,
-  InlineFeedback,
-  LoadingState,
-  MeetingActionMenu,
-  MeetingCard,
-  MeetingDetailDialog,
-  ScheduleMeetingModal,
+    EmptyState,
+    ErrorState,
+    InlineFeedback,
+    LoadingState,
+    MeetingActionMenu,
+    MeetingCard,
+    MeetingDetailDialog,
+    ScheduleMeetingModal,
 } from '../../components/shared';
 import { Button, Icon } from '../../components/ui';
-import { StartInstantMeetingButton } from './StartInstantMeetingButton';
+import type { CurrentIssueContextValue, MeetingAction } from '../../domain';
+import { useIssueMeetings } from '../../hooks/useIssueMeetings';
+import { useIssuePanelMeetingDetailModal } from '../../hooks/useIssuePanelMeetingDetailModal';
+import { useIssuePanelMeetingRoomModal } from '../../hooks/useIssuePanelMeetingRoomModal';
+import { useIssuePanelScheduleModal } from '../../hooks/useIssuePanelScheduleModal';
+import {
+    useCancelMeeting,
+    useEndMeeting,
+    useStartMeeting,
+} from '../../hooks/useMeetingMutations';
+import { useMeetingParticipants } from '../../hooks/useMeetingParticipants';
+import { useMeetingPermissions } from '../../hooks/useMeetingPermission';
 import { IssueMeetingsFilterBar } from './IssueMeetingsFilterBar';
-import { filterAndSortIssueMeetings, type IssueMeetingsFilterValue } from './issueMeetingsFilter';
+import {
+    filterAndSortIssueMeetings,
+    type IssueMeetingsFilterValue,
+} from './issueMeetingsFilter';
+import { StartInstantMeetingButton } from './StartInstantMeetingButton';
 
 export interface IssueMeetingsPanelProps {
-  issue: CurrentIssueContextValue;
-  /** DEV-only: standalone `pnpm ui:dev` has no real Forge modules to
-   * navigate between, so this drives the same surface flip a real
-   * Issue-Panel-to-Project-Page navigation would otherwise cause. */
-  onDevNavigateToProjectPage?: () => void;
+    issue: CurrentIssueContextValue;
+    /** DEV-only: standalone `pnpm ui:dev` has no real Forge modules to
+     * navigate between, so this drives the same surface flip a real
+     * Issue-Panel-to-Project-Page navigation would otherwise cause. */
+    onDevNavigateToProjectPage?: () => void;
 }
 
-export function IssueMeetingsPanel({ issue, onDevNavigateToProjectPage }: IssueMeetingsPanelProps) {
-  const { meetings, loading, error } = useIssueMeetings(issue.issueKey);
-  const permissions = useMeetingPermissions(issue.projectKey);
-  const openMeetingRoom = useIssuePanelMeetingRoomModal(onDevNavigateToProjectPage);
+export function IssueMeetingsPanel({
+    issue,
+    onDevNavigateToProjectPage,
+}: IssueMeetingsPanelProps) {
+    const { meetings, loading, error } = useIssueMeetings(issue.issueKey);
+    const permissions = useMeetingPermissions(issue.projectKey);
+    const openMeetingRoom = useIssuePanelMeetingRoomModal(
+        onDevNavigateToProjectPage,
+    );
 
-  const [filter, setFilter] = useState<IssueMeetingsFilterValue>({});
-  const [feedback, setFeedback] = useState<string | null>(null);
+    const [filter, setFilter] = useState<IssueMeetingsFilterValue>({});
+    const [feedback, setFeedback] = useState<string | null>(null);
 
-  const scheduleModal = useIssuePanelScheduleModal(() => setFeedback('Meeting scheduled.'));
-  const detailModal = useIssuePanelMeetingDetailModal();
-  const cancelMeeting = useCancelMeeting();
-  const startMeeting = useStartMeeting();
-  const endMeeting = useEndMeeting();
-  const { participants, loading: participantsLoading } = useMeetingParticipants(
-    detailModal.devMeeting?.id,
-    detailModal.devMeeting?.projectKey,
-  );
+    const scheduleModal = useIssuePanelScheduleModal(() =>
+        setFeedback('Meeting scheduled.'),
+    );
+    const detailModal = useIssuePanelMeetingDetailModal();
+    const cancelMeeting = useCancelMeeting();
+    const startMeeting = useStartMeeting();
+    const endMeeting = useEndMeeting();
+    const { participants, loading: participantsLoading } =
+        useMeetingParticipants(
+            detailModal.devMeeting?.id,
+            detailModal.devMeeting?.projectKey,
+        );
 
-  const visibleMeetings = filterAndSortIssueMeetings(meetings, filter);
+    const visibleMeetings = filterAndSortIssueMeetings(meetings, filter);
 
-  const handleAction = (action: MeetingAction, meetingId: string) => {
-    const meeting = meetings.find((m) => m.id === meetingId);
-    if (!meeting) return;
-    switch (action) {
-      case 'EDIT':
-        scheduleModal.open({ issueKey: issue.issueKey, projectKey: issue.projectKey, meeting });
-        break;
-      case 'CANCEL':
-        cancelMeeting.mutate(meeting.id, { onSuccess: () => setFeedback('Meeting canceled.') });
-        break;
-      case 'START':
-        startMeeting.mutate(meeting.id, {
-          onSuccess: (started) => openMeetingRoom(issue.projectKey, started.id),
-        });
-        break;
-      case 'JOIN':
-        openMeetingRoom(issue.projectKey, meeting.id);
-        break;
-      case 'END':
-        endMeeting.mutate(meeting.id, { onSuccess: () => setFeedback('Meeting ended.') });
-        break;
-      case 'VIEW_DETAIL':
-      case 'VIEW_HISTORY':
-        detailModal.open(meeting);
-        break;
-    }
-  };
+    const handleAction = (action: MeetingAction, meetingId: string) => {
+        const meeting = meetings.find((m) => m.id === meetingId);
+        if (!meeting) return;
+        switch (action) {
+            case 'EDIT':
+                scheduleModal.open({
+                    issueKey: issue.issueKey,
+                    projectKey: issue.projectKey,
+                    meeting,
+                });
+                break;
+            case 'CANCEL':
+                cancelMeeting.mutate(meeting.id, {
+                    onSuccess: () => setFeedback('Meeting canceled.'),
+                });
+                break;
+            case 'START':
+                startMeeting.mutate(meeting.id, {
+                    onSuccess: (started) =>
+                        openMeetingRoom(issue.projectKey, started.id),
+                });
+                break;
+            case 'JOIN':
+                openMeetingRoom(issue.projectKey, meeting.id);
+                break;
+            case 'END':
+                endMeeting.mutate(meeting.id, {
+                    onSuccess: () => setFeedback('Meeting ended.'),
+                });
+                break;
+            case 'VIEW_DETAIL':
+            case 'VIEW_HISTORY':
+                detailModal.open(meeting);
+                break;
+        }
+    };
 
-  return (
-    <section aria-label="Meetings">
-      <div className="mb-3 grid grid-cols-2 gap-2">
-        <StartInstantMeetingButton
-          className="w-full"
-          issueKey={issue.issueKey}
-          onStarted={(meetingId) => openMeetingRoom(issue.projectKey, meetingId)}
-        />
-        <Button
-          size="sm"
-          className="w-full"
-          onClick={() =>
-            scheduleModal.open({ issueKey: issue.issueKey, projectKey: issue.projectKey })
-          }
-          leadingIcon={<Icon name="calendar" size={15} />}
-        >
-          Schedule meeting
-        </Button>
-      </div>
+    return (
+        <section aria-label='Meetings'>
+            <div className='mb-3 grid grid-cols-2 gap-2'>
+                <StartInstantMeetingButton
+                    className='w-full'
+                    issueKey={issue.issueKey}
+                    onStarted={(meetingId) =>
+                        openMeetingRoom(issue.projectKey, meetingId)
+                    }
+                />
+                <Button
+                    size='sm'
+                    className='w-full'
+                    onClick={() =>
+                        scheduleModal.open({
+                            issueKey: issue.issueKey,
+                            projectKey: issue.projectKey,
+                        })
+                    }
+                    leadingIcon={<Icon name='calendar' size={15} />}
+                >
+                    Schedule meeting
+                </Button>
+            </div>
 
-      <IssueMeetingsFilterBar value={filter} onChange={setFilter} />
+            <IssueMeetingsFilterBar value={filter} onChange={setFilter} />
 
-      <div className="mt-3">
-        {loading && <LoadingState label="Loading meetings…" />}
-        {error && <ErrorState message={error.message} />}
-        {!loading && !error && visibleMeetings.length === 0 && (
-          <EmptyState
-            header={meetings.length === 0 ? 'No meetings yet' : 'No matching meetings'}
-            description={
-              meetings.length === 0
-                ? 'Start an instant meeting or schedule one for later.'
-                : 'Try a different search term or status filter.'
-            }
-          />
-        )}
-        {!loading && !error && visibleMeetings.length > 0 && (
-          <div className="space-y-2.5">
-            {visibleMeetings.map((meeting) => (
-              <MeetingCard
-                key={meeting.id}
-                meeting={meeting}
-                density="compact"
-                actions={
-                  <MeetingActionMenu
-                    meetingId={meeting.id}
-                    meeting={meeting}
-                    permissions={permissions}
-                    onAction={handleAction}
-                  />
-                }
-              />
-            ))}
-          </div>
-        )}
-      </div>
+            <div className='mt-3'>
+                {loading && <LoadingState label='Loading meetings…' />}
+                {error && <ErrorState message={error.message} />}
+                {!loading && !error && visibleMeetings.length === 0 && (
+                    <EmptyState
+                        header={
+                            meetings.length === 0
+                                ? 'No meetings yet'
+                                : 'No matching meetings'
+                        }
+                        description={
+                            meetings.length === 0
+                                ? 'Start an instant meeting or schedule one for later.'
+                                : 'Try a different search term or status filter.'
+                        }
+                    />
+                )}
+                {!loading && !error && visibleMeetings.length > 0 && (
+                    <div className='space-y-2.5'>
+                        {visibleMeetings.map((meeting) => (
+                            <MeetingCard
+                                key={meeting.id}
+                                meeting={meeting}
+                                density='compact'
+                                actions={
+                                    <MeetingActionMenu
+                                        meetingId={meeting.id}
+                                        meeting={meeting}
+                                        permissions={permissions}
+                                        onAction={handleAction}
+                                    />
+                                }
+                            />
+                        ))}
+                    </div>
+                )}
+            </div>
 
-      {feedback && (
-        <InlineFeedback
-          appearance="success"
-          message={feedback}
-          onDismiss={() => setFeedback(null)}
-        />
-      )}
+            {feedback && (
+                <InlineFeedback
+                    appearance='success'
+                    message={feedback}
+                    onDismiss={() => setFeedback(null)}
+                />
+            )}
 
-      {import.meta.env.DEV && (
-        <ScheduleMeetingModal
-          isOpen={scheduleModal.isDevOpen}
-          issueKey={issue.issueKey}
-          projectKey={issue.projectKey}
-          meeting={scheduleModal.devPayload?.meeting}
-          onClose={scheduleModal.closeDev}
-          onSubmitted={() => {
-            setFeedback(
-              scheduleModal.devPayload?.meeting ? 'Meeting updated.' : 'Meeting scheduled.',
-            );
-            scheduleModal.closeDev();
-          }}
-        />
-      )}
+            {import.meta.env.DEV && (
+                <ScheduleMeetingModal
+                    isOpen={scheduleModal.isDevOpen}
+                    issueKey={issue.issueKey}
+                    projectKey={issue.projectKey}
+                    meeting={scheduleModal.devPayload?.meeting}
+                    onClose={scheduleModal.closeDev}
+                    onSubmitted={() => {
+                        setFeedback(
+                            scheduleModal.devPayload?.meeting
+                                ? 'Meeting updated.'
+                                : 'Meeting scheduled.',
+                        );
+                        scheduleModal.closeDev();
+                    }}
+                />
+            )}
 
-      {import.meta.env.DEV && detailModal.devMeeting && (
-        <MeetingDetailDialog
-          meeting={detailModal.devMeeting}
-          participants={participants}
-          isLoading={participantsLoading}
-          onClose={detailModal.closeDev}
-        />
-      )}
-    </section>
-  );
+            {import.meta.env.DEV && detailModal.devMeeting && (
+                <MeetingDetailDialog
+                    meeting={detailModal.devMeeting}
+                    participants={participants}
+                    isLoading={participantsLoading}
+                    onClose={detailModal.closeDev}
+                />
+            )}
+        </section>
+    );
 }

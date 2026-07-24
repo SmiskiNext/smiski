@@ -9,15 +9,22 @@ import { findRunningMeetingHostedByUser } from '../mocks/db';
 import { queryKeys } from './queryKeys';
 
 export function useHostConflict(excludingIssueKey?: string) {
-  const currentUser = useCurrentUser();
-  const query = useQuery({
-    queryKey: queryKeys.hostConflict(currentUser.accountId, excludingIssueKey),
-    queryFn: () => findRunningMeetingHostedByUser(currentUser.accountId, excludingIssueKey),
-    enabled: Boolean(currentUser.accountId),
-  });
+    const currentUser = useCurrentUser();
+    const query = useQuery({
+        queryKey: queryKeys.hostConflict(
+            currentUser.accountId,
+            excludingIssueKey,
+        ),
+        queryFn: () =>
+            findRunningMeetingHostedByUser(
+                currentUser.accountId,
+                excludingIssueKey,
+            ),
+        enabled: Boolean(currentUser.accountId),
+    });
 
-  return {
-    conflictingMeeting: query.data ?? null,
-    loading: query.isLoading,
-  };
+    return {
+        conflictingMeeting: query.data ?? null,
+        loading: query.isLoading,
+    };
 }

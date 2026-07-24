@@ -8,16 +8,16 @@
 import type { RecordingStatus } from './enums';
 
 export interface Recording {
-  id: string;
-  meetingId: string;
-  status: RecordingStatus;
-  fileUrl?: string;
-  thumbnailUrl?: string;
-  title?: string;
-  notes?: string;
-  durationSeconds?: number;
-  /** ISO datetime recording started. */
-  startedAt?: string;
-  /** ISO datetime recording ended. */
-  endedAt?: string;
+    id: string;
+    meetingId: string;
+    status: RecordingStatus;
+    fileUrl?: string;
+    thumbnailUrl?: string;
+    title?: string;
+    notes?: string;
+    durationSeconds?: number;
+    /** ISO datetime recording started. */
+    startedAt?: string;
+    /** ISO datetime recording ended. */
+    endedAt?: string;
 }

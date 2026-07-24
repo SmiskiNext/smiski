@@ -8,31 +8,33 @@
  * directory; a real Forge context calls Jira directly via `requestJira`.
  */
 import { useQuery } from '@tanstack/react-query';
-import type { ProjectMember } from '../domain';
 import { getProjectMembers } from '../api/projectMembers';
+import type { ProjectMember } from '../domain';
 import { listProjectMembers } from '../mocks/projectMembers';
 import { queryKeys } from './queryKeys';
 
 export interface UseProjectMembersResult {
-  members: ProjectMember[];
-  loading: boolean;
-  error: Error | null;
+    members: ProjectMember[];
+    loading: boolean;
+    error: Error | null;
 }
 
-export function useProjectMembers(projectKey?: string): UseProjectMembersResult {
-  const result = useQuery({
-    queryKey: queryKeys.projectMembers(projectKey ?? ''),
-    queryFn: () =>
-      import.meta.env.DEV
-        ? listProjectMembers(projectKey as string)
-        : getProjectMembers(projectKey as string),
-    enabled: Boolean(projectKey),
-    staleTime: 30_000,
-  });
+export function useProjectMembers(
+    projectKey?: string,
+): UseProjectMembersResult {
+    const result = useQuery({
+        queryKey: queryKeys.projectMembers(projectKey ?? ''),
+        queryFn: () =>
+            import.meta.env.DEV
+                ? listProjectMembers(projectKey as string)
+                : getProjectMembers(projectKey as string),
+        enabled: Boolean(projectKey),
+        staleTime: 30_000,
+    });
 
-  return {
-    members: result.data ?? [],
-    loading: result.isLoading,
-    error: result.error as Error | null,
-  };
+    return {
+        members: result.data ?? [],
+        loading: result.isLoading,
+        error: result.error as Error | null,
+    };
 }

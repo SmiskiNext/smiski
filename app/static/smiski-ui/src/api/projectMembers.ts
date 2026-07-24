@@ -10,10 +10,10 @@ import { requestJira } from '@forge/bridge';
 import type { ProjectMember } from '../domain';
 
 interface JiraAssignableUser {
-  accountId: string;
-  displayName: string;
-  emailAddress?: string;
-  avatarUrls?: Record<string, string>;
+    accountId: string;
+    displayName: string;
+    emailAddress?: string;
+    avatarUrls?: Record<string, string>;
 }
 
 /**
@@ -21,29 +21,32 @@ interface JiraAssignableUser {
  * "who works on this project", used here as the meeting-participant pool.
  */
 export async function getProjectMembers(
-  projectKey: string,
-  maxResults = 50,
+    projectKey: string,
+    maxResults = 50,
 ): Promise<ProjectMember[]> {
-  const params = new URLSearchParams({
-    project: projectKey,
-    maxResults: String(maxResults),
-  });
+    const params = new URLSearchParams({
+        project: projectKey,
+        maxResults: String(maxResults),
+    });
 
-  const response = await requestJira(`/rest/api/3/user/assignable/search?${params.toString()}`, {
-    headers: { Accept: 'application/json' },
-  });
-
-  if (!response.ok) {
-    throw new Error(
-      `Could not load members for ${projectKey} (Jira returned ${response.status}).`,
+    const response = await requestJira(
+        `/rest/api/3/user/assignable/search?${params.toString()}`,
+        {
+            headers: { Accept: 'application/json' },
+        },
     );
-  }
 
-  const users = (await response.json()) as JiraAssignableUser[];
-  return users.map((user) => ({
-    accountId: user.accountId,
-    displayName: user.displayName,
-    email: user.emailAddress,
-    avatarUrl: user.avatarUrls?.['48x48'],
-  }));
+    if (!response.ok) {
+        throw new Error(
+            `Could not load members for ${projectKey} (Jira returned ${response.status}).`,
+        );
+    }
+
+    const users = (await response.json()) as JiraAssignableUser[];
+    return users.map((user) => ({
+        accountId: user.accountId,
+        displayName: user.displayName,
+        email: user.emailAddress,
+        avatarUrl: user.avatarUrls?.['48x48'],
+    }));
 }

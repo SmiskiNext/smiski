@@ -4,9 +4,9 @@
  * `JiraIssue`: just what the picker needs, not the full Jira user model.
  */
 export interface ProjectMember {
-  /** Jira accountId — stable identity used everywhere else (Meeting.hostId, Participant.accountId, ...). */
-  accountId: string;
-  displayName: string;
-  email?: string;
-  avatarUrl?: string;
+    /** Jira accountId — stable identity used everywhere else (Meeting.hostId, Participant.accountId, ...). */
+    accountId: string;
+    displayName: string;
+    email?: string;
+    avatarUrl?: string;
 }

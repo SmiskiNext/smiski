@@ -10,35 +10,37 @@ export const ACTIVE_MEETING_WARNING_MODAL_KIND = 'active-meeting-warning';
 export const MEETING_ROOM_MODAL_KIND = 'meeting-room';
 
 export interface MeetingDetailModalContext {
-  kind: typeof MEETING_DETAIL_MODAL_KIND;
-  meeting: Meeting;
+    kind: typeof MEETING_DETAIL_MODAL_KIND;
+    meeting: Meeting;
 }
 
 export interface ActiveMeetingWarningModalContext {
-  kind: typeof ACTIVE_MEETING_WARNING_MODAL_KIND;
-  conflictingMeeting: Meeting;
+    kind: typeof ACTIVE_MEETING_WARNING_MODAL_KIND;
+    conflictingMeeting: Meeting;
 }
 
 export interface MeetingRoomModalContext {
-  kind: typeof MEETING_ROOM_MODAL_KIND;
-  meetingId: string;
+    kind: typeof MEETING_ROOM_MODAL_KIND;
+    meetingId: string;
 }
 
 export interface ActiveMeetingWarningModalResult {
-  confirmed: boolean;
+    confirmed: boolean;
 }
 
 export type IssuePanelModalContext =
-  | MeetingDetailModalContext
-  | ActiveMeetingWarningModalContext
-  | MeetingRoomModalContext;
+    | MeetingDetailModalContext
+    | ActiveMeetingWarningModalContext
+    | MeetingRoomModalContext;
 
-export function isIssuePanelModalContext(value: unknown): value is IssuePanelModalContext {
-  if (!value || typeof value !== 'object') return false;
-  const kind = (value as { kind?: unknown }).kind;
-  return (
-    kind === MEETING_DETAIL_MODAL_KIND ||
-    kind === ACTIVE_MEETING_WARNING_MODAL_KIND ||
-    kind === MEETING_ROOM_MODAL_KIND
-  );
+export function isIssuePanelModalContext(
+    value: unknown,
+): value is IssuePanelModalContext {
+    if (!value || typeof value !== 'object') return false;
+    const kind = (value as { kind?: unknown }).kind;
+    return (
+        kind === MEETING_DETAIL_MODAL_KIND
+        || kind === ACTIVE_MEETING_WARNING_MODAL_KIND
+        || kind === MEETING_ROOM_MODAL_KIND
+    );
 }

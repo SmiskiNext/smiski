@@ -18,27 +18,27 @@ const resolver = new Resolver();
 
 // TODO(UC02/UC07): list meetings for the current Issue.
 resolver.define('getIssueMeetings', async (_req) => {
-  throw new Error('Not implemented: getIssueMeetings');
+    throw new Error('Not implemented: getIssueMeetings');
 });
 
 // TODO(UC01): create an instant meeting bound to the current Issue.
 resolver.define('createInstantMeeting', async (_req) => {
-  throw new Error('Not implemented: createInstantMeeting');
+    throw new Error('Not implemented: createInstantMeeting');
 });
 
 // TODO(UC03): create a scheduled meeting bound to the current Issue.
 resolver.define('scheduleMeeting', async (_req) => {
-  throw new Error('Not implemented: scheduleMeeting');
+    throw new Error('Not implemented: scheduleMeeting');
 });
 
 // TODO: list/search meetings across a project (project page dashboard).
 resolver.define('getProjectMeetings', async (_req) => {
-  throw new Error('Not implemented: getProjectMeetings');
+    throw new Error('Not implemented: getProjectMeetings');
 });
 
 // TODO: resolve the current user's permission (VIEW_MEETING / EDIT_MEETING).
 resolver.define('getMeetingPermission', async (_req) => {
-  throw new Error('Not implemented: getMeetingPermission');
+    throw new Error('Not implemented: getMeetingPermission');
 });
 
 // ⚠️ TEMPORARY PROTOTYPE SHIM — mints the LiveKit JWT directly in this
@@ -52,26 +52,35 @@ resolver.define('getMeetingPermission', async (_req) => {
 // here — any user who can open this app can mint a token for any
 // `meetingId` string. Acceptable for this prototype only.
 resolver.define('getRoomToken', async (req) => {
-  const meetingId = req.payload?.meetingId as string | undefined;
-  if (!meetingId) throw new Error('getRoomToken: meetingId is required');
+    const meetingId = req.payload?.meetingId as string | undefined;
+    if (!meetingId) throw new Error('getRoomToken: meetingId is required');
 
-  const accountId = req.context.accountId as string | undefined;
-  if (!accountId) throw new Error('getRoomToken: no invoking user accountId in context');
+    const accountId = req.context.accountId as string | undefined;
+    if (!accountId)
+        throw new Error('getRoomToken: no invoking user accountId in context');
 
-  const apiKey = process.env.LIVEKIT_API_KEY;
-  const apiSecret = process.env.LIVEKIT_API_SECRET;
-  const url = process.env.LIVEKIT_URL;
-  if (!apiKey || !apiSecret || !url) {
-    throw new Error(
-      'getRoomToken: LIVEKIT_API_KEY / LIVEKIT_API_SECRET / LIVEKIT_URL not configured (forge variables set)',
-    );
-  }
+    const apiKey = process.env.LIVEKIT_API_KEY;
+    const apiSecret = process.env.LIVEKIT_API_SECRET;
+    const url = process.env.LIVEKIT_URL;
+    if (!apiKey || !apiSecret || !url) {
+        throw new Error(
+            'getRoomToken: LIVEKIT_API_KEY / LIVEKIT_API_SECRET / LIVEKIT_URL not configured (forge variables set)',
+        );
+    }
 
-  const accessToken = new AccessToken(apiKey, apiSecret, { identity: accountId, ttl: '4h' });
-  accessToken.addGrant({ roomJoin: true, room: meetingId, canPublish: true, canSubscribe: true });
-  const token = await accessToken.toJwt();
+    const accessToken = new AccessToken(apiKey, apiSecret, {
+        identity: accountId,
+        ttl: '4h',
+    });
+    accessToken.addGrant({
+        roomJoin: true,
+        room: meetingId,
+        canPublish: true,
+        canSubscribe: true,
+    });
+    const token = await accessToken.toJwt();
 
-  return { token, url };
+    return { token, url };
 });
 
 export const handler = resolver.getDefinitions();

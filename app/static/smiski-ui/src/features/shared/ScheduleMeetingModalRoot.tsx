@@ -8,28 +8,30 @@
 import { view } from '@forge/bridge';
 import { ScheduleMeetingModal } from '../../components/shared';
 import type {
-  ScheduleMeetingModalContext,
-  ScheduleMeetingModalResult,
+    ScheduleMeetingModalContext,
+    ScheduleMeetingModalResult,
 } from '../../utils/scheduleMeetingModalContext';
 
 export interface ScheduleMeetingModalRootProps {
-  payload: ScheduleMeetingModalContext;
+    payload: ScheduleMeetingModalContext;
 }
 
-export function ScheduleMeetingModalRoot({ payload }: ScheduleMeetingModalRootProps) {
-  const close = (result: ScheduleMeetingModalResult) => {
-    void view.close(result);
-  };
+export function ScheduleMeetingModalRoot({
+    payload,
+}: ScheduleMeetingModalRootProps) {
+    const close = (result: ScheduleMeetingModalResult) => {
+        void view.close(result);
+    };
 
-  return (
-    <ScheduleMeetingModal
-      isOpen
-      chrome="embedded"
-      issueKey={payload.issueKey}
-      projectKey={payload.projectKey}
-      meeting={payload.meeting}
-      onClose={() => close({ submitted: false })}
-      onSubmitted={(meetingId) => close({ submitted: true, meetingId })}
-    />
-  );
+    return (
+        <ScheduleMeetingModal
+            isOpen
+            chrome='embedded'
+            issueKey={payload.issueKey}
+            projectKey={payload.projectKey}
+            meeting={payload.meeting}
+            onClose={() => close({ submitted: false })}
+            onSubmitted={(meetingId) => close({ submitted: true, meetingId })}
+        />
+    );
 }

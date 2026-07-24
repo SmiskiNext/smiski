@@ -10,9 +10,11 @@ import { MOCK_USERS } from './users';
 const NETWORK_DELAY_MS = 200;
 
 export async function listProjectMembers(
-  _projectKey: string,
-  maxResults = 50,
+    _projectKey: string,
+    maxResults = 50,
 ): Promise<ProjectMember[]> {
-  const result = MOCK_USERS.slice(0, maxResults);
-  return new Promise((resolve) => setTimeout(() => resolve(result), NETWORK_DELAY_MS));
+    const result = MOCK_USERS.slice(0, maxResults);
+    return new Promise((resolve) =>
+        setTimeout(() => resolve(result), NETWORK_DELAY_MS),
+    );
 }

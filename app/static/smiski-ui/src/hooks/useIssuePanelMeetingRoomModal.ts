@@ -6,32 +6,33 @@
  */
 import { Modal as ForgeModal } from '@forge/bridge';
 import { useQueryClient } from '@tanstack/react-query';
-import { useNavigateToMeetingRoom } from './useNavigateToMeetingRoom';
 import {
-  MEETING_ROOM_MODAL_KIND,
-  type MeetingRoomModalContext,
+    MEETING_ROOM_MODAL_KIND,
+    type MeetingRoomModalContext,
 } from '../utils/issuePanelModalContext';
+import { useNavigateToMeetingRoom } from './useNavigateToMeetingRoom';
 
 export function useIssuePanelMeetingRoomModal(onDevNavigate?: () => void) {
-  const queryClient = useQueryClient();
-  const navigateToDevMeetingRoom = useNavigateToMeetingRoom(onDevNavigate);
+    const queryClient = useQueryClient();
+    const navigateToDevMeetingRoom = useNavigateToMeetingRoom(onDevNavigate);
 
-  const open = (projectKey: string, meetingId: string) => {
-    if (import.meta.env.DEV) {
-      navigateToDevMeetingRoom(projectKey, meetingId);
-      return;
-    }
+    const open = (projectKey: string, meetingId: string) => {
+        if (import.meta.env.DEV) {
+            navigateToDevMeetingRoom(projectKey, meetingId);
+            return;
+        }
 
-    const context: MeetingRoomModalContext = {
-      kind: MEETING_ROOM_MODAL_KIND,
-      meetingId,
+        const context: MeetingRoomModalContext = {
+            kind: MEETING_ROOM_MODAL_KIND,
+            meetingId,
+        };
+        new ForgeModal({
+            context,
+            size: 'large',
+            onClose: () =>
+                queryClient.invalidateQueries({ queryKey: ['meetings'] }),
+        }).open();
     };
-    new ForgeModal({
-      context,
-      size: 'large',
-      onClose: () => queryClient.invalidateQueries({ queryKey: ['meetings'] }),
-    }).open();
-  };
 
-  return open;
+    return open;
 }

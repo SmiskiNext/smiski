@@ -5,13 +5,13 @@
 import type { ReactNode } from 'react';
 
 export interface SectionHeadingProps {
-  children: ReactNode;
+    children: ReactNode;
 }
 
 export function SectionHeading({ children }: SectionHeadingProps) {
-  return (
-    <h3 className="mb-2.5 mt-6 text-[11px] font-bold tracking-[0.12em] text-[var(--text-faint)] uppercase">
-      {children}
-    </h3>
-  );
+    return (
+        <h3 className='mb-2.5 mt-6 text-[11px] font-bold tracking-[0.12em] text-[var(--text-faint)] uppercase'>
+            {children}
+        </h3>
+    );
 }

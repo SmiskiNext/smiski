@@ -10,30 +10,32 @@ import { requestJira } from '@forge/bridge';
 import type { ProjectMember } from '../domain';
 
 interface JiraCurrentUserResponse {
-  accountId?: string;
-  displayName?: string;
-  emailAddress?: string;
-  avatarUrls?: Record<string, string>;
+    accountId?: string;
+    displayName?: string;
+    emailAddress?: string;
+    avatarUrls?: Record<string, string>;
 }
 
 export async function getCurrentJiraUser(): Promise<ProjectMember> {
-  const response = await requestJira('/rest/api/3/myself', {
-    headers: { Accept: 'application/json' },
-  });
+    const response = await requestJira('/rest/api/3/myself', {
+        headers: { Accept: 'application/json' },
+    });
 
-  if (!response.ok) {
-    throw new Error(`Could not load the current Jira user (Jira returned ${response.status}).`);
-  }
+    if (!response.ok) {
+        throw new Error(
+            `Could not load the current Jira user (Jira returned ${response.status}).`,
+        );
+    }
 
-  const user = (await response.json()) as JiraCurrentUserResponse;
-  if (!user.accountId || !user.displayName) {
-    throw new Error('Jira returned an incomplete current-user profile.');
-  }
+    const user = (await response.json()) as JiraCurrentUserResponse;
+    if (!user.accountId || !user.displayName) {
+        throw new Error('Jira returned an incomplete current-user profile.');
+    }
 
-  return {
-    accountId: user.accountId,
-    displayName: user.displayName,
-    email: user.emailAddress,
-    avatarUrl: user.avatarUrls?.['48x48'],
-  };
+    return {
+        accountId: user.accountId,
+        displayName: user.displayName,
+        email: user.emailAddress,
+        avatarUrl: user.avatarUrls?.['48x48'],
+    };
 }

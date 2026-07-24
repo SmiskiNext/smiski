@@ -8,23 +8,23 @@
  * integration exists.
  */
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import * as mockDb from '../mocks/db';
+import type {
+    CreateInstantMeetingInput,
+    ScheduleMeetingInput,
+    UpdateMeetingInput,
+} from '../api/meetings';
 import { useCurrentUser } from '../context/CurrentUserContext';
 import type { ProjectMember } from '../domain';
-import type {
-  CreateInstantMeetingInput,
-  ScheduleMeetingInput,
-  UpdateMeetingInput,
-} from '../api/meetings';
+import * as mockDb from '../mocks/db';
 import { queryKeys } from './queryKeys';
 
 function useInvalidateMeetings() {
-  const queryClient = useQueryClient();
-  return () => {
-    queryClient.invalidateQueries({ queryKey: ['meetings'] });
-    queryClient.invalidateQueries({ queryKey: ['meeting'] });
-    queryClient.invalidateQueries({ queryKey: ['host-conflict'] });
-  };
+    const queryClient = useQueryClient();
+    return () => {
+        queryClient.invalidateQueries({ queryKey: ['meetings'] });
+        queryClient.invalidateQueries({ queryKey: ['meeting'] });
+        queryClient.invalidateQueries({ queryKey: ['host-conflict'] });
+    };
 }
 
 /**
@@ -33,66 +33,76 @@ function useInvalidateMeetings() {
  * names while retaining the same API payload contracts used by the backend.
  */
 function useMockIdentityContext() {
-  const currentUser = useCurrentUser();
-  const queryClient = useQueryClient();
+    const currentUser = useCurrentUser();
+    const queryClient = useQueryClient();
 
-  return (issueKey: string): mockDb.MockMeetingIdentityContext => {
-    const projectKey = issueKey.split('-')[0];
-    const projectMembers =
-      queryClient.getQueryData<ProjectMember[]>(queryKeys.projectMembers(projectKey)) ?? [];
-    return { currentUser, projectMembers };
-  };
+    return (issueKey: string): mockDb.MockMeetingIdentityContext => {
+        const projectKey = issueKey.split('-')[0];
+        const projectMembers =
+            queryClient.getQueryData<ProjectMember[]>(
+                queryKeys.projectMembers(projectKey),
+            ) ?? [];
+        return { currentUser, projectMembers };
+    };
 }
 
 export function useCreateInstantMeeting() {
-  const invalidate = useInvalidateMeetings();
-  const identityForIssue = useMockIdentityContext();
-  return useMutation({
-    mutationFn: (input: CreateInstantMeetingInput) =>
-      mockDb.createInstantMeeting(input, identityForIssue(input.issueKey)),
-    onSuccess: invalidate,
-  });
+    const invalidate = useInvalidateMeetings();
+    const identityForIssue = useMockIdentityContext();
+    return useMutation({
+        mutationFn: (input: CreateInstantMeetingInput) =>
+            mockDb.createInstantMeeting(
+                input,
+                identityForIssue(input.issueKey),
+            ),
+        onSuccess: invalidate,
+    });
 }
 
 export function useScheduleMeeting() {
-  const invalidate = useInvalidateMeetings();
-  const identityForIssue = useMockIdentityContext();
-  return useMutation({
-    mutationFn: (input: ScheduleMeetingInput) =>
-      mockDb.scheduleMeeting(input, identityForIssue(input.issueKey)),
-    onSuccess: invalidate,
-  });
+    const invalidate = useInvalidateMeetings();
+    const identityForIssue = useMockIdentityContext();
+    return useMutation({
+        mutationFn: (input: ScheduleMeetingInput) =>
+            mockDb.scheduleMeeting(input, identityForIssue(input.issueKey)),
+        onSuccess: invalidate,
+    });
 }
 
 export function useUpdateMeeting() {
-  const invalidate = useInvalidateMeetings();
-  return useMutation({
-    mutationFn: ({ meetingId, input }: { meetingId: string; input: UpdateMeetingInput }) =>
-      mockDb.updateMeeting(meetingId, input),
-    onSuccess: invalidate,
-  });
+    const invalidate = useInvalidateMeetings();
+    return useMutation({
+        mutationFn: ({
+            meetingId,
+            input,
+        }: {
+            meetingId: string;
+            input: UpdateMeetingInput;
+        }) => mockDb.updateMeeting(meetingId, input),
+        onSuccess: invalidate,
+    });
 }
 
 export function useCancelMeeting() {
-  const invalidate = useInvalidateMeetings();
-  return useMutation({
-    mutationFn: (meetingId: string) => mockDb.cancelMeeting(meetingId),
-    onSuccess: invalidate,
-  });
+    const invalidate = useInvalidateMeetings();
+    return useMutation({
+        mutationFn: (meetingId: string) => mockDb.cancelMeeting(meetingId),
+        onSuccess: invalidate,
+    });
 }
 
 export function useStartMeeting() {
-  const invalidate = useInvalidateMeetings();
-  return useMutation({
-    mutationFn: (meetingId: string) => mockDb.startMeeting(meetingId),
-    onSuccess: invalidate,
-  });
+    const invalidate = useInvalidateMeetings();
+    return useMutation({
+        mutationFn: (meetingId: string) => mockDb.startMeeting(meetingId),
+        onSuccess: invalidate,
+    });
 }
 
 export function useEndMeeting() {
-  const invalidate = useInvalidateMeetings();
-  return useMutation({
-    mutationFn: (meetingId: string) => mockDb.endMeeting(meetingId),
-    onSuccess: invalidate,
-  });
+    const invalidate = useInvalidateMeetings();
+    return useMutation({
+        mutationFn: (meetingId: string) => mockDb.endMeeting(meetingId),
+        onSuccess: invalidate,
+    });
 }

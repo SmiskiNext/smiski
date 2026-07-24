@@ -9,21 +9,26 @@
  * between); `onDevNavigate` lets the caller drive the same DevSurfaceSwitcher
  * surface flip that a real navigation would otherwise cause — see App.tsx.
  */
-import { useCallback } from 'react';
+
 import { router } from '@forge/bridge';
-import { setPendingMeetingRoom } from '../utils/meetingRoomHandoff';
+import { useCallback } from 'react';
 import { MODULE_KEY_PROJECT_PAGE } from '../utils/forgeModuleKeys';
+import { setPendingMeetingRoom } from '../utils/meetingRoomHandoff';
 
 export function useNavigateToMeetingRoom(onDevNavigate?: () => void) {
-  return useCallback(
-    (projectKey: string, meetingId: string) => {
-      setPendingMeetingRoom(projectKey, meetingId);
-      if (import.meta.env.DEV) {
-        onDevNavigate?.();
-        return;
-      }
-      void router.navigate({ target: 'module', moduleKey: MODULE_KEY_PROJECT_PAGE, projectKey });
-    },
-    [onDevNavigate],
-  );
+    return useCallback(
+        (projectKey: string, meetingId: string) => {
+            setPendingMeetingRoom(projectKey, meetingId);
+            if (import.meta.env.DEV) {
+                onDevNavigate?.();
+                return;
+            }
+            void router.navigate({
+                target: 'module',
+                moduleKey: MODULE_KEY_PROJECT_PAGE,
+                projectKey,
+            });
+        },
+        [onDevNavigate],
+    );
 }
