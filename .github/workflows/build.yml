@@ -76,6 +76,10 @@ jobs:
             - name: Install dependencies
               run: pnpm install --frozen-lockfile
 
+            - name: Install app dependencies
+              run: pnpm install --frozen-lockfile
+              working-directory: app
+
             - name: Typecheck
               run: pnpm exec tsc --noEmit
               working-directory: app

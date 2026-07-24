@@ -80,6 +80,10 @@ jobs:
             - name: Install dependencies
               run: pnpm install --frozen-lockfile
 
+            - name: Install app dependencies
+              run: pnpm install --frozen-lockfile
+              working-directory: app
+
             - name: Lint check
               run: pnpm lint
               working-directory: app
