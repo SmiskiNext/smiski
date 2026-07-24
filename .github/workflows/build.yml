@@ -76,26 +76,31 @@ jobs:
             - name: Install dependencies
               run: pnpm install --frozen-lockfile
 
+            - name: Install app dependencies
+              run: pnpm install --frozen-lockfile
+              working-directory: app
+
             - name: Typecheck
               run: pnpm exec tsc --noEmit
               working-directory: app
 
-            - name: Install static/hello-world dependencies
-              run: npm ci
-              working-directory: app/static/hello-world
-
-            - name: Build static/hello-world
-              run: npm run build
-              working-directory: app/static/hello-world
+            - name: Build static/smiski-ui
+              run: pnpm run build
+              working-directory: app
               env:
                   CI: 'true'
 
             - name: Install Forge CLI
-              run: npm i -g @forge/cli
+              run:
+                  npm i -g @forge/cli && forge settings set usage-analytics
+                  false
 
             - name: Forge lint
               run: forge lint
               working-directory: app
+              env:
+                  FORGE_EMAIL: ${{ secrets.FORGE_EMAIL }}
+                  FORGE_API_TOKEN: ${{ secrets.FORGE_API_TOKEN }}
 
     scripts:
         name: Scripts

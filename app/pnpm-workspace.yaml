@@ -1,0 +1,15 @@
+# pnpm workspace root for the Smiski Forge app.
+#
+# Two projects live here:
+#   - .                  → the Forge app root (resolver/backend + Forge CLI)
+#   - static/smiski-ui   → the Vite + React + TypeScript Custom UI frontend
+#
+# The root package.json is automatically treated as a workspace project by pnpm;
+# `static/*` picks up the frontend package below.
+packages:
+  - 'static/*'
+
+# Allow only these dependencies to run install/build scripts.
+# esbuild needs its postinstall to fetch the platform binary for `vite build`.
+onlyBuiltDependencies:
+  - esbuild

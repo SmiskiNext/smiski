@@ -50,8 +50,8 @@ pre-commit:
             root: app
             glob: 'app/src/**/*.{js,jsx,ts,tsx,json}'
             run: >
-                pnpm biome check --write --no-errors-on-unmatched
-                --files-ignore-unknown=true {staged_files}
+                pnpm exec prettier --write {staged_files} && pnpm exec eslint
+                --fix --no-error-on-unmatched-pattern {staged_files}
             stage_fixed: true
 
 commit-msg:

@@ -34,6 +34,7 @@
         "**/out",
         "**/.next",
         "**/openspec",
+        "app/AGENTS.md",
         ".github/pull_request_template.md",
         ".opencode/command",
     ],
