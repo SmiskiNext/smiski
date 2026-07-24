@@ -1,21 +1,36 @@
 {
-    "name": "jira-issue-panel-custom-ui",
-    "version": "1.2.38-next.0",
-    "main": "index.js",
-    "license": "MIT",
+    "name": "@smiski/jira-forge-app",
+    "version": "0.0.0",
+    "description": "Smiski — embedded online-meeting module for Jira (Atlassian Forge, Custom UI)",
+    "license": "Apache-2.0",
     "private": true,
-    "devDependencies": {
-        "@biomejs/biome": "^2.4.15",
-        "@types/node": "^26.1.1",
-        "typescript": "^7.0.2"
+    "type": "commonjs",
+    "main": "src/index.ts",
+    "packageManager": "pnpm@10.0.0",
+    "engines": {
+        "node": ">=22"
     },
     "scripts": {
+        "ui:dev": "pnpm --filter smiski-ui dev",
+        "ui:build": "pnpm --filter smiski-ui build",
+        "build": "pnpm ui:build",
+        "test": "pnpm --filter smiski-ui test",
         "lint": "biome check",
-        "lint:fix": "biome check --fix",
-        "format": "biome format --write"
+        "format": "biome format --write",
+        "format:check": "biome format .",
+        "typecheck": "tsc --noEmit && pnpm --filter smiski-ui typecheck",
+        "deploy": "forge deploy",
+        "install:site": "forge install"
     },
     "dependencies": {
         "@forge/api": "8.0.1-next.0",
-        "@forge/resolver": "2.0.0"
+        "@forge/resolver": "2.0.0",
+        "livekit-server-sdk": "^2.17.0"
+    },
+    "devDependencies": {
+        "@biomejs/biome": "^2.4.15",
+        "@forge/cli": "^13.1.0",
+        "@types/node": "^22.0.0",
+        "typescript": "^5.5.0"
     }
 }

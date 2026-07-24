@@ -1,14 +1,18 @@
 packages:
     - scripts
     - sdks/typescript
-    - app
+    - app/static/smiski-ui
 allowBuilds:
-    '@firebase/util': set this to true or false
-    '@parcel/watcher': set this to true or false
-    '@swc/core': set this to true or false
+    '@firebase/util': false
+    '@forge/cli': false
+    '@parcel/watcher': false
+    '@swc/core': false
+    cloudflared: false
     esbuild: true
-    protobufjs: set this to true or false
-    sharp: set this to true or false
+    iframe-resizer: false
+    keytar: false
+    protobufjs: false
+    sharp: false
 minimumReleaseAgeExclude:
     - '@typescript/typescript-aix-ppc64@7.0.2'
     - '@typescript/typescript-darwin-arm64@7.0.2'

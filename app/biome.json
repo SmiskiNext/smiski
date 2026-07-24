@@ -2,6 +2,22 @@
     "$schema": "https://biomejs.dev/schemas/latest/schema.json",
     "extends": "//",
     "files": {
-        "includes": ["src/**/*.{js,jsx,ts,tsx,json}"]
+        "includes": [
+            "src/**/*.{ts,tsx,js,jsx,json}",
+            "static/smiski-ui/src/**/*.{ts,tsx,js,jsx,json,css}",
+            "static/smiski-ui/*.{ts,js}"
+        ]
+    },
+    "linter": {
+        "rules": {
+            "correctness": {
+                "useImportExtensions": "off"
+            }
+        }
+    },
+    "css": {
+        "parser": {
+            "tailwindDirectives": true
+        }
     }
 }
