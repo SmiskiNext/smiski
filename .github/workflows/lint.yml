@@ -137,7 +137,9 @@ jobs:
               working-directory: services/proto
 
             - name: Buf breaking
-              run: buf breaking --against '.git#branch=dev'
+              run:
+                  buf breaking --against
+                  '../../.git#branch=dev,subdir=services/proto'
               working-directory: services/proto
 
     docs:
