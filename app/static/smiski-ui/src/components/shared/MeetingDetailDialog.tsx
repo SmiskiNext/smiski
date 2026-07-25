@@ -62,9 +62,9 @@ export function MeetingDetailDialog({
                                 <Icon name='clock' size={15} />
                                 {meeting.scheduledAt || meeting.startedAt
                                     ? new Date(
-                                          meeting.scheduledAt ??
-                                              meeting.startedAt ??
-                                              '',
+                                          meeting.scheduledAt
+                                              ?? meeting.startedAt
+                                              ?? '',
                                       ).toLocaleString()
                                     : 'Not set'}
                             </dd>

@@ -101,17 +101,17 @@ export function meetingFromBackend(payload: unknown): Meeting {
     const issueLink = snapshot.issueLink ?? {};
     const issueKey = issueLink.issueKey ?? snapshot.issueKey ?? '';
     const projectKey =
-        issueLink.projectKey ??
-        snapshot.projectKey ??
-        issueKey.split('-')[0] ??
-        '';
+        issueLink.projectKey
+        ?? snapshot.projectKey
+        ?? issueKey.split('-')[0]
+        ?? '';
     const status = normalizeMeetingStatus(snapshot.status);
     const hostId = snapshot.hostId ?? snapshot.creatorId ?? '';
     const hostName =
-        snapshot.hostName ??
-        snapshot.organizerDisplayName ??
-        snapshot.creatorName ??
-        'Unknown host';
+        snapshot.hostName
+        ?? snapshot.organizerDisplayName
+        ?? snapshot.creatorName
+        ?? 'Unknown host';
     const startTime = snapshot.startTime ?? snapshot.startedAt ?? undefined;
     const createdAt = snapshot.createdAt ?? undefined;
 
@@ -156,9 +156,9 @@ export function participantsFromBackend(payload: unknown): Participant[] {
     ]).map((participant) => ({
         accountId: participant.accountId ?? '',
         displayName:
-            participant.displayName ??
-            participant.accountId ??
-            'Unknown participant',
+            participant.displayName
+            ?? participant.accountId
+            ?? 'Unknown participant',
         role: normalizeParticipantRole(participant.role),
         joinedAt: participant.joinedAt ?? undefined,
         leftAt: participant.leftAt ?? undefined,
@@ -206,14 +206,14 @@ export function permissionsFromBackend(payload: unknown): {
         return { hasViewMeeting: false, hasEditMeeting: false };
     return {
         hasViewMeeting: Boolean(
-            payload.hasViewMeeting ??
-            payload.canViewMeeting ??
-            payload.viewMeeting,
+            payload.hasViewMeeting
+                ?? payload.canViewMeeting
+                ?? payload.viewMeeting,
         ),
         hasEditMeeting: Boolean(
-            payload.hasEditMeeting ??
-            payload.canEditMeeting ??
-            payload.editMeeting,
+            payload.hasEditMeeting
+                ?? payload.canEditMeeting
+                ?? payload.editMeeting,
         ),
     };
 }
@@ -337,16 +337,16 @@ function issueLinkFromMeeting(
             'An issue key is required to update a backend meeting.',
         );
     const projectKey =
-        input.projectKey ??
-        context.projectKey ??
-        meeting?.projectKey ??
-        issueKey.split('-')[0];
+        input.projectKey
+        ?? context.projectKey
+        ?? meeting?.projectKey
+        ?? issueKey.split('-')[0];
     return {
         issueId:
-            input.issueId ??
-            context.issueId ??
-            meeting?.issueId ??
-            `issue-${issueKey}`,
+            input.issueId
+            ?? context.issueId
+            ?? meeting?.issueId
+            ?? `issue-${issueKey}`,
         issueKey,
         projectKey,
     };

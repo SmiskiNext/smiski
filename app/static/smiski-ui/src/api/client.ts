@@ -36,9 +36,9 @@ export class ApiError extends Error {
     constructor(status: number, body: unknown) {
         const problem = isProblemDetail(body) ? body : undefined;
         super(
-            problem?.detail ||
-                problem?.title ||
-                `Smiski API request failed with status ${status}`,
+            problem?.detail
+                || problem?.title
+                || `Smiski API request failed with status ${status}`,
         );
         this.name = 'ApiError';
         this.status = status;

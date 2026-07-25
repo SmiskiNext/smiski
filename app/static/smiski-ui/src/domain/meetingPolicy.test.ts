@@ -74,16 +74,17 @@ describe('getAvailableMeetingActions', () => {
         ]);
     });
 
-    it.each(['COMPLETED', 'CANCELED'] as const)(
-        'only exposes details and history for %s meetings',
-        (status) => {
-            expect(
-                getAvailableMeetingActions(meeting(status), viewOnly),
-            ).toEqual(['VIEW_DETAIL', 'VIEW_HISTORY']);
-            expect(getAvailableMeetingActions(meeting(status), edit)).toEqual([
-                'VIEW_DETAIL',
-                'VIEW_HISTORY',
-            ]);
-        },
-    );
+    it.each([
+        'COMPLETED',
+        'CANCELED',
+    ] as const)('only exposes details and history for %s meetings', (status) => {
+        expect(getAvailableMeetingActions(meeting(status), viewOnly)).toEqual([
+            'VIEW_DETAIL',
+            'VIEW_HISTORY',
+        ]);
+        expect(getAvailableMeetingActions(meeting(status), edit)).toEqual([
+            'VIEW_DETAIL',
+            'VIEW_HISTORY',
+        ]);
+    });
 });

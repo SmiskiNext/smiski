@@ -39,8 +39,8 @@ export function isIssuePanelModalContext(
     if (!value || typeof value !== 'object') return false;
     const kind = (value as { kind?: unknown }).kind;
     return (
-        kind === MEETING_DETAIL_MODAL_KIND ||
-        kind === ACTIVE_MEETING_WARNING_MODAL_KIND ||
-        kind === MEETING_ROOM_MODAL_KIND
+        kind === MEETING_DETAIL_MODAL_KIND
+        || kind === ACTIVE_MEETING_WARNING_MODAL_KIND
+        || kind === MEETING_ROOM_MODAL_KIND
     );
 }

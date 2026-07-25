@@ -105,10 +105,12 @@ export function ParticipantVideoGrid({
         overflowCount > 0 ? others.slice(0, otherSlots - 1) : others;
 
     const cells: GridCell[] = [
-        ...visibleOthers.map((participant): GridCell => ({
-            kind: 'participant',
-            participant,
-        })),
+        ...visibleOthers.map(
+            (participant): GridCell => ({
+                kind: 'participant',
+                participant,
+            }),
+        ),
         ...(overflowCount > 0
             ? [{ kind: 'overflow', count: overflowCount } as const]
             : []),
@@ -160,14 +162,14 @@ export function ParticipantVideoGrid({
                                     <ParticipantVideoTile
                                         participant={cell.participant}
                                         isSelf={
-                                            cell.participant.accountId ===
-                                            selfAccountId
+                                            cell.participant.accountId
+                                            === selfAccountId
                                         }
                                         isMicOn={
                                             isLiveParticipant(cell.participant)
                                                 ? cell.participant.isMicOn
-                                                : cell.participant.accountId ===
-                                                    selfAccountId
+                                                : cell.participant.accountId
+                                                    === selfAccountId
                                                   ? isSelfMicOn
                                                   : undefined
                                         }

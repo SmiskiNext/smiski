@@ -98,8 +98,8 @@ export function migrateLegacyMockCurrentUser(
     currentUser: ProjectMember,
 ): boolean {
     if (
-        !currentUser.accountId ||
-        currentUser.accountId === CURRENT_USER.accountId
+        !currentUser.accountId
+        || currentUser.accountId === CURRENT_USER.accountId
     )
         return false;
 
@@ -151,8 +151,8 @@ export async function listProjectMeetings(
         if (m.projectKey !== filters.projectKey) return false;
         if (filters.status && m.status !== filters.status) return false;
         if (
-            filters.createdByAccountId &&
-            m.creatorId !== filters.createdByAccountId
+            filters.createdByAccountId
+            && m.creatorId !== filters.createdByAccountId
         )
             return false;
         if (issueKey && m.issueKey.toUpperCase() !== issueKey) return false;
@@ -175,9 +175,9 @@ export async function findRunningMeetingHostedByUser(
 ): Promise<Meeting | null> {
     const hit = meetings.find(
         (m) =>
-            m.status === 'RUNNING' &&
-            m.hostId === accountId &&
-            m.issueKey !== excludingIssueKey,
+            m.status === 'RUNNING'
+            && m.hostId === accountId
+            && m.issueKey !== excludingIssueKey,
     );
     return delay(hit ? cloneMeeting(hit) : null);
 }

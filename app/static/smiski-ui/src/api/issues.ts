@@ -30,9 +30,9 @@ export async function getProjectIssues(
 ): Promise<JiraIssue[]> {
     const term = query?.trim();
     const jql =
-        `project = "${escapeJql(projectKey)}"` +
-        (term ? ` AND summary ~ "${escapeJql(term)}*"` : '') +
-        ' ORDER BY updated DESC';
+        `project = "${escapeJql(projectKey)}"`
+        + (term ? ` AND summary ~ "${escapeJql(term)}*"` : '')
+        + ' ORDER BY updated DESC';
 
     const params = new URLSearchParams({
         jql,

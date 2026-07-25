@@ -52,8 +52,8 @@ export function MeetingActionMenu({
         const close = (event: MouseEvent) => {
             const target = event.target as Node;
             if (
-                rootRef.current?.contains(target) ||
-                menuRef.current?.contains(target)
+                rootRef.current?.contains(target)
+                || menuRef.current?.contains(target)
             )
                 return;
             setOpen(false);
@@ -84,8 +84,8 @@ export function MeetingActionMenu({
             const margin = 4;
             const spaceBelow = window.innerHeight - triggerRect.bottom;
             const openUp =
-                spaceBelow < menuHeight + margin &&
-                triggerRect.top > menuHeight + margin;
+                spaceBelow < menuHeight + margin
+                && triggerRect.top > menuHeight + margin;
             setMenuPosition({
                 top: openUp
                     ? triggerRect.top - menuHeight - margin
@@ -122,8 +122,8 @@ export function MeetingActionMenu({
             >
                 <Icon name='more' />
             </Button>
-            {isOpen &&
-                createPortal(
+            {isOpen
+                && createPortal(
                     <div
                         ref={menuRef}
                         style={{

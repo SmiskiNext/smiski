@@ -35,7 +35,11 @@ export interface LiveMeetingParticipant {
 }
 
 export type LiveKitConnectionState =
-    'idle' | 'connecting' | 'connected' | 'disconnected' | 'error';
+    | 'idle'
+    | 'connecting'
+    | 'connected'
+    | 'disconnected'
+    | 'error';
 
 export interface UseLiveKitRoomOptions {
     token: string | null;
@@ -71,11 +75,11 @@ function toParticipant(
         isMicOn: participant.isMicrophoneEnabled,
         isCameraOn: participant.isCameraEnabled,
         videoTrack:
-            (videoPub?.track as
-                LocalVideoTrack | RemoteVideoTrack | undefined) ?? null,
+            (videoPub?.track as LocalVideoTrack | RemoteVideoTrack | undefined)
+            ?? null,
         audioTrack:
-            (audioPub?.track as
-                LocalAudioTrack | RemoteAudioTrack | undefined) ?? null,
+            (audioPub?.track as LocalAudioTrack | RemoteAudioTrack | undefined)
+            ?? null,
     };
 }
 

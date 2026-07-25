@@ -1,7 +1,11 @@
 import { cn } from './cn';
 
 export type ButtonVariant =
-    'primary' | 'secondary' | 'ghost' | 'danger' | 'warning';
+    | 'primary'
+    | 'secondary'
+    | 'ghost'
+    | 'danger'
+    | 'warning';
 export type ButtonSize = 'sm' | 'md' | 'lg' | 'icon';
 
 const variants: Record<ButtonVariant, string> = {

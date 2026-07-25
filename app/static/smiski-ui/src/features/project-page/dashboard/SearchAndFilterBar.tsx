@@ -52,10 +52,10 @@ export function SearchAndFilterBar({
         })),
     ];
     const hasActiveFilters = Boolean(
-        value.search ||
-        value.issueKey ||
-        value.createdByAccountId ||
-        value.status,
+        value.search
+            || value.issueKey
+            || value.createdByAccountId
+            || value.status,
     );
 
     return (
@@ -88,7 +88,8 @@ export function SearchAndFilterBar({
                     onChange({
                         ...value,
                         status: (status || undefined) as
-                            MeetingStatus | undefined,
+                            | MeetingStatus
+                            | undefined,
                     })
                 }
             />

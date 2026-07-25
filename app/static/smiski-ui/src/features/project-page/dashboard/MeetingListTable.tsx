@@ -228,8 +228,8 @@ export function MeetingListTable({
                                             {meeting.title}
                                         </p>
                                         <p className='mt-0.5 max-w-sm truncate text-[11px] text-[var(--text-faint)]'>
-                                            {meeting.description ??
-                                                `Created by ${meeting.creatorName}`}
+                                            {meeting.description
+                                                ?? `Created by ${meeting.creatorName}`}
                                         </p>
                                     </td>
                                     <td className='hidden border-b px-3 py-2.5 sm:table-cell'>

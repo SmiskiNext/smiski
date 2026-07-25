@@ -59,8 +59,8 @@ export function IssuePicker({
         const handlePointerDown = (event: MouseEvent) => {
             const target = event.target as Node;
             if (
-                rootRef.current?.contains(target) ||
-                listRef.current?.contains(target)
+                rootRef.current?.contains(target)
+                || listRef.current?.contains(target)
             )
                 return;
             setOpen(false);
@@ -97,8 +97,8 @@ export function IssuePicker({
             <div
                 className={cn(
                     'field-control flex items-center gap-2 py-0 pr-2',
-                    invalid &&
-                        'border-red-400 focus-within:border-red-500 focus-within:ring-red-500/20',
+                    invalid
+                        && 'border-red-400 focus-within:border-red-500 focus-within:ring-red-500/20',
                 )}
             >
                 <Icon
@@ -141,9 +141,9 @@ export function IssuePicker({
                 </p>
             )}
 
-            {isOpen &&
-                position &&
-                createPortal(
+            {isOpen
+                && position
+                && createPortal(
                     <div
                         ref={listRef}
                         id={listboxId}
