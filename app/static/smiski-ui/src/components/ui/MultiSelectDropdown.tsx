@@ -42,8 +42,8 @@ export function MultiSelectDropdown({
         const handlePointerDown = (event: MouseEvent) => {
             const target = event.target as Node;
             if (
-                rootRef.current?.contains(target)
-                || listRef.current?.contains(target)
+                rootRef.current?.contains(target) ||
+                listRef.current?.contains(target)
             )
                 return;
             setOpen(false);
@@ -79,8 +79,8 @@ export function MultiSelectDropdown({
                 className={cn(
                     'flex min-h-8 w-full items-center justify-between gap-2 rounded border bg-[var(--surface)] px-2.5 py-1 text-left text-sm transition hover:bg-[var(--surface-soft)] focus:border-brand-500 focus:ring-2 focus:ring-brand-500/25 focus:outline-none',
                     isOpen && 'border-brand-500 ring-2 ring-brand-500/25',
-                    disabled
-                        && 'cursor-not-allowed opacity-60 hover:bg-[var(--surface)]',
+                    disabled &&
+                        'cursor-not-allowed opacity-60 hover:bg-[var(--surface)]',
                 )}
                 onClick={() => !disabled && setOpen((open) => !open)}
             >
@@ -110,9 +110,9 @@ export function MultiSelectDropdown({
                 />
             </button>
 
-            {isOpen
-                && position
-                && createPortal(
+            {isOpen &&
+                position &&
+                createPortal(
                     <div
                         ref={listRef}
                         id={listboxId}

@@ -42,8 +42,7 @@ type Surface = DemoSurface | 'loading' | 'unknown' | 'modal';
 
 const queryClient = new QueryClient();
 type PlatformModalContext =
-    | ScheduleMeetingModalContext
-    | IssuePanelModalContext;
+    ScheduleMeetingModalContext | IssuePanelModalContext;
 
 interface IssuePanelExtension {
     issue?: { key: string; id: string };
@@ -74,14 +73,13 @@ export function App() {
         view.getContext()
             .then((context) => {
                 const forgeTheme = context.theme as
-                    | { colorMode?: AppColorMode }
-                    | undefined;
+                    { colorMode?: AppColorMode } | undefined;
                 setColorMode(forgeTheme?.colorMode ?? 'auto');
 
                 const modalContext = context.extension?.modal;
                 if (
-                    (modalContext as { kind?: unknown } | undefined)?.kind
-                    === SCHEDULE_MEETING_MODAL_KIND
+                    (modalContext as { kind?: unknown } | undefined)?.kind ===
+                    SCHEDULE_MEETING_MODAL_KIND
                 ) {
                     setModalPayload(
                         modalContext as ScheduleMeetingModalContext,
@@ -126,9 +124,9 @@ export function App() {
         <QueryClientProvider client={queryClient}>
             <ThemeProvider colorMode={colorMode}>
                 <CurrentUserProvider>
-                    {import.meta.env.DEV
-                        && (surface === 'issueContext'
-                            || surface === 'projectPage') && (
+                    {import.meta.env.DEV &&
+                        (surface === 'issueContext' ||
+                            surface === 'projectPage') && (
                             <DevSurfaceSwitcher
                                 surface={surface}
                                 onSurfaceChange={setSurface}
@@ -147,14 +145,13 @@ export function App() {
                     {surface === 'projectPage' && (
                         <ProjectPageRoot projectKey={projectKey} />
                     )}
-                    {surface === 'modal'
-                        && modalPayload?.kind
-                            === SCHEDULE_MEETING_MODAL_KIND && (
+                    {surface === 'modal' &&
+                        modalPayload?.kind === SCHEDULE_MEETING_MODAL_KIND && (
                             <ScheduleMeetingModalRoot payload={modalPayload} />
                         )}
-                    {surface === 'modal'
-                        && modalPayload
-                        && isIssuePanelModalContext(modalPayload) && (
+                    {surface === 'modal' &&
+                        modalPayload &&
+                        isIssuePanelModalContext(modalPayload) && (
                             <IssuePanelModalRoot payload={modalPayload} />
                         )}
                     {surface === 'loading' && (

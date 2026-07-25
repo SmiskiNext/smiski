@@ -209,9 +209,9 @@ export function MeetingDetailPanel({
                                         </time>
                                     </li>
                                 )}
-                                {!meeting.scheduledAt
-                                    && !meeting.startedAt
-                                    && !meeting.endedAt && (
+                                {!meeting.scheduledAt &&
+                                    !meeting.startedAt &&
+                                    !meeting.endedAt && (
                                         <li className='text-[var(--text-muted)]'>
                                             No history available.
                                         </li>

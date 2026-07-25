@@ -66,8 +66,8 @@ export async function listProjectIssues(
         if (!issue.key.startsWith(`${projectKey}-`)) return false;
         if (!term) return true;
         return (
-            issue.summary.toLowerCase().includes(term)
-            || issue.key.toLowerCase().includes(term)
+            issue.summary.toLowerCase().includes(term) ||
+            issue.key.toLowerCase().includes(term)
         );
     }).slice(0, maxResults);
 

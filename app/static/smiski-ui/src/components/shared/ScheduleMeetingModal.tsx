@@ -116,8 +116,8 @@ export function ScheduleMeetingModal({
         if (!resolvedIssueKey)
             nextErrors.issueKey = `Enter an issue key${effectiveProjectKey ? `, e.g. ${effectiveProjectKey}-123` : ''}.`;
         else if (
-            effectiveProjectKey
-            && !resolvedIssueKey.startsWith(`${effectiveProjectKey}-`)
+            effectiveProjectKey &&
+            !resolvedIssueKey.startsWith(`${effectiveProjectKey}-`)
         )
             nextErrors.issueKey = `Issue must belong to project ${effectiveProjectKey}.`;
         if (!title) nextErrors.title = 'Enter a meeting title.';
@@ -224,8 +224,8 @@ export function ScheduleMeetingModal({
                         defaultValue={meeting?.title ?? ''}
                         placeholder='e.g. Sprint planning sync'
                         onChange={() =>
-                            errors.title
-                            && setErrors((value) => ({
+                            errors.title &&
+                            setErrors((value) => ({
                                 ...value,
                                 title: undefined,
                             }))
@@ -249,8 +249,8 @@ export function ScheduleMeetingModal({
                                 name='date'
                                 className={cn(
                                     'field-control pl-9',
-                                    errors.date
-                                        && 'border-red-400 focus:border-red-500 focus:ring-red-500/20 dark:border-red-900/60',
+                                    errors.date &&
+                                        'border-red-400 focus:border-red-500 focus:ring-red-500/20 dark:border-red-900/60',
                                 )}
                                 min={minDate}
                                 value={date}
@@ -281,8 +281,8 @@ export function ScheduleMeetingModal({
                                 name='time'
                                 className={cn(
                                     'field-control pl-9',
-                                    errors.time
-                                        && 'border-red-400 focus:border-red-500 focus:ring-red-500/20 dark:border-red-900/60',
+                                    errors.time &&
+                                        'border-red-400 focus:border-red-500 focus:ring-red-500/20 dark:border-red-900/60',
                                 )}
                                 min={minTime}
                                 value={time}

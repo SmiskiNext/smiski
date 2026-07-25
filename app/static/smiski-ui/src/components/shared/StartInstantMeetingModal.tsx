@@ -125,8 +125,8 @@ export function StartInstantMeetingModal({
                         className='field-control'
                         placeholder='e.g. Investigate deployment failure'
                         onChange={() =>
-                            errors.title
-                            && setErrors((value) => ({
+                            errors.title &&
+                            setErrors((value) => ({
                                 ...value,
                                 title: undefined,
                             }))

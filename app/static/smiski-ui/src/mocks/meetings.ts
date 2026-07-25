@@ -6,8 +6,8 @@ const now = Date.now();
 
 function userName(accountId: string): string {
     return (
-        MOCK_USERS.find((user) => user.accountId === accountId)?.displayName
-        ?? accountId
+        MOCK_USERS.find((user) => user.accountId === accountId)?.displayName ??
+        accountId
     );
 }
 

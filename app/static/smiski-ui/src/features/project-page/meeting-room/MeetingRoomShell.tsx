@@ -149,15 +149,15 @@ export function MeetingRoomShell({
                         <span
                             className={cn(
                                 'rounded-full px-2.5 py-1 text-[10px] font-bold tracking-wide uppercase',
-                                connectionState === 'connecting'
-                                    && 'bg-amber-500/20 text-amber-300',
-                                connectionState === 'error'
-                                    && 'bg-red-500/20 text-red-300',
-                                connectionState === 'connected'
-                                    && 'bg-emerald-500/20 text-emerald-300',
-                                (connectionState === 'idle'
-                                    || connectionState === 'disconnected')
-                                    && 'bg-white/10 text-slate-300',
+                                connectionState === 'connecting' &&
+                                    'bg-amber-500/20 text-amber-300',
+                                connectionState === 'error' &&
+                                    'bg-red-500/20 text-red-300',
+                                connectionState === 'connected' &&
+                                    'bg-emerald-500/20 text-emerald-300',
+                                (connectionState === 'idle' ||
+                                    connectionState === 'disconnected') &&
+                                    'bg-white/10 text-slate-300',
                             )}
                         >
                             {connectionState === 'connecting'

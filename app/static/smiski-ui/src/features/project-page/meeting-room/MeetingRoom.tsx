@@ -46,8 +46,7 @@ export function MeetingRoom({ meetingId, onLeave }: MeetingRoomProps) {
     // meeting roster, which in turn beats the self-only placeholder — same
     // three-tier fallback as before LiveKit existed, just with a new top tier.
     const roomParticipants: (
-        | Participant
-        | (typeof liveKit.participants)[number]
+        Participant | (typeof liveKit.participants)[number]
     )[] =
         isLiveKitEnabled && liveKit.participants.length
             ? liveKit.participants

@@ -1,14 +1,15 @@
 # Smiski for Jira
 
-Smiski is an online meeting experience embedded in Jira Cloud through Atlassian Forge. It gives
-teams issue-scoped meeting controls, a project-wide meeting dashboard, and an in-product video
-room without requiring users to leave Jira.
+Smiski is an online meeting experience embedded in Jira Cloud through Atlassian
+Forge. It gives teams issue-scoped meeting controls, a project-wide meeting
+dashboard, and an in-product video room without requiring users to leave Jira.
 
-> [!IMPORTANT]
-> This repository is currently a frontend-focused prototype. Meeting data, participants,
-> permissions, and recordings are backed by local mocks. The API layer and most Forge resolver
-> operations are intentionally defined as typed integration seams for a future backend. Do not
-> treat the current permission checks or meeting mutations as production security controls.
+> [!IMPORTANT] This repository is currently a frontend-focused prototype.
+> Meeting data, participants, permissions, and recordings are backed by local
+> mocks. The API layer and most Forge resolver operations are intentionally
+> defined as typed integration seams for a future backend. Do not treat the
+> current permission checks or meeting mutations as production security
+> controls.
 
 ## Current capabilities
 
@@ -17,35 +18,40 @@ room without requiring users to leave Jira.
 - Displays meetings linked to the current Jira issue.
 - Searches meetings by title and filters them by lifecycle status.
 - Starts instant meetings and schedules meetings for a later time.
-- Supports view, edit, start, join, cancel, and end actions according to the frontend meeting
-  policy.
-- Opens the meeting room through the project page, using a small cross-module handoff.
-- Uses a Forge platform modal for schedule/edit forms in Jira and an in-page modal during local
-  development.
+- Supports view, edit, start, join, cancel, and end actions according to the
+  frontend meeting policy.
+- Opens the meeting room through the project page, using a small cross-module
+  handoff.
+- Uses a Forge platform modal for schedule/edit forms in Jira and an in-page
+  modal during local development.
 
 ### Jira project page
 
 - Displays a project-wide meeting dashboard.
 - Filters meetings by title, issue, creator, and status.
-- Provides sortable columns, pagination, meeting details, participant details, and lifecycle
-  history.
+- Provides sortable columns, pagination, meeting details, participant details,
+  and lifecycle history.
 - Supports instant and scheduled meeting creation.
 - Hosts the meeting room used for both starting and joining calls.
 
 ### Meeting room
 
-- Connects to LiveKit when the app runs inside Forge and valid LiveKit configuration is present.
+- Connects to LiveKit when the app runs inside Forge and valid LiveKit
+  configuration is present.
 - Publishes and renders camera and microphone tracks.
-- Supports microphone, camera, screen-sharing, participant-list, and leave controls.
-- Uses an adaptive video grid with a graceful mock-only fallback in standalone development.
+- Supports microphone, camera, screen-sharing, participant-list, and leave
+  controls.
+- Uses an adaptive video grid with a graceful mock-only fallback in standalone
+  development.
 
 ### Jira integration
 
 - Both Jira surfaces are served from one Custom UI bundle.
 - Runtime surface selection is based on the Forge module context.
-- Jira issue search uses `requestJira` as the invoking user and is the only production data query
-  currently implemented in the frontend.
-- Light and dark themes are derived from the Forge context, with system-theme fallback locally.
+- Jira issue search uses `requestJira` as the invoking user and is the only
+  production data query currently implemented in the frontend.
+- Light and dark themes are derived from the Forge context, with system-theme
+  fallback locally.
 
 ## Implementation status
 
@@ -65,11 +71,14 @@ room without requiring users to leave Jira.
 
 The repository is a pnpm workspace with two packages:
 
-- The root package contains the Forge manifest and the thin resolver entry point.
-- `static/smiski-ui` contains the Vite, React, and TypeScript Custom UI application.
+- The root package contains the Forge manifest and the thin resolver entry
+  point.
+- `static/smiski-ui` contains the Vite, React, and TypeScript Custom UI
+  application.
 
-The `jira:issueContext` and `jira:projectPage` modules both reference the same compiled resource.
-`App.tsx` reads `context.moduleKey` and mounts the appropriate feature root.
+The `jira:issueContext` and `jira:projectPage` modules both reference the same
+compiled resource. `App.tsx` reads `context.moduleKey` and mounts the
+appropriate feature root.
 
 ```text
 Jira issue context / project page
@@ -110,36 +119,44 @@ static/smiski-ui/src/
 └── utils/                # Date-time and cross-module handoff utilities
 ```
 
-The separation between `domain`, `api`, `hooks`, and feature components is deliberate. Consumers
-depend on hook-level contracts, while the hooks currently call functions with signatures matching
-the future API clients. Replacing the mock data source should therefore require minimal UI changes.
+The separation between `domain`, `api`, `hooks`, and feature components is
+deliberate. Consumers depend on hook-level contracts, while the hooks currently
+call functions with signatures matching the future API clients. Replacing the
+mock data source should therefore require minimal UI changes.
 
 ### Data flow today
 
 - Meeting reads and writes use `mocks/db.ts` through TanStack Query hooks.
-- Meeting and participant changes persist to browser `localStorage` on a best-effort basis.
+- Meeting and participant changes persist to browser `localStorage` on a
+  best-effort basis.
 - Recording changes are held in memory for the current page session.
-- Project issue search uses local fixtures in `pnpm ui:dev` and Jira REST API in Forge.
+- Project issue search uses local fixtures in `pnpm ui:dev` and Jira REST API in
+  Forge.
 - The current Jira user and project permissions are mocked.
-- LiveKit is disabled in standalone Vite development because the Forge bridge is unavailable.
+- LiveKit is disabled in standalone Vite development because the Forge bridge is
+  unavailable.
 
 ### Planned backend boundary
 
-The intended production design keeps business logic outside the Forge app. The Forge resolver
-should remain a thin identity-aware bridge to services exposed through the Caddy API gateway, while the
-backend enforces authorization, lifecycle rules, tenant isolation, and persistence.
+The intended production design keeps business logic outside the Forge app. The
+Forge resolver should remain a thin identity-aware bridge to services exposed
+through the Caddy API gateway, while the backend enforces authorization,
+lifecycle rules, tenant isolation, and persistence.
 
 The main integration points are:
 
-1. Implement the common request/authentication flow in `static/smiski-ui/src/api/client.ts` or in
-   thin Forge resolver functions, depending on the final identity bridge.
+1. Implement the common request/authentication flow in
+   `static/smiski-ui/src/api/client.ts` or in thin Forge resolver functions,
+   depending on the final identity bridge.
 2. Implement the typed resource clients in `static/smiski-ui/src/api/`.
-3. Replace mock query and mutation functions in `static/smiski-ui/src/hooks/` with those clients.
-4. Resolve real Jira user identity, project membership, and `View Meeting` / `Edit Meeting`
-   permissions.
-5. Move LiveKit token issuance to the meeting service and authorize every token request against
-   the meeting and participant roster.
-6. Replace placeholder Caddy origins and review the minimum required Forge scopes and egress rules.
+3. Replace mock query and mutation functions in `static/smiski-ui/src/hooks/`
+   with those clients.
+4. Resolve real Jira user identity, project membership, and `View Meeting` /
+   `Edit Meeting` permissions.
+5. Move LiveKit token issuance to the meeting service and authorize every token
+   request against the meeting and participant roster.
+6. Replace placeholder Caddy origins and review the minimum required Forge
+   scopes and egress rules.
 
 See [architecture.vi.md](architecture.vi.md) for the broader system design and
 [PERMISSION.md](PERMISSION.md) for the meeting authorization model.
@@ -161,7 +178,8 @@ See [architecture.vi.md](architecture.vi.md) for the broader system design and
 - Node.js 22 or later
 - pnpm 10
 - An Atlassian account with Forge access for Jira testing and deployment
-- Forge CLI authentication for tunnel, deploy, install, variables, and logs commands
+- Forge CLI authentication for tunnel, deploy, install, variables, and logs
+  commands
 - LiveKit project credentials for real video-room testing inside Forge
 
 ## Local development
@@ -178,13 +196,15 @@ Start the standalone frontend:
 pnpm ui:dev
 ```
 
-Vite development mode does not have access to Forge context or bridge operations. The application
-therefore displays a development switcher that can preview the issue context and project page with
-mock data. LiveKit networking is disabled, but the room layout and local control states remain
-available for UI development.
+Vite development mode does not have access to Forge context or bridge
+operations. The application therefore displays a development switcher that can
+preview the issue context and project page with mock data. LiveKit networking is
+disabled, but the room layout and local control states remain available for UI
+development.
 
-Mock meetings and participant selections may persist between reloads in `localStorage`. Clear the
-site data for the Vite origin to restore the initial fixtures.
+Mock meetings and participant selections may persist between reloads in
+`localStorage`. Clear the site data for the Vite origin to restore the initial
+fixtures.
 
 ### Environment files
 
@@ -229,8 +249,8 @@ pnpm --filter smiski-ui exec vitest run src/domain/meetingPolicy.test.ts
 
 ## Running inside Forge
 
-Build the frontend before deploying because `manifest.yml` points to the generated `dist`
-directory:
+Build the frontend before deploying because `manifest.yml` points to the
+generated `dist` directory:
 
 ```bash
 pnpm build
@@ -244,8 +264,8 @@ Install the development deployment on a Jira site:
 pnpm exec forge install --non-interactive --site your-site.atlassian.net --product jira --environment development
 ```
 
-Use the `--upgrade` option when an existing installation must receive updated scopes or egress
-permissions.
+Use the `--upgrade` option when an existing installation must receive updated
+scopes or egress permissions.
 
 ### LiveKit configuration
 
@@ -255,14 +275,14 @@ The temporary `getRoomToken` resolver reads these Forge environment variables:
 - `LIVEKIT_API_SECRET`
 - `LIVEKIT_URL`
 
-Store credentials as Forge environment variables for the target environment; never commit them.
-The LiveKit WebSocket origin must also be permitted under `permissions.external.fetch.client` in
-`manifest.yml`.
+Store credentials as Forge environment variables for the target environment;
+never commit them. The LiveKit WebSocket origin must also be permitted under
+`permissions.external.fetch.client` in `manifest.yml`.
 
-> [!WARNING]
-> The current resolver accepts any non-empty meeting ID from a user who can invoke the app and does
-> not verify meeting membership or permission before minting a token. This implementation is for
-> prototype testing only and must be replaced before production use.
+> [!WARNING] The current resolver accepts any non-empty meeting ID from a user
+> who can invoke the app and does not verify meeting membership or permission
+> before minting a token. This implementation is for prototype testing only and
+> must be replaced before production use.
 
 ## Forge manifest notes
 
@@ -275,9 +295,9 @@ The manifest currently declares:
 - placeholder Caddy API gateway egress origins
 - a LiveKit client WebSocket origin
 
-Replace all placeholder gateway origins before deployment to a real environment. After adding or
-changing scopes or external egress permissions, deploy again and upgrade the existing Jira
-installation.
+Replace all placeholder gateway origins before deployment to a real environment.
+After adding or changing scopes or external egress permissions, deploy again and
+upgrade the existing Jira installation.
 
 ## Testing and quality checks
 
@@ -292,19 +312,24 @@ pnpm build
 pnpm exec forge lint
 ```
 
-Current tests cover the permission/action matrix and issue-context list filtering and ordering.
-Integration tests for Forge context, Jira REST calls, backend contracts, and LiveKit behavior remain
-to be added.
+Current tests cover the permission/action matrix and issue-context list
+filtering and ordering. Integration tests for Forge context, Jira REST calls,
+backend contracts, and LiveKit behavior remain to be added.
 
 ## Production-readiness checklist
 
 Before a production release:
 
-- Connect all meeting, participant, permission, and recording operations to the backend.
-- Enforce authorization and meeting-state transitions on the backend for every mutation.
-- Replace the direct LiveKit token-minting shim with an authorized backend endpoint.
-- Replace mock current-user and project-member data with tenant-aware identities.
-- Configure real Caddy API gateway origins and remove placeholder egress entries.
+- Connect all meeting, participant, permission, and recording operations to the
+  backend.
+- Enforce authorization and meeting-state transitions on the backend for every
+  mutation.
+- Replace the direct LiveKit token-minting shim with an authorized backend
+  endpoint.
+- Replace mock current-user and project-member data with tenant-aware
+  identities.
+- Configure real Caddy API gateway origins and remove placeholder egress
+  entries.
 - Review and minimize Forge scopes and external permissions.
 - Add contract, integration, and end-to-end coverage for both Jira modules.
 - Define operational logging, monitoring, error handling, and recovery behavior.
