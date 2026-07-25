@@ -2,10 +2,9 @@
     // Forge app root TypeScript config — covers the backend resolver in src/.
     // The Custom UI frontend has its own config at static/smiski-ui/tsconfig.json.
     "compilerOptions": {
-        "target": "ES2022",
-        "module": "CommonJS",
-        "moduleResolution": "Node",
-        "lib": ["ES2022"],
+        "target": "ESNext",
+        "module": "ESNext",
+        "lib": ["ESNext"],
         "types": ["node"],
         "strict": true,
         "esModuleInterop": true,
