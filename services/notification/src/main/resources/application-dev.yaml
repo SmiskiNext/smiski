@@ -4,3 +4,9 @@ server:
 spring:
     kafka:
         bootstrap-servers: localhost:9094
+
+    data:
+        redis:
+            host: localhost
+            port: 8284
+            password:

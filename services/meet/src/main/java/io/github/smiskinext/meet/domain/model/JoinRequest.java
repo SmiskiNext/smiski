@@ -1,15 +1,16 @@
 package io.github.smiskinext.meet.domain.model;
 
 import com.github.f4b6a3.uuid.UuidCreator;
-
 import io.github.smiskinext.meet.domain.MeetingError;
+import io.github.smiskinext.meet.domain.event.JoinRequestCreatedEvent;
 import io.github.smiskinext.meet.domain.model.valueobject.AccountId;
 import io.github.smiskinext.meet.domain.model.valueobject.JoinRequestId;
 import io.github.smiskinext.meet.domain.model.valueobject.MeetingId;
 import io.github.smiskinext.shared.domain.AggregateRoot;
 import io.github.smiskinext.shared.domain.Result;
-
 import java.time.Instant;
+import java.util.UUID;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Represents a participant's request to join a meeting that requires manual approval.
@@ -37,6 +38,7 @@ public class JoinRequest extends AggregateRoot<JoinRequestId> {
     private final AccountId accountId;
     private final String displayName;
     private final String deviceId;
+    private final @Nullable String avatarUrl;
     private JoinRequestStatus status;
     private final Instant requestedAt;
     private final Instant expiresAt;
@@ -47,6 +49,7 @@ public class JoinRequest extends AggregateRoot<JoinRequestId> {
             AccountId accountId,
             String displayName,
             String deviceId,
+            @Nullable String avatarUrl,
             JoinRequestStatus status,
             Instant requestedAt,
             Instant expiresAt) {
@@ -55,6 +58,7 @@ public class JoinRequest extends AggregateRoot<JoinRequestId> {
         this.accountId = accountId;
         this.displayName = displayName;
         this.deviceId = deviceId;
+        this.avatarUrl = avatarUrl;
         this.status = status;
         this.requestedAt = requestedAt;
         this.expiresAt = expiresAt;
@@ -68,6 +72,7 @@ public class JoinRequest extends AggregateRoot<JoinRequestId> {
             AccountId accountId,
             String displayName,
             String deviceId,
+            @Nullable String avatarUrl,
             Instant expiresAt) {
         return new JoinRequest(
                 JoinRequestId.of(UuidCreator.getTimeOrderedEpoch()),
@@ -75,6 +80,7 @@ public class JoinRequest extends AggregateRoot<JoinRequestId> {
                 accountId,
                 displayName,
                 deviceId,
+                avatarUrl,
                 JoinRequestStatus.PENDING,
                 Instant.now(),
                 expiresAt);
@@ -89,11 +95,41 @@ public class JoinRequest extends AggregateRoot<JoinRequestId> {
             AccountId accountId,
             String displayName,
             String deviceId,
+            @Nullable String avatarUrl,
             JoinRequestStatus status,
             Instant requestedAt,
             Instant expiresAt) {
         return new JoinRequest(
-                id, meetingId, accountId, displayName, deviceId, status, requestedAt, expiresAt);
+                id,
+                meetingId,
+                accountId,
+                displayName,
+                deviceId,
+                avatarUrl,
+                status,
+                requestedAt,
+                expiresAt);
+    }
+
+    /**
+     * Registers a {@link JoinRequestCreatedEvent} for publication through the transactional outbox.
+     *
+     * <p>The tenant identifier lives outside the aggregate (join requests are Redis-only and carry
+     * no tenant column), so it is supplied by the application layer at creation time.
+     *
+     * @param tenantId the tenant that owns the meeting the request targets
+     */
+    public void registerCreatedEvent(String tenantId) {
+        registerEvent(new JoinRequestCreatedEvent(
+                UUID.randomUUID(),
+                tenantId,
+                meetingId.value(),
+                id.value(),
+                accountId.value(),
+                displayName,
+                deviceId,
+                avatarUrl,
+                requestedAt));
     }
 
     /**
@@ -164,6 +200,10 @@ public class JoinRequest extends AggregateRoot<JoinRequestId> {
 
     public String getDeviceId() {
         return deviceId;
+    }
+
+    public @Nullable String getAvatarUrl() {
+        return avatarUrl;
     }
 
     public JoinRequestStatus getStatus() {

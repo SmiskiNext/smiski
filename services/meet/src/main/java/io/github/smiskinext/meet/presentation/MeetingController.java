@@ -8,6 +8,7 @@ import io.github.smiskinext.meet.application.result.CreateInstantMeetingResult;
 import io.github.smiskinext.meet.application.result.DeleteMeetingResult;
 import io.github.smiskinext.meet.application.result.GetMeetingResult;
 import io.github.smiskinext.meet.application.result.ListMeetingsResult;
+import io.github.smiskinext.meet.application.result.RequestJoinResult;
 import io.github.smiskinext.meet.application.result.ScheduleMeetingResult;
 import io.github.smiskinext.meet.application.result.UpdateMeetingInviteesResult;
 import io.github.smiskinext.meet.application.result.UpdateMeetingResult;
@@ -16,6 +17,7 @@ import io.github.smiskinext.meet.application.usecase.CreateInstantMeetingUseCase
 import io.github.smiskinext.meet.application.usecase.DeleteMeetingUseCase;
 import io.github.smiskinext.meet.application.usecase.GetMeetingUseCase;
 import io.github.smiskinext.meet.application.usecase.ListMeetingsUseCase;
+import io.github.smiskinext.meet.application.usecase.RequestJoinUseCase;
 import io.github.smiskinext.meet.application.usecase.ScheduleMeetingUseCase;
 import io.github.smiskinext.meet.application.usecase.UpdateMeetingInviteesUseCase;
 import io.github.smiskinext.meet.application.usecase.UpdateMeetingUseCase;
@@ -23,6 +25,7 @@ import io.github.smiskinext.meet.domain.ListMeetingsError;
 import io.github.smiskinext.meet.domain.MeetingError;
 import io.github.smiskinext.meet.presentation.request.BatchDeleteMeetingsRequest;
 import io.github.smiskinext.meet.presentation.request.CreateInstantMeetingRequest;
+import io.github.smiskinext.meet.presentation.request.JoinMeetingRequest;
 import io.github.smiskinext.meet.presentation.request.ListMeetingsRequest;
 import io.github.smiskinext.meet.presentation.request.ScheduleMeetingRequest;
 import io.github.smiskinext.meet.presentation.request.UpdateMeetingInviteesRequest;
@@ -31,6 +34,7 @@ import io.github.smiskinext.meet.presentation.response.BatchDeleteMeetingsRespon
 import io.github.smiskinext.meet.presentation.response.CreateInstantMeetingResponse;
 import io.github.smiskinext.meet.presentation.response.DeleteMeetingResponse;
 import io.github.smiskinext.meet.presentation.response.GetMeetingResponse;
+import io.github.smiskinext.meet.presentation.response.JoinMeetingResponse;
 import io.github.smiskinext.meet.presentation.response.MeetingListPageResponse;
 import io.github.smiskinext.meet.presentation.response.MeetingSummaryResponse;
 import io.github.smiskinext.meet.presentation.response.ScheduleMeetingResponse;
@@ -79,6 +83,7 @@ public class MeetingController {
     private final GetMeetingUseCase getMeetingUseCase;
     private final DeleteMeetingUseCase deleteMeetingUseCase;
     private final BatchDeleteMeetingsUseCase batchDeleteMeetingsUseCase;
+    private final RequestJoinUseCase requestJoinUseCase;
     private final ResultResponder responder;
 
     public MeetingController(
@@ -90,6 +95,7 @@ public class MeetingController {
             GetMeetingUseCase getMeetingUseCase,
             DeleteMeetingUseCase deleteMeetingUseCase,
             BatchDeleteMeetingsUseCase batchDeleteMeetingsUseCase,
+            RequestJoinUseCase requestJoinUseCase,
             ResultResponder responder) {
         this.createInstantMeetingUseCase = createInstantMeetingUseCase;
         this.scheduleMeetingUseCase = scheduleMeetingUseCase;
@@ -99,6 +105,7 @@ public class MeetingController {
         this.getMeetingUseCase = getMeetingUseCase;
         this.deleteMeetingUseCase = deleteMeetingUseCase;
         this.batchDeleteMeetingsUseCase = batchDeleteMeetingsUseCase;
+        this.requestJoinUseCase = requestJoinUseCase;
         this.responder = responder;
     }
 
@@ -1009,5 +1016,120 @@ public class MeetingController {
         Result<BatchDeleteMeetingsResult, MeetingError> result = batchDeleteMeetingsUseCase.execute(
                 request.toCommand(accountId, TenantContext.getCurrentTenant()));
         return responder.ok(result.map(BatchDeleteMeetingsResponse::from));
+    }
+
+    @Operation(
+            summary = "Join a meeting",
+            description = "Joins a meeting as an authenticated account. Under ALLOW_ALL admission "
+                    + "the caller is admitted immediately with status APPROVED, a LiveKit token, "
+                    + "and the room name. Under MANUAL_APPROVAL a pending request is created with "
+                    + "status PENDING and a requestId; both outcomes return 200.")
+    @ApiResponses({
+        @ApiResponse(
+                responseCode = "200",
+                description = "Join accepted (APPROVED) or pending host approval (PENDING)",
+                content =
+                        @Content(
+                                mediaType = "application/json",
+                                schema = @Schema(implementation = JoinMeetingResponse.class),
+                                examples = {
+                                    @ExampleObject(name = "approved", value = """
+                        {
+                          "requestId": "0195e0c2-8f3a-7c21-b9d4-2f1a6e7c8d90",
+                          "status": "APPROVED",
+                          "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.example.token",
+                          "roomName": "meeting-0195e0c2-8f3a-7c21-b9d4-2f1a6e7c8d90"
+                        }"""),
+                                    @ExampleObject(name = "pending", value = """
+                        {
+                          "requestId": "0195e0c2-8f3a-7c21-b9d4-3a2b1c4d5e60",
+                          "status": "PENDING",
+                          "token": null,
+                          "roomName": null
+                        }""")
+                                })),
+        @ApiResponse(
+                responseCode = "400",
+                description = "Validation error or missing account header",
+                content =
+                        @Content(
+                                mediaType = "application/problem+json",
+                                schema = @Schema(implementation = ProblemDetailSchema.class),
+                                examples = {
+                                    @ExampleObject(
+                                            name = "validationError",
+                                            summary = "Blank display name or device id",
+                                            value = """
+                            {
+                              "type": "about:blank",
+                              "title": "Bad Request",
+                              "status": 400,
+                              "detail": "The request body failed validation",
+                              "code": "VALIDATION_ERROR",
+                              "traceId": "6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a",
+                              "errors": [
+                                {"field": "displayName", "code": "REQUIRED", "message": "must not be blank"}
+                              ]
+                            }"""),
+                                    @ExampleObject(
+                                            name = "missingAccount",
+                                            summary = "Missing X-Account-Id header",
+                                            value = """
+                            {
+                              "type": "about:blank",
+                              "title": "Bad Request",
+                              "status": 400,
+                              "detail": "X-Account-Id header is required",
+                              "code": "VALIDATION_ERROR",
+                              "traceId": "6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a"
+                            }""")
+                                })),
+        @ApiResponse(
+                responseCode = "404",
+                description = "Meeting not found for the current tenant",
+                content =
+                        @Content(
+                                mediaType = "application/problem+json",
+                                schema = @Schema(implementation = ProblemDetailSchema.class),
+                                examples = @ExampleObject(name = "notFound", value = """
+                        {
+                          "type": "about:blank",
+                          "title": "Meeting not found",
+                          "status": 404,
+                          "detail": "No meeting matches the given identifier.",
+                          "code": "MEETING_NOT_FOUND",
+                          "traceId": "6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a"
+                        }"""))),
+        @ApiResponse(
+                responseCode = "409",
+                description = "Meeting is at capacity",
+                content =
+                        @Content(
+                                mediaType = "application/problem+json",
+                                schema = @Schema(implementation = ProblemDetailSchema.class),
+                                examples = @ExampleObject(name = "meetingFull", value = """
+                        {
+                          "type": "about:blank",
+                          "title": "Meeting is full",
+                          "status": 409,
+                          "detail": "The meeting has reached its participant limit.",
+                          "code": "MEETING_FULL",
+                          "traceId": "6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a"
+                        }""")))
+    })
+    @PostMapping("/meetings/{id}:join")
+    public ResponseEntity<Object> join(
+            @PathVariable UUID id, @Valid @RequestBody JoinMeetingRequest request) {
+        String accountId = AccountContext.getCurrentAccount().orElse(null);
+        if (accountId == null) {
+            return ResponseEntity.badRequest()
+                    .contentType(org.springframework.http.MediaType.APPLICATION_PROBLEM_JSON)
+                    .body(org.springframework.http.ProblemDetail.forStatusAndDetail(
+                            org.springframework.http.HttpStatus.BAD_REQUEST,
+                            "X-Account-Id header is required"));
+        }
+        Result<RequestJoinResult, MeetingError> result = requestJoinUseCase.execute(
+                request.toCommand(id.toString(), accountId, TenantContext.getCurrentTenant()));
+        return responder.ok(result.map(JoinMeetingResponse::from));
     }
 }

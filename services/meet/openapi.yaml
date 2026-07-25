@@ -969,6 +969,140 @@ paths:
         type: integer
         format: int32
       example: 1
+  /api/{version}/meetings/{id}:join:
+    post:
+      tags:
+      - meeting-controller
+      summary: Join a meeting
+      description: "Joins a meeting as an authenticated account. Under ALLOW_ALL admission\
+        \ the caller is admitted immediately with status APPROVED, a LiveKit token,\
+        \ and the room name. Under MANUAL_APPROVAL a pending request is created with\
+        \ status PENDING and a requestId; both outcomes return 200."
+      operationId: join
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/JoinMeetingRequest"
+        required: true
+      responses:
+        "200":
+          description: Join accepted (APPROVED) or pending host approval (PENDING)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JoinMeetingResponse"
+              examples:
+                approved:
+                  description: approved
+                  value:
+                    requestId: 0195e0c2-8f3a-7c21-b9d4-2f1a6e7c8d90
+                    status: APPROVED
+                    token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.example.token
+                    roomName: meeting-0195e0c2-8f3a-7c21-b9d4-2f1a6e7c8d90
+                pending:
+                  description: pending
+                  value:
+                    requestId: 0195e0c2-8f3a-7c21-b9d4-3a2b1c4d5e60
+                    status: PENDING
+                    token: null
+                    roomName: null
+        "400":
+          description: Validation error or missing account header
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+              examples:
+                validationError:
+                  summary: Blank display name or device id
+                  description: validationError
+                  value:
+                    type: about:blank
+                    title: Bad Request
+                    status: 400
+                    detail: The request body failed validation
+                    code: VALIDATION_ERROR
+                    traceId: 6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a
+                    errors:
+                    - field: displayName
+                      code: REQUIRED
+                      message: must not be blank
+                missingAccount:
+                  summary: Missing X-Account-Id header
+                  description: missingAccount
+                  value:
+                    type: about:blank
+                    title: Bad Request
+                    status: 400
+                    detail: X-Account-Id header is required
+                    code: VALIDATION_ERROR
+                    traceId: 6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a
+        "404":
+          description: Meeting not found for the current tenant
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+              examples:
+                notFound:
+                  description: notFound
+                  value:
+                    type: about:blank
+                    title: Meeting not found
+                    status: 404
+                    detail: No meeting matches the given identifier.
+                    code: MEETING_NOT_FOUND
+                    traceId: 6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a
+        "409":
+          description: Meeting is at capacity
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+              examples:
+                meetingFull:
+                  description: meetingFull
+                  value:
+                    type: about:blank
+                    title: Meeting is full
+                    status: 409
+                    detail: The meeting has reached its participant limit.
+                    code: MEETING_FULL
+                    traceId: 6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a
+        "405":
+          description: Method Not Allowed
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "415":
+          description: Unsupported Media Type
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "500":
+          description: Internal Server Error
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+    parameters:
+    - name: version
+      in: path
+      required: true
+      schema:
+        type: integer
+        format: int32
+      example: 1
 components:
   schemas:
     IssueLink:
@@ -1628,6 +1762,51 @@ components:
           format: date-time
         deletedBy:
           type: string
+    JoinMeetingRequest:
+      type: object
+      description: Request body for joining a meeting
+      properties:
+        displayName:
+          type: string
+          description: Display name shown to the host and in the room
+          example: Alice
+          maxLength: 100
+          minLength: 0
+        deviceId:
+          type: string
+          description: Stable identifier of the joining device
+          example: device-1
+          minLength: 1
+        avatarUrl:
+          type:
+          - string
+          - "null"
+          description: Avatar URL of the joining participant
+      required:
+      - deviceId
+      - displayName
+    JoinMeetingResponse:
+      type: object
+      description: Response for a join attempt
+      properties:
+        requestId:
+          type: string
+          format: uuid
+          description: Identifier of the join request or participation session
+        status:
+          type: string
+          description: Outcome of the join
+          example: APPROVED
+        token:
+          type:
+          - string
+          - "null"
+          description: LiveKit access token; present only when APPROVED
+        roomName:
+          type:
+          - string
+          - "null"
+          description: LiveKit room name; present only when APPROVED
     GetMeetingResponse:
       type: object
       description: A single meeting with its invitees and joined participants

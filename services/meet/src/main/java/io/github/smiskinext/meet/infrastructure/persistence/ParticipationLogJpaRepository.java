@@ -12,6 +12,8 @@ public interface ParticipationLogJpaRepository
 
     List<ParticipationLogJpaEntity> findByMeetingId(UUID meetingId);
 
+    long countByMeetingIdAndLeftAtIsNull(UUID meetingId);
+
     @Query("select new io.github.smiskinext.meet.domain.projection.ParticipantSummary("
             + "p.id, p.meetingId, p.accountId, p.displayName, p.role, p.joinedAt, p.leftAt)"
             + " from ParticipationLogJpaEntity p where p.meetingId = :meetingId")

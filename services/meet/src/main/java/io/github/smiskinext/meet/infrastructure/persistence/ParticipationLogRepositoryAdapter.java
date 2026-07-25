@@ -44,10 +44,9 @@ public class ParticipationLogRepositoryAdapter implements ParticipationLogReposi
         throw new UnsupportedOperationException("Not implemented in create-instant-meeting slice");
     }
 
-    /** TODO: Implement in a later slice. */
     @Override
     public long countActiveByMeetingId(UUID meetingId) {
-        throw new UnsupportedOperationException("Not implemented in create-instant-meeting slice");
+        return jpaRepository.countByMeetingIdAndLeftAtIsNull(meetingId);
     }
 
     /** TODO: Implement in a later slice. */

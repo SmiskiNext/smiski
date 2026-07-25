@@ -12,6 +12,12 @@ spring:
     kafka:
         bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
 
+    data:
+        redis:
+            host: ${REDIS_HOST:localhost}
+            port: ${REDIS_PORT:6379}
+            password: ${REDIS_PASSWORD:}
+
     threads:
         virtual:
             enabled: true
@@ -21,6 +27,9 @@ logging:
         include-args: false
 
 app:
+    sse:
+        host-stream-timeout-ms: ${SSE_HOST_STREAM_TIMEOUT_MS:300000}
+        heartbeat-interval-seconds: ${SSE_HEARTBEAT_INTERVAL_SECONDS:15}
     notification:
         kafka:
             invitation-consumer-group: ${INVITATION_CONSUMER_GROUP:notification-meeting-invitations}
