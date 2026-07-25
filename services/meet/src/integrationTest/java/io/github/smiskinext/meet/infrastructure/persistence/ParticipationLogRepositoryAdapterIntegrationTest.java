@@ -48,16 +48,8 @@ class ParticipationLogRepositoryAdapterIntegrationTest {
         Instant firstLeave = Instant.parse("2025-02-01T14:10:00Z");
         Instant secondJoin = Instant.parse("2025-02-01T14:20:00Z");
         Instant secondLeave = Instant.parse("2025-02-01T14:30:00Z");
-        insertSession(
-                TENANT_ID,
-                meetingId,
-                "account-1",
-                "Alice v1",
-                "PARTICIPANT",
-                firstJoin,
-                firstLeave);
-        insertSession(
-                TENANT_ID, meetingId, "account-1", "Alice v2", "HOST", secondJoin, secondLeave);
+        insertSession(TENANT_ID, meetingId, "account-1", "PARTICIPANT", firstJoin, firstLeave);
+        insertSession(TENANT_ID, meetingId, "account-1", "HOST", secondJoin, secondLeave);
 
         List<ParticipantSummary> participants =
                 repository.findDistinctParticipantSummariesByMeetingId(meetingId);
@@ -66,7 +58,6 @@ class ParticipationLogRepositoryAdapterIntegrationTest {
             assertThat(participant.accountId()).isEqualTo("account-1");
             assertThat(participant.joinedAt()).isEqualTo(firstJoin);
             assertThat(participant.leftAt()).isEqualTo(secondLeave);
-            assertThat(participant.displayName()).isEqualTo("Alice v2");
             assertThat(participant.role()).isEqualTo("HOST");
         });
     }
@@ -75,22 +66,14 @@ class ParticipationLogRepositoryAdapterIntegrationTest {
     void leftAccountHasLatestLeftAtWhileOpenSessionYieldsNullLeftAt() {
         Instant leftJoin = Instant.parse("2025-02-01T14:00:00Z");
         Instant leftLeave = Instant.parse("2025-02-01T14:15:00Z");
-        insertSession(
-                TENANT_ID, meetingId, "left-account", "Bob", "PARTICIPANT", leftJoin, leftLeave);
+        insertSession(TENANT_ID, meetingId, "left-account", "PARTICIPANT", leftJoin, leftLeave);
 
         Instant openFirstJoin = Instant.parse("2025-02-01T14:05:00Z");
         Instant openFirstLeave = Instant.parse("2025-02-01T14:12:00Z");
         Instant openSecondJoin = Instant.parse("2025-02-01T14:20:00Z");
         insertSession(
-                TENANT_ID,
-                meetingId,
-                "open-account",
-                "Carol",
-                "PARTICIPANT",
-                openFirstJoin,
-                openFirstLeave);
-        insertSession(
-                TENANT_ID, meetingId, "open-account", "Carol", "PARTICIPANT", openSecondJoin, null);
+                TENANT_ID, meetingId, "open-account", "PARTICIPANT", openFirstJoin, openFirstLeave);
+        insertSession(TENANT_ID, meetingId, "open-account", "PARTICIPANT", openSecondJoin, null);
 
         List<ParticipantSummary> participants =
                 repository.findDistinctParticipantSummariesByMeetingId(meetingId);
@@ -112,18 +95,12 @@ class ParticipationLogRepositoryAdapterIntegrationTest {
     @Test
     void participationLogsOfAnotherTenantAreNotReturned() {
         Instant joinedAt = Instant.parse("2025-02-01T14:00:00Z");
-        insertSession(TENANT_ID, meetingId, "same-tenant", "Dan", "PARTICIPANT", joinedAt, null);
+        insertSession(TENANT_ID, meetingId, "same-tenant", "PARTICIPANT", joinedAt, null);
 
         insertTenant(OTHER_TENANT_ID);
         insertMeeting(OTHER_TENANT_ID, meetingId);
         insertSession(
-                OTHER_TENANT_ID,
-                meetingId,
-                "other-tenant-account",
-                "Eve",
-                "PARTICIPANT",
-                joinedAt,
-                null);
+                OTHER_TENANT_ID, meetingId, "other-tenant-account", "PARTICIPANT", joinedAt, null);
 
         List<ParticipantSummary> participants =
                 repository.findDistinctParticipantSummariesByMeetingId(meetingId);
@@ -162,22 +139,20 @@ class ParticipationLogRepositoryAdapterIntegrationTest {
             String tenantId,
             UUID meeting,
             String accountId,
-            String displayName,
             String role,
             Instant joinedAt,
             Instant leftAt) {
         jdbcTemplate.update(
                 """
                 INSERT INTO participation_logs (
-                    tenant_id, id, meeting_id, account_id, display_name, role,
+                    tenant_id, id, meeting_id, account_id, role,
                     livekit_identity, joined_at, left_at, close_reason
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 tenantId,
                 UUID.randomUUID(),
                 meeting,
                 accountId,
-                displayName,
                 role,
                 accountId + "-" + joinedAt.truncatedTo(ChronoUnit.MILLIS),
                 java.sql.Timestamp.from(joinedAt),

@@ -34,8 +34,6 @@ public class ParticipationLog extends AggregateRoot<ParticipationLogId> {
     private final ParticipationLogId id;
     private final MeetingId meetingId;
     private final AccountId accountId;
-    private final @Nullable String displayName;
-    private final @Nullable Instant displayNameCachedAt;
     private final ParticipantRole role;
     private final LiveKitIdentity livekitIdentity;
     private final Instant joinedAt;
@@ -53,8 +51,6 @@ public class ParticipationLog extends AggregateRoot<ParticipationLogId> {
             ParticipationLogId id,
             MeetingId meetingId,
             AccountId accountId,
-            @Nullable String displayName,
-            @Nullable Instant displayNameCachedAt,
             ParticipantRole role,
             LiveKitIdentity livekitIdentity,
             @Nullable LiveKitParticipantSid livekitParticipantSid,
@@ -65,8 +61,6 @@ public class ParticipationLog extends AggregateRoot<ParticipationLogId> {
         this.id = id;
         this.meetingId = meetingId;
         this.accountId = accountId;
-        this.displayName = displayName;
-        this.displayNameCachedAt = displayNameCachedAt;
         this.role = role;
         this.livekitIdentity = livekitIdentity;
         this.livekitParticipantSid = livekitParticipantSid;
@@ -86,7 +80,6 @@ public class ParticipationLog extends AggregateRoot<ParticipationLogId> {
             TenantId tenantId,
             MeetingId meetingId,
             AccountId accountId,
-            String displayName,
             ParticipantRole role,
             LiveKitIdentity livekitIdentity) {
         return new ParticipationLog(
@@ -94,8 +87,6 @@ public class ParticipationLog extends AggregateRoot<ParticipationLogId> {
                 ParticipationLogId.of(UuidCreator.getTimeOrderedEpoch()),
                 meetingId,
                 accountId,
-                displayName,
-                Instant.now(),
                 role,
                 livekitIdentity,
                 null,
@@ -112,8 +103,6 @@ public class ParticipationLog extends AggregateRoot<ParticipationLogId> {
             ParticipationLogId id,
             MeetingId meetingId,
             AccountId accountId,
-            @Nullable String displayName,
-            @Nullable Instant displayNameCachedAt,
             ParticipantRole role,
             LiveKitIdentity livekitIdentity,
             @Nullable LiveKitParticipantSid livekitParticipantSid,
@@ -125,8 +114,6 @@ public class ParticipationLog extends AggregateRoot<ParticipationLogId> {
                 id,
                 meetingId,
                 accountId,
-                displayName,
-                displayNameCachedAt,
                 role,
                 livekitIdentity,
                 livekitParticipantSid,
@@ -190,14 +177,6 @@ public class ParticipationLog extends AggregateRoot<ParticipationLogId> {
 
     public AccountId getAccountId() {
         return accountId;
-    }
-
-    public @Nullable String getDisplayName() {
-        return displayName;
-    }
-
-    public Optional<Instant> getDisplayNameCachedAt() {
-        return Optional.ofNullable(displayNameCachedAt);
     }
 
     public ParticipantRole getRole() {

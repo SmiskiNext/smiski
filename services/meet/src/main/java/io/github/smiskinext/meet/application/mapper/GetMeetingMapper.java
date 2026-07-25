@@ -67,10 +67,6 @@ public final class GetMeetingMapper {
 
     private static GetMeetingResult.Participant toParticipant(ParticipantSummary summary) {
         return new GetMeetingResult.Participant(
-                summary.accountId(),
-                summary.displayName(),
-                summary.role(),
-                summary.joinedAt(),
-                summary.leftAt());
+                summary.accountId(), summary.role(), summary.joinedAt(), summary.leftAt());
     }
 }

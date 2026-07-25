@@ -64,10 +64,6 @@ public record GetMeetingResponse(
     @Schema(name = "MeetingDetailParticipant", description = "Distinct joined participant")
     public record Participant(
             String accountId,
-
-            @Schema(description = "Cached display name; null when unknown", nullable = true)
-            @Nullable String displayName,
-
             String role,
             Instant joinedAt,
 
@@ -119,7 +115,6 @@ public record GetMeetingResponse(
         List<Participant> participants = result.participants().stream()
                 .map(participant -> new Participant(
                         participant.accountId(),
-                        participant.displayName(),
                         participant.role(),
                         participant.joinedAt(),
                         participant.leftAt()))

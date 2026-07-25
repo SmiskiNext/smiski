@@ -35,7 +35,6 @@ class ParticipationLogRepositoryAdapterTest {
                                 recentSessionId,
                                 meetingId,
                                 "member-1",
-                                "Alice Latest",
                                 "PARTICIPANT",
                                 secondJoin,
                                 null),
@@ -43,7 +42,6 @@ class ParticipationLogRepositoryAdapterTest {
                                 UUID.randomUUID(),
                                 meetingId,
                                 "member-1",
-                                "Alice",
                                 "PARTICIPANT",
                                 firstJoin,
                                 firstLeave)));
@@ -54,7 +52,6 @@ class ParticipationLogRepositoryAdapterTest {
         assertThat(participants).singleElement().satisfies(participant -> {
             assertThat(participant.id()).isEqualTo(recentSessionId);
             assertThat(participant.accountId()).isEqualTo("member-1");
-            assertThat(participant.displayName()).isEqualTo("Alice Latest");
             assertThat(participant.joinedAt()).isEqualTo(firstJoin);
             assertThat(participant.leftAt()).isNull();
         });
@@ -73,7 +70,6 @@ class ParticipationLogRepositoryAdapterTest {
                                 UUID.randomUUID(),
                                 meetingId,
                                 "member-1",
-                                "Alice",
                                 "PARTICIPANT",
                                 secondJoin,
                                 secondLeave),
@@ -81,7 +77,6 @@ class ParticipationLogRepositoryAdapterTest {
                                 UUID.randomUUID(),
                                 meetingId,
                                 "member-1",
-                                "Alice",
                                 "PARTICIPANT",
                                 firstJoin,
                                 firstLeave)));
@@ -105,7 +100,6 @@ class ParticipationLogRepositoryAdapterTest {
                                 UUID.randomUUID(),
                                 meetingId,
                                 "member-2",
-                                "Bob",
                                 "PARTICIPANT",
                                 joinedAt,
                                 null),
@@ -113,7 +107,6 @@ class ParticipationLogRepositoryAdapterTest {
                                 UUID.randomUUID(),
                                 meetingId,
                                 "member-1",
-                                "Alice",
                                 "PARTICIPANT",
                                 joinedAt,
                                 null)));

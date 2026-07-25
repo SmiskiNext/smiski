@@ -60,13 +60,7 @@ class GetMeetingApplicationServiceTest {
                         "member-1", "alice@example.com", "Alice", "ACCEPTED", invitedAt, null)));
         when(participationLogRepository.findDistinctParticipantSummariesByMeetingId(meetingId))
                 .thenReturn(List.of(new ParticipantSummary(
-                        UUID.randomUUID(),
-                        meetingId,
-                        "member-1",
-                        "Alice",
-                        "PARTICIPANT",
-                        joinedAt,
-                        null)));
+                        UUID.randomUUID(), meetingId, "member-1", "PARTICIPANT", joinedAt, null)));
 
         Result<GetMeetingResult, MeetingError> result =
                 service.execute(new GetMeetingQuery(meetingId, TENANT, ACCOUNT));

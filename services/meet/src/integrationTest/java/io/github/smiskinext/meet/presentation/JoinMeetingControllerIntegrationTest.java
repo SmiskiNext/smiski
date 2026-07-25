@@ -171,14 +171,13 @@ class JoinMeetingControllerIntegrationTest {
         jdbcTemplate.update(
                 """
                 INSERT INTO participation_logs (
-                    tenant_id, id, meeting_id, account_id, display_name, role,
+                    tenant_id, id, meeting_id, account_id, role,
                     livekit_identity, joined_at, left_at, close_reason
-                ) VALUES (?, ?, ?, ?, ?, 'PARTICIPANT', ?, NOW(), NULL, NULL)
+                ) VALUES (?, ?, ?, ?, 'PARTICIPANT', ?, NOW(), NULL, NULL)
                 """,
                 TENANT_ID,
                 UUID.randomUUID(),
                 meetingId,
-                accountId,
                 accountId,
                 accountId + ":" + deviceId);
     }

@@ -70,13 +70,6 @@ public class ParticipationLogRepositoryAdapter implements ParticipationLogReposi
 
     /** TODO: Implement in a later slice. */
     @Override
-    public List<ParticipationLog> findActiveByMeetingIdAndDisplayName(
-            UUID meetingId, String displayName) {
-        throw new UnsupportedOperationException("Not implemented in create-instant-meeting slice");
-    }
-
-    /** TODO: Implement in a later slice. */
-    @Override
     public List<ParticipantSummary> findParticipantSummariesByMeetingId(UUID meetingId) {
         throw new UnsupportedOperationException("Not implemented in create-instant-meeting slice");
     }
@@ -125,7 +118,6 @@ public class ParticipationLogRepositoryAdapter implements ParticipationLogReposi
                 mostRecent.id(),
                 mostRecent.meetingId(),
                 mostRecent.accountId(),
-                mostRecent.displayName(),
                 mostRecent.role(),
                 earliestJoinedAt,
                 anyStillOpen ? null : latestLeftAt);

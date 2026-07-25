@@ -53,7 +53,7 @@ class GetMeetingControllerIntegrationTest {
         UUID meetingId = createScheduledMeeting();
         insertInvitee(meetingId, "alice", "alice@example.com", "Alice", "ACCEPTED");
         Instant joinedAt = Instant.parse("2025-02-01T14:01:00Z");
-        insertParticipationSession(meetingId, "alice", "Alice", "PARTICIPANT", joinedAt, null);
+        insertParticipationSession(meetingId, "alice", "PARTICIPANT", joinedAt, null);
 
         mockMvc.perform(get("/api/1/meetings/{id}", meetingId)
                         .header("X-Account-Id", MEMBER_ID)
@@ -147,24 +147,18 @@ class GetMeetingControllerIntegrationTest {
     }
 
     private void insertParticipationSession(
-            UUID meetingId,
-            String accountId,
-            String displayName,
-            String role,
-            Instant joinedAt,
-            Instant leftAt) {
+            UUID meetingId, String accountId, String role, Instant joinedAt, Instant leftAt) {
         jdbcTemplate.update(
                 """
                 INSERT INTO participation_logs (
-                    tenant_id, id, meeting_id, account_id, display_name, role,
+                    tenant_id, id, meeting_id, account_id, role,
                     livekit_identity, joined_at, left_at, close_reason
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 TENANT_ID,
                 UUID.randomUUID(),
                 meetingId,
                 accountId,
-                displayName,
                 role,
                 accountId + "-identity",
                 java.sql.Timestamp.from(joinedAt),

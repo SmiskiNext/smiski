@@ -53,7 +53,6 @@ public record GetMeetingResult(
 
     public record Participant(
             String accountId,
-            @Nullable String displayName,
             String role,
             Instant joinedAt,
             @Nullable Instant leftAt) {}

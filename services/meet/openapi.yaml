@@ -1848,11 +1848,6 @@ components:
       properties:
         accountId:
           type: string
-        displayName:
-          type:
-          - string
-          - "null"
-          description: Cached display name; null when unknown
         role:
           type: string
         joinedAt:
