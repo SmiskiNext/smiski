@@ -2,8 +2,8 @@
 
 import { client } from './client.gen.js';
 import type { Client, Options as Options2, TDataShape } from './client/index.js';
-import type { BatchDeleteData, BatchDeleteErrors, BatchDeleteResponses, CreateInstantData, CreateInstantErrors, CreateInstantResponses, DeleteData, DeleteErrors, DeleteResponses, ListData, ListErrors, ListResponses, RegisterData, RegisterErrors, RegisterResponses, ScheduleData, ScheduleErrors, ScheduleResponses, UninstallData, UninstallErrors, UninstallResponses, UpdateData, UpdateErrors, UpdateInviteesData, UpdateInviteesErrors, UpdateInviteesResponses, UpdateResponses } from './types.gen.js';
-import { zBatchDeleteData, zBatchDeleteResponse, zCreateInstantData, zCreateInstantResponse, zDeleteData, zDeleteResponse, zListData, zListResponse, zRegisterData, zRegisterResponse, zScheduleData, zScheduleResponse, zUninstallData, zUninstallResponse, zUpdateData, zUpdateInviteesData, zUpdateInviteesResponse, zUpdateResponse } from './zod.gen.js';
+import type { BatchDeleteData, BatchDeleteErrors, BatchDeleteResponses, CreateInstantData, CreateInstantErrors, CreateInstantResponses, DeleteData, DeleteErrors, DeleteResponses, GetData, GetErrors, GetResponses, JoinData, JoinErrors, JoinResponses, ListData, ListErrors, ListResponses, RegisterData, RegisterErrors, RegisterResponses, ScheduleData, ScheduleErrors, ScheduleResponses, UninstallData, UninstallErrors, UninstallResponses, UpdateData, UpdateErrors, UpdateInviteesData, UpdateInviteesErrors, UpdateInviteesResponses, UpdateResponses } from './types.gen.js';
+import { zBatchDeleteData, zBatchDeleteResponse, zCreateInstantData, zCreateInstantResponse, zDeleteData, zDeleteResponse, zGetData, zGetResponse, zJoinData, zJoinResponse, zListData, zListResponse, zRegisterData, zRegisterResponse, zScheduleData, zScheduleResponse, zUninstallData, zUninstallResponse, zUpdateData, zUpdateInviteesData, zUpdateInviteesResponse, zUpdateResponse } from './zod.gen.js';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean> = Options2<TData, ThrowOnError> & {
     /**
@@ -59,6 +59,18 @@ export const register = <ThrowOnError extends boolean = false>(options: Options<
 export const delete_ = <ThrowOnError extends boolean = false>(options: Options<DeleteData, ThrowOnError>) => (options.client ?? client).delete<DeleteResponses, DeleteErrors, ThrowOnError>({
     requestValidator: async (data) => await zDeleteData.parseAsync(data),
     responseValidator: async (data) => await zDeleteResponse.parseAsync(data),
+    url: '/api/{version}/meetings/{id}',
+    ...options
+});
+
+/**
+ * Get a meeting with its people
+ *
+ * Returns a single meeting in the caller's tenant together with its active invitee list and its distinct joined-participant list. Any authenticated tenant member may read the meeting; access is not restricted to the host.
+ */
+export const get = <ThrowOnError extends boolean = false>(options: Options<GetData, ThrowOnError>) => (options.client ?? client).get<GetResponses, GetErrors, ThrowOnError>({
+    requestValidator: async (data) => await zGetData.parseAsync(data),
+    responseValidator: async (data) => await zGetResponse.parseAsync(data),
     url: '/api/{version}/meetings/{id}',
     ...options
 });
@@ -152,6 +164,22 @@ export const batchDelete = <ThrowOnError extends boolean = false>(options: Optio
     requestValidator: async (data) => await zBatchDeleteData.parseAsync(data),
     responseValidator: async (data) => await zBatchDeleteResponse.parseAsync(data),
     url: '/api/{version}/meetings:batchDelete',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Join a meeting
+ *
+ * Joins a meeting as an authenticated account. Under ALLOW_ALL admission the caller is admitted immediately with status APPROVED, a LiveKit token, and the room name. Under MANUAL_APPROVAL a pending request is created with status PENDING and a requestId; both outcomes return 200.
+ */
+export const join = <ThrowOnError extends boolean = false>(options: Options<JoinData, ThrowOnError>) => (options.client ?? client).post<JoinResponses, JoinErrors, ThrowOnError>({
+    requestValidator: async (data) => await zJoinData.parseAsync(data),
+    responseValidator: async (data) => await zJoinResponse.parseAsync(data),
+    url: '/api/{version}/meetings/{id}:join',
     ...options,
     headers: {
         'Content-Type': 'application/json',
