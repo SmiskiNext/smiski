@@ -128,6 +128,7 @@ public class CreateInstantMeetingApplicationService implements CreateInstantMeet
                 command.host().displayName(),
                 ParticipantRole.HOST,
                 hostAttributes,
+                tenantId.value(),
                 settings);
 
         Result<String, MeetingError> tokenResult = liveKitPort.generateToken(tokenRequest);

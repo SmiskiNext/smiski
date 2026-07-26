@@ -8,9 +8,17 @@ import java.util.UUID;
 /**
  * Published when a participant leaves a LiveKit room (webhook: {@code participant_left}).
  * Consumed by chat-management to create a system chat message.
+ *
+ * <p>{@code identity} is the full {@code <accountId>:<deviceId>} LiveKit identity, allowing
+ * consumers to distinguish multiple devices of the same account.
  */
 public record ParticipantLeftEvent(
-        UUID eventId, String tenantId, UUID meetingId, String accountId, Instant occurredAt)
+        UUID eventId,
+        String tenantId,
+        UUID meetingId,
+        String accountId,
+        String identity,
+        Instant occurredAt)
         implements PublishableEvent {
 
     @Override

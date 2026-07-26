@@ -31,17 +31,19 @@ public class ParticipationLogRepositoryAdapter implements ParticipationLogReposi
         return log;
     }
 
-    /** TODO: Implement in a later slice for webhook handler. */
     @Override
     public Optional<ParticipationLog> findActiveBySid(LiveKitParticipantSid sid) {
-        throw new UnsupportedOperationException("Not implemented in create-instant-meeting slice");
+        return jpaRepository
+                .findByLivekitParticipantSidAndLeftAtIsNull(sid.value())
+                .map(ParticipationLogPersistenceMapper::toDomain);
     }
 
-    /** TODO: Implement in a later slice for webhook handler. */
     @Override
     public Optional<ParticipationLog> findActiveByMeetingIdAndIdentity(
             UUID meetingId, LiveKitIdentity identity) {
-        throw new UnsupportedOperationException("Not implemented in create-instant-meeting slice");
+        return jpaRepository
+                .findByMeetingIdAndLivekitIdentityAndLeftAtIsNull(meetingId, identity.value())
+                .map(ParticipationLogPersistenceMapper::toDomain);
     }
 
     @Override
@@ -49,10 +51,11 @@ public class ParticipationLogRepositoryAdapter implements ParticipationLogReposi
         return jpaRepository.countByMeetingIdAndLeftAtIsNull(meetingId);
     }
 
-    /** TODO: Implement in a later slice. */
     @Override
     public List<ParticipationLog> findActiveByMeetingId(UUID meetingId) {
-        throw new UnsupportedOperationException("Not implemented in create-instant-meeting slice");
+        return jpaRepository.findByMeetingIdAndLeftAtIsNull(meetingId).stream()
+                .map(ParticipationLogPersistenceMapper::toDomain)
+                .toList();
     }
 
     /** TODO: Implement in a later slice. */
