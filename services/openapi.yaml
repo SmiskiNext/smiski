@@ -228,6 +228,120 @@ paths:
           format: int32
         example: 1
   /api/{version}/meetings/{id}:
+    get:
+      tags:
+        - meeting-controller
+      summary: Get a meeting with its people
+      description: Returns a single meeting in the caller's tenant together with its active invitee list and its distinct joined-participant list. Any authenticated tenant member may read the meeting; access is not restricted to the host.
+      operationId: get
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Meeting detail with invitees and participants
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Meet_GetMeetingResponse'
+              examples:
+                detail:
+                  description: detail
+                  value:
+                    meeting:
+                      id: 0195e0c2-8f3a-7c21-b9d4-2f1a6e7c8d90
+                      hostId: account-123
+                      shortCode: abc-defg-hij
+                      type: SCHEDULED
+                      status: SCHEDULED
+                      title: Sprint planning
+                      description: Plan the next sprint
+                      issueLink:
+                        issueId: '10001'
+                        issueKey: PROJ-1
+                        projectKey: PROJ
+                      settings:
+                        admissionPolicy: MANUAL_APPROVAL
+                        maxParticipants: 50
+                        allowScreenShare: true
+                        chatEnabled: true
+                        allowMicrophone: true
+                        allowVideo: true
+                      startTime: '2025-02-01T14:00:00Z'
+                      endTime: '2025-02-01T15:00:00Z'
+                      zoneId: Asia/Ho_Chi_Minh
+                      organizerEmail: host@example.com
+                      organizerDisplayName: Host User
+                      calendarUid: meeting-0195e0c2@smiski.app
+                      calendarSequence: 1
+                      createdAt: '2025-01-15T10:30:00Z'
+                    invitees:
+                      - accountId: account-456
+                        email: alice@example.com
+                        displayName: Alice Nguyen
+                        status: ACCEPTED
+                        invitedAt: '2025-01-15T10:35:00Z'
+                        respondedAt: '2025-01-15T11:00:00Z'
+                    participants:
+                      - accountId: account-456
+                        displayName: Alice Nguyen
+                        role: PARTICIPANT
+                        joinedAt: '2025-02-01T14:01:00Z'
+                        leftAt: null
+        '400':
+          description: Missing account header
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Meet_ProblemDetail'
+              examples:
+                missingAccount:
+                  description: missingAccount
+                  value:
+                    type: about:blank
+                    title: Bad Request
+                    status: 400
+                    detail: X-Account-Id header is required
+                    code: VALIDATION_ERROR
+                    traceId: 6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a
+        '404':
+          description: Meeting not found, soft-deleted, or in another tenant
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Meet_ProblemDetail'
+              examples:
+                notFound:
+                  description: notFound
+                  value:
+                    type: about:blank
+                    title: Meeting not found
+                    status: 404
+                    detail: No meeting matches the given identifier.
+                    code: MEETING_NOT_FOUND
+                    traceId: 6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a
+        '405':
+          description: Method Not Allowed
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Meet_ProblemDetail'
+        '415':
+          description: Unsupported Media Type
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Meet_ProblemDetail'
+        '500':
+          description: Internal Server Error
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Meet_ProblemDetail'
     put:
       tags:
         - meeting-controller
@@ -1037,6 +1151,137 @@ paths:
                     status: 409
                     detail: The meeting is running and must be ended before deletion.
                     code: CANNOT_DELETE_RUNNING_MEETING
+                    traceId: 6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a
+        '415':
+          description: Unsupported Media Type
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Meet_ProblemDetail'
+        '500':
+          description: Internal Server Error
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Meet_ProblemDetail'
+    parameters:
+      - name: version
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int32
+        example: 1
+  /api/{version}/meetings/{id}:join:
+    post:
+      tags:
+        - meeting-controller
+      summary: Join a meeting
+      description: Joins a meeting as an authenticated account. Under ALLOW_ALL admission the caller is admitted immediately with status APPROVED, a LiveKit token, and the room name. Under MANUAL_APPROVAL a pending request is created with status PENDING and a requestId; both outcomes return 200.
+      operationId: join
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Meet_JoinMeetingRequest'
+        required: true
+      responses:
+        '200':
+          description: Join accepted (APPROVED) or pending host approval (PENDING)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Meet_JoinMeetingResponse'
+              examples:
+                approved:
+                  description: approved
+                  value:
+                    requestId: 0195e0c2-8f3a-7c21-b9d4-2f1a6e7c8d90
+                    status: APPROVED
+                    token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.example.token
+                    roomName: meeting-0195e0c2-8f3a-7c21-b9d4-2f1a6e7c8d90
+                pending:
+                  description: pending
+                  value:
+                    requestId: 0195e0c2-8f3a-7c21-b9d4-3a2b1c4d5e60
+                    status: PENDING
+                    token: null
+                    roomName: null
+        '400':
+          description: Validation error or missing account header
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Meet_ProblemDetail'
+              examples:
+                validationError:
+                  summary: Blank display name or device id
+                  description: validationError
+                  value:
+                    type: about:blank
+                    title: Bad Request
+                    status: 400
+                    detail: The request body failed validation
+                    code: VALIDATION_ERROR
+                    traceId: 6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a
+                    errors:
+                      - field: displayName
+                        code: REQUIRED
+                        message: must not be blank
+                missingAccount:
+                  summary: Missing X-Account-Id header
+                  description: missingAccount
+                  value:
+                    type: about:blank
+                    title: Bad Request
+                    status: 400
+                    detail: X-Account-Id header is required
+                    code: VALIDATION_ERROR
+                    traceId: 6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a
+        '404':
+          description: Meeting not found for the current tenant
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Meet_ProblemDetail'
+              examples:
+                notFound:
+                  description: notFound
+                  value:
+                    type: about:blank
+                    title: Meeting not found
+                    status: 404
+                    detail: No meeting matches the given identifier.
+                    code: MEETING_NOT_FOUND
+                    traceId: 6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a
+        '405':
+          description: Method Not Allowed
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Meet_ProblemDetail'
+        '409':
+          description: Meeting is at capacity
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Meet_ProblemDetail'
+              examples:
+                meetingFull:
+                  description: meetingFull
+                  value:
+                    type: about:blank
+                    title: Meeting is full
+                    status: 409
+                    detail: The meeting has reached its participant limit.
+                    code: MEETING_FULL
                     traceId: 6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a
         '415':
           description: Unsupported Media Type
@@ -1990,6 +2235,152 @@ components:
           format: date-time
         deletedBy:
           type: string
+    Meet_JoinMeetingRequest:
+      type: object
+      description: Request body for joining a meeting
+      properties:
+        displayName:
+          type: string
+          description: Display name shown to the host and in the room
+          example: Alice
+          maxLength: 100
+          minLength: 0
+        deviceId:
+          type: string
+          description: Stable identifier of the joining device
+          example: device-1
+          minLength: 1
+        avatarUrl:
+          type:
+            - string
+            - 'null'
+          description: Avatar URL of the joining participant
+      required:
+        - deviceId
+        - displayName
+    Meet_JoinMeetingResponse:
+      type: object
+      description: Response for a join attempt
+      properties:
+        requestId:
+          type: string
+          format: uuid
+          description: Identifier of the join request or participation session
+        status:
+          type: string
+          description: Outcome of the join
+          example: APPROVED
+        token:
+          type:
+            - string
+            - 'null'
+          description: LiveKit access token; present only when APPROVED
+        roomName:
+          type:
+            - string
+            - 'null'
+          description: LiveKit room name; present only when APPROVED
+    Meet_GetMeetingResponse:
+      type: object
+      description: A single meeting with its invitees and joined participants
+      properties:
+        meeting:
+          $ref: '#/components/schemas/Meet_MeetingDetailSnapshot'
+        invitees:
+          type: array
+          items:
+            $ref: '#/components/schemas/Meet_MeetingDetailInvitee'
+        participants:
+          type: array
+          items:
+            $ref: '#/components/schemas/Meet_MeetingDetailParticipant'
+    Meet_MeetingDetailInvitee:
+      type: object
+      description: Active invitee with RSVP status
+      properties:
+        accountId:
+          type: string
+        email:
+          type: string
+        displayName:
+          type: string
+        status:
+          type: string
+        invitedAt:
+          type: string
+          format: date-time
+        respondedAt:
+          type:
+            - string
+            - 'null'
+          format: date-time
+          description: Timestamp when the invitee responded; null if not yet responded
+    Meet_MeetingDetailParticipant:
+      type: object
+      description: Distinct joined participant
+      properties:
+        accountId:
+          type: string
+        role:
+          type: string
+        joinedAt:
+          type: string
+          format: date-time
+        leftAt:
+          type:
+            - string
+            - 'null'
+          format: date-time
+          description: Latest leave time; null while the participant is still present
+    Meet_MeetingDetailSnapshot:
+      type: object
+      description: Meeting detail snapshot
+      properties:
+        id:
+          type: string
+          format: uuid
+        hostId:
+          type: string
+        shortCode:
+          type: string
+        type:
+          type: string
+        status:
+          type: string
+        title:
+          type: string
+        description:
+          type: string
+        issueLink:
+          $ref: '#/components/schemas/Meet_IssueLink'
+        settings:
+          $ref: '#/components/schemas/Meet_Settings'
+        startTime:
+          type:
+            - string
+            - 'null'
+          format: date-time
+          description: Scheduled start time; null for instant meetings
+        endTime:
+          type:
+            - string
+            - 'null'
+          format: date-time
+          description: End time; null until scheduled or ended
+        zoneId:
+          type: string
+        organizerEmail:
+          type: string
+        organizerDisplayName:
+          type: string
+        calendarUid:
+          type: string
+        calendarSequence:
+          type: integer
+          format: int32
+        createdAt:
+          type: string
+          format: date-time
     Meet_DeleteMeetingResponse:
       type: object
       description: Snapshot of a soft-deleted meeting

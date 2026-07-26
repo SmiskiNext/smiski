@@ -176,8 +176,6 @@ CREATE TABLE participation_logs (
     id UUID NOT NULL DEFAULT uuidv7 (),
     meeting_id UUID NOT NULL,
     account_id VARCHAR(128) NOT NULL, -- Jira accountId (required — no guests)
-    display_name VARCHAR(255),
-    display_name_cached_at TIMESTAMPTZ,
     role VARCHAR(20) NOT NULL CHECK (role IN ('HOST', 'PARTICIPANT')),
     livekit_identity VARCHAR(255) NOT NULL,
     livekit_participant_sid VARCHAR(50),

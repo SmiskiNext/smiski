@@ -106,7 +106,10 @@ export function ParticipantVideoGrid({
 
     const cells: GridCell[] = [
         ...visibleOthers.map(
-            (participant): GridCell => ({ kind: 'participant', participant }),
+            (participant): GridCell => ({
+                kind: 'participant',
+                participant,
+            }),
         ),
         ...(overflowCount > 0
             ? [{ kind: 'overflow', count: overflowCount } as const]

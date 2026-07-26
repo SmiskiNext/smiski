@@ -6,7 +6,11 @@ import io.github.smiskinext.meet.domain.model.valueobject.LiveKitIdentity;
 import io.github.smiskinext.meet.domain.model.valueobject.LiveKitParticipantSid;
 import io.github.smiskinext.meet.domain.port.ParticipationLogRepository;
 import io.github.smiskinext.meet.domain.projection.ParticipantSummary;
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.stereotype.Repository;
@@ -40,10 +44,9 @@ public class ParticipationLogRepositoryAdapter implements ParticipationLogReposi
         throw new UnsupportedOperationException("Not implemented in create-instant-meeting slice");
     }
 
-    /** TODO: Implement in a later slice. */
     @Override
     public long countActiveByMeetingId(UUID meetingId) {
-        throw new UnsupportedOperationException("Not implemented in create-instant-meeting slice");
+        return jpaRepository.countByMeetingIdAndLeftAtIsNull(meetingId);
     }
 
     /** TODO: Implement in a later slice. */
@@ -67,13 +70,6 @@ public class ParticipationLogRepositoryAdapter implements ParticipationLogReposi
 
     /** TODO: Implement in a later slice. */
     @Override
-    public List<ParticipationLog> findActiveByMeetingIdAndDisplayName(
-            UUID meetingId, String displayName) {
-        throw new UnsupportedOperationException("Not implemented in create-instant-meeting slice");
-    }
-
-    /** TODO: Implement in a later slice. */
-    @Override
     public List<ParticipantSummary> findParticipantSummariesByMeetingId(UUID meetingId) {
         throw new UnsupportedOperationException("Not implemented in create-instant-meeting slice");
     }
@@ -84,9 +80,46 @@ public class ParticipationLogRepositoryAdapter implements ParticipationLogReposi
         throw new UnsupportedOperationException("Not implemented in create-instant-meeting slice");
     }
 
-    /** TODO: Implement in a later slice. */
     @Override
     public List<ParticipantSummary> findDistinctParticipantSummariesByMeetingId(UUID meetingId) {
-        throw new UnsupportedOperationException("Not implemented in create-instant-meeting slice");
+        Map<String, List<ParticipantSummary>> sessionsByAccount = new LinkedHashMap<>();
+        for (ParticipantSummary session :
+                jpaRepository.findParticipantProjectionsByMeetingId(meetingId)) {
+            sessionsByAccount
+                    .computeIfAbsent(session.accountId(), account -> new ArrayList<>())
+                    .add(session);
+        }
+        List<ParticipantSummary> participants = new ArrayList<>(sessionsByAccount.size());
+        for (List<ParticipantSummary> sessions : sessionsByAccount.values()) {
+            participants.add(collapse(sessions));
+        }
+        return participants;
+    }
+
+    private static ParticipantSummary collapse(List<ParticipantSummary> sessions) {
+        ParticipantSummary mostRecent = sessions.getFirst();
+        Instant earliestJoinedAt = mostRecent.joinedAt();
+        boolean anyStillOpen = false;
+        Instant latestLeftAt = null;
+        for (ParticipantSummary session : sessions) {
+            if (session.joinedAt().isBefore(earliestJoinedAt)) {
+                earliestJoinedAt = session.joinedAt();
+            }
+            if (session.joinedAt().isAfter(mostRecent.joinedAt())) {
+                mostRecent = session;
+            }
+            if (session.leftAt() == null) {
+                anyStillOpen = true;
+            } else if (latestLeftAt == null || session.leftAt().isAfter(latestLeftAt)) {
+                latestLeftAt = session.leftAt();
+            }
+        }
+        return new ParticipantSummary(
+                mostRecent.id(),
+                mostRecent.meetingId(),
+                mostRecent.accountId(),
+                mostRecent.role(),
+                earliestJoinedAt,
+                anyStillOpen ? null : latestLeftAt);
     }
 }

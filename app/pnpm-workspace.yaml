@@ -7,9 +7,9 @@
 # The root package.json is automatically treated as a workspace project by pnpm;
 # `static/*` picks up the frontend package below.
 packages:
-  - 'static/*'
+    - 'static/*'
 
 # Allow only these dependencies to run install/build scripts.
 # esbuild needs its postinstall to fetch the platform binary for `vite build`.
 onlyBuiltDependencies:
-  - esbuild
+    - esbuild

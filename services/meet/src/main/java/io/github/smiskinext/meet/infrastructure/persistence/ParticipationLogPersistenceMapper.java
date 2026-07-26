@@ -22,13 +22,11 @@ final class ParticipationLogPersistenceMapper {
                 log.getId().value(),
                 log.getMeetingId().value(),
                 log.getAccountId().value(),
-                log.getDisplayName(),
                 log.getRole().name(),
                 log.getLivekitIdentity().value(),
                 log.getLivekitParticipantSid().map(LiveKitParticipantSid::value).orElse(null),
                 log.getJoinedAt(),
                 log.getLeftAt().orElse(null),
-                log.getDisplayNameCachedAt().orElse(null),
                 log.getCloseReason().map(CloseReason::name).orElse(null));
     }
 
@@ -38,8 +36,6 @@ final class ParticipationLogPersistenceMapper {
                 ParticipationLogId.of(entity.getId()),
                 MeetingId.of(entity.getMeetingId()),
                 AccountId.of(entity.getAccountId()),
-                entity.getDisplayName(),
-                entity.getDisplayNameCachedAt(),
                 ParticipantRole.valueOf(entity.getRole()),
                 LiveKitIdentity.of(entity.getLivekitIdentity()),
                 entity.getLivekitParticipantSid() != null

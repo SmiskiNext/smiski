@@ -5,6 +5,7 @@ import io.github.smiskinext.meet.domain.model.MeetingStatus;
 import io.github.smiskinext.meet.domain.model.valueobject.AccountId;
 import io.github.smiskinext.meet.domain.model.valueobject.ParticipatedMeetingCursor;
 import io.github.smiskinext.meet.domain.model.valueobject.ShortCode;
+import io.github.smiskinext.meet.domain.projection.MeetingDetail;
 import io.github.smiskinext.meet.domain.projection.MeetingSearchCriteria;
 import io.github.smiskinext.meet.domain.projection.MeetingSummary;
 import io.github.smiskinext.meet.domain.projection.ParticipatedMeetingSummary;
@@ -26,6 +27,15 @@ public interface MeetingRepository {
     Meeting save(Meeting meeting);
 
     Optional<Meeting> findById(UUID id);
+
+    /**
+     * Fetches a read-only detail projection for a single meeting via constructor projection,
+     * avoiding full aggregate reconstitution.
+     *
+     * <p>Returns an empty result for both unknown and soft-deleted meetings, so callers cannot
+     * distinguish the two. Tenant isolation is enforced by the entity's {@code @TenantId} filter.
+     */
+    Optional<MeetingDetail> findDetailById(UUID id);
 
     /**
      * Finds a meeting by ID with a pessimistic write lock (SELECT FOR UPDATE).

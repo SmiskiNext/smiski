@@ -1,13 +1,15 @@
 # Smiski — Kiến Trúc Hệ Thống
 
-> Module họp trực tuyến được nhúng trong Jira thông qua Forge, vận hành bởi LiveKit.
+> Module họp trực tuyến được nhúng trong Jira thông qua Forge, vận hành bởi
+> LiveKit.
 >
-> **Trạng thái:** Bản nháp · **Đối tượng đọc:** Kỹ sư, người review · **Phạm vi:**
-> Các backend service (`tenant`, `meet`, `record`, `notification`) và hạ tầng hỗ trợ.
+> **Trạng thái:** Bản nháp · **Đối tượng đọc:** Kỹ sư, người review · **Phạm
+> vi:** Các backend service (`tenant`, `meet`, `record`, `notification`) và hạ
+> tầng hỗ trợ.
 >
-> Sơ đồ được viết bằng [D2](https://d2lang.com). Mỗi khối code `d2` là một
-> sơ đồ độc lập — hãy trích xuất nó trước khi render (D2 không parse Markdown).
-> Xem [Render sơ đồ](#render-sơ-đồ).
+> Sơ đồ được viết bằng [D2](https://d2lang.com). Mỗi khối code `d2` là một sơ đồ
+> độc lập — hãy trích xuất nó trước khi render (D2 không parse Markdown). Xem
+> [Render sơ đồ](#render-sơ-đồ).
 
 ## Mục lục
 
@@ -32,11 +34,11 @@
 ## 1. Tổng quan
 
 Smiski được cấu thành từ **bốn microservice** xây dựng theo phân lớp hexagonal
-(domain → application → infrastructure → presentation). Mỗi service sở hữu
-cơ sở dữ liệu riêng (database-per-service) và giao tiếp bất đồng bộ qua
-**Kafka theo định dạng CloudEvents**. Danh tính được lấy trực tiếp từ Jira —
-không có hệ thống đăng nhập riêng — và toàn bộ dữ liệu được phân vùng theo
-`tenant_id`, chính là `cloudId` của Jira.
+(domain → application → infrastructure → presentation). Mỗi service sở hữu cơ sở
+dữ liệu riêng (database-per-service) và giao tiếp bất đồng bộ qua **Kafka theo
+định dạng CloudEvents**. Danh tính được lấy trực tiếp từ Jira — không có hệ
+thống đăng nhập riêng — và toàn bộ dữ liệu được phân vùng theo `tenant_id`,
+chính là `cloudId` của Jira.
 
 | Service        | Trách nhiệm                                                      | Kho lưu trữ                                             |
 | -------------- | ---------------------------------------------------------------- | ------------------------------------------------------- |
@@ -49,20 +51,20 @@ không có hệ thống đăng nhập riêng — và toàn bộ dữ liệu đư
 
 ## 2. Nguyên tắc kiến trúc
 
-- **Control plane không trạng thái (stateless).** Cả bốn service đều không
-  giữ trạng thái cục bộ; trạng thái được lưu trong Postgres, Valkey và Kafka,
-  nhờ đó service có thể mở rộng theo chiều ngang.
-- **Media plane không đi qua backend.** LiveKit (một SFU) chuyển tiếp media
-  trực tiếp; backend chỉ cấp access token và xử lý webhook. Tải media không
-  bao giờ chạm tới control plane.
+- **Control plane không trạng thái (stateless).** Cả bốn service đều không giữ
+  trạng thái cục bộ; trạng thái được lưu trong Postgres, Valkey và Kafka, nhờ đó
+  service có thể mở rộng theo chiều ngang.
+- **Media plane không đi qua backend.** LiveKit (một SFU) chuyển tiếp media trực
+  tiếp; backend chỉ cấp access token và xử lý webhook. Tải media không bao giờ
+  chạm tới control plane.
 - **CQRS (cấp độ 2).** Lệnh ghi (command) ghi vào cơ sở dữ liệu primary; truy
   vấn (query) đọc từ replica và từ các read model trong Valkey.
-- **Transactional outbox.** Sự kiện domain được ghi trong cùng transaction
-  với aggregate, sau đó được publish lên Kafka bởi một poller dùng
+- **Transactional outbox.** Sự kiện domain được ghi trong cùng transaction với
+  aggregate, sau đó được publish lên Kafka bởi một poller dùng
   `FOR UPDATE SKIP LOCKED`.
 - **Event-carried state transfer.** Sự kiện mang theo dữ liệu mà consumer cần
-  (ví dụ: email và tên hiển thị của người được mời), loại bỏ việc tra cứu
-  đồng bộ giữa các service.
+  (ví dụ: email và tên hiển thị của người được mời), loại bỏ việc tra cứu đồng
+  bộ giữa các service.
 
 ---
 
@@ -168,12 +170,12 @@ record -> notification: "record.recording.completed"
 **Đặc điểm tải I/O:**
 
 - `meet` **nặng về đọc** (liệt kê cuộc họp theo issue, lịch sử) với **các đợt
-  ghi bùng nổ** (webhook tham gia/rời khỏi). Đây là service hưởng lợi nhiều
-  nhất từ read replica.
-- `record` **không nặng tải trên Postgres** (3–4 lượt ghi mỗi lần ghi hình,
-  đọc không thường xuyên). Điểm nóng của nó là **egress transcoding (CPU) và
-  upload lên RustFS (network)** chứ không phải database, vì vậy read replica
-  bị hoãn lại để ưu tiên tách riêng node egress.
+  ghi bùng nổ** (webhook tham gia/rời khỏi). Đây là service hưởng lợi nhiều nhất
+  từ read replica.
+- `record` **không nặng tải trên Postgres** (3–4 lượt ghi mỗi lần ghi hình, đọc
+  không thường xuyên). Điểm nóng của nó là **egress transcoding (CPU) và upload
+  lên RustFS (network)** chứ không phải database, vì vậy read replica bị hoãn
+  lại để ưu tiên tách riêng node egress.
 - `tenant` dùng một bảng nhỏ và không cần replica.
 - `notification` không có database.
 
@@ -231,11 +233,11 @@ kafka.t7 -> consumers.notif
 
 ## 6. Yêu cầu tham gia và trung tâm SSE thời gian thực
 
-`notification` là trung tâm SSE; `meet` chỉ publish sự kiện. Token LiveKit
-được tạo trong `meet` và được truyền đi bên trong payload của sự kiện
-(event-carried). Vì `notification` chạy nhiều instance và một SSE emitter
-chỉ gắn với một instance duy nhất, việc phân phối đòi hỏi **fan-out qua
-Valkey Pub/Sub**.
+`notification` là trung tâm SSE; `meet` chỉ publish sự kiện. Token LiveKit được
+tạo trong `meet` và được truyền đi bên trong payload của sự kiện
+(event-carried). Vì `notification` chạy nhiều instance và một SSE emitter chỉ
+gắn với một instance duy nhất, việc phân phối đòi hỏi **fan-out qua Valkey
+Pub/Sub**.
 
 ```d2
 shape: sequence_diagram
@@ -266,16 +268,16 @@ req -> req: "kết nối tới LiveKit bằng token"
 
 **Race điều kiện đăng ký muộn (late-subscribe).** Nếu host duyệt trước khi
 requester mở xong luồng SSE, kết quả được lưu dưới `join_req_result:{id}`
-(Valkey, TTL bằng thời gian timeout của SSE) và được phát lại khi client
-đăng ký (subscribe).
+(Valkey, TTL bằng thời gian timeout của SSE) và được phát lại khi client đăng ký
+(subscribe).
 
 ---
 
 ## 7. Email mời họp (event-carried)
 
 `notification` không thực hiện tra cứu identity qua gRPC — phụ thuộc cũ vào
-`user-management` đã được loại bỏ. Email và tên hiển thị của người được mời
-được nhúng sẵn vào payload sự kiện khi `meet` publish nó.
+`user-management` đã được loại bỏ. Email và tên hiển thị của người được mời được
+nhúng sẵn vào payload sự kiện khi `meet` publish nó.
 
 ```d2
 direction: down
@@ -355,9 +357,9 @@ primary -> replica: "streaming replication (async WAL)"
 ## 9. Phân vùng đa tenant
 
 Mọi bảng nghiệp vụ đều `PARTITION BY HASH (tenant_id)` với 16 phân vùng.
-`tenant_id` (chính là `cloudId` của Jira) là cột dẫn đầu (leading column)
-của mọi primary key, foreign key và unique constraint, cho phép partition
-pruning và giữ các phép join cục bộ trong một phân vùng duy nhất.
+`tenant_id` (chính là `cloudId` của Jira) là cột dẫn đầu (leading column) của
+mọi primary key, foreign key và unique constraint, cho phép partition pruning và
+giữ các phép join cục bộ trong một phân vùng duy nhất.
 
 ```d2
 direction: down
@@ -381,10 +383,10 @@ tenant_id -> meetings: "hash -> chọn phân vùng"
 meetings -> related: "FK (tenant_id, meeting_id)\njoin cục bộ trong một phân vùng"
 ```
 
-Bảng `tenants` (một projection) **không** được phân vùng — nó chỉ chứa một
-dòng nhỏ cho mỗi site và được đồng bộ từ service `tenant` qua Kafka. Các
-bảng nghiệp vụ tham chiếu tới nó để đảm bảo tenant tồn tại trước khi thực
-hiện bất kỳ thao tác ghi nào.
+Bảng `tenants` (một projection) **không** được phân vùng — nó chỉ chứa một dòng
+nhỏ cho mỗi site và được đồng bộ từ service `tenant` qua Kafka. Các bảng nghiệp
+vụ tham chiếu tới nó để đảm bảo tenant tồn tại trước khi thực hiện bất kỳ thao
+tác ghi nào.
 
 ---
 
@@ -477,8 +479,8 @@ notif -> valkey.idemc
 
 Đây là các khoảng cách giữa thiết kế này và codebase hiện tại.
 
-- **D1** — Chuẩn hóa tên topic theo `<service>.<aggregate>.<action>`;
-  consumer của notification vẫn đang dùng `meeting-management.*`.
+- **D1** — Chuẩn hóa tên topic theo `<service>.<aggregate>.<action>`; consumer
+  của notification vẫn đang dùng `meeting-management.*`.
 - **D2** — Loại bỏ phụ thuộc gRPC `user-management` khỏi notification
   (`UserLookupPort`, `UserServiceGrpcLookupAdapter`, `GrpcClientConfig`).
 - **D3** — Xây dựng tầng application và presentation cùng outbox poller cho

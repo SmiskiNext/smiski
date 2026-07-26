@@ -537,6 +537,100 @@ export const zMeetBatchDeleteMeetingsResponse = z.object({
 });
 
 /**
+ * Request body for joining a meeting
+ */
+export const zMeetJoinMeetingRequest = z.object({
+    displayName: z.string().min(0).max(100),
+    deviceId: z.string().min(1),
+    avatarUrl: z.optional(z.union([
+        z.string(),
+        z.null()
+    ]))
+});
+
+/**
+ * Response for a join attempt
+ */
+export const zMeetJoinMeetingResponse = z.object({
+    requestId: z.optional(z.uuid()),
+    status: z.optional(z.string()),
+    token: z.optional(z.union([
+        z.string(),
+        z.null()
+    ])),
+    roomName: z.optional(z.union([
+        z.string(),
+        z.null()
+    ]))
+});
+
+/**
+ * Active invitee with RSVP status
+ */
+export const zMeetMeetingDetailInvitee = z.object({
+    accountId: z.optional(z.string()),
+    email: z.optional(z.string()),
+    displayName: z.optional(z.string()),
+    status: z.optional(z.string()),
+    invitedAt: z.optional(z.iso.datetime()),
+    respondedAt: z.optional(z.union([
+        z.iso.datetime(),
+        z.null()
+    ]))
+});
+
+/**
+ * Distinct joined participant
+ */
+export const zMeetMeetingDetailParticipant = z.object({
+    accountId: z.optional(z.string()),
+    role: z.optional(z.string()),
+    joinedAt: z.optional(z.iso.datetime()),
+    leftAt: z.optional(z.union([
+        z.iso.datetime(),
+        z.null()
+    ]))
+});
+
+/**
+ * Meeting detail snapshot
+ */
+export const zMeetMeetingDetailSnapshot = z.object({
+    id: z.optional(z.uuid()),
+    hostId: z.optional(z.string()),
+    shortCode: z.optional(z.string()),
+    type: z.optional(z.string()),
+    status: z.optional(z.string()),
+    title: z.optional(z.string()),
+    description: z.optional(z.string()),
+    issueLink: z.optional(zMeetIssueLink),
+    settings: z.optional(zMeetSettings),
+    startTime: z.optional(z.union([
+        z.iso.datetime(),
+        z.null()
+    ])),
+    endTime: z.optional(z.union([
+        z.iso.datetime(),
+        z.null()
+    ])),
+    zoneId: z.optional(z.string()),
+    organizerEmail: z.optional(z.string()),
+    organizerDisplayName: z.optional(z.string()),
+    calendarUid: z.optional(z.string()),
+    calendarSequence: z.optional(z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' })),
+    createdAt: z.optional(z.iso.datetime())
+});
+
+/**
+ * A single meeting with its invitees and joined participants
+ */
+export const zMeetGetMeetingResponse = z.object({
+    meeting: z.optional(zMeetMeetingDetailSnapshot),
+    invitees: z.optional(z.array(zMeetMeetingDetailInvitee)),
+    participants: z.optional(z.array(zMeetMeetingDetailParticipant))
+});
+
+/**
  * Snapshot of a soft-deleted meeting
  */
 export const zMeetDeleteMeetingResponse = z.object({
@@ -610,6 +704,20 @@ export const zDeleteData = z.object({
  * Meeting deleted; returns the deleted meeting snapshot
  */
 export const zDeleteResponse = zMeetDeleteMeetingResponse;
+
+export const zGetData = z.object({
+    body: z.optional(z.never()),
+    path: z.object({
+        version: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }),
+        id: z.uuid()
+    }),
+    query: z.optional(z.never())
+});
+
+/**
+ * Meeting detail with invitees and participants
+ */
+export const zGetResponse = zMeetGetMeetingResponse;
 
 export const zUpdateData = z.object({
     body: zMeetUpdateMeetingRequest,
@@ -690,3 +798,17 @@ export const zBatchDeleteData = z.object({
  * All listed meetings deleted; returns the deleted meeting snapshots
  */
 export const zBatchDeleteResponse = zMeetBatchDeleteMeetingsResponse;
+
+export const zJoinData = z.object({
+    body: zMeetJoinMeetingRequest,
+    path: z.object({
+        version: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }),
+        id: z.uuid()
+    }),
+    query: z.optional(z.never())
+});
+
+/**
+ * Join accepted (APPROVED) or pending host approval (PENDING)
+ */
+export const zJoinResponse = zMeetJoinMeetingResponse;

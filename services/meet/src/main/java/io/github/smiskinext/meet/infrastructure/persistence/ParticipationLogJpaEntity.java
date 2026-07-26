@@ -27,12 +27,6 @@ public class ParticipationLogJpaEntity {
     @Column(name = "account_id", nullable = false, length = 128)
     private String accountId;
 
-    @Column(name = "display_name", length = 255)
-    private @Nullable String displayName;
-
-    @Column(name = "display_name_cached_at")
-    private @Nullable Instant displayNameCachedAt;
-
     @Column(nullable = false, length = 20)
     private String role;
 
@@ -57,24 +51,20 @@ public class ParticipationLogJpaEntity {
             UUID id,
             UUID meetingId,
             String accountId,
-            @Nullable String displayName,
             String role,
             String livekitIdentity,
             @Nullable String livekitParticipantSid,
             Instant joinedAt,
             @Nullable Instant leftAt,
-            @Nullable Instant displayNameCachedAt,
             @Nullable String closeReason) {
         this.id = id;
         this.meetingId = meetingId;
         this.accountId = accountId;
-        this.displayName = displayName;
         this.role = role;
         this.livekitIdentity = livekitIdentity;
         this.livekitParticipantSid = livekitParticipantSid;
         this.joinedAt = joinedAt;
         this.leftAt = leftAt;
-        this.displayNameCachedAt = displayNameCachedAt;
         this.closeReason = closeReason;
     }
 
@@ -92,10 +82,6 @@ public class ParticipationLogJpaEntity {
 
     public String getAccountId() {
         return accountId;
-    }
-
-    public @Nullable String getDisplayName() {
-        return displayName;
     }
 
     public String getRole() {
@@ -116,10 +102,6 @@ public class ParticipationLogJpaEntity {
 
     public @Nullable Instant getLeftAt() {
         return leftAt;
-    }
-
-    public @Nullable Instant getDisplayNameCachedAt() {
-        return displayNameCachedAt;
     }
 
     public void setLeftAt(Instant leftAt) {

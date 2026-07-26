@@ -8,6 +8,7 @@ import io.github.smiskinext.meet.domain.model.valueobject.ParticipatedMeetingCur
 import io.github.smiskinext.meet.domain.model.valueobject.ShortCode;
 import io.github.smiskinext.meet.domain.model.valueobject.ShortCodeCollisionException;
 import io.github.smiskinext.meet.domain.port.MeetingRepository;
+import io.github.smiskinext.meet.domain.projection.MeetingDetail;
 import io.github.smiskinext.meet.domain.projection.MeetingSearchCriteria;
 import io.github.smiskinext.meet.domain.projection.MeetingSortField;
 import io.github.smiskinext.meet.domain.projection.MeetingSummary;
@@ -70,6 +71,34 @@ public class MeetingRepositoryAdapter implements MeetingRepository {
     @Override
     public Optional<Meeting> findById(UUID id) {
         return jpaRepository.findById(id).map(MeetingPersistenceMapper::toDomain);
+    }
+
+    @Override
+    public Optional<MeetingDetail> findDetailById(UUID id) {
+        return jpaRepository.findDetailById(id).map(MeetingRepositoryAdapter::toDetail);
+    }
+
+    private static MeetingDetail toDetail(MeetingDetailProjection projection) {
+        return new MeetingDetail(
+                projection.id(),
+                projection.hostId(),
+                projection.shortCode(),
+                MeetingType.valueOf(projection.type()),
+                MeetingStatus.valueOf(projection.status()),
+                projection.title(),
+                projection.description(),
+                projection.issueId(),
+                projection.issueKey(),
+                projection.projectKey(),
+                projection.settings(),
+                projection.startTime(),
+                projection.endTime(),
+                projection.zoneId(),
+                projection.organizerEmail(),
+                projection.organizerDisplayName(),
+                projection.calendarUid(),
+                projection.calendarSequence(),
+                projection.createdAt());
     }
 
     @Override

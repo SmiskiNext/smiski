@@ -64,12 +64,6 @@ public interface ParticipationLogRepository {
      */
     List<ParticipationLog> findActiveByMeetingIdAndAccountId(UUID meetingId, AccountId accountId);
 
-    /**
-     * Returns all active sessions matching a display name within a specific meeting.
-     * Used by the host kick flow to remove all sessions matching a display name.
-     */
-    List<ParticipationLog> findActiveByMeetingIdAndDisplayName(UUID meetingId, String displayName);
-
     /** Returns read-only participant summaries for a meeting ordered by newest join first. */
     List<ParticipantSummary> findParticipantSummariesByMeetingId(UUID meetingId);
 

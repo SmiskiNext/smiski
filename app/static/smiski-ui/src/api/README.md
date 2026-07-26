@@ -4,8 +4,8 @@ This folder is the boundary between the React UI and the future Smiski backend.
 The UI should keep importing hooks from `src/hooks`; backend details should stay
 inside this folder.
 
-For the Vietnamese backend wiring checklist based on the current Spring services,
-see [`BACKEND_INTEGRATION.vi.md`](./BACKEND_INTEGRATION.vi.md).
+For the Vietnamese backend wiring checklist based on the current Spring
+services, see [`BACKEND_INTEGRATION.vi.md`](./BACKEND_INTEGRATION.vi.md).
 
 ## Goal
 
@@ -82,8 +82,8 @@ Default in Vite development when `VITE_SMISKI_API_BASE_URL` is present.
 
 ```bash
 VITE_SMISKI_DATA_SOURCE=backend \
-VITE_SMISKI_API_BASE_URL=http://localhost:30000 \
-pnpm run dev
+    VITE_SMISKI_API_BASE_URL=http://localhost:30000 \
+    pnpm run dev
 ```
 
 The browser calls the backend directly with `fetch`. This is useful for local
@@ -169,8 +169,8 @@ Backend adapter in local Vite:
 
 ```bash
 VITE_SMISKI_DATA_SOURCE=backend \
-VITE_SMISKI_API_BASE_URL=http://localhost:30000 \
-pnpm run dev
+    VITE_SMISKI_API_BASE_URL=http://localhost:30000 \
+    pnpm run dev
 ```
 
 Static checks:

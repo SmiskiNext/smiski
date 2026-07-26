@@ -635,6 +635,112 @@ export type MeetDeletedMeetingSnapshot = {
 };
 
 /**
+ * Request body for joining a meeting
+ */
+export type MeetJoinMeetingRequest = {
+    /**
+     * Display name shown to the host and in the room
+     */
+    displayName: string;
+    /**
+     * Stable identifier of the joining device
+     */
+    deviceId: string;
+    /**
+     * Avatar URL of the joining participant
+     */
+    avatarUrl?: string | null;
+};
+
+/**
+ * Response for a join attempt
+ */
+export type MeetJoinMeetingResponse = {
+    /**
+     * Identifier of the join request or participation session
+     */
+    requestId?: string;
+    /**
+     * Outcome of the join
+     */
+    status?: string;
+    /**
+     * LiveKit access token; present only when APPROVED
+     */
+    token?: string | null;
+    /**
+     * LiveKit room name; present only when APPROVED
+     */
+    roomName?: string | null;
+};
+
+/**
+ * A single meeting with its invitees and joined participants
+ */
+export type MeetGetMeetingResponse = {
+    meeting?: MeetMeetingDetailSnapshot;
+    invitees?: Array<MeetMeetingDetailInvitee>;
+    participants?: Array<MeetMeetingDetailParticipant>;
+};
+
+/**
+ * Active invitee with RSVP status
+ */
+export type MeetMeetingDetailInvitee = {
+    accountId?: string;
+    email?: string;
+    displayName?: string;
+    status?: string;
+    invitedAt?: string;
+    /**
+     * Timestamp when the invitee responded; null if not yet responded
+     */
+    respondedAt?: string | null;
+};
+
+/**
+ * Distinct joined participant
+ */
+export type MeetMeetingDetailParticipant = {
+    accountId?: string;
+    role?: string;
+    joinedAt?: string;
+    /**
+     * Latest leave time; null while the participant is still present
+     */
+    leftAt?: string | null;
+};
+
+/**
+ * Meeting detail snapshot
+ */
+export type MeetMeetingDetailSnapshot = {
+    id?: string;
+    hostId?: string;
+    shortCode?: string;
+    type?: string;
+    status?: string;
+    title?: string;
+    description?: string;
+    issueLink?: MeetIssueLink;
+    settings?: MeetSettings;
+    /**
+     * Scheduled start time; null for instant meetings
+     */
+    startTime?: string | null;
+    /**
+     * End time; null until scheduled or ended
+     */
+    endTime?: string | null;
+    zoneId?: string;
+    organizerEmail?: string;
+    organizerDisplayName?: string;
+    calendarUid?: string;
+    calendarSequence?: number;
+    createdAt?: string;
+};
+
+/**
  * Snapshot of a soft-deleted meeting
  */
 export type MeetDeleteMeetingResponse = {
@@ -830,6 +936,50 @@ export type DeleteResponses = {
 };
 
 export type DeleteResponse = DeleteResponses[keyof DeleteResponses];
+
+export type GetData = {
+    body?: never;
+    path: {
+        version: number;
+        id: string;
+    };
+    query?: never;
+    url: '/api/{version}/meetings/{id}';
+};
+
+export type GetErrors = {
+    /**
+     * Missing account header
+     */
+    400: MeetProblemDetail;
+    /**
+     * Meeting not found, soft-deleted, or in another tenant
+     */
+    404: MeetProblemDetail;
+    /**
+     * Method Not Allowed
+     */
+    405: MeetProblemDetail;
+    /**
+     * Unsupported Media Type
+     */
+    415: MeetProblemDetail;
+    /**
+     * Internal Server Error
+     */
+    500: MeetProblemDetail;
+};
+
+export type GetError = GetErrors[keyof GetErrors];
+
+export type GetResponses = {
+    /**
+     * Meeting detail with invitees and participants
+     */
+    200: MeetGetMeetingResponse;
+};
+
+export type GetResponse = GetResponses[keyof GetResponses];
 
 export type UpdateData = {
     body: MeetUpdateMeetingRequest;
@@ -1094,3 +1244,51 @@ export type BatchDeleteResponses = {
 };
 
 export type BatchDeleteResponse = BatchDeleteResponses[keyof BatchDeleteResponses];
+
+export type JoinData = {
+    body: MeetJoinMeetingRequest;
+    path: {
+        version: number;
+        id: string;
+    };
+    query?: never;
+    url: '/api/{version}/meetings/{id}:join';
+};
+
+export type JoinErrors = {
+    /**
+     * Validation error or missing account header
+     */
+    400: MeetProblemDetail;
+    /**
+     * Meeting not found for the current tenant
+     */
+    404: MeetProblemDetail;
+    /**
+     * Method Not Allowed
+     */
+    405: MeetProblemDetail;
+    /**
+     * Meeting is at capacity
+     */
+    409: MeetProblemDetail;
+    /**
+     * Unsupported Media Type
+     */
+    415: MeetProblemDetail;
+    /**
+     * Internal Server Error
+     */
+    500: MeetProblemDetail;
+};
+
+export type JoinError = JoinErrors[keyof JoinErrors];
+
+export type JoinResponses = {
+    /**
+     * Join accepted (APPROVED) or pending host approval (PENDING)
+     */
+    200: MeetJoinMeetingResponse;
+};
+
+export type JoinResponse = JoinResponses[keyof JoinResponses];
