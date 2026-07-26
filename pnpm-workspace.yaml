@@ -17,6 +17,7 @@ allowBuilds:
     postman-code-generators: true
     protobufjs: false
     sharp: false
+    workerd: true
 minimumReleaseAgeExclude:
     - '@typescript/typescript-aix-ppc64@7.0.2'
     - '@typescript/typescript-darwin-arm64@7.0.2'
