@@ -271,7 +271,6 @@ public class MeetingController {
                           "participants": [
                             {
                               "accountId": "account-456",
-                              "displayName": "Alice Nguyen",
                               "role": "PARTICIPANT",
                               "joinedAt": "2025-02-01T14:01:00Z",
                               "leftAt": null
