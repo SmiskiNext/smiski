@@ -2,15 +2,19 @@ packages:
     - scripts
     - sdks/typescript
     - app/static/smiski-ui
+    - docs
 allowBuilds:
     '@firebase/util': false
     '@forge/cli': false
     '@parcel/watcher': false
     '@swc/core': false
     cloudflared: false
+    core-js: true
+    core-js-pure: true
     esbuild: true
     iframe-resizer: false
     keytar: false
+    postman-code-generators: true
     protobufjs: false
     sharp: false
 minimumReleaseAgeExclude:
