@@ -747,58 +747,6 @@ export type MeetDeleteMeetingResponse = {
     meeting?: MeetDeletedMeetingSnapshot;
 };
 
-/**
- * RFC 9457 Problem Details response body
- */
-export type RecordProblemDetail = {
-    /**
-     * URI reference identifying the problem type
-     */
-    type?: string;
-    /**
-     * Short human-readable summary of the problem
-     */
-    title?: string;
-    /**
-     * HTTP status code
-     */
-    status?: number;
-    /**
-     * Human-readable explanation specific to this occurrence
-     */
-    detail?: string;
-    /**
-     * Machine-readable error code
-     */
-    code?: string;
-    /**
-     * Distributed trace identifier for correlation
-     */
-    traceId?: string;
-    /**
-     * Field-level validation errors (present when code is VALIDATION_ERROR)
-     */
-    errors?: Array<RecordViolation>;
-};
-
-/**
- * Field-level validation error
- */
-export type RecordViolation = {
-    /**
-     * Request field that failed validation
-     */
-    field?: string;
-    /**
-     * Machine-readable violation category
-     */
-    code?: 'REQUIRED' | 'INVALID_FORMAT' | 'TOO_SHORT' | 'TOO_LONG' | 'INVALID_VALUE';
-    /**
-     * Server-localized human-readable message
-     */
-    message?: string;
-};
-
 export type UninstallData = {
     body?: TenantUninstallTenantRequest;
     path: {
@@ -1076,6 +1024,50 @@ export type UpdateInviteesResponses = {
 };
 
 export type UpdateInviteesResponse = UpdateInviteesResponses[keyof UpdateInviteesResponses];
+
+export type ReceiveData = {
+    body: string;
+    headers?: {
+        Authorization?: string;
+    };
+    path: {
+        version: number;
+    };
+    query?: never;
+    url: '/api/{version}/webhooks/livekit';
+};
+
+export type ReceiveErrors = {
+    /**
+     * Body could not be decoded
+     */
+    400: unknown;
+    /**
+     * Missing or invalid signature
+     */
+    401: unknown;
+    /**
+     * Method Not Allowed
+     */
+    405: MeetProblemDetail;
+    /**
+     * Unsupported Media Type
+     */
+    415: MeetProblemDetail;
+    /**
+     * Internal Server Error
+     */
+    500: MeetProblemDetail;
+};
+
+export type ReceiveError = ReceiveErrors[keyof ReceiveErrors];
+
+export type ReceiveResponses = {
+    /**
+     * Signature valid; event accepted
+     */
+    200: unknown;
+};
 
 export type ListData = {
     body?: MeetListMeetingsRequest;

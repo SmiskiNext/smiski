@@ -637,34 +637,6 @@ export const zMeetDeleteMeetingResponse = z.object({
     meeting: z.optional(zMeetDeletedMeetingSnapshot)
 });
 
-/**
- * Field-level validation error
- */
-export const zRecordViolation = z.object({
-    field: z.optional(z.string()),
-    code: z.optional(z.enum([
-        'REQUIRED',
-        'INVALID_FORMAT',
-        'TOO_SHORT',
-        'TOO_LONG',
-        'INVALID_VALUE'
-    ])),
-    message: z.optional(z.string())
-});
-
-/**
- * RFC 9457 Problem Details response body
- */
-export const zRecordProblemDetail = z.object({
-    type: z.optional(z.string()),
-    title: z.optional(z.string()),
-    status: z.optional(z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' })),
-    detail: z.optional(z.string()),
-    code: z.optional(z.string()),
-    traceId: z.optional(z.string()),
-    errors: z.optional(z.array(zRecordViolation))
-});
-
 export const zUninstallData = z.object({
     body: z.optional(zTenantUninstallTenantRequest),
     path: z.object({
@@ -746,6 +718,17 @@ export const zUpdateInviteesData = z.object({
  * Invitees synchronized
  */
 export const zUpdateInviteesResponse = zMeetUpdateMeetingInviteesResponse;
+
+export const zReceiveData = z.object({
+    body: z.string(),
+    path: z.object({
+        version: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' })
+    }),
+    query: z.optional(z.never()),
+    headers: z.optional(z.object({
+        Authorization: z.optional(z.string())
+    }))
+});
 
 export const zListData = z.object({
     body: z.optional(zMeetListMeetingsRequest),

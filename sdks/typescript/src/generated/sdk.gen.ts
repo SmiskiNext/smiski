@@ -2,8 +2,8 @@
 
 import { client } from './client.gen.js';
 import type { Client, Options as Options2, TDataShape } from './client/index.js';
-import type { BatchDeleteData, BatchDeleteErrors, BatchDeleteResponses, CreateInstantData, CreateInstantErrors, CreateInstantResponses, DeleteData, DeleteErrors, DeleteResponses, GetData, GetErrors, GetResponses, JoinData, JoinErrors, JoinResponses, ListData, ListErrors, ListResponses, RegisterData, RegisterErrors, RegisterResponses, ScheduleData, ScheduleErrors, ScheduleResponses, UninstallData, UninstallErrors, UninstallResponses, UpdateData, UpdateErrors, UpdateInviteesData, UpdateInviteesErrors, UpdateInviteesResponses, UpdateResponses } from './types.gen.js';
-import { zBatchDeleteData, zBatchDeleteResponse, zCreateInstantData, zCreateInstantResponse, zDeleteData, zDeleteResponse, zGetData, zGetResponse, zJoinData, zJoinResponse, zListData, zListResponse, zRegisterData, zRegisterResponse, zScheduleData, zScheduleResponse, zUninstallData, zUninstallResponse, zUpdateData, zUpdateInviteesData, zUpdateInviteesResponse, zUpdateResponse } from './zod.gen.js';
+import type { BatchDeleteData, BatchDeleteErrors, BatchDeleteResponses, CreateInstantData, CreateInstantErrors, CreateInstantResponses, DeleteData, DeleteErrors, DeleteResponses, GetData, GetErrors, GetResponses, JoinData, JoinErrors, JoinResponses, ListData, ListErrors, ListResponses, ReceiveData, ReceiveErrors, ReceiveResponses, RegisterData, RegisterErrors, RegisterResponses, ScheduleData, ScheduleErrors, ScheduleResponses, UninstallData, UninstallErrors, UninstallResponses, UpdateData, UpdateErrors, UpdateInviteesData, UpdateInviteesErrors, UpdateInviteesResponses, UpdateResponses } from './types.gen.js';
+import { zBatchDeleteData, zBatchDeleteResponse, zCreateInstantData, zCreateInstantResponse, zDeleteData, zDeleteResponse, zGetData, zGetResponse, zJoinData, zJoinResponse, zListData, zListResponse, zReceiveData, zRegisterData, zRegisterResponse, zScheduleData, zScheduleResponse, zUninstallData, zUninstallResponse, zUpdateData, zUpdateInviteesData, zUpdateInviteesResponse, zUpdateResponse } from './zod.gen.js';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean> = Options2<TData, ThrowOnError> & {
     /**
@@ -103,6 +103,21 @@ export const updateInvitees = <ThrowOnError extends boolean = false>(options: Op
     ...options,
     headers: {
         'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Receive a LiveKit webhook
+ *
+ * Verifies the LiveKit signed-JWT payload against the raw body and enqueues the decoded event for asynchronous processing.
+ */
+export const receive = <ThrowOnError extends boolean = false>(options: Options<ReceiveData, ThrowOnError>) => (options.client ?? client).post<ReceiveResponses, ReceiveErrors, ThrowOnError>({
+    requestValidator: async (data) => await zReceiveData.parseAsync(data),
+    url: '/api/{version}/webhooks/livekit',
+    ...options,
+    headers: {
+        'Content-Type': 'application/webhook+json',
         ...options.headers
     }
 });
