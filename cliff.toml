@@ -47,10 +47,10 @@ commit_parsers = [
     { message = "^ci", skip = true },
     { message = "^docs", skip = true },
     { message = "^style", skip = true },
-    { message = "^fix\\((tenant|meet|record|notification)\\)", group = "Services|Bugfixes" },
+    { message = "^fix\\((tenant|meet|notification)\\)", group = "Services|Bugfixes" },
     { message = "^fix\\(app\\)", group = "App|Bugfixes" },
     { message = "^fix", group = "Other|Bugfixes" },
-    { message = "^\\w+\\((tenant|meet|record|notification)\\)", group = "Services|Improvements" },
+    { message = "^\\w+\\((tenant|meet|notification)\\)", group = "Services|Improvements" },
     { message = "^\\w+\\(app\\)", group = "App|Improvements" },
     { message = ".*", group = "Other|Improvements" },
 ]

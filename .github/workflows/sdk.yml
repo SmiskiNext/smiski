@@ -8,15 +8,12 @@ on:
             - 'services/openapi.yaml'
             - 'services/tenant/openapi.yaml'
             - 'services/meet/openapi.yaml'
-            - 'services/record/openapi.yaml'
             - 'services/tenant/src/**'
             - 'services/meet/src/**'
-            - 'services/record/src/**'
             - 'services/shared/src/**'
             - 'services/proto/src/**'
             - 'services/tenant/build.gradle.kts'
             - 'services/meet/build.gradle.kts'
-            - 'services/record/build.gradle.kts'
             - 'services/shared/build.gradle.kts'
             - 'services/proto/build.gradle.kts'
             - 'services/**/settings.gradle.kts'
@@ -37,15 +34,12 @@ on:
             - 'services/openapi.yaml'
             - 'services/tenant/openapi.yaml'
             - 'services/meet/openapi.yaml'
-            - 'services/record/openapi.yaml'
             - 'services/tenant/src/**'
             - 'services/meet/src/**'
-            - 'services/record/src/**'
             - 'services/shared/src/**'
             - 'services/proto/src/**'
             - 'services/tenant/build.gradle.kts'
             - 'services/meet/build.gradle.kts'
-            - 'services/record/build.gradle.kts'
             - 'services/shared/build.gradle.kts'
             - 'services/proto/build.gradle.kts'
             - 'services/**/settings.gradle.kts'
@@ -88,8 +82,8 @@ jobs:
             - name: Check generated files
               run: >-
                   git diff --exit-code -- services/tenant/openapi.yaml
-                  services/meet/openapi.yaml services/record/openapi.yaml
-                  services/openapi.yaml sdks/typescript/src/generated
+                  services/meet/openapi.yaml services/openapi.yaml
+                  sdks/typescript/src/generated
 
             - name: Typecheck SDK
               run: pnpm run sdk:typecheck

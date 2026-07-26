@@ -22,7 +22,6 @@ body:
           options:
               - Backend - meet service
               - Backend - notification service
-              - Backend - record service
               - Backend - tenant service
               - Backend - shared / proto
               - Forge app (app/)

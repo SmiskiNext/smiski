@@ -23,5 +23,4 @@ pluginManagement {
 includeBuild("proto")
 includeBuild("tenant")
 includeBuild("meet")
-includeBuild("record")
 includeBuild("notification")
