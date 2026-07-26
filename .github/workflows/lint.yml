@@ -136,6 +136,12 @@ jobs:
               run: buf lint
               working-directory: services/proto
 
+            - name: Prepare dev baseline
+              run: |
+                  if [ "$(git rev-parse --abbrev-ref HEAD)" != "dev" ]; then
+                      git branch -f dev origin/dev
+                  fi
+
             - name: Buf breaking
               run:
                   buf breaking --against
