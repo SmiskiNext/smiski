@@ -1,21 +1,26 @@
 package io.github.smiskinext.meet.domain.event;
 
 import io.github.smiskinext.shared.domain.PublishableEvent;
+
 import java.time.Instant;
 import java.util.UUID;
-import org.jspecify.annotations.Nullable;
 
 /**
- * Published when a host denies a join request or when a meeting ends with pending requests.
+ * Published when a host denies a pending join request.
+ *
+ * <p>Carries the requester's {@code accountId} and {@code deviceId} so a device-scoped client and
+ * the requester-facing SSE stream (keyed by {@code joinRequestId}) can correlate the outcome.
  */
 public record JoinRequestDeniedEvent(
         UUID eventId,
         String tenantId,
         UUID meetingId,
         UUID joinRequestId,
-        @Nullable UUID deniedBy,
+        String accountId,
+        String deviceId,
+        String deniedBy,
         Instant occurredAt)
-        implements PublishableEvent {
+        implements PublishableEvent, SseTriggeringEvent {
 
     @Override
     public String aggregateId() {
@@ -29,11 +34,11 @@ public record JoinRequestDeniedEvent(
 
     @Override
     public String eventType() {
-        return "io.github.smiskinext.meet.join-request.denied.v1";
+        return "io.github.smiskinext.meet.join.denied.v1";
     }
 
     @Override
     public String topic() {
-        return "meet.join-request.denied";
+        return "meet.join.denied";
     }
 }

@@ -1157,6 +1157,276 @@ paths:
         type: integer
         format: int32
       example: 1
+  /api/{version}/meetings/{id}/join-requests:decline:
+    post:
+      tags:
+      - meeting-controller
+      summary: Decline pending join requests
+      description: "Declines one or more pending join requests as the meeting host.\
+        \ Processing is best-effort per item: each submitted requestId yields a result\
+        \ entry with status DENIED (no token), or FAILED (carrying a machine-readable\
+        \ reason). Only the host may decline."
+      operationId: declineJoinRequests
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/HandleJoinRequestsRequest"
+        required: true
+      responses:
+        "200":
+          description: Per-item decision results
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JoinDecisionResponse"
+              examples:
+                results:
+                  description: results
+                  value:
+                    results:
+                    - requestId: 0195e0c2-8f3a-7c21-b9d4-2f1a6e7c8d90
+                      status: DENIED
+                      token: null
+                      roomName: null
+                      reason: null
+                    - requestId: 0195e0c2-8f3a-7c21-b9d4-3a2b1c4d5e60
+                      status: FAILED
+                      token: null
+                      roomName: null
+                      reason: JOIN_REQUEST_NOT_FOUND
+        "400":
+          description: Missing account header or empty/malformed body
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+              examples:
+                validationError:
+                  summary: Empty requestIds list
+                  description: validationError
+                  value:
+                    type: about:blank
+                    title: Bad Request
+                    status: 400
+                    detail: The request body failed validation
+                    code: VALIDATION_ERROR
+                    traceId: 6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a
+                    errors:
+                    - field: requestIds
+                      code: REQUIRED
+                      message: must not be empty
+                missingAccount:
+                  summary: Missing X-Account-Id header
+                  description: missingAccount
+                  value:
+                    type: about:blank
+                    title: Bad Request
+                    status: 400
+                    detail: X-Account-Id header is required
+                    code: VALIDATION_ERROR
+                    traceId: 6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a
+        "403":
+          description: Only the host may decline join requests
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+              examples:
+                notOwner:
+                  description: notOwner
+                  value:
+                    type: about:blank
+                    title: Not authorized
+                    status: 403
+                    detail: You do not own the requested user scope.
+                    code: NOT_OWNER
+                    traceId: 6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a
+        "404":
+          description: Meeting not found for the current tenant
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+              examples:
+                notFound:
+                  description: notFound
+                  value:
+                    type: about:blank
+                    title: Meeting not found
+                    status: 404
+                    detail: No meeting matches the given identifier.
+                    code: MEETING_NOT_FOUND
+                    traceId: 6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a
+        "405":
+          description: Method Not Allowed
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "415":
+          description: Unsupported Media Type
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "500":
+          description: Internal Server Error
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+    parameters:
+    - name: version
+      in: path
+      required: true
+      schema:
+        type: integer
+        format: int32
+      example: 1
+  /api/{version}/meetings/{id}/join-requests:accept:
+    post:
+      tags:
+      - meeting-controller
+      summary: Accept pending join requests
+      description: "Accepts one or more pending join requests as the meeting host.\
+        \ Processing is best-effort per item: each submitted requestId yields a result\
+        \ entry with status APPROVED (carrying a LiveKit token and room name), or\
+        \ FAILED (carrying a machine-readable reason such as MEETING_FULL, JOIN_REQUEST_NOT_FOUND,\
+        \ or JOIN_REQUEST_EXPIRED). Capacity is enforced so the batch never exceeds\
+        \ maxParticipants. Only the host may accept."
+      operationId: acceptJoinRequests
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/HandleJoinRequestsRequest"
+        required: true
+      responses:
+        "200":
+          description: Per-item decision results
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JoinDecisionResponse"
+              examples:
+                results:
+                  description: results
+                  value:
+                    results:
+                    - requestId: 0195e0c2-8f3a-7c21-b9d4-2f1a6e7c8d90
+                      status: APPROVED
+                      token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.example.token
+                      roomName: meeting-0195e0c2-8f3a-7c21-b9d4-2f1a6e7c8d90
+                      reason: null
+                    - requestId: 0195e0c2-8f3a-7c21-b9d4-3a2b1c4d5e60
+                      status: FAILED
+                      token: null
+                      roomName: null
+                      reason: MEETING_FULL
+        "400":
+          description: Missing account header or empty/malformed body
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+              examples:
+                validationError:
+                  summary: Empty requestIds list
+                  description: validationError
+                  value:
+                    type: about:blank
+                    title: Bad Request
+                    status: 400
+                    detail: The request body failed validation
+                    code: VALIDATION_ERROR
+                    traceId: 6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a
+                    errors:
+                    - field: requestIds
+                      code: REQUIRED
+                      message: must not be empty
+                missingAccount:
+                  summary: Missing X-Account-Id header
+                  description: missingAccount
+                  value:
+                    type: about:blank
+                    title: Bad Request
+                    status: 400
+                    detail: X-Account-Id header is required
+                    code: VALIDATION_ERROR
+                    traceId: 6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a
+        "403":
+          description: Only the host may accept join requests
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+              examples:
+                notOwner:
+                  description: notOwner
+                  value:
+                    type: about:blank
+                    title: Not authorized
+                    status: 403
+                    detail: You do not own the requested user scope.
+                    code: NOT_OWNER
+                    traceId: 6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a
+        "404":
+          description: Meeting not found for the current tenant
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+              examples:
+                notFound:
+                  description: notFound
+                  value:
+                    type: about:blank
+                    title: Meeting not found
+                    status: 404
+                    detail: No meeting matches the given identifier.
+                    code: MEETING_NOT_FOUND
+                    traceId: 6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a
+        "405":
+          description: Method Not Allowed
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "415":
+          description: Unsupported Media Type
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "500":
+          description: Internal Server Error
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+    parameters:
+    - name: version
+      in: path
+      required: true
+      schema:
+        type: integer
+        format: int32
+      example: 1
 components:
   schemas:
     IssueLink:
@@ -1861,6 +2131,54 @@ components:
           - string
           - "null"
           description: LiveKit room name; present only when APPROVED
+    HandleJoinRequestsRequest:
+      type: object
+      description: Host decision over pending join requests
+      properties:
+        requestIds:
+          type: array
+          description: Identifiers of the pending join requests to decide
+          items:
+            type: string
+            format: uuid
+          minItems: 1
+      required:
+      - requestIds
+    Item:
+      type: object
+      description: Outcome of a single submitted join request
+      properties:
+        requestId:
+          type: string
+          description: Identifier of the submitted join request
+        status:
+          type: string
+          description: Outcome of the request
+          example: APPROVED
+        token:
+          type:
+          - string
+          - "null"
+          description: LiveKit access token; present only when APPROVED
+        roomName:
+          type:
+          - string
+          - "null"
+          description: LiveKit room name; present only when APPROVED
+        reason:
+          type:
+          - string
+          - "null"
+          description: Machine-readable reason; present only when FAILED
+    JoinDecisionResponse:
+      type: object
+      description: Per-item outcome of a host accept/decline decision
+      properties:
+        results:
+          type: array
+          description: "One result per submitted request id, in submission order"
+          items:
+            $ref: "#/components/schemas/Item"
     GetMeetingResponse:
       type: object
       description: A single meeting with its invitees and joined participants

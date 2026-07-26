@@ -1,6 +1,7 @@
 package io.github.smiskinext.meet.infrastructure.config;
 
 import io.github.smiskinext.meet.infrastructure.persistence.model.JoinRequestData;
+import io.github.smiskinext.meet.infrastructure.persistence.model.JoinRequestResultData;
 
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
@@ -69,6 +70,26 @@ public class RedisConfig {
 
         JacksonJsonRedisSerializer<JoinRequestData> valueSerializer =
                 new JacksonJsonRedisSerializer<>(joinRequestJsonMapper(), JoinRequestData.class);
+        template.setValueSerializer(valueSerializer);
+        template.setHashValueSerializer(valueSerializer);
+
+        template.afterPropertiesSet();
+        return template;
+    }
+
+    @Bean
+    public RedisTemplate<String, JoinRequestResultData> joinRequestResultRedisTemplate(
+            RedisConnectionFactory connectionFactory) {
+        RedisTemplate<String, JoinRequestResultData> template = new RedisTemplate<>();
+        template.setConnectionFactory(connectionFactory);
+
+        StringRedisSerializer keySerializer = new StringRedisSerializer();
+        template.setKeySerializer(keySerializer);
+        template.setHashKeySerializer(keySerializer);
+
+        JacksonJsonRedisSerializer<JoinRequestResultData> valueSerializer =
+                new JacksonJsonRedisSerializer<>(
+                        joinRequestJsonMapper(), JoinRequestResultData.class);
         template.setValueSerializer(valueSerializer);
         template.setHashValueSerializer(valueSerializer);
 
