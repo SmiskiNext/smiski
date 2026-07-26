@@ -675,6 +675,52 @@ export type MeetJoinMeetingResponse = {
 };
 
 /**
+ * Host decision over pending join requests
+ */
+export type MeetHandleJoinRequestsRequest = {
+    /**
+     * Identifiers of the pending join requests to decide
+     */
+    requestIds: Array<string>;
+};
+
+/**
+ * Outcome of a single submitted join request
+ */
+export type MeetItem = {
+    /**
+     * Identifier of the submitted join request
+     */
+    requestId?: string;
+    /**
+     * Outcome of the request
+     */
+    status?: string;
+    /**
+     * LiveKit access token; present only when APPROVED
+     */
+    token?: string | null;
+    /**
+     * LiveKit room name; present only when APPROVED
+     */
+    roomName?: string | null;
+    /**
+     * Machine-readable reason; present only when FAILED
+     */
+    reason?: string | null;
+};
+
+/**
+ * Per-item outcome of a host accept/decline decision
+ */
+export type MeetJoinDecisionResponse = {
+    /**
+     * One result per submitted request id, in submission order
+     */
+    results?: Array<MeetItem>;
+};
+
+/**
  * A single meeting with its invitees and joined participants
  */
 export type MeetGetMeetingResponse = {
@@ -1284,3 +1330,99 @@ export type JoinResponses = {
 };
 
 export type JoinResponse = JoinResponses[keyof JoinResponses];
+
+export type DeclineJoinRequestsData = {
+    body: MeetHandleJoinRequestsRequest;
+    path: {
+        version: number;
+        id: string;
+    };
+    query?: never;
+    url: '/api/{version}/meetings/{id}/join-requests:decline';
+};
+
+export type DeclineJoinRequestsErrors = {
+    /**
+     * Missing account header or empty/malformed body
+     */
+    400: MeetProblemDetail;
+    /**
+     * Only the host may decline join requests
+     */
+    403: MeetProblemDetail;
+    /**
+     * Meeting not found for the current tenant
+     */
+    404: MeetProblemDetail;
+    /**
+     * Method Not Allowed
+     */
+    405: MeetProblemDetail;
+    /**
+     * Unsupported Media Type
+     */
+    415: MeetProblemDetail;
+    /**
+     * Internal Server Error
+     */
+    500: MeetProblemDetail;
+};
+
+export type DeclineJoinRequestsError = DeclineJoinRequestsErrors[keyof DeclineJoinRequestsErrors];
+
+export type DeclineJoinRequestsResponses = {
+    /**
+     * Per-item decision results
+     */
+    200: MeetJoinDecisionResponse;
+};
+
+export type DeclineJoinRequestsResponse = DeclineJoinRequestsResponses[keyof DeclineJoinRequestsResponses];
+
+export type AcceptJoinRequestsData = {
+    body: MeetHandleJoinRequestsRequest;
+    path: {
+        version: number;
+        id: string;
+    };
+    query?: never;
+    url: '/api/{version}/meetings/{id}/join-requests:accept';
+};
+
+export type AcceptJoinRequestsErrors = {
+    /**
+     * Missing account header or empty/malformed body
+     */
+    400: MeetProblemDetail;
+    /**
+     * Only the host may accept join requests
+     */
+    403: MeetProblemDetail;
+    /**
+     * Meeting not found for the current tenant
+     */
+    404: MeetProblemDetail;
+    /**
+     * Method Not Allowed
+     */
+    405: MeetProblemDetail;
+    /**
+     * Unsupported Media Type
+     */
+    415: MeetProblemDetail;
+    /**
+     * Internal Server Error
+     */
+    500: MeetProblemDetail;
+};
+
+export type AcceptJoinRequestsError = AcceptJoinRequestsErrors[keyof AcceptJoinRequestsErrors];
+
+export type AcceptJoinRequestsResponses = {
+    /**
+     * Per-item decision results
+     */
+    200: MeetJoinDecisionResponse;
+};
+
+export type AcceptJoinRequestsResponse = AcceptJoinRequestsResponses[keyof AcceptJoinRequestsResponses];

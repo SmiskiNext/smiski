@@ -565,6 +565,40 @@ export const zMeetJoinMeetingResponse = z.object({
 });
 
 /**
+ * Host decision over pending join requests
+ */
+export const zMeetHandleJoinRequestsRequest = z.object({
+    requestIds: z.array(z.uuid()).min(1)
+});
+
+/**
+ * Outcome of a single submitted join request
+ */
+export const zMeetItem = z.object({
+    requestId: z.optional(z.string()),
+    status: z.optional(z.string()),
+    token: z.optional(z.union([
+        z.string(),
+        z.null()
+    ])),
+    roomName: z.optional(z.union([
+        z.string(),
+        z.null()
+    ])),
+    reason: z.optional(z.union([
+        z.string(),
+        z.null()
+    ]))
+});
+
+/**
+ * Per-item outcome of a host accept/decline decision
+ */
+export const zMeetJoinDecisionResponse = z.object({
+    results: z.optional(z.array(zMeetItem))
+});
+
+/**
  * Active invitee with RSVP status
  */
 export const zMeetMeetingDetailInvitee = z.object({
@@ -795,3 +829,31 @@ export const zJoinData = z.object({
  * Join accepted (APPROVED) or pending host approval (PENDING)
  */
 export const zJoinResponse = zMeetJoinMeetingResponse;
+
+export const zDeclineJoinRequestsData = z.object({
+    body: zMeetHandleJoinRequestsRequest,
+    path: z.object({
+        version: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }),
+        id: z.uuid()
+    }),
+    query: z.optional(z.never())
+});
+
+/**
+ * Per-item decision results
+ */
+export const zDeclineJoinRequestsResponse = zMeetJoinDecisionResponse;
+
+export const zAcceptJoinRequestsData = z.object({
+    body: zMeetHandleJoinRequestsRequest,
+    path: z.object({
+        version: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }),
+        id: z.uuid()
+    }),
+    query: z.optional(z.never())
+});
+
+/**
+ * Per-item decision results
+ */
+export const zAcceptJoinRequestsResponse = zMeetJoinDecisionResponse;
