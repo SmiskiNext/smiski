@@ -101,6 +101,7 @@ public class RequestJoinApplicationService implements RequestJoinUseCase {
                 command.displayName(),
                 ParticipantRole.PARTICIPANT,
                 attributes,
+                command.tenantId(),
                 meeting.getSettings());
 
         Result<String, MeetingError> tokenResult = liveKitPort.generateToken(tokenRequest);

@@ -10,6 +10,9 @@ tags:
   - name: tenant-controller
     description: 'Tenant lifecycle: register (install) and uninstall Forge app tenants'
     x-displayName: tenant-controller
+  - name: livekit-webhook-controller
+    description: Receives LiveKit server webhooks
+    x-displayName: livekit-webhook-controller
   - name: meeting-controller
     description: 'Meeting lifecycle: schedule, create instant, update, list, delete meetings and manage invitees'
     x-displayName: meeting-controller
@@ -288,7 +291,6 @@ paths:
                         respondedAt: '2025-01-15T11:00:00Z'
                     participants:
                       - accountId: account-456
-                        displayName: Alice Nguyen
                         role: PARTICIPANT
                         joinedAt: '2025-02-01T14:01:00Z'
                         leftAt: null
@@ -701,6 +703,58 @@ paths:
                     detail: Meeting not found
                     code: MEETING_NOT_FOUND
                     traceId: 6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a
+        '405':
+          description: Method Not Allowed
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Meet_ProblemDetail'
+        '415':
+          description: Unsupported Media Type
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Meet_ProblemDetail'
+        '500':
+          description: Internal Server Error
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Meet_ProblemDetail'
+    parameters:
+      - name: version
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int32
+        example: 1
+  /api/{version}/webhooks/livekit:
+    post:
+      tags:
+        - livekit-webhook-controller
+      summary: Receive a LiveKit webhook
+      description: Verifies the LiveKit signed-JWT payload against the raw body and enqueues the decoded event for asynchronous processing.
+      operationId: receive
+      parameters:
+        - name: Authorization
+          in: header
+          required: false
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/webhook+json:
+            schema:
+              type: string
+        required: true
+      responses:
+        '200':
+          description: Signature valid; event accepted
+        '400':
+          description: Body could not be decoded
+        '401':
+          description: Missing or invalid signature
         '405':
           description: Method Not Allowed
           content:
@@ -1283,6 +1337,268 @@ paths:
                     detail: The meeting has reached its participant limit.
                     code: MEETING_FULL
                     traceId: 6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a
+        '415':
+          description: Unsupported Media Type
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Meet_ProblemDetail'
+        '500':
+          description: Internal Server Error
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Meet_ProblemDetail'
+    parameters:
+      - name: version
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int32
+        example: 1
+  /api/{version}/meetings/{id}/join-requests:decline:
+    post:
+      tags:
+        - meeting-controller
+      summary: Decline pending join requests
+      description: 'Declines one or more pending join requests as the meeting host. Processing is best-effort per item: each submitted requestId yields a result entry with status DENIED (no token), or FAILED (carrying a machine-readable reason). Only the host may decline.'
+      operationId: declineJoinRequests
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Meet_HandleJoinRequestsRequest'
+        required: true
+      responses:
+        '200':
+          description: Per-item decision results
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Meet_JoinDecisionResponse'
+              examples:
+                results:
+                  description: results
+                  value:
+                    results:
+                      - requestId: 0195e0c2-8f3a-7c21-b9d4-2f1a6e7c8d90
+                        status: DENIED
+                        token: null
+                        roomName: null
+                        reason: null
+                      - requestId: 0195e0c2-8f3a-7c21-b9d4-3a2b1c4d5e60
+                        status: FAILED
+                        token: null
+                        roomName: null
+                        reason: JOIN_REQUEST_NOT_FOUND
+        '400':
+          description: Missing account header or empty/malformed body
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Meet_ProblemDetail'
+              examples:
+                validationError:
+                  summary: Empty requestIds list
+                  description: validationError
+                  value:
+                    type: about:blank
+                    title: Bad Request
+                    status: 400
+                    detail: The request body failed validation
+                    code: VALIDATION_ERROR
+                    traceId: 6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a
+                    errors:
+                      - field: requestIds
+                        code: REQUIRED
+                        message: must not be empty
+                missingAccount:
+                  summary: Missing X-Account-Id header
+                  description: missingAccount
+                  value:
+                    type: about:blank
+                    title: Bad Request
+                    status: 400
+                    detail: X-Account-Id header is required
+                    code: VALIDATION_ERROR
+                    traceId: 6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a
+        '403':
+          description: Only the host may decline join requests
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Meet_ProblemDetail'
+              examples:
+                notOwner:
+                  description: notOwner
+                  value:
+                    type: about:blank
+                    title: Not authorized
+                    status: 403
+                    detail: You do not own the requested user scope.
+                    code: NOT_OWNER
+                    traceId: 6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a
+        '404':
+          description: Meeting not found for the current tenant
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Meet_ProblemDetail'
+              examples:
+                notFound:
+                  description: notFound
+                  value:
+                    type: about:blank
+                    title: Meeting not found
+                    status: 404
+                    detail: No meeting matches the given identifier.
+                    code: MEETING_NOT_FOUND
+                    traceId: 6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a
+        '405':
+          description: Method Not Allowed
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Meet_ProblemDetail'
+        '415':
+          description: Unsupported Media Type
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Meet_ProblemDetail'
+        '500':
+          description: Internal Server Error
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Meet_ProblemDetail'
+    parameters:
+      - name: version
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int32
+        example: 1
+  /api/{version}/meetings/{id}/join-requests:accept:
+    post:
+      tags:
+        - meeting-controller
+      summary: Accept pending join requests
+      description: 'Accepts one or more pending join requests as the meeting host. Processing is best-effort per item: each submitted requestId yields a result entry with status APPROVED (carrying a LiveKit token and room name), or FAILED (carrying a machine-readable reason such as MEETING_FULL, JOIN_REQUEST_NOT_FOUND, or JOIN_REQUEST_EXPIRED). Capacity is enforced so the batch never exceeds maxParticipants. Only the host may accept.'
+      operationId: acceptJoinRequests
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Meet_HandleJoinRequestsRequest'
+        required: true
+      responses:
+        '200':
+          description: Per-item decision results
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Meet_JoinDecisionResponse'
+              examples:
+                results:
+                  description: results
+                  value:
+                    results:
+                      - requestId: 0195e0c2-8f3a-7c21-b9d4-2f1a6e7c8d90
+                        status: APPROVED
+                        token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.example.token
+                        roomName: meeting-0195e0c2-8f3a-7c21-b9d4-2f1a6e7c8d90
+                        reason: null
+                      - requestId: 0195e0c2-8f3a-7c21-b9d4-3a2b1c4d5e60
+                        status: FAILED
+                        token: null
+                        roomName: null
+                        reason: MEETING_FULL
+        '400':
+          description: Missing account header or empty/malformed body
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Meet_ProblemDetail'
+              examples:
+                validationError:
+                  summary: Empty requestIds list
+                  description: validationError
+                  value:
+                    type: about:blank
+                    title: Bad Request
+                    status: 400
+                    detail: The request body failed validation
+                    code: VALIDATION_ERROR
+                    traceId: 6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a
+                    errors:
+                      - field: requestIds
+                        code: REQUIRED
+                        message: must not be empty
+                missingAccount:
+                  summary: Missing X-Account-Id header
+                  description: missingAccount
+                  value:
+                    type: about:blank
+                    title: Bad Request
+                    status: 400
+                    detail: X-Account-Id header is required
+                    code: VALIDATION_ERROR
+                    traceId: 6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a
+        '403':
+          description: Only the host may accept join requests
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Meet_ProblemDetail'
+              examples:
+                notOwner:
+                  description: notOwner
+                  value:
+                    type: about:blank
+                    title: Not authorized
+                    status: 403
+                    detail: You do not own the requested user scope.
+                    code: NOT_OWNER
+                    traceId: 6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a
+        '404':
+          description: Meeting not found for the current tenant
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Meet_ProblemDetail'
+              examples:
+                notFound:
+                  description: notFound
+                  value:
+                    type: about:blank
+                    title: Meeting not found
+                    status: 404
+                    detail: No meeting matches the given identifier.
+                    code: MEETING_NOT_FOUND
+                    traceId: 6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a
+        '405':
+          description: Method Not Allowed
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Meet_ProblemDetail'
         '415':
           description: Unsupported Media Type
           content:
@@ -2280,6 +2596,54 @@ components:
             - string
             - 'null'
           description: LiveKit room name; present only when APPROVED
+    Meet_HandleJoinRequestsRequest:
+      type: object
+      description: Host decision over pending join requests
+      properties:
+        requestIds:
+          type: array
+          description: Identifiers of the pending join requests to decide
+          items:
+            type: string
+            format: uuid
+          minItems: 1
+      required:
+        - requestIds
+    Meet_Item:
+      type: object
+      description: Outcome of a single submitted join request
+      properties:
+        requestId:
+          type: string
+          description: Identifier of the submitted join request
+        status:
+          type: string
+          description: Outcome of the request
+          example: APPROVED
+        token:
+          type:
+            - string
+            - 'null'
+          description: LiveKit access token; present only when APPROVED
+        roomName:
+          type:
+            - string
+            - 'null'
+          description: LiveKit room name; present only when APPROVED
+        reason:
+          type:
+            - string
+            - 'null'
+          description: Machine-readable reason; present only when FAILED
+    Meet_JoinDecisionResponse:
+      type: object
+      description: Per-item outcome of a host accept/decline decision
+      properties:
+        results:
+          type: array
+          description: One result per submitted request id, in submission order
+          items:
+            $ref: '#/components/schemas/Meet_Item'
     Meet_GetMeetingResponse:
       type: object
       description: A single meeting with its invitees and joined participants
@@ -2387,64 +2751,11 @@ components:
       properties:
         meeting:
           $ref: '#/components/schemas/Meet_DeletedMeetingSnapshot'
-    Record_ProblemDetail:
-      description: RFC 9457 Problem Details response body
-      properties:
-        type:
-          type: string
-          description: URI reference identifying the problem type
-          example: about:blank
-        title:
-          type: string
-          description: Short human-readable summary of the problem
-          example: Bad Request
-        status:
-          type: integer
-          format: int32
-          description: HTTP status code
-          example: 400
-        detail:
-          type: string
-          description: Human-readable explanation specific to this occurrence
-          example: The request body failed validation
-        code:
-          type: string
-          description: Machine-readable error code
-          example: VALIDATION_ERROR
-        traceId:
-          type: string
-          description: Distributed trace identifier for correlation
-          example: 6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a
-        errors:
-          type: array
-          description: Field-level validation errors (present when code is VALIDATION_ERROR)
-          items:
-            $ref: '#/components/schemas/Record_Violation'
-    Record_Violation:
-      description: Field-level validation error
-      properties:
-        field:
-          type: string
-          description: Request field that failed validation
-          example: app.id
-        code:
-          type: string
-          description: Machine-readable violation category
-          enum:
-            - REQUIRED
-            - INVALID_FORMAT
-            - TOO_SHORT
-            - TOO_LONG
-            - INVALID_VALUE
-          example: REQUIRED
-        message:
-          type: string
-          description: Server-localized human-readable message
-          example: must not be blank
 x-tagGroups:
   - name: Tenant
     tags:
       - tenant-controller
   - name: Meet
     tags:
+      - livekit-webhook-controller
       - meeting-controller

@@ -1,6 +1,8 @@
 package io.github.smiskinext.meet.domain.model;
 
 import com.github.f4b6a3.uuid.UuidCreator;
+import io.github.smiskinext.meet.domain.event.ParticipantJoinedEvent;
+import io.github.smiskinext.meet.domain.event.ParticipantLeftEvent;
 import io.github.smiskinext.meet.domain.model.valueobject.AccountId;
 import io.github.smiskinext.meet.domain.model.valueobject.LiveKitIdentity;
 import io.github.smiskinext.meet.domain.model.valueobject.LiveKitParticipantSid;
@@ -10,6 +12,7 @@ import io.github.smiskinext.shared.domain.AggregateRoot;
 import io.github.smiskinext.shared.domain.valueobject.TenantId;
 import java.time.Instant;
 import java.util.Optional;
+import java.util.UUID;
 import org.jspecify.annotations.Nullable;
 
 /**
@@ -146,6 +149,41 @@ public class ParticipationLog extends AggregateRoot<ParticipationLogId> {
         }
         this.leftAt = leftAt;
         this.closeReason = CloseReason.LEFT;
+    }
+
+    /**
+     * Assigns the LiveKit session id and registers a {@link ParticipantJoinedEvent}, called by the
+     * {@code participant_joined} webhook handler once LiveKit confirms the participant connected.
+     *
+     * @param sid        the LiveKit participant session id
+     * @param occurredAt the webhook event time
+     */
+    public void confirmConnected(LiveKitParticipantSid sid, Instant occurredAt) {
+        assignSid(sid);
+        registerEvent(new ParticipantJoinedEvent(
+                UUID.randomUUID(),
+                tenantId.value(),
+                meetingId.value(),
+                accountId.value(),
+                livekitIdentity.value(),
+                occurredAt));
+    }
+
+    /**
+     * Closes the session with {@link CloseReason#LEFT} and registers a {@link ParticipantLeftEvent},
+     * called by the {@code participant_left} webhook handler.
+     *
+     * @param leftAt the webhook event time
+     */
+    public void recordLeft(Instant leftAt) {
+        leave(leftAt);
+        registerEvent(new ParticipantLeftEvent(
+                UUID.randomUUID(),
+                tenantId.value(),
+                meetingId.value(),
+                accountId.value(),
+                livekitIdentity.value(),
+                leftAt));
     }
 
     /**

@@ -1,0 +1,13 @@
+syntax = "proto3";
+
+package io.github.smiskinext.event.meet.v1;
+
+option java_multiple_files = true;
+option java_package = "io.github.smiskinext.event.meet.v1";
+
+message MeetingCompleted {
+  string meeting_id = 1;
+  string tenant_id = 2;
+  string host_id = 3;
+  string completed_at = 4;
+}

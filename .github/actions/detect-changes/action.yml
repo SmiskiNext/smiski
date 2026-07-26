@@ -21,7 +21,7 @@ outputs:
     openapi_services:
         description:
             JSON array of changed services that emit OpenAPI specs (tenant,
-            meet, record)
+            meet)
         value: ${{ steps.build-matrix.outputs.openapi_services }}
 
 runs:
@@ -39,12 +39,6 @@ runs:
                     - 'gradle/libs.versions.toml'
                   meet:
                     - 'services/meet/**'
-                    - 'services/shared/**'
-                    - 'services/proto/**'
-                    - 'build-logic/**'
-                    - 'gradle/libs.versions.toml'
-                  record:
-                    - 'services/record/**'
                     - 'services/shared/**'
                     - 'services/proto/**'
                     - 'build-logic/**'
@@ -86,10 +80,6 @@ runs:
               if [[ "${{ steps.filter.outputs.meet }}" == "true" ]]; then
                 services+=("meet")
                 openapi_services+=("meet")
-              fi
-              if [[ "${{ steps.filter.outputs.record }}" == "true" ]]; then
-                services+=("record")
-                openapi_services+=("record")
               fi
               if [[ "${{ steps.filter.outputs.notification }}" == "true" ]]; then
                 services+=("notification")

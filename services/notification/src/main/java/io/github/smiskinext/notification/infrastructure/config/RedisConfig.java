@@ -1,5 +1,6 @@
 package io.github.smiskinext.notification.infrastructure.config;
 
+import io.github.smiskinext.notification.infrastructure.persistence.model.JoinDecisionData;
 import io.github.smiskinext.notification.infrastructure.persistence.model.PendingJoinRequestData;
 
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -58,6 +59,26 @@ public class RedisConfig {
         JacksonJsonRedisSerializer<PendingJoinRequestData> valueSerializer =
                 new JacksonJsonRedisSerializer<>(
                         pendingJoinRequestJsonMapper(), PendingJoinRequestData.class);
+        template.setValueSerializer(valueSerializer);
+        template.setHashValueSerializer(valueSerializer);
+
+        template.afterPropertiesSet();
+        return template;
+    }
+
+    @Bean
+    public RedisTemplate<String, JoinDecisionData> joinDecisionRedisTemplate(
+            RedisConnectionFactory connectionFactory) {
+        RedisTemplate<String, JoinDecisionData> template = new RedisTemplate<>();
+        template.setConnectionFactory(connectionFactory);
+
+        StringRedisSerializer keySerializer = new StringRedisSerializer();
+        template.setKeySerializer(keySerializer);
+        template.setHashKeySerializer(keySerializer);
+
+        JacksonJsonRedisSerializer<JoinDecisionData> valueSerializer =
+                new JacksonJsonRedisSerializer<>(
+                        pendingJoinRequestJsonMapper(), JoinDecisionData.class);
         template.setValueSerializer(valueSerializer);
         template.setHashValueSerializer(valueSerializer);
 

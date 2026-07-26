@@ -23,7 +23,9 @@ app:
         ws-url: ws://localhost:7880
         api-key: test-livekit-key
         api-secret: test-livekit-secret-must-be-at-least-32-chars
-        webhook-url: http://localhost:8080/api/v1/webhook/livekit
+        webhook-url: http://localhost:8080/api/1/webhooks/livekit
+        webhook-topic: meet.livekit.webhook.internal
+        webhook-consumer-group: meet-livekit-webhook-test
         token-expiry-seconds: 1800
         recording:
             layout: speaker

@@ -55,7 +55,7 @@
 		reverse_proxy {$ZMS_HOST_IP}:8181
 	}
 
-	handle /api/v1/webhook/livekit {
+	handle /api/1/webhooks/livekit {
 		reverse_proxy {$ZMS_HOST_IP}:8182
 	}
 

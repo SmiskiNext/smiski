@@ -2,8 +2,8 @@
 
 import { client } from './client.gen.js';
 import type { Client, Options as Options2, TDataShape } from './client/index.js';
-import type { BatchDeleteData, BatchDeleteErrors, BatchDeleteResponses, CreateInstantData, CreateInstantErrors, CreateInstantResponses, DeleteData, DeleteErrors, DeleteResponses, GetData, GetErrors, GetResponses, JoinData, JoinErrors, JoinResponses, ListData, ListErrors, ListResponses, RegisterData, RegisterErrors, RegisterResponses, ScheduleData, ScheduleErrors, ScheduleResponses, UninstallData, UninstallErrors, UninstallResponses, UpdateData, UpdateErrors, UpdateInviteesData, UpdateInviteesErrors, UpdateInviteesResponses, UpdateResponses } from './types.gen.js';
-import { zBatchDeleteData, zBatchDeleteResponse, zCreateInstantData, zCreateInstantResponse, zDeleteData, zDeleteResponse, zGetData, zGetResponse, zJoinData, zJoinResponse, zListData, zListResponse, zRegisterData, zRegisterResponse, zScheduleData, zScheduleResponse, zUninstallData, zUninstallResponse, zUpdateData, zUpdateInviteesData, zUpdateInviteesResponse, zUpdateResponse } from './zod.gen.js';
+import type { AcceptJoinRequestsData, AcceptJoinRequestsErrors, AcceptJoinRequestsResponses, BatchDeleteData, BatchDeleteErrors, BatchDeleteResponses, CreateInstantData, CreateInstantErrors, CreateInstantResponses, DeclineJoinRequestsData, DeclineJoinRequestsErrors, DeclineJoinRequestsResponses, DeleteData, DeleteErrors, DeleteResponses, GetData, GetErrors, GetResponses, JoinData, JoinErrors, JoinResponses, ListData, ListErrors, ListResponses, ReceiveData, ReceiveErrors, ReceiveResponses, RegisterData, RegisterErrors, RegisterResponses, ScheduleData, ScheduleErrors, ScheduleResponses, UninstallData, UninstallErrors, UninstallResponses, UpdateData, UpdateErrors, UpdateInviteesData, UpdateInviteesErrors, UpdateInviteesResponses, UpdateResponses } from './types.gen.js';
+import { zAcceptJoinRequestsData, zAcceptJoinRequestsResponse, zBatchDeleteData, zBatchDeleteResponse, zCreateInstantData, zCreateInstantResponse, zDeclineJoinRequestsData, zDeclineJoinRequestsResponse, zDeleteData, zDeleteResponse, zGetData, zGetResponse, zJoinData, zJoinResponse, zListData, zListResponse, zReceiveData, zRegisterData, zRegisterResponse, zScheduleData, zScheduleResponse, zUninstallData, zUninstallResponse, zUpdateData, zUpdateInviteesData, zUpdateInviteesResponse, zUpdateResponse } from './zod.gen.js';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean> = Options2<TData, ThrowOnError> & {
     /**
@@ -108,6 +108,21 @@ export const updateInvitees = <ThrowOnError extends boolean = false>(options: Op
 });
 
 /**
+ * Receive a LiveKit webhook
+ *
+ * Verifies the LiveKit signed-JWT payload against the raw body and enqueues the decoded event for asynchronous processing.
+ */
+export const receive = <ThrowOnError extends boolean = false>(options: Options<ReceiveData, ThrowOnError>) => (options.client ?? client).post<ReceiveResponses, ReceiveErrors, ThrowOnError>({
+    requestValidator: async (data) => await zReceiveData.parseAsync(data),
+    url: '/api/{version}/webhooks/livekit',
+    ...options,
+    headers: {
+        'Content-Type': 'application/webhook+json',
+        ...options.headers
+    }
+});
+
+/**
  * List tenant meetings
  *
  * Lists meetings in the caller's tenant with optional creator, status, issue, and text filters, two sort modes, and opaque keyset pagination. The request body is optional; an empty body lists with defaults.
@@ -180,6 +195,38 @@ export const join = <ThrowOnError extends boolean = false>(options: Options<Join
     requestValidator: async (data) => await zJoinData.parseAsync(data),
     responseValidator: async (data) => await zJoinResponse.parseAsync(data),
     url: '/api/{version}/meetings/{id}:join',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Decline pending join requests
+ *
+ * Declines one or more pending join requests as the meeting host. Processing is best-effort per item: each submitted requestId yields a result entry with status DENIED (no token), or FAILED (carrying a machine-readable reason). Only the host may decline.
+ */
+export const declineJoinRequests = <ThrowOnError extends boolean = false>(options: Options<DeclineJoinRequestsData, ThrowOnError>) => (options.client ?? client).post<DeclineJoinRequestsResponses, DeclineJoinRequestsErrors, ThrowOnError>({
+    requestValidator: async (data) => await zDeclineJoinRequestsData.parseAsync(data),
+    responseValidator: async (data) => await zDeclineJoinRequestsResponse.parseAsync(data),
+    url: '/api/{version}/meetings/{id}/join-requests:decline',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Accept pending join requests
+ *
+ * Accepts one or more pending join requests as the meeting host. Processing is best-effort per item: each submitted requestId yields a result entry with status APPROVED (carrying a LiveKit token and room name), or FAILED (carrying a machine-readable reason such as MEETING_FULL, JOIN_REQUEST_NOT_FOUND, or JOIN_REQUEST_EXPIRED). Capacity is enforced so the batch never exceeds maxParticipants. Only the host may accept.
+ */
+export const acceptJoinRequests = <ThrowOnError extends boolean = false>(options: Options<AcceptJoinRequestsData, ThrowOnError>) => (options.client ?? client).post<AcceptJoinRequestsResponses, AcceptJoinRequestsErrors, ThrowOnError>({
+    requestValidator: async (data) => await zAcceptJoinRequestsData.parseAsync(data),
+    responseValidator: async (data) => await zAcceptJoinRequestsResponse.parseAsync(data),
+    url: '/api/{version}/meetings/{id}/join-requests:accept',
     ...options,
     headers: {
         'Content-Type': 'application/json',

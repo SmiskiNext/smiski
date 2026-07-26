@@ -2,7 +2,9 @@ package io.github.smiskinext.meet.domain.model;
 
 import com.github.f4b6a3.uuid.UuidCreator;
 import io.github.smiskinext.meet.domain.MeetingError;
+import io.github.smiskinext.meet.domain.event.JoinRequestApprovedEvent;
 import io.github.smiskinext.meet.domain.event.JoinRequestCreatedEvent;
+import io.github.smiskinext.meet.domain.event.JoinRequestDeniedEvent;
 import io.github.smiskinext.meet.domain.model.valueobject.AccountId;
 import io.github.smiskinext.meet.domain.model.valueobject.JoinRequestId;
 import io.github.smiskinext.meet.domain.model.valueobject.MeetingId;
@@ -130,6 +132,56 @@ public class JoinRequest extends AggregateRoot<JoinRequestId> {
                 deviceId,
                 avatarUrl,
                 requestedAt));
+    }
+
+    /**
+     * Registers a {@link JoinRequestApprovedEvent} for publication through the transactional outbox.
+     *
+     * <p>The tenant identifier and approving account live outside the aggregate (join requests are
+     * Redis-only and carry no tenant or actor column), so they are supplied by the application layer
+     * at decision time. The requester's account and device are sourced from the aggregate so the
+     * requester-facing stream can correlate the outcome.
+     *
+     * @param tenantId     the tenant that owns the meeting the request targets
+     * @param liveKitToken the issued LiveKit access token the requester uses to connect
+     * @param roomName     the LiveKit room name the requester joins
+     * @param approvedBy   the account of the host that approved the request
+     */
+    public void registerApprovedEvent(
+            String tenantId, String liveKitToken, String roomName, String approvedBy) {
+        registerEvent(new JoinRequestApprovedEvent(
+                UUID.randomUUID(),
+                tenantId,
+                meetingId.value(),
+                id.value(),
+                accountId.value(),
+                deviceId,
+                liveKitToken,
+                roomName,
+                approvedBy,
+                Instant.now()));
+    }
+
+    /**
+     * Registers a {@link JoinRequestDeniedEvent} for publication through the transactional outbox.
+     *
+     * <p>The tenant identifier and denying account live outside the aggregate, so they are supplied
+     * by the application layer at decision time. The requester's account and device are sourced from
+     * the aggregate so the requester-facing stream can correlate the outcome.
+     *
+     * @param tenantId the tenant that owns the meeting the request targets
+     * @param deniedBy the account of the host that denied the request
+     */
+    public void registerDeniedEvent(String tenantId, String deniedBy) {
+        registerEvent(new JoinRequestDeniedEvent(
+                UUID.randomUUID(),
+                tenantId,
+                meetingId.value(),
+                id.value(),
+                accountId.value(),
+                deviceId,
+                deniedBy,
+                Instant.now()));
     }
 
     /**

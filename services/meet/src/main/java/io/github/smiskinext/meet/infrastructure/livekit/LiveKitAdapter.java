@@ -16,6 +16,7 @@ import io.livekit.server.RoomAdmin;
 import io.livekit.server.RoomJoin;
 import io.livekit.server.RoomName;
 import java.util.List;
+import livekit.LivekitRoom.RoomConfiguration;
 import org.jspecify.annotations.Nullable;
 import org.springframework.stereotype.Component;
 
@@ -36,6 +37,10 @@ public class LiveKitAdapter implements LiveKitPort {
             token.setIdentity(request.identity().value());
             token.setTtl(properties.tokenExpirySeconds() * 1000L);
             token.getAttributes().putAll(request.participantAttributes().toMap());
+            token.setRoomConfiguration(RoomConfiguration.newBuilder()
+                    .setName(request.roomName().value())
+                    .setMetadata(request.tenantId())
+                    .build());
 
             boolean isHost = request.role() == ParticipantRole.HOST;
 

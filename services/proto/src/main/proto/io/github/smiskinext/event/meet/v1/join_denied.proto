@@ -1,0 +1,16 @@
+syntax = "proto3";
+
+package io.github.smiskinext.event.meet.v1;
+
+option java_multiple_files = true;
+option java_package = "io.github.smiskinext.event.meet.v1";
+
+message JoinDenied {
+  string meeting_id = 1;
+  string join_request_id = 2;
+  string tenant_id = 3;
+  string account_id = 4;
+  string device_id = 5;
+  string denied_by = 6;
+  string occurred_at = 7;
+}

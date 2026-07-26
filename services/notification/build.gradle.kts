@@ -10,6 +10,7 @@ description = "notification"
 
 dependencies {
     implementation(libs.shared)
+    implementation(libs.spring.boot.starter.kafka)
     implementation(libs.cloudevents.kafka)
     implementation(libs.protobuf.java.util)
     testImplementation(libs.testcontainers.kafka)

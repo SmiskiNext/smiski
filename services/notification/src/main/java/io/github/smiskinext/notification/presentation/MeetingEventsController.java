@@ -38,4 +38,18 @@ public class MeetingEventsController {
     public SseEmitter subscribe(@PathVariable UUID id) {
         return sseConnectionManager.subscribe(id);
     }
+
+    @Operation(
+            summary = "Subscribe to a join request's decision",
+            description = "Opens a text/event-stream connection scoped by request id that delivers "
+                    + "the host's accept/decline outcome as a join_request_approved (token, "
+                    + "roomName) or join_request_denied (reason) event, replays a decision already "
+                    + "recorded before subscribe, and sends periodic heartbeat comments until the "
+                    + "configured timeout.")
+    @GetMapping(
+            value = "/meetings/{id}/join-requests/{requestId}/events",
+            produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    public SseEmitter subscribeRequest(@PathVariable UUID id, @PathVariable UUID requestId) {
+        return sseConnectionManager.subscribeRequest(requestId);
+    }
 }

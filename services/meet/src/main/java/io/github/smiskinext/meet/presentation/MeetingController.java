@@ -3,8 +3,10 @@ package io.github.smiskinext.meet.presentation;
 import io.github.smiskinext.meet.application.command.CreateInstantMeetingCommand;
 import io.github.smiskinext.meet.application.command.ScheduleMeetingCommand;
 import io.github.smiskinext.meet.application.query.GetMeetingQuery;
+import io.github.smiskinext.meet.application.result.AcceptJoinRequestsResult;
 import io.github.smiskinext.meet.application.result.BatchDeleteMeetingsResult;
 import io.github.smiskinext.meet.application.result.CreateInstantMeetingResult;
+import io.github.smiskinext.meet.application.result.DeclineJoinRequestsResult;
 import io.github.smiskinext.meet.application.result.DeleteMeetingResult;
 import io.github.smiskinext.meet.application.result.GetMeetingResult;
 import io.github.smiskinext.meet.application.result.ListMeetingsResult;
@@ -12,8 +14,10 @@ import io.github.smiskinext.meet.application.result.RequestJoinResult;
 import io.github.smiskinext.meet.application.result.ScheduleMeetingResult;
 import io.github.smiskinext.meet.application.result.UpdateMeetingInviteesResult;
 import io.github.smiskinext.meet.application.result.UpdateMeetingResult;
+import io.github.smiskinext.meet.application.usecase.AcceptJoinRequestsUseCase;
 import io.github.smiskinext.meet.application.usecase.BatchDeleteMeetingsUseCase;
 import io.github.smiskinext.meet.application.usecase.CreateInstantMeetingUseCase;
+import io.github.smiskinext.meet.application.usecase.DeclineJoinRequestsUseCase;
 import io.github.smiskinext.meet.application.usecase.DeleteMeetingUseCase;
 import io.github.smiskinext.meet.application.usecase.GetMeetingUseCase;
 import io.github.smiskinext.meet.application.usecase.ListMeetingsUseCase;
@@ -25,6 +29,7 @@ import io.github.smiskinext.meet.domain.ListMeetingsError;
 import io.github.smiskinext.meet.domain.MeetingError;
 import io.github.smiskinext.meet.presentation.request.BatchDeleteMeetingsRequest;
 import io.github.smiskinext.meet.presentation.request.CreateInstantMeetingRequest;
+import io.github.smiskinext.meet.presentation.request.HandleJoinRequestsRequest;
 import io.github.smiskinext.meet.presentation.request.JoinMeetingRequest;
 import io.github.smiskinext.meet.presentation.request.ListMeetingsRequest;
 import io.github.smiskinext.meet.presentation.request.ScheduleMeetingRequest;
@@ -34,6 +39,7 @@ import io.github.smiskinext.meet.presentation.response.BatchDeleteMeetingsRespon
 import io.github.smiskinext.meet.presentation.response.CreateInstantMeetingResponse;
 import io.github.smiskinext.meet.presentation.response.DeleteMeetingResponse;
 import io.github.smiskinext.meet.presentation.response.GetMeetingResponse;
+import io.github.smiskinext.meet.presentation.response.JoinDecisionResponse;
 import io.github.smiskinext.meet.presentation.response.JoinMeetingResponse;
 import io.github.smiskinext.meet.presentation.response.MeetingListPageResponse;
 import io.github.smiskinext.meet.presentation.response.MeetingSummaryResponse;
@@ -84,6 +90,8 @@ public class MeetingController {
     private final DeleteMeetingUseCase deleteMeetingUseCase;
     private final BatchDeleteMeetingsUseCase batchDeleteMeetingsUseCase;
     private final RequestJoinUseCase requestJoinUseCase;
+    private final AcceptJoinRequestsUseCase acceptJoinRequestsUseCase;
+    private final DeclineJoinRequestsUseCase declineJoinRequestsUseCase;
     private final ResultResponder responder;
 
     public MeetingController(
@@ -96,6 +104,8 @@ public class MeetingController {
             DeleteMeetingUseCase deleteMeetingUseCase,
             BatchDeleteMeetingsUseCase batchDeleteMeetingsUseCase,
             RequestJoinUseCase requestJoinUseCase,
+            AcceptJoinRequestsUseCase acceptJoinRequestsUseCase,
+            DeclineJoinRequestsUseCase declineJoinRequestsUseCase,
             ResultResponder responder) {
         this.createInstantMeetingUseCase = createInstantMeetingUseCase;
         this.scheduleMeetingUseCase = scheduleMeetingUseCase;
@@ -106,6 +116,8 @@ public class MeetingController {
         this.deleteMeetingUseCase = deleteMeetingUseCase;
         this.batchDeleteMeetingsUseCase = batchDeleteMeetingsUseCase;
         this.requestJoinUseCase = requestJoinUseCase;
+        this.acceptJoinRequestsUseCase = acceptJoinRequestsUseCase;
+        this.declineJoinRequestsUseCase = declineJoinRequestsUseCase;
         this.responder = responder;
     }
 
@@ -271,7 +283,6 @@ public class MeetingController {
                           "participants": [
                             {
                               "accountId": "account-456",
-                              "displayName": "Alice Nguyen",
                               "role": "PARTICIPANT",
                               "joinedAt": "2025-02-01T14:01:00Z",
                               "leftAt": null
@@ -1131,5 +1142,245 @@ public class MeetingController {
         Result<RequestJoinResult, MeetingError> result = requestJoinUseCase.execute(
                 request.toCommand(id.toString(), accountId, TenantContext.getCurrentTenant()));
         return responder.ok(result.map(JoinMeetingResponse::from));
+    }
+
+    @Operation(
+            summary = "Accept pending join requests",
+            description =
+                    "Accepts one or more pending join requests as the meeting host. Processing "
+                            + "is best-effort per item: each submitted requestId yields a result entry with "
+                            + "status APPROVED (carrying a LiveKit token and room name), or FAILED (carrying "
+                            + "a machine-readable reason such as MEETING_FULL, JOIN_REQUEST_NOT_FOUND, or "
+                            + "JOIN_REQUEST_EXPIRED). Capacity is enforced so the batch never exceeds "
+                            + "maxParticipants. Only the host may accept.")
+    @ApiResponses({
+        @ApiResponse(
+                responseCode = "200",
+                description = "Per-item decision results",
+                content =
+                        @Content(
+                                mediaType = "application/json",
+                                schema = @Schema(implementation = JoinDecisionResponse.class),
+                                examples = @ExampleObject(name = "results", value = """
+                        {
+                          "results": [
+                            {
+                              "requestId": "0195e0c2-8f3a-7c21-b9d4-2f1a6e7c8d90",
+                              "status": "APPROVED",
+                              "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.example.token",
+                              "roomName": "meeting-0195e0c2-8f3a-7c21-b9d4-2f1a6e7c8d90",
+                              "reason": null
+                            },
+                            {
+                              "requestId": "0195e0c2-8f3a-7c21-b9d4-3a2b1c4d5e60",
+                              "status": "FAILED",
+                              "token": null,
+                              "roomName": null,
+                              "reason": "MEETING_FULL"
+                            }
+                          ]
+                        }"""))),
+        @ApiResponse(
+                responseCode = "400",
+                description = "Missing account header or empty/malformed body",
+                content =
+                        @Content(
+                                mediaType = "application/problem+json",
+                                schema = @Schema(implementation = ProblemDetailSchema.class),
+                                examples = {
+                                    @ExampleObject(
+                                            name = "validationError",
+                                            summary = "Empty requestIds list",
+                                            value = """
+                            {
+                              "type": "about:blank",
+                              "title": "Bad Request",
+                              "status": 400,
+                              "detail": "The request body failed validation",
+                              "code": "VALIDATION_ERROR",
+                              "traceId": "6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a",
+                              "errors": [
+                                {"field": "requestIds", "code": "REQUIRED", "message": "must not be empty"}
+                              ]
+                            }"""),
+                                    @ExampleObject(
+                                            name = "missingAccount",
+                                            summary = "Missing X-Account-Id header",
+                                            value = """
+                            {
+                              "type": "about:blank",
+                              "title": "Bad Request",
+                              "status": 400,
+                              "detail": "X-Account-Id header is required",
+                              "code": "VALIDATION_ERROR",
+                              "traceId": "6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a"
+                            }""")
+                                })),
+        @ApiResponse(
+                responseCode = "403",
+                description = "Only the host may accept join requests",
+                content =
+                        @Content(
+                                mediaType = "application/problem+json",
+                                schema = @Schema(implementation = ProblemDetailSchema.class),
+                                examples = @ExampleObject(name = "notOwner", value = """
+                        {
+                          "type": "about:blank",
+                          "title": "Not authorized",
+                          "status": 403,
+                          "detail": "You do not own the requested user scope.",
+                          "code": "NOT_OWNER",
+                          "traceId": "6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a"
+                        }"""))),
+        @ApiResponse(
+                responseCode = "404",
+                description = "Meeting not found for the current tenant",
+                content =
+                        @Content(
+                                mediaType = "application/problem+json",
+                                schema = @Schema(implementation = ProblemDetailSchema.class),
+                                examples = @ExampleObject(name = "notFound", value = """
+                        {
+                          "type": "about:blank",
+                          "title": "Meeting not found",
+                          "status": 404,
+                          "detail": "No meeting matches the given identifier.",
+                          "code": "MEETING_NOT_FOUND",
+                          "traceId": "6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a"
+                        }""")))
+    })
+    @PostMapping("/meetings/{id}/join-requests:accept")
+    public ResponseEntity<Object> acceptJoinRequests(
+            @PathVariable UUID id, @Valid @RequestBody HandleJoinRequestsRequest request) {
+        String accountId = AccountContext.getCurrentAccount().orElse(null);
+        if (accountId == null) {
+            return ResponseEntity.badRequest()
+                    .contentType(org.springframework.http.MediaType.APPLICATION_PROBLEM_JSON)
+                    .body(org.springframework.http.ProblemDetail.forStatusAndDetail(
+                            org.springframework.http.HttpStatus.BAD_REQUEST,
+                            "X-Account-Id header is required"));
+        }
+        Result<AcceptJoinRequestsResult, MeetingError> result = acceptJoinRequestsUseCase.execute(
+                request.toAcceptCommand(id, accountId, TenantContext.getCurrentTenant()));
+        return responder.ok(result.map(JoinDecisionResponse::from));
+    }
+
+    @Operation(
+            summary = "Decline pending join requests",
+            description =
+                    "Declines one or more pending join requests as the meeting host. Processing "
+                            + "is best-effort per item: each submitted requestId yields a result entry with "
+                            + "status DENIED (no token), or FAILED (carrying a machine-readable reason). Only "
+                            + "the host may decline.")
+    @ApiResponses({
+        @ApiResponse(
+                responseCode = "200",
+                description = "Per-item decision results",
+                content =
+                        @Content(
+                                mediaType = "application/json",
+                                schema = @Schema(implementation = JoinDecisionResponse.class),
+                                examples = @ExampleObject(name = "results", value = """
+                        {
+                          "results": [
+                            {
+                              "requestId": "0195e0c2-8f3a-7c21-b9d4-2f1a6e7c8d90",
+                              "status": "DENIED",
+                              "token": null,
+                              "roomName": null,
+                              "reason": null
+                            },
+                            {
+                              "requestId": "0195e0c2-8f3a-7c21-b9d4-3a2b1c4d5e60",
+                              "status": "FAILED",
+                              "token": null,
+                              "roomName": null,
+                              "reason": "JOIN_REQUEST_NOT_FOUND"
+                            }
+                          ]
+                        }"""))),
+        @ApiResponse(
+                responseCode = "400",
+                description = "Missing account header or empty/malformed body",
+                content =
+                        @Content(
+                                mediaType = "application/problem+json",
+                                schema = @Schema(implementation = ProblemDetailSchema.class),
+                                examples = {
+                                    @ExampleObject(
+                                            name = "validationError",
+                                            summary = "Empty requestIds list",
+                                            value = """
+                            {
+                              "type": "about:blank",
+                              "title": "Bad Request",
+                              "status": 400,
+                              "detail": "The request body failed validation",
+                              "code": "VALIDATION_ERROR",
+                              "traceId": "6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a",
+                              "errors": [
+                                {"field": "requestIds", "code": "REQUIRED", "message": "must not be empty"}
+                              ]
+                            }"""),
+                                    @ExampleObject(
+                                            name = "missingAccount",
+                                            summary = "Missing X-Account-Id header",
+                                            value = """
+                            {
+                              "type": "about:blank",
+                              "title": "Bad Request",
+                              "status": 400,
+                              "detail": "X-Account-Id header is required",
+                              "code": "VALIDATION_ERROR",
+                              "traceId": "6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a"
+                            }""")
+                                })),
+        @ApiResponse(
+                responseCode = "403",
+                description = "Only the host may decline join requests",
+                content =
+                        @Content(
+                                mediaType = "application/problem+json",
+                                schema = @Schema(implementation = ProblemDetailSchema.class),
+                                examples = @ExampleObject(name = "notOwner", value = """
+                        {
+                          "type": "about:blank",
+                          "title": "Not authorized",
+                          "status": 403,
+                          "detail": "You do not own the requested user scope.",
+                          "code": "NOT_OWNER",
+                          "traceId": "6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a"
+                        }"""))),
+        @ApiResponse(
+                responseCode = "404",
+                description = "Meeting not found for the current tenant",
+                content =
+                        @Content(
+                                mediaType = "application/problem+json",
+                                schema = @Schema(implementation = ProblemDetailSchema.class),
+                                examples = @ExampleObject(name = "notFound", value = """
+                        {
+                          "type": "about:blank",
+                          "title": "Meeting not found",
+                          "status": 404,
+                          "detail": "No meeting matches the given identifier.",
+                          "code": "MEETING_NOT_FOUND",
+                          "traceId": "6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a"
+                        }""")))
+    })
+    @PostMapping("/meetings/{id}/join-requests:decline")
+    public ResponseEntity<Object> declineJoinRequests(
+            @PathVariable UUID id, @Valid @RequestBody HandleJoinRequestsRequest request) {
+        String accountId = AccountContext.getCurrentAccount().orElse(null);
+        if (accountId == null) {
+            return ResponseEntity.badRequest()
+                    .contentType(org.springframework.http.MediaType.APPLICATION_PROBLEM_JSON)
+                    .body(org.springframework.http.ProblemDetail.forStatusAndDetail(
+                            org.springframework.http.HttpStatus.BAD_REQUEST,
+                            "X-Account-Id header is required"));
+        }
+        Result<DeclineJoinRequestsResult, MeetingError> result = declineJoinRequestsUseCase.execute(
+                request.toDeclineCommand(id, accountId, TenantContext.getCurrentTenant()));
+        return responder.ok(result.map(JoinDecisionResponse::from));
     }
 }
