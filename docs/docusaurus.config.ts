@@ -5,6 +5,8 @@ import { themes as prismThemes } from 'prism-react-renderer';
 
 // This runs in Node.js - Don't use client-side code here (browser APIs, JSX...)
 
+const siteUrl = process.env.DOCS_URL?.trim() || 'https://smiski-docs.pages.dev';
+
 const config: Config = {
     title: 'Smiski API Docs',
     tagline: 'API reference for the Smiski meeting platform',
@@ -14,7 +16,7 @@ const config: Config = {
         v4: true,
     },
 
-    url: 'https://smiski-docs.pages.dev',
+    url: siteUrl,
     baseUrl: '/',
 
     organizationName: 'smiskinext',
