@@ -6,9 +6,9 @@ import java.util.UUID;
 import org.jspecify.annotations.Nullable;
 
 /**
- * Result of an invitee-list replacement: the current active invitee snapshots after synchronization.
+ * Result of adding invitees to a meeting: the snapshots of only the invitees created by the call.
  */
-public record UpdateMeetingInviteesResult(List<Invitee> invitees) {
+public record AddMeetingInviteesResult(List<Invitee> invitees) {
 
     public record Invitee(
             UUID id,

@@ -1,23 +1,23 @@
 package io.github.smiskinext.meet.presentation.request;
 
-import io.github.smiskinext.meet.application.command.UpdateMeetingInviteesCommand;
+import io.github.smiskinext.meet.application.command.AddMeetingInviteesCommand;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.Size;
 
 import java.util.List;
 import java.util.UUID;
 
-@Schema(description = "Request body for replacing the invitee list of a meeting")
-public record UpdateMeetingInviteesRequest(
-        @Schema(description = "Full invitee list to synchronize") @NotNull @Valid List<@Valid Invitee> invitees) {
+@Schema(description = "Request body for adding new invitees to a meeting")
+public record AddMeetingInviteesRequest(
+        @Schema(description = "Invitees to add; at least one is required") @NotEmpty @Valid List<@Valid Invitee> invitees) {
 
-    @Schema(description = "Meeting invitee")
+    @Schema(description = "Meeting invitee to add")
     public record Invitee(
             @NotBlank @Email @Size(max = 255) String email,
             @NotBlank String accountId,
@@ -40,12 +40,11 @@ public record UpdateMeetingInviteesRequest(
         return distinct == present;
     }
 
-    public UpdateMeetingInviteesCommand toCommand(
-            UUID meetingId, String accountId, String tenantId) {
-        List<UpdateMeetingInviteesCommand.Invitee> inviteeCommands = invitees.stream()
-                .map(invitee -> new UpdateMeetingInviteesCommand.Invitee(
+    public AddMeetingInviteesCommand toCommand(UUID meetingId, String accountId, String tenantId) {
+        List<AddMeetingInviteesCommand.Invitee> inviteeCommands = invitees.stream()
+                .map(invitee -> new AddMeetingInviteesCommand.Invitee(
                         invitee.email(), invitee.accountId(), invitee.displayName()))
                 .toList();
-        return new UpdateMeetingInviteesCommand(meetingId, accountId, tenantId, inviteeCommands);
+        return new AddMeetingInviteesCommand(meetingId, accountId, tenantId, inviteeCommands);
     }
 }

@@ -3,7 +3,6 @@ package io.github.smiskinext.meet.domain;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import io.github.smiskinext.meet.domain.event.MeetingInvitationsDeletedEvent;
-import io.github.smiskinext.meet.domain.event.MeetingInvitationsUpdatedEvent;
 import io.github.smiskinext.meet.domain.model.Meeting;
 import io.github.smiskinext.meet.domain.model.valueobject.*;
 import io.github.smiskinext.shared.domain.DomainEvent;
@@ -13,20 +12,6 @@ import java.util.UUID;
 import org.junit.jupiter.api.Test;
 
 class MeetingRecordInviteesChangeTest {
-
-    @Test
-    void recordInviteesUpdatedRegistersEventWithoutBumpingCalendarSequence() {
-        Meeting meeting = meeting();
-        int sequenceBefore = meeting.getCalendarSequence();
-
-        meeting.recordInviteesUpdated(List.of(new MeetingInvitationsUpdatedEvent.InviteeInfo(
-                UUID.randomUUID(), "acc-1", "a@test.com", "Alice", "NEEDS_ACTION")));
-
-        List<DomainEvent> events = meeting.getDomainEvents();
-        assertThat(events).hasSize(1);
-        assertThat(events.getFirst()).isInstanceOf(MeetingInvitationsUpdatedEvent.class);
-        assertThat(meeting.getCalendarSequence()).isEqualTo(sequenceBefore);
-    }
 
     @Test
     void recordInviteesRemovedRegistersEventWithoutBumpingCalendarSequence() {
@@ -46,7 +31,6 @@ class MeetingRecordInviteesChangeTest {
     void emptyGroupsRegisterNoEvent() {
         Meeting meeting = meeting();
 
-        meeting.recordInviteesUpdated(List.of());
         meeting.recordInviteesRemoved(List.of());
 
         assertThat(meeting.getDomainEvents()).isEmpty();

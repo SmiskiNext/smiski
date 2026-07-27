@@ -41,7 +41,7 @@ public class MeetingInvitee extends AggregateRoot<InviteeId> {
     private final InviterId inviterId;
     private final AccountId accountId;
     private final Email email;
-    private InviteeDisplayName displayName;
+    private final InviteeDisplayName displayName;
     private final InviteeRole role;
     private final boolean rsvp;
     private InviteeStatus status;
@@ -143,27 +143,6 @@ public class MeetingInvitee extends AggregateRoot<InviteeId> {
         if (removedAt == null) {
             removedAt = Instant.now();
         }
-    }
-
-    /**
-     * Updates the display name of this invitation.
-     *
-     * <p>No-ops when the supplied name equals the current one. Rejected when the invitee has already
-     * been removed.
-     *
-     * @param newDisplayName the new display name
-     * @return {@code Result.success()} on success (including the unchanged no-op case), or
-     *     {@code Result.failure(InvalidInviteeTransition)} if the invitee is already removed
-     */
-    public Result<Void, MeetingError> updateDisplayName(InviteeDisplayName newDisplayName) {
-        if (removedAt != null) {
-            return Result.failure(new MeetingError.InvalidInviteeTransition(status, status));
-        }
-        if (displayName.equals(newDisplayName)) {
-            return Result.success();
-        }
-        displayName = newDisplayName;
-        return Result.success();
     }
 
     /**

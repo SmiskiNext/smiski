@@ -159,6 +159,19 @@ public sealed interface MeetingError extends DomainError {
         }
     }
 
+    /** An account submitted for creation already has an active invitee for the meeting. */
+    record InviteeAlreadyExists(String accountId) implements MeetingError {
+        @Override
+        public ErrorCode errorCode() {
+            return MeetingErrorCode.INVITEE_ALREADY_EXISTS;
+        }
+
+        @Override
+        public Object[] messageArgs() {
+            return new Object[] {accountId};
+        }
+    }
+
     record InvalidMeetingDuration(long actualMinutes, int minMinutes, int maxMinutes)
             implements MeetingError {
         @Override

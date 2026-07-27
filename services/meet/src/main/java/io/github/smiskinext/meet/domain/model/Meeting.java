@@ -376,35 +376,6 @@ public class Meeting extends AggregateRoot<MeetingId> {
     }
 
     /**
-     * Records that one or more invitees had their display name updated for this meeting.
-     * Registers {@code MeetingInvitationsUpdatedEvent} carrying only the affected invitees.
-     *
-     * <p>Does nothing when the invitee list is empty. Does not change {@code calendarSequence}.
-     *
-     * @param invitees list of updated invitee info snapshots
-     */
-    public void recordInviteesUpdated(List<MeetingInvitationsUpdatedEvent.InviteeInfo> invitees) {
-        if (invitees.isEmpty()) {
-            return;
-        }
-        registerEvent(new MeetingInvitationsUpdatedEvent(
-                UUID.randomUUID(),
-                tenantId.value(),
-                id.value(),
-                title.value(),
-                shortCode.value(),
-                timeRange != null ? timeRange.start() : null,
-                timeRange != null ? timeRange.end() : null,
-                timeZone.value(),
-                organizerEmail.value(),
-                organizerDisplayName.value(),
-                calendarUid,
-                calendarSequence,
-                List.copyOf(invitees),
-                Instant.now()));
-    }
-
-    /**
      * Records that one or more invitees were removed from this meeting.
      * Registers {@code MeetingInvitationsDeletedEvent} carrying only the removed invitees.
      *

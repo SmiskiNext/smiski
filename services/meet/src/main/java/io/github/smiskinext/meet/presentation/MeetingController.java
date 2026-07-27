@@ -4,37 +4,41 @@ import io.github.smiskinext.meet.application.command.CreateInstantMeetingCommand
 import io.github.smiskinext.meet.application.command.ScheduleMeetingCommand;
 import io.github.smiskinext.meet.application.query.GetMeetingQuery;
 import io.github.smiskinext.meet.application.result.AcceptJoinRequestsResult;
+import io.github.smiskinext.meet.application.result.AddMeetingInviteesResult;
 import io.github.smiskinext.meet.application.result.BatchDeleteMeetingsResult;
 import io.github.smiskinext.meet.application.result.CreateInstantMeetingResult;
 import io.github.smiskinext.meet.application.result.DeclineJoinRequestsResult;
 import io.github.smiskinext.meet.application.result.DeleteMeetingResult;
 import io.github.smiskinext.meet.application.result.GetMeetingResult;
 import io.github.smiskinext.meet.application.result.ListMeetingsResult;
+import io.github.smiskinext.meet.application.result.RemoveMeetingInviteesResult;
 import io.github.smiskinext.meet.application.result.RequestJoinResult;
 import io.github.smiskinext.meet.application.result.ScheduleMeetingResult;
-import io.github.smiskinext.meet.application.result.UpdateMeetingInviteesResult;
 import io.github.smiskinext.meet.application.result.UpdateMeetingResult;
 import io.github.smiskinext.meet.application.usecase.AcceptJoinRequestsUseCase;
+import io.github.smiskinext.meet.application.usecase.AddMeetingInviteesUseCase;
 import io.github.smiskinext.meet.application.usecase.BatchDeleteMeetingsUseCase;
 import io.github.smiskinext.meet.application.usecase.CreateInstantMeetingUseCase;
 import io.github.smiskinext.meet.application.usecase.DeclineJoinRequestsUseCase;
 import io.github.smiskinext.meet.application.usecase.DeleteMeetingUseCase;
 import io.github.smiskinext.meet.application.usecase.GetMeetingUseCase;
 import io.github.smiskinext.meet.application.usecase.ListMeetingsUseCase;
+import io.github.smiskinext.meet.application.usecase.RemoveMeetingInviteesUseCase;
 import io.github.smiskinext.meet.application.usecase.RequestJoinUseCase;
 import io.github.smiskinext.meet.application.usecase.ScheduleMeetingUseCase;
-import io.github.smiskinext.meet.application.usecase.UpdateMeetingInviteesUseCase;
 import io.github.smiskinext.meet.application.usecase.UpdateMeetingUseCase;
 import io.github.smiskinext.meet.domain.ListMeetingsError;
 import io.github.smiskinext.meet.domain.MeetingError;
+import io.github.smiskinext.meet.presentation.request.AddMeetingInviteesRequest;
 import io.github.smiskinext.meet.presentation.request.BatchDeleteMeetingsRequest;
 import io.github.smiskinext.meet.presentation.request.CreateInstantMeetingRequest;
 import io.github.smiskinext.meet.presentation.request.HandleJoinRequestsRequest;
 import io.github.smiskinext.meet.presentation.request.JoinMeetingRequest;
 import io.github.smiskinext.meet.presentation.request.ListMeetingsRequest;
+import io.github.smiskinext.meet.presentation.request.RemoveMeetingInviteesRequest;
 import io.github.smiskinext.meet.presentation.request.ScheduleMeetingRequest;
-import io.github.smiskinext.meet.presentation.request.UpdateMeetingInviteesRequest;
 import io.github.smiskinext.meet.presentation.request.UpdateMeetingRequest;
+import io.github.smiskinext.meet.presentation.response.AddMeetingInviteesResponse;
 import io.github.smiskinext.meet.presentation.response.BatchDeleteMeetingsResponse;
 import io.github.smiskinext.meet.presentation.response.CreateInstantMeetingResponse;
 import io.github.smiskinext.meet.presentation.response.DeleteMeetingResponse;
@@ -43,8 +47,8 @@ import io.github.smiskinext.meet.presentation.response.JoinDecisionResponse;
 import io.github.smiskinext.meet.presentation.response.JoinMeetingResponse;
 import io.github.smiskinext.meet.presentation.response.MeetingListPageResponse;
 import io.github.smiskinext.meet.presentation.response.MeetingSummaryResponse;
+import io.github.smiskinext.meet.presentation.response.RemoveMeetingInviteesResponse;
 import io.github.smiskinext.meet.presentation.response.ScheduleMeetingResponse;
-import io.github.smiskinext.meet.presentation.response.UpdateMeetingInviteesResponse;
 import io.github.smiskinext.meet.presentation.response.UpdateMeetingResponse;
 import io.github.smiskinext.shared.domain.Result;
 import io.github.smiskinext.shared.infrastructure.identity.AccountContext;
@@ -84,7 +88,8 @@ public class MeetingController {
     private final CreateInstantMeetingUseCase createInstantMeetingUseCase;
     private final ScheduleMeetingUseCase scheduleMeetingUseCase;
     private final UpdateMeetingUseCase updateMeetingUseCase;
-    private final UpdateMeetingInviteesUseCase updateMeetingInviteesUseCase;
+    private final AddMeetingInviteesUseCase addMeetingInviteesUseCase;
+    private final RemoveMeetingInviteesUseCase removeMeetingInviteesUseCase;
     private final ListMeetingsUseCase listMeetingsUseCase;
     private final GetMeetingUseCase getMeetingUseCase;
     private final DeleteMeetingUseCase deleteMeetingUseCase;
@@ -98,7 +103,8 @@ public class MeetingController {
             CreateInstantMeetingUseCase createInstantMeetingUseCase,
             ScheduleMeetingUseCase scheduleMeetingUseCase,
             UpdateMeetingUseCase updateMeetingUseCase,
-            UpdateMeetingInviteesUseCase updateMeetingInviteesUseCase,
+            AddMeetingInviteesUseCase addMeetingInviteesUseCase,
+            RemoveMeetingInviteesUseCase removeMeetingInviteesUseCase,
             ListMeetingsUseCase listMeetingsUseCase,
             GetMeetingUseCase getMeetingUseCase,
             DeleteMeetingUseCase deleteMeetingUseCase,
@@ -110,7 +116,8 @@ public class MeetingController {
         this.createInstantMeetingUseCase = createInstantMeetingUseCase;
         this.scheduleMeetingUseCase = scheduleMeetingUseCase;
         this.updateMeetingUseCase = updateMeetingUseCase;
-        this.updateMeetingInviteesUseCase = updateMeetingInviteesUseCase;
+        this.addMeetingInviteesUseCase = addMeetingInviteesUseCase;
+        this.removeMeetingInviteesUseCase = removeMeetingInviteesUseCase;
         this.listMeetingsUseCase = listMeetingsUseCase;
         this.getMeetingUseCase = getMeetingUseCase;
         this.deleteMeetingUseCase = deleteMeetingUseCase;
@@ -469,22 +476,20 @@ public class MeetingController {
     }
 
     @Operation(
-            summary = "Replace a meeting's invitee list",
-            description = "Replaces the full invitee list of a SCHEDULED meeting as its host. "
-                    + "Invitees are matched by accountId: new entries are created, existing entries "
-                    + "have their display name updated, and absent entries are removed.")
+            summary = "Add invitees to a meeting",
+            description = "Adds one or more new invitees to a SCHEDULED meeting as its host. "
+                    + "Each new account is created with status NEEDS_ACTION. The request is atomic: "
+                    + "if any submitted accountId is already an active invitee the whole batch is "
+                    + "rejected with 409 INVITEE_ALREADY_EXISTS.")
     @ApiResponses({
         @ApiResponse(
                 responseCode = "200",
-                description = "Invitees synchronized",
+                description = "Invitees created",
                 content =
                         @Content(
                                 mediaType = "application/json",
-                                schema =
-                                        @Schema(
-                                                implementation =
-                                                        UpdateMeetingInviteesResponse.class),
-                                examples = @ExampleObject(name = "synchronized", value = """
+                                schema = @Schema(implementation = AddMeetingInviteesResponse.class),
+                                examples = @ExampleObject(name = "created", value = """
                         {
                           "invitees": [
                             {
@@ -492,20 +497,10 @@ public class MeetingController {
                               "accountId": "account-456",
                               "email": "alice@example.com",
                               "displayName": "Alice Nguyen",
-                              "role": "PARTICIPANT",
-                              "status": "PENDING",
+                              "role": "REQ_PARTICIPANT",
+                              "status": "NEEDS_ACTION",
                               "invitedAt": "2025-01-15T10:35:00Z",
                               "respondedAt": null
-                            },
-                            {
-                              "id": "0195e0c2-8f3a-7c21-b9d4-4b3c2d5e6f70",
-                              "accountId": "account-789",
-                              "email": "bob@example.com",
-                              "displayName": "Bob Tran",
-                              "role": "PARTICIPANT",
-                              "status": "ACCEPTED",
-                              "invitedAt": "2025-01-15T10:35:00Z",
-                              "respondedAt": "2025-01-15T11:00:00Z"
                             }
                           ]
                         }"""))),
@@ -547,18 +542,18 @@ public class MeetingController {
                                 })),
         @ApiResponse(
                 responseCode = "403",
-                description = "Only the host may modify invitees",
+                description = "Only the host may add invitees",
                 content =
                         @Content(
                                 mediaType = "application/problem+json",
                                 schema = @Schema(implementation = ProblemDetailSchema.class),
-                                examples = @ExampleObject(name = "notOwner", value = """
+                                examples = @ExampleObject(name = "notAuthorized", value = """
                         {
                           "type": "about:blank",
-                          "title": "Forbidden",
+                          "title": "Not authorized",
                           "status": 403,
-                          "detail": "Only the host may modify invitees",
-                          "code": "NOT_OWNER",
+                          "detail": "You are not the host of this meeting.",
+                          "code": "NOT_AUTHORIZED",
                           "traceId": "6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a"
                         }"""))),
         @ApiResponse(
@@ -576,11 +571,27 @@ public class MeetingController {
                           "detail": "Meeting not found",
                           "code": "MEETING_NOT_FOUND",
                           "traceId": "6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a"
+                        }"""))),
+        @ApiResponse(
+                responseCode = "409",
+                description = "An account is already an active invitee",
+                content =
+                        @Content(
+                                mediaType = "application/problem+json",
+                                schema = @Schema(implementation = ProblemDetailSchema.class),
+                                examples = @ExampleObject(name = "alreadyExists", value = """
+                        {
+                          "type": "about:blank",
+                          "title": "Invitee already exists",
+                          "status": 409,
+                          "detail": "Account account-456 is already an active invitee of this meeting.",
+                          "code": "INVITEE_ALREADY_EXISTS",
+                          "traceId": "6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a"
                         }""")))
     })
-    @PutMapping("/meetings/{id}/invitees")
-    public ResponseEntity<Object> updateInvitees(
-            @PathVariable UUID id, @Valid @RequestBody UpdateMeetingInviteesRequest request) {
+    @PostMapping("/meetings/{id}/invitees")
+    public ResponseEntity<Object> addInvitees(
+            @PathVariable UUID id, @Valid @RequestBody AddMeetingInviteesRequest request) {
         String accountId = AccountContext.getCurrentAccount().orElse(null);
         if (accountId == null) {
             return ResponseEntity.badRequest()
@@ -589,10 +600,138 @@ public class MeetingController {
                             org.springframework.http.HttpStatus.BAD_REQUEST,
                             "X-Account-Id header is required"));
         }
-        Result<UpdateMeetingInviteesResult, MeetingError> result =
-                updateMeetingInviteesUseCase.execute(
+        Result<AddMeetingInviteesResult, MeetingError> result = addMeetingInviteesUseCase.execute(
+                request.toCommand(id, accountId, TenantContext.getCurrentTenant()));
+        return responder.ok(result.map(AddMeetingInviteesResponse::from));
+    }
+
+    @Operation(
+            summary = "Remove invitees from a meeting",
+            description = "Removes one or more invitees from a SCHEDULED meeting as its host, by "
+                    + "invitee id. The request is atomic: if any submitted id does not correspond to "
+                    + "an active invitee of the meeting the whole batch is rejected with 404 "
+                    + "INVITEE_NOT_FOUND.")
+    @ApiResponses({
+        @ApiResponse(
+                responseCode = "200",
+                description = "Invitees removed",
+                content =
+                        @Content(
+                                mediaType = "application/json",
+                                schema =
+                                        @Schema(
+                                                implementation =
+                                                        RemoveMeetingInviteesResponse.class),
+                                examples = @ExampleObject(name = "removed", value = """
+                        {
+                          "invitees": [
+                            {
+                              "id": "0195e0c2-8f3a-7c21-b9d4-3a2b1c4d5e60",
+                              "accountId": "account-456",
+                              "email": "alice@example.com",
+                              "displayName": "Alice Nguyen",
+                              "role": "REQ_PARTICIPANT",
+                              "status": "NEEDS_ACTION",
+                              "invitedAt": "2025-01-15T10:35:00Z",
+                              "respondedAt": null
+                            }
+                          ]
+                        }"""))),
+        @ApiResponse(
+                responseCode = "400",
+                description = "Validation error or missing account",
+                content =
+                        @Content(
+                                mediaType = "application/problem+json",
+                                schema = @Schema(implementation = ProblemDetailSchema.class),
+                                examples = {
+                                    @ExampleObject(
+                                            name = "validationError",
+                                            summary = "Validation failure",
+                                            value = """
+                            {
+                              "type": "about:blank",
+                              "title": "Bad Request",
+                              "status": 400,
+                              "detail": "The request body failed validation",
+                              "code": "VALIDATION_ERROR",
+                              "traceId": "6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a",
+                              "errors": [
+                                {"field": "inviteeIds", "code": "REQUIRED", "message": "must not be empty"}
+                              ]
+                            }"""),
+                                    @ExampleObject(
+                                            name = "missingAccount",
+                                            summary = "Missing X-Account-Id header",
+                                            value = """
+                            {
+                              "type": "about:blank",
+                              "title": "Bad Request",
+                              "status": 400,
+                              "detail": "X-Account-Id header is required",
+                              "code": "VALIDATION_ERROR",
+                              "traceId": "6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a"
+                            }""")
+                                })),
+        @ApiResponse(
+                responseCode = "403",
+                description = "Only the host may remove invitees",
+                content =
+                        @Content(
+                                mediaType = "application/problem+json",
+                                schema = @Schema(implementation = ProblemDetailSchema.class),
+                                examples = @ExampleObject(name = "notAuthorized", value = """
+                        {
+                          "type": "about:blank",
+                          "title": "Not authorized",
+                          "status": 403,
+                          "detail": "You are not the host of this meeting.",
+                          "code": "NOT_AUTHORIZED",
+                          "traceId": "6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a"
+                        }"""))),
+        @ApiResponse(
+                responseCode = "404",
+                description = "Meeting or invitee not found",
+                content =
+                        @Content(
+                                mediaType = "application/problem+json",
+                                schema = @Schema(implementation = ProblemDetailSchema.class),
+                                examples = {
+                                    @ExampleObject(name = "meetingNotFound", value = """
+                        {
+                          "type": "about:blank",
+                          "title": "Not Found",
+                          "status": 404,
+                          "detail": "Meeting not found",
+                          "code": "MEETING_NOT_FOUND",
+                          "traceId": "6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a"
+                        }"""),
+                                    @ExampleObject(name = "inviteeNotFound", value = """
+                        {
+                          "type": "about:blank",
+                          "title": "Invitee not found",
+                          "status": 404,
+                          "detail": "No invitee matches: 0195e0c2-8f3a-7c21-b9d4-3a2b1c4d5e60.",
+                          "code": "INVITEE_NOT_FOUND",
+                          "traceId": "6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a"
+                        }""")
+                                }))
+    })
+    @PostMapping("/meetings/{id}/invitees:batchDelete")
+    public ResponseEntity<Object> batchDeleteInvitees(
+            @PathVariable UUID id, @Valid @RequestBody RemoveMeetingInviteesRequest request) {
+        String accountId = AccountContext.getCurrentAccount().orElse(null);
+        if (accountId == null) {
+            return ResponseEntity.badRequest()
+                    .contentType(org.springframework.http.MediaType.APPLICATION_PROBLEM_JSON)
+                    .body(org.springframework.http.ProblemDetail.forStatusAndDetail(
+                            org.springframework.http.HttpStatus.BAD_REQUEST,
+                            "X-Account-Id header is required"));
+        }
+        Result<RemoveMeetingInviteesResult, MeetingError> result =
+                removeMeetingInviteesUseCase.execute(
                         request.toCommand(id, accountId, TenantContext.getCurrentTenant()));
-        return responder.ok(result.map(UpdateMeetingInviteesResponse::from));
+        return responder.ok(result.map(RemoveMeetingInviteesResponse::from));
     }
 
     @Operation(

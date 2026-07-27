@@ -1,16 +1,18 @@
 package io.github.smiskinext.meet.presentation.response;
 
-import io.github.smiskinext.meet.application.result.UpdateMeetingInviteesResult;
+import io.github.smiskinext.meet.application.result.RemoveMeetingInviteesResult;
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 import org.jspecify.annotations.Nullable;
 
-@Schema(description = "Response containing the current active invitee list of a meeting")
-public record UpdateMeetingInviteesResponse(List<Invitee> invitees) {
+@Schema(description = "Response containing the invitees removed by a batch-delete call")
+public record RemoveMeetingInviteesResponse(List<Invitee> invitees) {
 
-    @Schema(name = "MeetingInviteeSnapshot", description = "Meeting invitee snapshot")
+    @Schema(
+            name = "RemovedMeetingInviteeSnapshot",
+            description = "Removed meeting invitee snapshot")
     public record Invitee(
             UUID id,
             String accountId,
@@ -25,7 +27,7 @@ public record UpdateMeetingInviteesResponse(List<Invitee> invitees) {
                     nullable = true)
             @Nullable Instant respondedAt) {}
 
-    public static UpdateMeetingInviteesResponse from(UpdateMeetingInviteesResult result) {
+    public static RemoveMeetingInviteesResponse from(RemoveMeetingInviteesResult result) {
         List<Invitee> invitees = result.invitees().stream()
                 .map(invitee -> new Invitee(
                         invitee.id(),
@@ -37,6 +39,6 @@ public record UpdateMeetingInviteesResponse(List<Invitee> invitees) {
                         invitee.invitedAt(),
                         invitee.respondedAt()))
                 .toList();
-        return new UpdateMeetingInviteesResponse(invitees);
+        return new RemoveMeetingInviteesResponse(invitees);
     }
 }
