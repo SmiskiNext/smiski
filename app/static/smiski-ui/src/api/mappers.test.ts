@@ -4,7 +4,6 @@ import {
     meetingsFromBackend,
     permissionsFromBackend,
     roomTokenFromBackend,
-    scheduleMeetingRequest,
 } from './mappers';
 
 describe('backend API mappers', () => {
@@ -50,49 +49,6 @@ describe('backend API mappers', () => {
                 ],
             }),
         ).toHaveLength(1);
-    });
-
-    it('builds the current scheduled-meeting backend request body', () => {
-        const request = scheduleMeetingRequest(
-            {
-                issueKey: 'PROJ-1',
-                title: 'Planning',
-                startTime: '2026-01-01T00:00:00Z',
-                participantAccountIds: ['account-456'],
-            },
-            {
-                currentUser: {
-                    accountId: 'account-123',
-                    displayName: 'Alice Nguyen',
-                    email: 'alice@example.com',
-                },
-                projectMembers: [
-                    {
-                        accountId: 'account-456',
-                        displayName: 'Bob Tran',
-                        email: 'bob@example.com',
-                    },
-                ],
-            },
-        );
-
-        expect(request).toMatchObject({
-            title: 'Planning',
-            issueLink: { issueKey: 'PROJ-1', projectKey: 'PROJ' },
-            organizerEmail: 'alice@example.com',
-            organizerDisplayName: 'Alice Nguyen',
-            invitees: [
-                {
-                    accountId: 'account-456',
-                    displayName: 'Bob Tran',
-                    email: 'bob@example.com',
-                },
-            ],
-        });
-        expect(request.timeRange).toEqual({
-            startTime: '2026-01-01T00:00:00.000Z',
-            endTime: '2026-01-01T01:00:00.000Z',
-        });
     });
 
     it('maps permission and LiveKit token envelopes flexibly', () => {

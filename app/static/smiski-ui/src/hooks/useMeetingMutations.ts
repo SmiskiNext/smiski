@@ -13,11 +13,8 @@ import type {
     ScheduleMeetingInput,
     UpdateMeetingInput,
 } from '../api/meetings';
-import { createInstantMeeting } from '../api/meetings';
-import { useCurrentUser } from '../context/CurrentUserContext';
-import type { ProjectMember } from '../domain';
+import { createInstantMeeting, scheduleMeeting } from '../api/meetings';
 import * as mockDb from '../mocks/db';
-import { queryKeys } from './queryKeys';
 
 function useInvalidateMeetings() {
     const queryClient = useQueryClient();
@@ -25,25 +22,6 @@ function useInvalidateMeetings() {
         queryClient.invalidateQueries({ queryKey: ['meetings'] });
         queryClient.invalidateQueries({ queryKey: ['meeting'] });
         queryClient.invalidateQueries({ queryKey: ['host-conflict'] });
-    };
-}
-
-/**
- * Captures the real Jira actor plus the project-member directory already
- * loaded by the meeting form. The mock database can then persist readable
- * names while retaining the same API payload contracts used by the backend.
- */
-function useMockIdentityContext() {
-    const currentUser = useCurrentUser();
-    const queryClient = useQueryClient();
-
-    return (issueKey: string): mockDb.MockMeetingIdentityContext => {
-        const projectKey = issueKey.split('-')[0];
-        const projectMembers =
-            queryClient.getQueryData<ProjectMember[]>(
-                queryKeys.projectMembers(projectKey),
-            ) ?? [];
-        return { currentUser, projectMembers };
     };
 }
 
@@ -62,12 +40,16 @@ export function useCreateInstantMeeting() {
     });
 }
 
+/**
+ * Create a scheduled meeting against the real `meet` backend (via Forge Remote).
+ * Like the instant flow, this does NOT fall back to the in-memory mock — a
+ * backend failure surfaces to the caller (BREAKING; standalone `vite dev` cannot
+ * create scheduled meetings). The edit branch below stays on the mock.
+ */
 export function useScheduleMeeting() {
     const invalidate = useInvalidateMeetings();
-    const identityForIssue = useMockIdentityContext();
     return useMutation({
-        mutationFn: (input: ScheduleMeetingInput) =>
-            mockDb.scheduleMeeting(input, identityForIssue(input.issueKey)),
+        mutationFn: (input: ScheduleMeetingInput) => scheduleMeeting(input),
         onSuccess: invalidate,
     });
 }

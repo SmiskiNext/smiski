@@ -14,6 +14,7 @@ interface JiraCurrentUserResponse {
     displayName?: string;
     emailAddress?: string;
     avatarUrls?: Record<string, string>;
+    timeZone?: string;
 }
 
 export async function getCurrentJiraUser(): Promise<ProjectMember> {
@@ -37,5 +38,6 @@ export async function getCurrentJiraUser(): Promise<ProjectMember> {
         displayName: user.displayName,
         email: user.emailAddress,
         avatarUrl: user.avatarUrls?.['48x48'],
+        timeZone: user.timeZone,
     };
 }

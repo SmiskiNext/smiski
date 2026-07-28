@@ -10,7 +10,6 @@ import {
     meetingFromBackend,
     meetingsFromBackend,
     roomTokenFromBackend,
-    scheduleMeetingRequest,
     updateMeetingRequest,
 } from './mappers';
 
@@ -49,15 +48,14 @@ export interface ScheduleMeetingInput {
     issueId?: string;
     projectKey?: string;
     title: string;
-    /** ISO datetime. */
+    /** ISO-8601 UTC instant for the scheduled start. */
     startTime: string;
-    /** ISO datetime. Defaults to one hour after startTime for the backend DTO. */
-    endTime?: string;
-    durationMinutes?: number;
+    /** ISO-8601 UTC instant for the scheduled end. */
+    endTime: string;
     zoneId?: string;
     description?: string;
-    /** Jira accountIds invited up front, if any. */
-    participantAccountIds?: string[];
+    /** Invitees carrying full identity (accountId, displayName, email). */
+    invitees: MeetingInviteeInput[];
 }
 
 /** Partial edit of an existing scheduled meeting. */
@@ -106,6 +104,16 @@ export async function getMeeting(meetingId: string): Promise<Meeting> {
     const payload = await apiRequest<unknown>(meetingEndpoints.byId(meetingId));
     return meetingFromBackend(payload);
 }
+
+/** Default meeting settings shared by the instant and scheduled create flows. */
+const DEFAULT_MEETING_SETTINGS = {
+    admissionPolicy: 'OPEN',
+    maxParticipants: 50,
+    allowScreenShare: true,
+    chatEnabled: true,
+    allowMicrophone: true,
+    allowVideo: true,
+} as const;
 
 /** The JSON body the `meet` backend's instant-create endpoint expects. */
 export interface InstantMeetingInvokePayload {
@@ -159,6 +167,60 @@ export function buildInstantMeetingPayload(
     };
 }
 
+/**
+ * The JSON body the `meet` backend's scheduled-create endpoint expects. Carries
+ * no `host` object because the backend resolves host identity from the request
+ * header (see the `create-schedule-meeting` spec).
+ */
+export interface ScheduleMeetingInvokePayload {
+    title: string;
+    description: string;
+    issueLink: {
+        issueId?: string;
+        issueKey: string;
+        projectKey: string;
+    };
+    settings: typeof DEFAULT_MEETING_SETTINGS;
+    timeRange: {
+        startTime: string;
+        endTime: string;
+    };
+    zoneId: string;
+    invitees: MeetingInviteeInput[];
+}
+
+/**
+ * Build the scheduled-create request body from the form input. Pure and free of
+ * `@forge/bridge`, so the payload contract (no `host`; `description` defaults to
+ * `title`; each invitee carries `email`/`accountId`/`displayName`; empty list
+ * when none) is unit-testable in isolation, exactly like the instant builder.
+ */
+export function buildScheduleMeetingPayload(
+    input: ScheduleMeetingInput,
+): ScheduleMeetingInvokePayload {
+    const projectKey = input.projectKey ?? input.issueKey.split('-')[0];
+    return {
+        title: input.title,
+        description: input.description?.trim() || input.title,
+        issueLink: {
+            issueId: input.issueId,
+            issueKey: input.issueKey,
+            projectKey,
+        },
+        settings: DEFAULT_MEETING_SETTINGS,
+        timeRange: {
+            startTime: input.startTime,
+            endTime: input.endTime,
+        },
+        zoneId: input.zoneId ?? getLocalTimeZone(),
+        invitees: input.invitees.map((invitee) => ({
+            accountId: invitee.accountId,
+            displayName: invitee.displayName,
+            email: invitee.email,
+        })),
+    };
+}
+
 /** Manifest `remotes` key for the `meet` backend (see app/manifest.yml). */
 const MEET_REMOTE_KEY = 'meet-backend';
 
@@ -168,6 +230,13 @@ const MEET_REMOTE_KEY = 'meet-backend';
  * and the manifest `endpoint.route.path`.
  */
 const INSTANT_MEETING_PATH = '/api/1/meetings:instant';
+
+/**
+ * Backend path for scheduled creation, appended to the remote `baseUrl` by
+ * `requestRemote`. Mirrors the `meet` controller route
+ * (`/api/1/meetings:schedule`) per the `create-schedule-meeting` spec.
+ */
+const SCHEDULE_MEETING_PATH = '/api/1/meetings:schedule';
 
 /** RFC 7807 problem+json shape the backend returns on a rejected request. */
 interface InstantMeetingProblem {
@@ -201,6 +270,19 @@ function instantMeetingError(
     return error;
 }
 
+function scheduleMeetingError(
+    problem: InstantMeetingProblem,
+): InstantMeetingError {
+    const message =
+        problem.detail
+        ?? problem.title
+        ?? 'The meeting backend rejected the scheduled-create request.';
+    const error = new Error(message) as InstantMeetingError;
+    error.code = problem.code;
+    error.traceId = problem.traceId;
+    return error;
+}
+
 /**
  * Create + start an instant meeting (UC01) by calling the `meet` backend
  * directly from Custom UI through Forge Remote. Forge attaches a signed Forge
@@ -228,16 +310,31 @@ export async function createInstantMeeting(
     return meetingFromBackend(await response.json());
 }
 
-/** Create a scheduled meeting (UC03). */
+/**
+ * Create a scheduled meeting (UC03) by calling the `meet` backend directly from
+ * Custom UI through Forge Remote. Forge attaches a signed Forge Invocation Token
+ * (FIT) as `Authorization: Bearer`; the app asserts NO tenant/account identity
+ * headers and sends no `host` object (host identity is resolved from the request
+ * header by the backend). There is no mock fallback: a non-2xx response or
+ * unreachable backend surfaces as an error the schedule form renders.
+ */
 export async function scheduleMeeting(
     input: ScheduleMeetingInput,
-    context?: MeetingApiContext,
 ): Promise<Meeting> {
-    const payload = await apiRequest<unknown>(meetingEndpoints.schedule, {
+    const payload = buildScheduleMeetingPayload(input);
+    const response = await requestRemote(MEET_REMOTE_KEY, {
+        path: SCHEDULE_MEETING_PATH,
         method: 'POST',
-        body: scheduleMeetingRequest(input, context),
+        headers: {
+            'Content-Type': 'application/json',
+            Accept: 'application/json',
+        },
+        body: JSON.stringify(payload),
     });
-    return meetingFromBackend(payload);
+    if (!response.ok) {
+        throw scheduleMeetingError(await readProblem(response));
+    }
+    return meetingFromBackend(await response.json());
 }
 
 /** Edit a scheduled meeting (requires EDIT_MEETING). */

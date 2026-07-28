@@ -9,7 +9,7 @@ import type {
 } from '../domain';
 import { getLocalTimeZone } from '../utils/datetime';
 import { apiConfig } from './config';
-import type { ScheduleMeetingInput, UpdateMeetingInput } from './meetings';
+import type { UpdateMeetingInput } from './meetings';
 
 const DEFAULT_DURATION_MINUTES = 60;
 const DEVICE_STORAGE_KEY = 'smiski:device-id';
@@ -214,27 +214,6 @@ export function permissionsFromBackend(payload: unknown): {
     };
 }
 
-export function scheduleMeetingRequest(
-    input: ScheduleMeetingInput,
-    context: MeetingApiContext = {},
-): Record<string, unknown> {
-    return {
-        title: input.title,
-        description: nonEmpty(input.description, input.title),
-        issueLink: issueLinkFromInput(input, context),
-        settings: DEFAULT_MEETING_SETTINGS,
-        timeRange: timeRangeFromStart(
-            input.startTime,
-            input.endTime,
-            input.durationMinutes,
-        ),
-        organizerEmail: emailFor(context.currentUser),
-        organizerDisplayName: context.currentUser?.displayName ?? 'Jira user',
-        zoneId: input.zoneId ?? getLocalTimeZone(),
-        invitees: inviteesFromAccountIds(input.participantAccountIds, context),
-    };
-}
-
 export function updateMeetingRequest(
     input: UpdateMeetingInput,
     context: MeetingApiContext = {},
@@ -287,19 +266,6 @@ function extractArray<T>(payload: unknown, keys: string[]): T[] {
     return [];
 }
 
-function issueLinkFromInput(
-    input: { issueKey: string; issueId?: string; projectKey?: string },
-    context: MeetingApiContext,
-): BackendIssueLink {
-    const projectKey =
-        input.projectKey ?? context.projectKey ?? input.issueKey.split('-')[0];
-    return {
-        issueId: input.issueId ?? context.issueId ?? `issue-${input.issueKey}`,
-        issueKey: input.issueKey,
-        projectKey,
-    };
-}
-
 function issueLinkFromMeeting(
     meeting: Meeting | undefined,
     input: UpdateMeetingInput,
@@ -336,36 +302,6 @@ function timeRangeFromStart(
         ? new Date(endTime)
         : new Date(start.getTime() + durationMinutes * 60 * 1000);
     return { startTime: start.toISOString(), endTime: end.toISOString() };
-}
-
-function inviteesFromAccountIds(
-    accountIds: string[] | undefined,
-    context: MeetingApiContext,
-): Array<{ accountId: string; displayName: string; email: string }> {
-    const members = new Map(
-        (context.projectMembers ?? []).map((member) => [
-            member.accountId,
-            member,
-        ]),
-    );
-    return (accountIds ?? []).map((accountId) => {
-        const member = members.get(accountId);
-        return {
-            accountId,
-            displayName: member?.displayName ?? accountId,
-            email: emailFor(member ?? { accountId, displayName: accountId }),
-        };
-    });
-}
-
-function emailFor(member: ProjectMember | undefined): string {
-    if (member?.email) return member.email;
-    const accountId = member?.accountId ?? 'unknown';
-    const safe = accountId
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, '-')
-        .replace(/^-|-$/g, '');
-    return `smiski+${safe || 'user'}@example.invalid`;
 }
 
 /**

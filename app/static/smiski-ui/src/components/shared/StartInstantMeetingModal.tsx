@@ -14,6 +14,7 @@ import { useState } from 'react';
 import type { WorkspaceUser } from '../../api/workspaceUsers';
 import { useCurrentUser } from '../../context/CurrentUserContext';
 import { useCreateInstantMeeting } from '../../hooks/useMeetingMutations';
+import { resolveUserTimeZone } from '../../utils/datetime';
 import { IssuePicker } from './IssuePicker';
 import { WorkspaceUserPicker } from './WorkspaceUserPicker';
 
@@ -81,7 +82,7 @@ export function StartInstantMeetingModal({
                 issueKey: resolvedIssueKey,
                 projectKey,
                 title: values.title.trim(),
-                zoneId: undefined,
+                zoneId: resolveUserTimeZone(currentUser.timeZone),
                 invitees: invitees.map((user) => ({
                     accountId: user.accountId,
                     displayName: user.displayName,

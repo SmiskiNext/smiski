@@ -9,4 +9,6 @@ export interface ProjectMember {
     displayName: string;
     email?: string;
     avatarUrl?: string;
+    /** IANA time-zone id from the Jira profile, e.g. `Asia/Ho_Chi_Minh`. */
+    timeZone?: string;
 }

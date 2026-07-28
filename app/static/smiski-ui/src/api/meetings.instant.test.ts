@@ -54,6 +54,18 @@ describe('buildInstantMeetingPayload', () => {
         expect(payload.zoneId).toBeTruthy();
     });
 
+    it('carries the profile-resolved zoneId through to the payload', () => {
+        const payload = buildInstantMeetingPayload(
+            {
+                issueKey: 'SMISKI-9',
+                title: 'Zoned meeting',
+                zoneId: 'Asia/Ho_Chi_Minh',
+            },
+            'web-device-123',
+        );
+        expect(payload.zoneId).toBe('Asia/Ho_Chi_Minh');
+    });
+
     it('sends an empty invitee list when no invitees are selected', () => {
         const payload = buildInstantMeetingPayload(
             { issueKey: 'SMISKI-9', title: 'Solo meeting' },
