@@ -13,6 +13,7 @@ import type {
     ScheduleMeetingInput,
     UpdateMeetingInput,
 } from '../api/meetings';
+import { createInstantMeeting } from '../api/meetings';
 import { useCurrentUser } from '../context/CurrentUserContext';
 import type { ProjectMember } from '../domain';
 import * as mockDb from '../mocks/db';
@@ -46,15 +47,17 @@ function useMockIdentityContext() {
     };
 }
 
+/**
+ * Create an instant meeting against the real `meet` backend (via the Forge
+ * resolver). Unlike schedule/update/cancel/start/end below, this flow does NOT
+ * fall back to the in-memory mock — a backend failure surfaces to the caller
+ * (BREAKING; standalone `vite dev` cannot create instant meetings).
+ */
 export function useCreateInstantMeeting() {
     const invalidate = useInvalidateMeetings();
-    const identityForIssue = useMockIdentityContext();
     return useMutation({
         mutationFn: (input: CreateInstantMeetingInput) =>
-            mockDb.createInstantMeeting(
-                input,
-                identityForIssue(input.issueKey),
-            ),
+            createInstantMeeting(input),
         onSuccess: invalidate,
     });
 }

@@ -11,3 +11,4 @@ export * from './participants';
 export * from './permissions';
 export * from './projectMembers';
 export * from './recordings';
+export * from './workspaceUsers';

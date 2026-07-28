@@ -20,3 +20,4 @@ export * from './ScheduleMeetingModal';
 export * from './SectionHeading';
 export * from './StartInstantMeetingModal';
 export * from './StatusTag';
+export * from './WorkspaceUserPicker';

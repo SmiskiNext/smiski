@@ -1,10 +1,11 @@
 import { invoke } from '@forge/bridge';
 import type { Meeting, MeetingStatus } from '../domain';
+import { getLocalTimeZone } from '../utils/datetime';
 import { apiRequest } from './client';
 import { shouldUseBackendApi } from './config';
 import { meetingEndpoints } from './endpoints';
 import {
-    createInstantMeetingRequest,
+    getDeviceId,
     type MeetingApiContext,
     meetingFromBackend,
     meetingsFromBackend,
@@ -12,6 +13,21 @@ import {
     scheduleMeetingRequest,
     updateMeetingRequest,
 } from './mappers';
+
+/** A meeting invitee, carrying the identity the backend requires. */
+export interface MeetingInviteeInput {
+    accountId: string;
+    displayName: string;
+    email: string;
+}
+
+/** The invoking user's identity used to populate host/organizer fields. */
+export interface InstantMeetingHostIdentity {
+    accountId: string;
+    displayName: string;
+    email?: string;
+    avatarUrl?: string;
+}
 
 /** Payload to create an instant meeting (UC01). */
 export interface CreateInstantMeetingInput {
@@ -21,8 +37,10 @@ export interface CreateInstantMeetingInput {
     title: string;
     description?: string;
     zoneId?: string;
-    /** Jira accountIds invited up front, if any. */
-    participantAccountIds?: string[];
+    /** Full invitees carrying accountId, displayName, and email. */
+    invitees?: MeetingInviteeInput[];
+    /** Host identity (from CurrentUserContext); resolves host/organizer fields. */
+    host?: InstantMeetingHostIdentity;
 }
 
 /** Payload to schedule a meeting (UC03). */
@@ -89,16 +107,71 @@ export async function getMeeting(meetingId: string): Promise<Meeting> {
     return meetingFromBackend(payload);
 }
 
-/** Create + start an instant meeting (UC01). */
+/** The invoke payload the `createInstantMeeting` resolver expects. */
+export interface InstantMeetingInvokePayload {
+    title: string;
+    description: string;
+    issueKey: string;
+    issueId?: string;
+    projectKey: string;
+    zoneId: string;
+    host: {
+        displayName: string;
+        deviceId: string;
+        avatarUrl?: string;
+    };
+    organizerEmail: string;
+    organizerDisplayName: string;
+    invitees: MeetingInviteeInput[];
+}
+
+/**
+ * Build the resolver invoke payload from the form input. Pure and free of
+ * `@forge/bridge`, so the invitee contract (each carries `email`, `accountId`,
+ * `displayName`; no invitee → empty list) is unit-testable in isolation. The
+ * `deviceId` is passed in so the browser-only `localStorage` lookup stays out
+ * of this pure builder.
+ */
+export function buildInstantMeetingPayload(
+    input: CreateInstantMeetingInput,
+    deviceId: string,
+): InstantMeetingInvokePayload {
+    const projectKey = input.projectKey ?? input.issueKey.split('-')[0];
+    return {
+        title: input.title,
+        description: input.description?.trim() || input.title,
+        issueKey: input.issueKey,
+        issueId: input.issueId,
+        projectKey,
+        zoneId: input.zoneId ?? getLocalTimeZone(),
+        host: {
+            displayName: input.host?.displayName ?? 'Jira user',
+            deviceId,
+            avatarUrl: input.host?.avatarUrl,
+        },
+        organizerEmail: input.host?.email ?? '',
+        organizerDisplayName: input.host?.displayName ?? 'Jira user',
+        invitees: (input.invitees ?? []).map((invitee) => ({
+            accountId: invitee.accountId,
+            displayName: invitee.displayName,
+            email: invitee.email,
+        })),
+    };
+}
+
+/**
+ * Create + start an instant meeting (UC01) through the Forge resolver, which
+ * calls the real `meet` backend. There is no mock fallback: standalone
+ * `vite dev` has no bridge, so instant-create only works under a Forge
+ * tunnel/deploy. The resolver builds the backend request and attaches the
+ * tenant/account identity headers server-side.
+ */
 export async function createInstantMeeting(
     input: CreateInstantMeetingInput,
-    context?: MeetingApiContext,
 ): Promise<Meeting> {
-    const payload = await apiRequest<unknown>(meetingEndpoints.createInstant, {
-        method: 'POST',
-        body: createInstantMeetingRequest(input, context),
-    });
-    return meetingFromBackend(payload);
+    const payload = buildInstantMeetingPayload(input, getDeviceId());
+    const response = await invoke('createInstantMeeting', payload);
+    return meetingFromBackend(response);
 }
 
 /** Create a scheduled meeting (UC03). */

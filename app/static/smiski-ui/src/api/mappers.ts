@@ -9,11 +9,7 @@ import type {
 } from '../domain';
 import { getLocalTimeZone } from '../utils/datetime';
 import { apiConfig } from './config';
-import type {
-    CreateInstantMeetingInput,
-    ScheduleMeetingInput,
-    UpdateMeetingInput,
-} from './meetings';
+import type { ScheduleMeetingInput, UpdateMeetingInput } from './meetings';
 
 const DEFAULT_DURATION_MINUTES = 60;
 const DEVICE_STORAGE_KEY = 'smiski:device-id';
@@ -218,28 +214,6 @@ export function permissionsFromBackend(payload: unknown): {
     };
 }
 
-export function createInstantMeetingRequest(
-    input: CreateInstantMeetingInput,
-    context: MeetingApiContext = {},
-): Record<string, unknown> {
-    const currentUser = context.currentUser;
-    return {
-        title: input.title,
-        description: nonEmpty(input.description, input.title),
-        issueLink: issueLinkFromInput(input, context),
-        settings: DEFAULT_MEETING_SETTINGS,
-        host: {
-            displayName: currentUser?.displayName ?? 'Jira user',
-            deviceId: getDeviceId(),
-            avatarUrl: currentUser?.avatarUrl,
-        },
-        organizerEmail: emailFor(currentUser),
-        organizerDisplayName: currentUser?.displayName ?? 'Jira user',
-        zoneId: input.zoneId ?? getLocalTimeZone(),
-        invitees: inviteesFromAccountIds(input.participantAccountIds, context),
-    };
-}
-
 export function scheduleMeetingRequest(
     input: ScheduleMeetingInput,
     context: MeetingApiContext = {},
@@ -394,7 +368,11 @@ function emailFor(member: ProjectMember | undefined): string {
     return `smiski+${safe || 'user'}@example.invalid`;
 }
 
-function getDeviceId(): string {
+/**
+ * Stable per-browser device id for the host participant. Persisted in
+ * localStorage; falls back to a fixed id when storage is unavailable.
+ */
+export function getDeviceId(): string {
     try {
         const existing = localStorage.getItem(DEVICE_STORAGE_KEY);
         if (existing) return existing;

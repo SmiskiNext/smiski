@@ -48,6 +48,13 @@ permissions:
         # - read:me            # TODO: enable if we need the invoking user's identity/profile
         # - offline_access     # TODO: enable if the identity bridge needs refresh tokens
 
+    # Ant Design injects its styles at runtime (CSS-in-JS), which Forge Custom UI
+    # blocks by default. Allow inline styles so Ant Design renders under the
+    # Forge content security policy. See design D6 (BREAKING — major upgrade).
+    content:
+        styles:
+            - 'unsafe-inline'
+
     # The app talks to backend APIs only through the Caddy gateway. `backend`
     # covers Forge resolver fetches; `client` covers Custom UI fetch/WebSocket
     # traffic required by the LiveKit client in the meeting room.

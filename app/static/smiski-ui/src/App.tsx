@@ -13,7 +13,8 @@
 
 import { view } from '@forge/bridge';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { useEffect, useState } from 'react';
+import { ConfigProvider, theme } from 'antd';
+import { type ReactNode, useEffect, useState } from 'react';
 import {
     type DemoSurface,
     DevSurfaceSwitcher,
@@ -22,13 +23,23 @@ import { CurrentUserProvider } from './context/CurrentUserContext';
 import type { CurrentIssueContextValue } from './domain';
 import { IssuePanelRoot } from './features/issue-panel/IssuePanelRoot';
 import { ProjectPageRoot } from './features/project-page/ProjectPageRoot';
+import { InstantMeetingModalRoot } from './features/shared/InstantMeetingModalRoot';
 import { IssuePanelModalRoot } from './features/shared/IssuePanelModalRoot';
 import { ScheduleMeetingModalRoot } from './features/shared/ScheduleMeetingModalRoot';
-import { type AppColorMode, ThemeProvider } from './theme/ThemeProvider';
+import {
+    type AppColorMode,
+    ThemeProvider,
+    useResolvedColorMode,
+} from './theme/ThemeProvider';
 import {
     MODULE_KEY_ISSUE_CONTEXT,
     MODULE_KEY_PROJECT_PAGE,
 } from './utils/forgeModuleKeys';
+import {
+    INSTANT_MEETING_MODAL_KIND,
+    type InstantMeetingModalContext,
+    isInstantMeetingModalContext,
+} from './utils/instantMeetingModalContext';
 import {
     type IssuePanelModalContext,
     isIssuePanelModalContext,
@@ -41,8 +52,39 @@ import {
 type Surface = DemoSurface | 'loading' | 'unknown' | 'modal';
 
 const queryClient = new QueryClient();
+
+const BRAND_COLOR = '#3385f0';
+
+/**
+ * Applies Ant Design theming from the app's resolved color mode: the brand
+ * token plus the dark/light algorithm so Ant Design components follow the same
+ * light/dark mode as the Tailwind surfaces.
+ */
+function AntThemeProvider({
+    colorMode,
+    children,
+}: {
+    colorMode: AppColorMode;
+    children: ReactNode;
+}) {
+    const resolved = useResolvedColorMode(colorMode);
+    return (
+        <ConfigProvider
+            theme={{
+                token: { colorPrimary: BRAND_COLOR },
+                algorithm:
+                    resolved === 'dark'
+                        ? theme.darkAlgorithm
+                        : theme.defaultAlgorithm,
+            }}
+        >
+            {children}
+        </ConfigProvider>
+    );
+}
 type PlatformModalContext =
     | ScheduleMeetingModalContext
+    | InstantMeetingModalContext
     | IssuePanelModalContext;
 
 interface IssuePanelExtension {
@@ -89,6 +131,11 @@ export function App() {
                     setSurface('modal');
                     return;
                 }
+                if (isInstantMeetingModalContext(modalContext)) {
+                    setModalPayload(modalContext);
+                    setSurface('modal');
+                    return;
+                }
                 if (isIssuePanelModalContext(modalContext)) {
                     setModalPayload(modalContext);
                     setSurface('modal');
@@ -124,51 +171,62 @@ export function App() {
 
     return (
         <QueryClientProvider client={queryClient}>
-            <ThemeProvider colorMode={colorMode}>
-                <CurrentUserProvider>
-                    {import.meta.env.DEV
-                        && (surface === 'issueContext'
-                            || surface === 'projectPage') && (
-                            <DevSurfaceSwitcher
-                                surface={surface}
-                                onSurfaceChange={setSurface}
-                                issueKey={demoIssueKey}
-                                onIssueKeyChange={setDemoIssueKey}
+            <AntThemeProvider colorMode={colorMode}>
+                <ThemeProvider colorMode={colorMode}>
+                    <CurrentUserProvider>
+                        {import.meta.env.DEV
+                            && (surface === 'issueContext'
+                                || surface === 'projectPage') && (
+                                <DevSurfaceSwitcher
+                                    surface={surface}
+                                    onSurfaceChange={setSurface}
+                                    issueKey={demoIssueKey}
+                                    onIssueKeyChange={setDemoIssueKey}
+                                />
+                            )}
+                        {surface === 'issueContext' && (
+                            <IssuePanelRoot
+                                issue={issueContextValue}
+                                onDevNavigateToProjectPage={() =>
+                                    setSurface('projectPage')
+                                }
                             />
                         )}
-                    {surface === 'issueContext' && (
-                        <IssuePanelRoot
-                            issue={issueContextValue}
-                            onDevNavigateToProjectPage={() =>
-                                setSurface('projectPage')
-                            }
-                        />
-                    )}
-                    {surface === 'projectPage' && (
-                        <ProjectPageRoot projectKey={projectKey} />
-                    )}
-                    {surface === 'modal'
-                        && modalPayload?.kind
-                            === SCHEDULE_MEETING_MODAL_KIND && (
-                            <ScheduleMeetingModalRoot payload={modalPayload} />
+                        {surface === 'projectPage' && (
+                            <ProjectPageRoot projectKey={projectKey} />
                         )}
-                    {surface === 'modal'
-                        && modalPayload
-                        && isIssuePanelModalContext(modalPayload) && (
-                            <IssuePanelModalRoot payload={modalPayload} />
+                        {surface === 'modal'
+                            && modalPayload?.kind
+                                === SCHEDULE_MEETING_MODAL_KIND && (
+                                <ScheduleMeetingModalRoot
+                                    payload={modalPayload}
+                                />
+                            )}
+                        {surface === 'modal'
+                            && modalPayload?.kind
+                                === INSTANT_MEETING_MODAL_KIND && (
+                                <InstantMeetingModalRoot
+                                    payload={modalPayload}
+                                />
+                            )}
+                        {surface === 'modal'
+                            && modalPayload
+                            && isIssuePanelModalContext(modalPayload) && (
+                                <IssuePanelModalRoot payload={modalPayload} />
+                            )}
+                        {surface === 'loading' && (
+                            <div className='p-6 text-sm text-[var(--text-muted)]'>
+                                Loading Smiski…
+                            </div>
                         )}
-                    {surface === 'loading' && (
-                        <div className='p-6 text-sm text-[var(--text-muted)]'>
-                            Loading Smiski…
-                        </div>
-                    )}
-                    {surface === 'unknown' && (
-                        <div className='m-4 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700 dark:border-red-900/60 dark:bg-red-950/30 dark:text-red-300'>
-                            Unable to determine the Smiski surface.
-                        </div>
-                    )}
-                </CurrentUserProvider>
-            </ThemeProvider>
+                        {surface === 'unknown' && (
+                            <div className='m-4 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700 dark:border-red-900/60 dark:bg-red-950/30 dark:text-red-300'>
+                                Unable to determine the Smiski surface.
+                            </div>
+                        )}
+                    </CurrentUserProvider>
+                </ThemeProvider>
+            </AntThemeProvider>
         </QueryClientProvider>
     );
 }
