@@ -1,4 +1,4 @@
-import { invoke } from '@forge/bridge';
+import { invoke, requestRemote } from '@forge/bridge';
 import type { Meeting, MeetingStatus } from '../domain';
 import { getLocalTimeZone } from '../utils/datetime';
 import { apiRequest } from './client';
@@ -107,7 +107,7 @@ export async function getMeeting(meetingId: string): Promise<Meeting> {
     return meetingFromBackend(payload);
 }
 
-/** The invoke payload the `createInstantMeeting` resolver expects. */
+/** The JSON body the `meet` backend's instant-create endpoint expects. */
 export interface InstantMeetingInvokePayload {
     title: string;
     description: string;
@@ -126,7 +126,7 @@ export interface InstantMeetingInvokePayload {
 }
 
 /**
- * Build the resolver invoke payload from the form input. Pure and free of
+ * Build the backend request body from the form input. Pure and free of
  * `@forge/bridge`, so the invitee contract (each carries `email`, `accountId`,
  * `displayName`; no invitee → empty list) is unit-testable in isolation. The
  * `deviceId` is passed in so the browser-only `localStorage` lookup stays out
@@ -159,19 +159,73 @@ export function buildInstantMeetingPayload(
     };
 }
 
+/** Manifest `remotes` key for the `meet` backend (see app/manifest.yml). */
+const MEET_REMOTE_KEY = 'meet-backend';
+
 /**
- * Create + start an instant meeting (UC01) through the Forge resolver, which
- * calls the real `meet` backend. There is no mock fallback: standalone
- * `vite dev` has no bridge, so instant-create only works under a Forge
- * tunnel/deploy. The resolver builds the backend request and attaches the
- * tenant/account identity headers server-side.
+ * Backend path for instant creation, appended to the remote `baseUrl` by
+ * `requestRemote`. Mirrors the `meet` controller route (`/api/1/meetings:instant`)
+ * and the manifest `endpoint.route.path`.
+ */
+const INSTANT_MEETING_PATH = '/api/1/meetings:instant';
+
+/** RFC 7807 problem+json shape the backend returns on a rejected request. */
+interface InstantMeetingProblem {
+    detail?: string;
+    title?: string;
+    code?: string;
+    traceId?: string;
+}
+
+/** An error carrying the backend problem details for the create-meeting modal. */
+type InstantMeetingError = Error & { code?: string; traceId?: string };
+
+async function readProblem(response: Response): Promise<InstantMeetingProblem> {
+    try {
+        return (await response.json()) as InstantMeetingProblem;
+    } catch {
+        return {};
+    }
+}
+
+function instantMeetingError(
+    problem: InstantMeetingProblem,
+): InstantMeetingError {
+    const message =
+        problem.detail
+        ?? problem.title
+        ?? 'The meeting backend rejected the instant-create request.';
+    const error = new Error(message) as InstantMeetingError;
+    error.code = problem.code;
+    error.traceId = problem.traceId;
+    return error;
+}
+
+/**
+ * Create + start an instant meeting (UC01) by calling the `meet` backend
+ * directly from Custom UI through Forge Remote. Forge attaches a signed Forge
+ * Invocation Token (FIT) as `Authorization: Bearer`; the app asserts NO
+ * tenant/account identity headers (deriving identity from the FIT is the
+ * gateway's job). There is no mock fallback: a non-2xx response or unreachable
+ * backend surfaces as an error the create-meeting modal renders.
  */
 export async function createInstantMeeting(
     input: CreateInstantMeetingInput,
 ): Promise<Meeting> {
     const payload = buildInstantMeetingPayload(input, getDeviceId());
-    const response = await invoke('createInstantMeeting', payload);
-    return meetingFromBackend(response);
+    const response = await requestRemote(MEET_REMOTE_KEY, {
+        path: INSTANT_MEETING_PATH,
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            Accept: 'application/json',
+        },
+        body: JSON.stringify(payload),
+    });
+    if (!response.ok) {
+        throw instantMeetingError(await readProblem(response));
+    }
+    return meetingFromBackend(await response.json());
 }
 
 /** Create a scheduled meeting (UC03). */
