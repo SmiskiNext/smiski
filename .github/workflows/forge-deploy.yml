@@ -1,0 +1,209 @@
+name: Deploy Forge app
+
+on:
+    push:
+        branches: [dev, main]
+        paths:
+            - 'app/**'
+            - '.github/workflows/forge-deploy.yml'
+    workflow_dispatch:
+        inputs:
+            environment:
+                description: Forge environment to deploy
+                type: choice
+                required: true
+                default: development
+                options:
+                    - development
+                    - staging
+
+permissions:
+    contents: read
+
+# A branch always maps to one Forge environment. Manual runs use the selected
+# input, which is useful when a deployment needs to be retried without a commit.
+env:
+    FORGE_ENVIRONMENT: >-
+        ${{ github.event_name == 'workflow_dispatch' && inputs.environment ||
+        github.ref_name == 'dev' && 'development' || 'staging' }}
+
+jobs:
+    deploy:
+        name:
+            Deploy to ${{ github.event_name == 'workflow_dispatch' &&
+            inputs.environment || github.ref_name == 'dev' && 'development' ||
+            'staging' }}
+        runs-on: ubuntu-latest
+        timeout-minutes: 20
+        environment:
+            name:
+                ${{ github.event_name == 'workflow_dispatch' &&
+                inputs.environment || github.ref_name == 'dev' && 'development'
+                || 'staging' }}
+        concurrency:
+            group:
+                forge-${{ github.event_name == 'workflow_dispatch' &&
+                inputs.environment || github.ref_name == 'dev' && 'development'
+                || 'staging' }}
+            cancel-in-progress: false
+        env:
+            CI: 'true'
+            FORGE_EMAIL: ${{ secrets.FORGE_EMAIL }}
+            FORGE_API_TOKEN: ${{ secrets.FORGE_API_TOKEN }}
+            JIRA_SITE: ${{ vars.JIRA_SITE }}
+            SMISKI_API_BASE_URL: ${{ vars.SMISKI_API_BASE_URL }}
+            LIVEKIT_URL: ${{ vars.LIVEKIT_URL }}
+            LIVEKIT_API_KEY: ${{ secrets.LIVEKIT_API_KEY }}
+            LIVEKIT_API_SECRET: ${{ secrets.LIVEKIT_API_SECRET }}
+            VITE_SMISKI_DATA_SOURCE: backend
+            VITE_SMISKI_API_TRANSPORT: resolver
+            VITE_SMISKI_API_VERSION: ${{ vars.SMISKI_API_VERSION || '1' }}
+            VITE_SMISKI_LIVEKIT_URL: ${{ vars.LIVEKIT_URL }}
+        defaults:
+            run:
+                working-directory: app
+
+        steps:
+            - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+
+            - uses: jdx/mise-action@e6a8b3978addb5a52f2b4cd9d91eafa7f0ab959d # v4
+
+            - name: Get pnpm store directory
+              id: pnpm-store
+              run:
+                  echo "STORE_PATH=$(pnpm store path --silent)" >>
+                  "$GITHUB_OUTPUT"
+
+            - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+              with:
+                  path: ${{ steps.pnpm-store.outputs.STORE_PATH }}
+                  key:
+                      ${{ runner.os }}-forge-pnpm-${{
+                      hashFiles('app/pnpm-lock.yaml') }}
+                  restore-keys: |
+                      ${{ runner.os }}-forge-pnpm-
+
+            - name: Install dependencies
+              run: pnpm install --frozen-lockfile
+
+            - name: Validate deployment configuration
+              shell: bash
+              run: |
+                  set -euo pipefail
+
+                  # Fail before building when an environment is not configured.
+                  required_values=(
+                    FORGE_EMAIL
+                    FORGE_API_TOKEN
+                    JIRA_SITE
+                    SMISKI_API_BASE_URL
+                    LIVEKIT_URL
+                    LIVEKIT_API_KEY
+                    LIVEKIT_API_SECRET
+                  )
+
+                  for name in "${required_values[@]}"; do
+                    if [[ -z "${!name:-}" ]]; then
+                      echo "::error::$name is not configured for the $FORGE_ENVIRONMENT GitHub Environment."
+                      exit 1
+                    fi
+                  done
+
+            - name: Check app
+              run: |
+                  pnpm lint
+                  pnpm typecheck
+                  pnpm test
+                  pnpm build
+
+            - name: Forge lint
+              shell: bash
+              run: |
+                  set -euo pipefail
+
+                  # Forge commands must run from the directory containing manifest.yml.
+                  pwd
+                  pnpm exec forge settings set usage-analytics false
+                  pwd
+                  pnpm exec forge lint
+
+            - name: Sync Forge runtime variables
+              shell: bash
+              run: |
+                  set -euo pipefail
+
+                  # Printing the working directory before every Forge command makes
+                  # the app root explicit in CI logs and avoids monorepo path mistakes.
+                  forge_cli() {
+                    pwd >&2
+                    pnpm exec forge "$@"
+                  }
+
+                  forge_cli variables set \
+                    --environment "$FORGE_ENVIRONMENT" \
+                    SMISKI_API_BASE_URL "$SMISKI_API_BASE_URL"
+                  forge_cli variables set \
+                    --environment "$FORGE_ENVIRONMENT" \
+                    LIVEKIT_URL "$LIVEKIT_URL"
+                  forge_cli variables set \
+                    --encrypt \
+                    --environment "$FORGE_ENVIRONMENT" \
+                    LIVEKIT_API_KEY "$LIVEKIT_API_KEY"
+                  forge_cli variables set \
+                    --encrypt \
+                    --environment "$FORGE_ENVIRONMENT" \
+                    LIVEKIT_API_SECRET "$LIVEKIT_API_SECRET"
+
+            - name: Deploy to Forge
+              run: |
+                  pwd
+                  pnpm exec forge deploy \
+                    --non-interactive \
+                    --environment "$FORGE_ENVIRONMENT"
+
+            - name: Install or upgrade on Jira
+              shell: bash
+              run: |
+                  set -euo pipefail
+
+                  forge_cli() {
+                    # Keep stdout clean because `install list --json` is parsed below.
+                    pwd >&2
+                    pnpm exec forge "$@"
+                  }
+
+                  # Query first so a genuine upgrade error is never hidden by a
+                  # fallback installation attempt.
+                  installations="$(forge_cli install list --json)"
+
+                  if jq -e \
+                    --arg environment "$FORGE_ENVIRONMENT" \
+                    --arg site "$JIRA_SITE" \
+                    '
+                      def normalize_site:
+                        ascii_downcase
+                        | sub("^https?://"; "")
+                        | sub("/+$"; "");
+
+                      any(
+                        .[];
+                        .environment == $environment
+                        and (.site | normalize_site) == ($site | normalize_site)
+                        and (.product | ascii_downcase | contains("jira"))
+                      )
+                    ' <<< "$installations" > /dev/null; then
+                    forge_cli install \
+                      --upgrade \
+                      --confirm-scopes \
+                      --non-interactive \
+                      --site "$JIRA_SITE" \
+                      --product Jira \
+                      --environment "$FORGE_ENVIRONMENT"
+                  else
+                    forge_cli install \
+                      --confirm-scopes \
+                      --non-interactive \
+                      --site "$JIRA_SITE" \
+                      --product Jira \
+                      --environment "$FORGE_ENVIRONMENT"
+                  fi
