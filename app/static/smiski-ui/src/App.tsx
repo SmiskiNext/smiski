@@ -2,7 +2,7 @@
  * App — top-level router between the two Forge module surfaces, plus the app-
  * wide providers (React Query, Jira color mode, current-user identity).
  *
- * Both `jira:issueContext` and `jira:projectPage` render this same bundle, so App
+ * Both `jira:issuePanel` and `jira:projectPage` render this same bundle, so App
  * reads the real Forge module context via `view.getContext()` and mounts the
  * matching root component — `context.moduleKey` matches the module `key` in
  * manifest.yml. No business logic here — just surface selection + wiring.
@@ -32,7 +32,7 @@ import {
     useResolvedColorMode,
 } from './theme/ThemeProvider';
 import {
-    MODULE_KEY_ISSUE_CONTEXT,
+    MODULE_KEY_ISSUE_PANEL,
     MODULE_KEY_PROJECT_PAGE,
 } from './utils/forgeModuleKeys';
 import {
@@ -109,7 +109,7 @@ export function App() {
         if (import.meta.env.DEV) {
             // No real Forge context outside Jira — DevSurfaceSwitcher drives `surface`
             // and `demoIssueKey` below instead.
-            setSurface('issueContext');
+            setSurface('issuePanel');
             return;
         }
 
@@ -142,7 +142,7 @@ export function App() {
                     return;
                 }
 
-                if (context.moduleKey === MODULE_KEY_ISSUE_CONTEXT) {
+                if (context.moduleKey === MODULE_KEY_ISSUE_PANEL) {
                     const extension = context.extension as IssuePanelExtension;
                     if (extension.issue) {
                         setIssue({
@@ -151,7 +151,7 @@ export function App() {
                             projectKey: extension.project?.key ?? '',
                         });
                     }
-                    setSurface('issueContext');
+                    setSurface('issuePanel');
                 } else if (context.moduleKey === MODULE_KEY_PROJECT_PAGE) {
                     const extension = context.extension as ProjectPageExtension;
                     setProjectKey(extension.project?.key ?? 'SMISKI');
@@ -163,7 +163,7 @@ export function App() {
             .catch(() => setSurface('unknown'));
     }, []);
 
-    const issueContextValue: CurrentIssueContextValue = issue ?? {
+    const currentIssue: CurrentIssueContextValue = issue ?? {
         issueKey: demoIssueKey,
         issueId: `id-${demoIssueKey}`,
         projectKey: 'SMISKI',
@@ -175,7 +175,7 @@ export function App() {
                 <ThemeProvider colorMode={colorMode}>
                     <CurrentUserProvider>
                         {import.meta.env.DEV
-                            && (surface === 'issueContext'
+                            && (surface === 'issuePanel'
                                 || surface === 'projectPage') && (
                                 <DevSurfaceSwitcher
                                     surface={surface}
@@ -184,9 +184,9 @@ export function App() {
                                     onIssueKeyChange={setDemoIssueKey}
                                 />
                             )}
-                        {surface === 'issueContext' && (
+                        {surface === 'issuePanel' && (
                             <IssuePanelRoot
-                                issue={issueContextValue}
+                                issue={currentIssue}
                                 onDevNavigateToProjectPage={() =>
                                     setSurface('projectPage')
                                 }

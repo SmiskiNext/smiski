@@ -63,8 +63,8 @@ the Forge `view.getContext()` call, and drives the surface via
 ## Architecture
 
 **Dual-surface single bundle.** `manifest.yml` declares two modules that both
-point at `resource: main` (`static/smiski-ui/dist`): `jira:issueContext` (key
-`smiski-issue-context`) and `jira:projectPage` (key `smiski-project-page`).
+point at `resource: main` (`static/smiski-ui/dist`): `jira:issuePanel` (key
+`smiski-issue-panel`) and `jira:projectPage` (key `smiski-project-page`).
 `App.tsx` reads `context.moduleKey` and mounts `features/issue-panel/` or
 `features/project-page/`; it also mounts modal roots from `features/shared/`
 when `context.extension.modal.kind` is set. Module keys are centralized in

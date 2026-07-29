@@ -13,7 +13,7 @@ dashboard, and an in-product video room without requiring users to leave Jira.
 
 ## Current capabilities
 
-### Jira issue context
+### Jira issue panel
 
 - Displays meetings linked to the current Jira issue.
 - Searches meetings by title and filters them by lifecycle status.
@@ -57,7 +57,7 @@ dashboard, and an in-product video room without requiring users to leave Jira.
 
 | Area                  | Status                 | Notes                                                                                                      |
 | --------------------- | ---------------------- | ---------------------------------------------------------------------------------------------------------- |
-| Issue context UI      | Implemented with mocks | Issue-scoped list, filters, actions, and forms are functional.                                             |
+| Issue panel UI        | Implemented with mocks | Issue-scoped list, filters, actions, and forms are functional.                                             |
 | Project dashboard     | Implemented with mocks | Search, filters, sorting, pagination, details, and lifecycle actions are functional.                       |
 | Meeting persistence   | Mocked                 | Meetings and participant rosters are stored in memory and mirrored to `localStorage`.                      |
 | Jira issue lookup     | Implemented            | Calls Jira REST API through `@forge/bridge` in a real Forge context; uses fixtures in Vite development.    |
@@ -76,12 +76,12 @@ The repository is a pnpm workspace with two packages:
 - `static/smiski-ui` contains the Vite, React, and TypeScript Custom UI
   application.
 
-The `jira:issueContext` and `jira:projectPage` modules both reference the same
+The `jira:issuePanel` and `jira:projectPage` modules both reference the same
 compiled resource. `App.tsx` reads `context.moduleKey` and mounts the
 appropriate feature root.
 
 ```text
-Jira issue context / project page
+Jira issue panel / project page
                │
                ▼
         App surface selection
@@ -198,7 +198,7 @@ pnpm ui:dev
 
 Vite development mode does not have access to Forge context or bridge
 operations. The application therefore displays a development switcher that can
-preview the issue context and project page with mock data. LiveKit networking is
+preview the issue panel and project page with mock data. LiveKit networking is
 disabled, but the room layout and local control states remain available for UI
 development.
 
@@ -288,7 +288,7 @@ never commit them. The LiveKit WebSocket origin must also be permitted under
 
 The manifest currently declares:
 
-- `jira:issueContext` with module key `smiski-issue-context`
+- `jira:issuePanel` with module key `smiski-issue-panel`
 - `jira:projectPage` with module key `smiski-project-page`
 - one shared Custom UI resource at `static/smiski-ui/dist`
 - the `read:jira-work` scope for Jira issue search
@@ -312,7 +312,7 @@ pnpm build
 pnpm exec forge lint
 ```
 
-Current tests cover the permission/action matrix and issue-context list
+Current tests cover the permission/action matrix and issue-panel list
 filtering and ordering. Integration tests for Forge context, Jira REST calls,
 backend contracts, and LiveKit behavior remain to be added.
 

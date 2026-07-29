@@ -1,5 +1,5 @@
 /**
- * IssuePanelRoot — entry point for the `jira:issueContext` module.
+ * IssuePanelRoot — entry point for the `jira:issuePanel` module.
  *
  * Composes the per-Issue meeting experience (see IssueMeetingsPanel), scoped
  * to the Issue via an explicit `issue` prop — a single consumer at this depth

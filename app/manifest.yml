@@ -1,7 +1,8 @@
 # Smiski — Forge app manifest
 #
 # Declares the two Custom UI surfaces for the embedded-meeting module:
-#   1. jira:issueContext — per-Issue quick access in Jira's right sidebar
+#   1. jira:issuePanel — per-Issue quick access, rendered at the bottom of the
+#      Jira issue view (new issue view only)
 #   2. jira:projectPage — project-wide meeting management (dashboard + room)
 #
 # Both modules render the SAME Custom UI bundle (static/smiski-ui). The frontend
@@ -12,14 +13,12 @@
 # is wired up yet. See src/index.ts.
 
 modules:
-    jira:issueContext:
-        - key: smiski-issue-context
+    jira:issuePanel:
+        - key: smiski-issue-panel
           resource: main
           resolver:
               function: resolver
           title: Smiski Meetings
-          label: Smiski Meetings
-          description: Meetings linked to this Jira issue
           icon: https://developer.atlassian.com/platform/forge/images/issue-panel-icon.svg
 
     jira:projectPage:
