@@ -48,18 +48,26 @@ permissions:
         # - read:me            # TODO: enable if we need the invoking user's identity/profile
         # - offline_access     # TODO: enable if the identity bridge needs refresh tokens
 
-    # TODO: Egress — the app talks to the backend ONLY through the Caddy API gateway.
-    # Fill in the real gateway origin(s) before deploying. `backend` covers Forge
-    # `fetch` from the resolver; `client` covers fetch/WebSocket from Custom UI
-    # (needed for the LiveKit client SDK inside the meeting room).
+    # The app talks to backend APIs only through the Caddy gateway. `backend`
+    # covers Forge resolver fetches; `client` covers Custom UI fetch/WebSocket
+    # traffic required by the LiveKit client in the meeting room.
     external:
         fetch:
             backend:
-                - address: 'https://TODO-caddy-gateway.smiski.example' # Caddy API gateway
+                # The CI/CD workflow supplies the gateway for each Forge environment.
+                - address: '${SMISKI_API_BASE_URL}' # Caddy API gateway
             client:
-                - address: 'https://TODO-caddy-gateway.smiski.example' # meeting/token endpoints
-                # LiveKit Cloud signalling (real project — Caddy entry above is still TODO)
-                - address: 'wss://smiski-meeting-2rcpqikr.livekit.cloud'
+                - address: '${SMISKI_API_BASE_URL}' # meeting/token endpoints
+                - address: '${LIVEKIT_URL}' # LiveKit signalling
+
+# These values are resolved by the Forge CLI while it reads the manifest. The
+# defaults keep local linting usable; deployments must provide real values.
+environment:
+    variables:
+        - key: SMISKI_API_BASE_URL
+          default: 'https://TODO-caddy-gateway.smiski.example'
+        - key: LIVEKIT_URL
+          default: 'wss://smiski-meeting-2rcpqikr.livekit.cloud'
 
 app:
     runtime:

@@ -4,7 +4,7 @@
 {
     "extends": "@docusaurus/tsconfig",
     "compilerOptions": {
-        "baseUrl": "./@smiskinext/docs",
+        "baseUrl": ".",
         "ignoreDeprecations": "6.0",
         "strict": true
     },
