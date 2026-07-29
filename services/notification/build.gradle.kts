@@ -13,6 +13,8 @@ dependencies {
     implementation(libs.spring.boot.starter.kafka)
     implementation(libs.cloudevents.kafka)
     implementation(libs.protobuf.java.util)
+    implementation(libs.biweekly)
+    implementation(libs.resend.java)
     testImplementation(libs.testcontainers.kafka)
     testImplementation(testFixtures(libs.shared))
 }

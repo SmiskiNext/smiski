@@ -4,6 +4,7 @@ import com.github.f4b6a3.uuid.UuidCreator;
 import io.github.smiskinext.meet.domain.MeetingError;
 import io.github.smiskinext.meet.domain.event.InviteeAcceptedEvent;
 import io.github.smiskinext.meet.domain.event.InviteeDeclinedEvent;
+import io.github.smiskinext.meet.domain.event.InviteeTentativeEvent;
 import io.github.smiskinext.meet.domain.model.valueobject.AccountId;
 import io.github.smiskinext.meet.domain.model.valueobject.Email;
 import io.github.smiskinext.meet.domain.model.valueobject.InviteeDisplayName;
@@ -146,17 +147,14 @@ public class MeetingInvitee extends AggregateRoot<InviteeId> {
     }
 
     /**
-     * Accepts the invitation.
+     * Accepts the invitation, embedding the supplied meeting context into the enriched event.
      *
+     * @param context meeting context used to build the iCalendar reply
      * @return {@code Result.success()} on success, or {@code Result.failure(InvalidInviteeTransition)}
      * if the current status does not allow transitioning to ACCEPTED
      */
-    public Result<Void, MeetingError> accept() {
-        if (removedAt != null) {
-            return Result.failure(
-                    new MeetingError.InvalidInviteeTransition(status, InviteeStatus.ACCEPTED));
-        }
-        if (!status.canTransitionTo(InviteeStatus.ACCEPTED)) {
+    public Result<Void, MeetingError> accept(MeetingContext context) {
+        if (removedAt != null || !status.canTransitionTo(InviteeStatus.ACCEPTED)) {
             return Result.failure(
                     new MeetingError.InvalidInviteeTransition(status, InviteeStatus.ACCEPTED));
         }
@@ -170,22 +168,28 @@ public class MeetingInvitee extends AggregateRoot<InviteeId> {
                 id.value(),
                 email.value(),
                 InviteeStatus.ACCEPTED.name(),
-                respondedAt));
+                respondedAt,
+                context.meetingTitle(),
+                context.startTime(),
+                context.endTime(),
+                context.zoneId(),
+                context.organizerEmail(),
+                context.organizerDisplayName(),
+                displayName.value(),
+                context.calendarUid(),
+                context.calendarSequence()));
         return Result.success();
     }
 
     /**
-     * Declines the invitation.
+     * Declines the invitation, embedding the supplied meeting context into the enriched event.
      *
+     * @param context meeting context used to build the iCalendar reply
      * @return {@code Result.success()} on success, or {@code Result.failure(InvalidInviteeTransition)}
      * if the current status does not allow transitioning to DECLINED
      */
-    public Result<Void, MeetingError> decline() {
-        if (removedAt != null) {
-            return Result.failure(
-                    new MeetingError.InvalidInviteeTransition(status, InviteeStatus.DECLINED));
-        }
-        if (!status.canTransitionTo(InviteeStatus.DECLINED)) {
+    public Result<Void, MeetingError> decline(MeetingContext context) {
+        if (removedAt != null || !status.canTransitionTo(InviteeStatus.DECLINED)) {
             return Result.failure(
                     new MeetingError.InvalidInviteeTransition(status, InviteeStatus.DECLINED));
         }
@@ -199,7 +203,52 @@ public class MeetingInvitee extends AggregateRoot<InviteeId> {
                 id.value(),
                 email.value(),
                 InviteeStatus.DECLINED.name(),
-                respondedAt));
+                respondedAt,
+                context.meetingTitle(),
+                context.startTime(),
+                context.endTime(),
+                context.zoneId(),
+                context.organizerEmail(),
+                context.organizerDisplayName(),
+                displayName.value(),
+                context.calendarUid(),
+                context.calendarSequence()));
+        return Result.success();
+    }
+
+    /**
+     * Tentatively responds to the invitation, embedding the supplied meeting context into the
+     * enriched event.
+     *
+     * @param context meeting context used to build the iCalendar reply
+     * @return {@code Result.success()} on success, or {@code Result.failure(InvalidInviteeTransition)}
+     * if the current status does not allow transitioning to TENTATIVE
+     */
+    public Result<Void, MeetingError> tentative(MeetingContext context) {
+        if (removedAt != null || !status.canTransitionTo(InviteeStatus.TENTATIVE)) {
+            return Result.failure(
+                    new MeetingError.InvalidInviteeTransition(status, InviteeStatus.TENTATIVE));
+        }
+        status = InviteeStatus.TENTATIVE;
+        respondedAt = Instant.now();
+        registerEvent(new InviteeTentativeEvent(
+                UUID.randomUUID(),
+                tenantId.value(),
+                meetingId.value(),
+                inviterId.value(),
+                id.value(),
+                email.value(),
+                InviteeStatus.TENTATIVE.name(),
+                respondedAt,
+                context.meetingTitle(),
+                context.startTime(),
+                context.endTime(),
+                context.zoneId(),
+                context.organizerEmail(),
+                context.organizerDisplayName(),
+                displayName.value(),
+                context.calendarUid(),
+                context.calendarSequence()));
         return Result.success();
     }
 

@@ -23,7 +23,7 @@ public class InviteeAcceptedEventProtoMapper
 
     @Override
     public Message toProto(InviteeAcceptedEvent event) {
-        return InviteeAccepted.newBuilder()
+        InviteeAccepted.Builder builder = InviteeAccepted.newBuilder()
                 .setEventId(event.eventId().toString())
                 .setTenantId(event.tenantId())
                 .setMeetingId(event.meetingId().toString())
@@ -32,6 +32,23 @@ public class InviteeAcceptedEventProtoMapper
                 .setInviteeEmail(event.inviteeEmail())
                 .setStatus(event.status())
                 .setAcceptedAt(event.acceptedAt().toString())
-                .build();
+                .setZoneId(event.zoneId())
+                .setOrganizerEmail(event.organizerEmail())
+                .setOrganizerDisplayName(event.organizerDisplayName())
+                .setInviteeDisplayName(event.inviteeDisplayName())
+                .setCalendarUid(event.calendarUid())
+                .setCalendarSequence(event.calendarSequence());
+
+        if (event.meetingTitle() != null) {
+            builder.setMeetingTitle(event.meetingTitle());
+        }
+        if (event.startTime() != null) {
+            builder.setStartTime(event.startTime().toString());
+        }
+        if (event.endTime() != null) {
+            builder.setEndTime(event.endTime().toString());
+        }
+
+        return builder.build();
     }
 }

@@ -8,3 +8,9 @@ app:
             invitation-consumer-group: test-notification-meeting-invitations
             invite-invalidated-consumer-group: test-notification-meeting-invite-invalidated
             invitee-responded-consumer-group: test-notification-invitee-responded
+            email-retry-attempts: 2
+            email-retry-backoff-ms: 200
+            email-dead-letter-suffix: .dlt
+        email:
+            api-key: test-resend-key
+            sender: calendar@test.local

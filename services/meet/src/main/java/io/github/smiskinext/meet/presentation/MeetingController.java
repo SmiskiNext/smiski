@@ -1,31 +1,40 @@
 package io.github.smiskinext.meet.presentation;
 
+import io.github.smiskinext.meet.application.command.AcceptMeetingInviteeCommand;
 import io.github.smiskinext.meet.application.command.CreateInstantMeetingCommand;
+import io.github.smiskinext.meet.application.command.DeclineMeetingInviteeCommand;
 import io.github.smiskinext.meet.application.command.ScheduleMeetingCommand;
+import io.github.smiskinext.meet.application.command.TentativeMeetingInviteeCommand;
 import io.github.smiskinext.meet.application.query.GetMeetingQuery;
 import io.github.smiskinext.meet.application.result.AcceptJoinRequestsResult;
+import io.github.smiskinext.meet.application.result.AcceptMeetingInviteeResult;
 import io.github.smiskinext.meet.application.result.AddMeetingInviteesResult;
 import io.github.smiskinext.meet.application.result.BatchDeleteMeetingsResult;
 import io.github.smiskinext.meet.application.result.CreateInstantMeetingResult;
 import io.github.smiskinext.meet.application.result.DeclineJoinRequestsResult;
+import io.github.smiskinext.meet.application.result.DeclineMeetingInviteeResult;
 import io.github.smiskinext.meet.application.result.DeleteMeetingResult;
 import io.github.smiskinext.meet.application.result.GetMeetingResult;
 import io.github.smiskinext.meet.application.result.ListMeetingsResult;
 import io.github.smiskinext.meet.application.result.RemoveMeetingInviteesResult;
 import io.github.smiskinext.meet.application.result.RequestJoinResult;
 import io.github.smiskinext.meet.application.result.ScheduleMeetingResult;
+import io.github.smiskinext.meet.application.result.TentativeMeetingInviteeResult;
 import io.github.smiskinext.meet.application.result.UpdateMeetingResult;
 import io.github.smiskinext.meet.application.usecase.AcceptJoinRequestsUseCase;
+import io.github.smiskinext.meet.application.usecase.AcceptMeetingInviteeUseCase;
 import io.github.smiskinext.meet.application.usecase.AddMeetingInviteesUseCase;
 import io.github.smiskinext.meet.application.usecase.BatchDeleteMeetingsUseCase;
 import io.github.smiskinext.meet.application.usecase.CreateInstantMeetingUseCase;
 import io.github.smiskinext.meet.application.usecase.DeclineJoinRequestsUseCase;
+import io.github.smiskinext.meet.application.usecase.DeclineMeetingInviteeUseCase;
 import io.github.smiskinext.meet.application.usecase.DeleteMeetingUseCase;
 import io.github.smiskinext.meet.application.usecase.GetMeetingUseCase;
 import io.github.smiskinext.meet.application.usecase.ListMeetingsUseCase;
 import io.github.smiskinext.meet.application.usecase.RemoveMeetingInviteesUseCase;
 import io.github.smiskinext.meet.application.usecase.RequestJoinUseCase;
 import io.github.smiskinext.meet.application.usecase.ScheduleMeetingUseCase;
+import io.github.smiskinext.meet.application.usecase.TentativeMeetingInviteeUseCase;
 import io.github.smiskinext.meet.application.usecase.UpdateMeetingUseCase;
 import io.github.smiskinext.meet.domain.ListMeetingsError;
 import io.github.smiskinext.meet.domain.MeetingError;
@@ -45,6 +54,7 @@ import io.github.smiskinext.meet.presentation.response.DeleteMeetingResponse;
 import io.github.smiskinext.meet.presentation.response.GetMeetingResponse;
 import io.github.smiskinext.meet.presentation.response.JoinDecisionResponse;
 import io.github.smiskinext.meet.presentation.response.JoinMeetingResponse;
+import io.github.smiskinext.meet.presentation.response.MeetingInviteeResponse;
 import io.github.smiskinext.meet.presentation.response.MeetingListPageResponse;
 import io.github.smiskinext.meet.presentation.response.MeetingSummaryResponse;
 import io.github.smiskinext.meet.presentation.response.RemoveMeetingInviteesResponse;
@@ -97,6 +107,9 @@ public class MeetingController {
     private final RequestJoinUseCase requestJoinUseCase;
     private final AcceptJoinRequestsUseCase acceptJoinRequestsUseCase;
     private final DeclineJoinRequestsUseCase declineJoinRequestsUseCase;
+    private final AcceptMeetingInviteeUseCase acceptMeetingInviteeUseCase;
+    private final DeclineMeetingInviteeUseCase declineMeetingInviteeUseCase;
+    private final TentativeMeetingInviteeUseCase tentativeMeetingInviteeUseCase;
     private final ResultResponder responder;
 
     public MeetingController(
@@ -112,6 +125,9 @@ public class MeetingController {
             RequestJoinUseCase requestJoinUseCase,
             AcceptJoinRequestsUseCase acceptJoinRequestsUseCase,
             DeclineJoinRequestsUseCase declineJoinRequestsUseCase,
+            AcceptMeetingInviteeUseCase acceptMeetingInviteeUseCase,
+            DeclineMeetingInviteeUseCase declineMeetingInviteeUseCase,
+            TentativeMeetingInviteeUseCase tentativeMeetingInviteeUseCase,
             ResultResponder responder) {
         this.createInstantMeetingUseCase = createInstantMeetingUseCase;
         this.scheduleMeetingUseCase = scheduleMeetingUseCase;
@@ -125,6 +141,9 @@ public class MeetingController {
         this.requestJoinUseCase = requestJoinUseCase;
         this.acceptJoinRequestsUseCase = acceptJoinRequestsUseCase;
         this.declineJoinRequestsUseCase = declineJoinRequestsUseCase;
+        this.acceptMeetingInviteeUseCase = acceptMeetingInviteeUseCase;
+        this.declineMeetingInviteeUseCase = declineMeetingInviteeUseCase;
+        this.tentativeMeetingInviteeUseCase = tentativeMeetingInviteeUseCase;
         this.responder = responder;
     }
 
@@ -1521,5 +1540,181 @@ public class MeetingController {
         Result<DeclineJoinRequestsResult, MeetingError> result = declineJoinRequestsUseCase.execute(
                 request.toDeclineCommand(id, accountId, TenantContext.getCurrentTenant()));
         return responder.ok(result.map(JoinDecisionResponse::from));
+    }
+
+    @Operation(
+            summary = "Accept a meeting invitation",
+            description =
+                    "Accepts the caller's own meeting invitation. The acting account, resolved "
+                            + "from the account header, must own the target invitee. Returns the updated "
+                            + "invitee snapshot on success.")
+    @ApiResponses({
+        @ApiResponse(
+                responseCode = "200",
+                description = "Invitation accepted",
+                content =
+                        @Content(
+                                mediaType = "application/json",
+                                schema = @Schema(implementation = MeetingInviteeResponse.class))),
+        @ApiResponse(
+                responseCode = "400",
+                description = "Missing account header",
+                content =
+                        @Content(
+                                mediaType = "application/problem+json",
+                                schema = @Schema(implementation = ProblemDetailSchema.class))),
+        @ApiResponse(
+                responseCode = "403",
+                description = "The acting account does not own the target invitation",
+                content =
+                        @Content(
+                                mediaType = "application/problem+json",
+                                schema = @Schema(implementation = ProblemDetailSchema.class))),
+        @ApiResponse(
+                responseCode = "404",
+                description = "Meeting or invitee not found for the current tenant",
+                content =
+                        @Content(
+                                mediaType = "application/problem+json",
+                                schema = @Schema(implementation = ProblemDetailSchema.class))),
+        @ApiResponse(
+                responseCode = "409",
+                description = "The current status does not permit accepting",
+                content =
+                        @Content(
+                                mediaType = "application/problem+json",
+                                schema = @Schema(implementation = ProblemDetailSchema.class)))
+    })
+    @PostMapping("/meetings/{id}/invitees/{inviteeId}:accept")
+    public ResponseEntity<Object> acceptInvitation(
+            @PathVariable UUID id, @PathVariable UUID inviteeId) {
+        String accountId = AccountContext.getCurrentAccount().orElse(null);
+        if (accountId == null) {
+            return missingAccount();
+        }
+        Result<AcceptMeetingInviteeResult, MeetingError> result =
+                acceptMeetingInviteeUseCase.execute(new AcceptMeetingInviteeCommand(
+                        id, inviteeId, accountId, TenantContext.getCurrentTenant()));
+        return responder.ok(result.map(MeetingInviteeResponse::from));
+    }
+
+    @Operation(
+            summary = "Decline a meeting invitation",
+            description =
+                    "Declines the caller's own meeting invitation. The acting account, resolved "
+                            + "from the account header, must own the target invitee. Returns the updated "
+                            + "invitee snapshot on success.")
+    @ApiResponses({
+        @ApiResponse(
+                responseCode = "200",
+                description = "Invitation declined",
+                content =
+                        @Content(
+                                mediaType = "application/json",
+                                schema = @Schema(implementation = MeetingInviteeResponse.class))),
+        @ApiResponse(
+                responseCode = "400",
+                description = "Missing account header",
+                content =
+                        @Content(
+                                mediaType = "application/problem+json",
+                                schema = @Schema(implementation = ProblemDetailSchema.class))),
+        @ApiResponse(
+                responseCode = "403",
+                description = "The acting account does not own the target invitation",
+                content =
+                        @Content(
+                                mediaType = "application/problem+json",
+                                schema = @Schema(implementation = ProblemDetailSchema.class))),
+        @ApiResponse(
+                responseCode = "404",
+                description = "Meeting or invitee not found for the current tenant",
+                content =
+                        @Content(
+                                mediaType = "application/problem+json",
+                                schema = @Schema(implementation = ProblemDetailSchema.class))),
+        @ApiResponse(
+                responseCode = "409",
+                description = "The current status does not permit declining",
+                content =
+                        @Content(
+                                mediaType = "application/problem+json",
+                                schema = @Schema(implementation = ProblemDetailSchema.class)))
+    })
+    @PostMapping("/meetings/{id}/invitees/{inviteeId}:decline")
+    public ResponseEntity<Object> declineInvitation(
+            @PathVariable UUID id, @PathVariable UUID inviteeId) {
+        String accountId = AccountContext.getCurrentAccount().orElse(null);
+        if (accountId == null) {
+            return missingAccount();
+        }
+        Result<DeclineMeetingInviteeResult, MeetingError> result =
+                declineMeetingInviteeUseCase.execute(new DeclineMeetingInviteeCommand(
+                        id, inviteeId, accountId, TenantContext.getCurrentTenant()));
+        return responder.ok(result.map(MeetingInviteeResponse::from));
+    }
+
+    @Operation(
+            summary = "Tentatively respond to a meeting invitation",
+            description =
+                    "Marks the caller's own meeting invitation as tentative. The acting account, "
+                            + "resolved from the account header, must own the target invitee. Returns the "
+                            + "updated invitee snapshot on success.")
+    @ApiResponses({
+        @ApiResponse(
+                responseCode = "200",
+                description = "Invitation marked tentative",
+                content =
+                        @Content(
+                                mediaType = "application/json",
+                                schema = @Schema(implementation = MeetingInviteeResponse.class))),
+        @ApiResponse(
+                responseCode = "400",
+                description = "Missing account header",
+                content =
+                        @Content(
+                                mediaType = "application/problem+json",
+                                schema = @Schema(implementation = ProblemDetailSchema.class))),
+        @ApiResponse(
+                responseCode = "403",
+                description = "The acting account does not own the target invitation",
+                content =
+                        @Content(
+                                mediaType = "application/problem+json",
+                                schema = @Schema(implementation = ProblemDetailSchema.class))),
+        @ApiResponse(
+                responseCode = "404",
+                description = "Meeting or invitee not found for the current tenant",
+                content =
+                        @Content(
+                                mediaType = "application/problem+json",
+                                schema = @Schema(implementation = ProblemDetailSchema.class))),
+        @ApiResponse(
+                responseCode = "409",
+                description = "The current status does not permit a tentative response",
+                content =
+                        @Content(
+                                mediaType = "application/problem+json",
+                                schema = @Schema(implementation = ProblemDetailSchema.class)))
+    })
+    @PostMapping("/meetings/{id}/invitees/{inviteeId}:tentative")
+    public ResponseEntity<Object> tentativeInvitation(
+            @PathVariable UUID id, @PathVariable UUID inviteeId) {
+        String accountId = AccountContext.getCurrentAccount().orElse(null);
+        if (accountId == null) {
+            return missingAccount();
+        }
+        Result<TentativeMeetingInviteeResult, MeetingError> result =
+                tentativeMeetingInviteeUseCase.execute(new TentativeMeetingInviteeCommand(
+                        id, inviteeId, accountId, TenantContext.getCurrentTenant()));
+        return responder.ok(result.map(MeetingInviteeResponse::from));
+    }
+
+    private static ResponseEntity<Object> missingAccount() {
+        return ResponseEntity.badRequest()
+                .contentType(org.springframework.http.MediaType.APPLICATION_PROBLEM_JSON)
+                .body(org.springframework.http.ProblemDetail.forStatusAndDetail(
+                        org.springframework.http.HttpStatus.BAD_REQUEST,
+                        "X-Account-Id header is required"));
     }
 }
