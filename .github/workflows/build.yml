@@ -80,6 +80,12 @@ jobs:
               run: pnpm install --frozen-lockfile
               working-directory: app
 
+            # smiski-ui imports @smiskinext/smiski-ts, an in-repo workspace
+            # package whose dist/ is gitignored. Build it before typecheck/build.
+            - name: Build Smiski TS SDK
+              run: pnpm --filter @smiskinext/smiski-ts build
+              working-directory: app
+
             - name: Typecheck
               run: pnpm exec tsc --noEmit
               working-directory: app
