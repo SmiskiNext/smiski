@@ -3,32 +3,11 @@ import type {
     MeetingStatus,
     Participant,
     ParticipantRole,
-    ProjectMember,
     Recording,
     RecordingStatus,
 } from '../domain';
-import { getLocalTimeZone } from '../utils/datetime';
-import { apiConfig } from './config';
-import type { UpdateMeetingInput } from './meetings';
 
-const DEFAULT_DURATION_MINUTES = 60;
 const DEVICE_STORAGE_KEY = 'smiski:device-id';
-
-const DEFAULT_MEETING_SETTINGS = {
-    admissionPolicy: 'OPEN',
-    maxParticipants: 50,
-    allowScreenShare: true,
-    chatEnabled: true,
-    allowMicrophone: true,
-    allowVideo: true,
-};
-
-export interface MeetingApiContext {
-    currentUser?: ProjectMember;
-    projectMembers?: ProjectMember[];
-    projectKey?: string;
-    issueId?: string;
-}
 
 interface BackendIssueLink {
     issueId?: string;
@@ -83,13 +62,6 @@ interface BackendRecordingSnapshot {
     endedAt?: string | null;
 }
 
-interface BackendLiveKitSnapshot {
-    token?: string;
-    url?: string;
-    livekitUrl?: string;
-    roomName?: string;
-}
-
 type BackendEnvelope = Record<string, unknown>;
 
 export function meetingFromBackend(payload: unknown): Meeting {
@@ -133,15 +105,6 @@ export function meetingFromBackend(payload: unknown): Meeting {
     };
 }
 
-export function meetingsFromBackend(payload: unknown): Meeting[] {
-    return extractArray<BackendMeetingSnapshot>(payload, [
-        'meetings',
-        'items',
-        'content',
-        'data',
-    ]).map(meetingFromBackend);
-}
-
 export function participantsFromBackend(payload: unknown): Participant[] {
     return extractArray<BackendParticipantSnapshot>(payload, [
         'participants',
@@ -182,18 +145,6 @@ export function recordingFromBackend(payload: unknown): Recording | null {
     };
 }
 
-export function roomTokenFromBackend(payload: unknown): {
-    token: string;
-    url: string;
-} {
-    const source = liveKitFromBackend(payload);
-    const token = source.token;
-    const url = source.url ?? source.livekitUrl ?? apiConfig.liveKitUrl;
-    if (!token || !url)
-        throw new Error('Backend did not return LiveKit token and URL.');
-    return { token, url };
-}
-
 export function permissionsFromBackend(payload: unknown): {
     hasViewMeeting: boolean;
     hasEditMeeting: boolean;
@@ -214,45 +165,11 @@ export function permissionsFromBackend(payload: unknown): {
     };
 }
 
-export function updateMeetingRequest(
-    input: UpdateMeetingInput,
-    context: MeetingApiContext = {},
-): Record<string, unknown> {
-    const base = input.baseMeeting;
-    const title = nonEmpty(input.title, base?.title ?? 'Untitled meeting');
-    const startTime = input.startTime ?? base?.scheduledAt ?? base?.startedAt;
-    if (!startTime)
-        throw new Error(
-            'A start time is required to update a backend meeting.',
-        );
-
-    return {
-        title,
-        description: nonEmpty(input.description, base?.description ?? title),
-        issueLink: issueLinkFromMeeting(base, input, context),
-        settings: DEFAULT_MEETING_SETTINGS,
-        zoneId: input.zoneId ?? getLocalTimeZone(),
-        timeRange: timeRangeFromStart(
-            startTime,
-            input.endTime,
-            input.durationMinutes,
-        ),
-    };
-}
-
 function extractMeetingSnapshot(payload: unknown): BackendMeetingSnapshot {
     if (isEnvelope(payload) && isEnvelope(payload.meeting)) {
         return payload.meeting as BackendMeetingSnapshot;
     }
     if (isEnvelope(payload)) return payload as BackendMeetingSnapshot;
-    return {};
-}
-
-function liveKitFromBackend(payload: unknown): BackendLiveKitSnapshot {
-    if (isEnvelope(payload) && isEnvelope(payload.livekit)) {
-        return payload.livekit as BackendLiveKitSnapshot;
-    }
-    if (isEnvelope(payload)) return payload as BackendLiveKitSnapshot;
     return {};
 }
 
@@ -264,44 +181,6 @@ function extractArray<T>(payload: unknown, keys: string[]): T[] {
         if (Array.isArray(value)) return value as T[];
     }
     return [];
-}
-
-function issueLinkFromMeeting(
-    meeting: Meeting | undefined,
-    input: UpdateMeetingInput,
-    context: MeetingApiContext,
-): BackendIssueLink {
-    const issueKey = input.issueKey ?? meeting?.issueKey;
-    if (!issueKey)
-        throw new Error(
-            'An issue key is required to update a backend meeting.',
-        );
-    const projectKey =
-        input.projectKey
-        ?? context.projectKey
-        ?? meeting?.projectKey
-        ?? issueKey.split('-')[0];
-    return {
-        issueId:
-            input.issueId
-            ?? context.issueId
-            ?? meeting?.issueId
-            ?? `issue-${issueKey}`,
-        issueKey,
-        projectKey,
-    };
-}
-
-function timeRangeFromStart(
-    startTime: string,
-    endTime?: string,
-    durationMinutes = DEFAULT_DURATION_MINUTES,
-): { startTime: string; endTime: string } {
-    const start = new Date(startTime);
-    const end = endTime
-        ? new Date(endTime)
-        : new Date(start.getTime() + durationMinutes * 60 * 1000);
-    return { startTime: start.toISOString(), endTime: end.toISOString() };
 }
 
 /**
@@ -318,10 +197,6 @@ export function getDeviceId(): string {
     } catch {
         return 'web-forge-client';
     }
-}
-
-function nonEmpty(value: string | undefined, fallback: string): string {
-    return value?.trim() || fallback.trim() || 'No description';
 }
 
 function normalizeMeetingStatus(value: string | undefined): MeetingStatus {

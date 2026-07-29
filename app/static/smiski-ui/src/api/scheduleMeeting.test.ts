@@ -2,18 +2,17 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const requestRemoteMock = vi.fn();
 vi.mock('@forge/bridge', () => ({
+    invoke: vi.fn(),
     requestRemote: (...args: unknown[]) => requestRemoteMock(...args),
 }));
 
 import { scheduleMeeting } from './meetings';
 
-/** Minimal WHATWG `Response` stand-in for the fields `requestRemote` callers read. */
-function remoteResponse(
-    ok: boolean,
-    status: number,
-    body: unknown,
-): { ok: boolean; status: number; json: () => Promise<unknown> } {
-    return { ok, status, json: async () => body };
+function jsonResponse(status: number, body: unknown): Response {
+    return new Response(JSON.stringify(body), {
+        status,
+        headers: { 'Content-Type': 'application/json' },
+    });
 }
 
 const baseInput = {
@@ -29,28 +28,35 @@ const baseInput = {
             email: 'alice@example.com',
         },
     ],
+    organizer: {
+        accountId: 'acc-host',
+        displayName: 'Host User',
+        email: 'host@example.com',
+    },
 };
 
-describe('scheduleMeeting (real backend via Forge Remote)', () => {
+describe('scheduleMeeting (SDK schedule over Forge Remote)', () => {
     beforeEach(() => {
         requestRemoteMock.mockReset();
     });
 
-    it('calls requestRemote with the meet remote/path/body and maps the SCHEDULED response', async () => {
+    it('issues the SDK schedule call over the adapter and maps the SCHEDULED response', async () => {
         requestRemoteMock.mockResolvedValue(
-            remoteResponse(true, 201, {
-                id: 'm-scheduled-1',
-                hostId: 'acc-host',
-                status: 'SCHEDULED',
-                title: 'Sprint planning',
-                issueLink: { issueKey: 'SMISKI-101', projectKey: 'SMISKI' },
-                startTime: '2026-08-01T02:00:00.000Z',
-                endTime: '2026-08-01T03:00:00.000Z',
-                createdAt: '2026-07-01T00:00:00Z',
+            jsonResponse(201, {
+                meeting: {
+                    id: '0195e0c2-8f3a-7c21-b9d4-2f1a6e7c8d92',
+                    hostId: 'acc-host',
+                    status: 'SCHEDULED',
+                    title: 'Sprint planning',
+                    issueLink: { issueKey: 'SMISKI-101', projectKey: 'SMISKI' },
+                    startTime: '2026-08-01T02:00:00.000Z',
+                    endTime: '2026-08-01T03:00:00.000Z',
+                    createdAt: '2026-07-01T00:00:00.000Z',
+                },
             }),
         );
 
-        const meeting = await scheduleMeeting(baseInput);
+        const result = await scheduleMeeting(baseInput);
 
         expect(requestRemoteMock).toHaveBeenCalledWith(
             'meet-backend',
@@ -60,15 +66,40 @@ describe('scheduleMeeting (real backend via Forge Remote)', () => {
             }),
         );
 
+        expect(result.data).toMatchObject({
+            id: '0195e0c2-8f3a-7c21-b9d4-2f1a6e7c8d92',
+            issueKey: 'SMISKI-101',
+            status: 'SCHEDULED',
+        });
+        expect(result.error).toBeUndefined();
+    });
+
+    it('sends organizer identity, issueLink, settings, timeRange, zoneId and no host object', async () => {
+        requestRemoteMock.mockResolvedValue(
+            jsonResponse(201, {
+                meeting: {
+                    id: '0195e0c2-8f3a-7c21-b9d4-2f1a6e7c8d93',
+                    status: 'SCHEDULED',
+                    issueLink: { issueKey: 'SMISKI-101' },
+                    createdAt: '2026-07-01T00:00:00.000Z',
+                },
+            }),
+        );
+
+        await scheduleMeeting(baseInput);
+
         const [, options] = requestRemoteMock.mock.calls[0];
         const body = JSON.parse(options.body);
         expect(body).toMatchObject({
             title: 'Sprint planning',
             issueLink: { issueKey: 'SMISKI-101', projectKey: 'SMISKI' },
+            settings: { admissionPolicy: 'OPEN' },
             timeRange: {
                 startTime: '2026-08-01T02:00:00.000Z',
                 endTime: '2026-08-01T03:00:00.000Z',
             },
+            organizerEmail: 'host@example.com',
+            organizerDisplayName: 'Host User',
             zoneId: 'Asia/Ho_Chi_Minh',
             invitees: [
                 {
@@ -80,25 +111,6 @@ describe('scheduleMeeting (real backend via Forge Remote)', () => {
         });
         expect(body).not.toHaveProperty('host');
 
-        expect(meeting).toMatchObject({
-            id: 'm-scheduled-1',
-            issueKey: 'SMISKI-101',
-            status: 'SCHEDULED',
-        });
-    });
-
-    it('asserts no tenant/account identity header — Forge attaches only the FIT', async () => {
-        requestRemoteMock.mockResolvedValue(
-            remoteResponse(true, 201, {
-                id: 'm-scheduled-2',
-                status: 'SCHEDULED',
-                issueLink: { issueKey: 'SMISKI-101' },
-            }),
-        );
-
-        await scheduleMeeting(baseInput);
-
-        const [, options] = requestRemoteMock.mock.calls[0];
         const headerNames = Object.keys(options.headers ?? {}).map((name) =>
             name.toLowerCase(),
         );
@@ -106,18 +118,32 @@ describe('scheduleMeeting (real backend via Forge Remote)', () => {
         expect(headerNames).not.toContain('x-account-id');
     });
 
-    it('surfaces a backend problem+json failure to the caller without any mock fallback', async () => {
+    it('surfaces a backend problem+json rejection as result.error with no mock fallback', async () => {
         requestRemoteMock.mockResolvedValue(
-            remoteResponse(false, 400, {
+            jsonResponse(400, {
                 code: 'MEETING_START_IN_PAST',
                 title: 'Validation',
                 detail: 'startTime must not be in the past',
             }),
         );
 
-        await expect(scheduleMeeting(baseInput)).rejects.toThrow(
-            'startTime must not be in the past',
-        );
+        const result = await scheduleMeeting(baseInput);
+
+        expect(result.data).toBeUndefined();
+        expect(result.error).toMatchObject({
+            message: 'startTime must not be in the past',
+            code: 'MEETING_START_IN_PAST',
+        });
+        expect(requestRemoteMock).toHaveBeenCalledTimes(1);
+    });
+
+    it('surfaces an unreachable backend as result.error with no mock fallback', async () => {
+        requestRemoteMock.mockRejectedValue(new Error('remote unreachable'));
+
+        const result = await scheduleMeeting(baseInput);
+
+        expect(result.data).toBeUndefined();
+        expect(result.error?.message).toBe('remote unreachable');
         expect(requestRemoteMock).toHaveBeenCalledTimes(1);
     });
 });

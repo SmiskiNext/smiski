@@ -77,33 +77,34 @@ export function StartInstantMeetingModal({
             .trim()
             .toUpperCase();
 
-        try {
-            const meeting = await createMeeting.mutateAsync({
-                issueKey: resolvedIssueKey,
-                projectKey,
-                title: values.title.trim(),
-                zoneId: resolveUserTimeZone(currentUser.timeZone),
-                invitees: invitees.map((user) => ({
-                    accountId: user.accountId,
-                    displayName: user.displayName,
-                    email: user.email,
-                })),
-                host: {
-                    accountId: currentUser.accountId,
-                    displayName: currentUser.displayName,
-                    email: currentUser.email,
-                    avatarUrl: currentUser.avatarUrl,
-                },
-            });
-            resetAndClose();
-            onStarted(meeting.id);
-        } catch (error) {
+        const result = await createMeeting.mutateAsync({
+            issueKey: resolvedIssueKey,
+            projectKey,
+            title: values.title.trim(),
+            zoneId: resolveUserTimeZone(currentUser.timeZone),
+            invitees: invitees.map((user) => ({
+                accountId: user.accountId,
+                displayName: user.displayName,
+                email: user.email,
+            })),
+            host: {
+                accountId: currentUser.accountId,
+                displayName: currentUser.displayName,
+                email: currentUser.email,
+                avatarUrl: currentUser.avatarUrl,
+            },
+        });
+
+        if (result.error || !result.data) {
             setFormError(
-                error instanceof Error
-                    ? error.message
-                    : 'Could not start the meeting.',
+                result.error?.message ?? 'Could not start the meeting.',
             );
+            return;
         }
+
+        const meetingId = result.data.id;
+        resetAndClose();
+        onStarted(meetingId);
     };
 
     const resetAndClose = () => {

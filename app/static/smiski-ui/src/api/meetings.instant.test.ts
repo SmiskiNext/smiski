@@ -3,11 +3,11 @@ import { describe, expect, it, vi } from 'vitest';
 // `meetings.ts` imports `@forge/bridge`, which connects to the Custom UI bridge
 // at module load and throws outside Jira. Stub it so the pure payload builder
 // can be imported and tested in the node vitest environment.
-vi.mock('@forge/bridge', () => ({ invoke: vi.fn() }));
+vi.mock('@forge/bridge', () => ({ invoke: vi.fn(), requestRemote: vi.fn() }));
 
 import { buildInstantMeetingPayload } from './meetings';
 
-describe('buildInstantMeetingPayload', () => {
+describe('buildInstantMeetingPayload (MeetCreateInstantMeetingRequest body)', () => {
     it('sends each selected invitee with email, accountId, and displayName', () => {
         const payload = buildInstantMeetingPayload(
             {
@@ -49,8 +49,12 @@ describe('buildInstantMeetingPayload', () => {
         expect(payload.host.deviceId).toBe('web-device-123');
         expect(payload.organizerEmail).toBe('host@example.com');
         expect(payload.organizerDisplayName).toBe('Host User');
-        expect(payload.issueKey).toBe('SMISKI-101');
-        expect(payload.projectKey).toBe('SMISKI');
+        expect(payload.issueLink).toEqual({
+            issueId: undefined,
+            issueKey: 'SMISKI-101',
+            projectKey: 'SMISKI',
+        });
+        expect(payload.settings.admissionPolicy).toBe('OPEN');
         expect(payload.zoneId).toBeTruthy();
     });
 

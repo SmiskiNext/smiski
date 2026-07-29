@@ -26,31 +26,40 @@ function useInvalidateMeetings() {
 }
 
 /**
- * Create an instant meeting against the real `meet` backend (via the Forge
- * resolver). Unlike schedule/update/cancel/start/end below, this flow does NOT
- * fall back to the in-memory mock — a backend failure surfaces to the caller
- * (BREAKING; standalone `vite dev` cannot create instant meetings).
+ * Create an instant meeting against the real `meet` backend (via the generated
+ * SDK over Forge Remote). Unlike schedule/update/cancel/start/end below, this
+ * flow does NOT fall back to the in-memory mock. The mutation resolves with the
+ * SDK-native `{ data, error }` result rather than throwing, so cache
+ * invalidation runs only when `result.data` is present and the modal branches
+ * on `result.error` (BREAKING; standalone `vite dev` cannot create instant
+ * meetings).
  */
 export function useCreateInstantMeeting() {
     const invalidate = useInvalidateMeetings();
     return useMutation({
         mutationFn: (input: CreateInstantMeetingInput) =>
             createInstantMeeting(input),
-        onSuccess: invalidate,
+        onSuccess: (result) => {
+            if (result.data) invalidate();
+        },
     });
 }
 
 /**
- * Create a scheduled meeting against the real `meet` backend (via Forge Remote).
- * Like the instant flow, this does NOT fall back to the in-memory mock — a
- * backend failure surfaces to the caller (BREAKING; standalone `vite dev` cannot
- * create scheduled meetings). The edit branch below stays on the mock.
+ * Create a scheduled meeting against the real `meet` backend (via the generated
+ * SDK over Forge Remote). Like the instant flow, this does NOT fall back to the
+ * in-memory mock and resolves with the SDK-native `{ data, error }` result, so
+ * invalidation runs only when `result.data` is present (BREAKING; standalone
+ * `vite dev` cannot create scheduled meetings). The edit branch below stays on
+ * the mock.
  */
 export function useScheduleMeeting() {
     const invalidate = useInvalidateMeetings();
     return useMutation({
         mutationFn: (input: ScheduleMeetingInput) => scheduleMeeting(input),
-        onSuccess: invalidate,
+        onSuccess: (result) => {
+            if (result.data) invalidate();
+        },
     });
 }
 

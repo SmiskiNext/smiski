@@ -147,57 +147,71 @@ export function ScheduleMeetingModal({
             return;
         }
 
-        try {
-            if (isEdit && meeting) {
-                const result = await updateMeeting.mutateAsync({
+        if (isEdit && meeting) {
+            try {
+                const updated = await updateMeeting.mutateAsync({
                     meetingId: meeting.id,
                     input: { title, description, startTime: startIso },
                 });
-                onSubmitted?.(result.id);
+                onSubmitted?.(updated.id);
                 resetAndClose();
-                return;
+            } catch (error) {
+                setFormError(
+                    error instanceof Error
+                        ? error.message
+                        : 'Could not save the meeting.',
+                );
             }
-
-            const endIso = zonedWallTimeToIso(
-                values.endDate,
-                values.endTime,
-                timeZone,
-            );
-            if (!endIso) {
-                setFormError('Choose a valid end date and time.');
-                return;
-            }
-            if (new Date(endIso).getTime() <= new Date(startIso).getTime()) {
-                setFormError('The end time must be after the start time.');
-                return;
-            }
-
-            const resolvedIssueKey = (issueKey ?? values.issueKey ?? '')
-                .trim()
-                .toUpperCase();
-            const result = await scheduleMeeting.mutateAsync({
-                issueKey: resolvedIssueKey,
-                projectKey: effectiveProjectKey || undefined,
-                title,
-                description,
-                startTime: startIso,
-                endTime: endIso,
-                zoneId: timeZone,
-                invitees: invitees.map((user) => ({
-                    accountId: user.accountId,
-                    displayName: user.displayName,
-                    email: user.email,
-                })),
-            });
-            onSubmitted?.(result.id);
-            resetAndClose();
-        } catch (error) {
-            setFormError(
-                error instanceof Error
-                    ? error.message
-                    : 'Could not save the meeting.',
-            );
+            return;
         }
+
+        const endIso = zonedWallTimeToIso(
+            values.endDate,
+            values.endTime,
+            timeZone,
+        );
+        if (!endIso) {
+            setFormError('Choose a valid end date and time.');
+            return;
+        }
+        if (new Date(endIso).getTime() <= new Date(startIso).getTime()) {
+            setFormError('The end time must be after the start time.');
+            return;
+        }
+
+        const resolvedIssueKey = (issueKey ?? values.issueKey ?? '')
+            .trim()
+            .toUpperCase();
+        const result = await scheduleMeeting.mutateAsync({
+            issueKey: resolvedIssueKey,
+            projectKey: effectiveProjectKey || undefined,
+            title,
+            description,
+            startTime: startIso,
+            endTime: endIso,
+            zoneId: timeZone,
+            invitees: invitees.map((user) => ({
+                accountId: user.accountId,
+                displayName: user.displayName,
+                email: user.email,
+            })),
+            organizer: {
+                accountId: currentUser.accountId,
+                displayName: currentUser.displayName,
+                email: currentUser.email,
+                avatarUrl: currentUser.avatarUrl,
+            },
+        });
+
+        if (result.error || !result.data) {
+            setFormError(
+                result.error?.message ?? 'Could not save the meeting.',
+            );
+            return;
+        }
+
+        onSubmitted?.(result.data.id);
+        resetAndClose();
     };
 
     const nowInZone = nowWallTimeInZone(timeZone);

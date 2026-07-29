@@ -1,9 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import {
     meetingFromBackend,
-    meetingsFromBackend,
+    participantsFromBackend,
     permissionsFromBackend,
-    roomTokenFromBackend,
 } from './mappers';
 
 describe('backend API mappers', () => {
@@ -36,22 +35,30 @@ describe('backend API mappers', () => {
         });
     });
 
-    it('maps common list response envelopes', () => {
-        expect(
-            meetingsFromBackend({
-                items: [
-                    {
-                        id: 'm-1',
-                        title: 'One',
-                        status: 'SCHEDULED',
-                        issueKey: 'PROJ-1',
-                    },
-                ],
-            }),
-        ).toHaveLength(1);
+    it('maps a participant list envelope to the frontend domain model', () => {
+        const participants = participantsFromBackend({
+            participants: [
+                {
+                    accountId: 'account-123',
+                    displayName: 'Host User',
+                    role: 'HOST',
+                    joinedAt: '2026-01-01T00:00:00Z',
+                },
+            ],
+        });
+
+        expect(participants).toEqual([
+            {
+                accountId: 'account-123',
+                displayName: 'Host User',
+                role: 'HOST',
+                joinedAt: '2026-01-01T00:00:00Z',
+                leftAt: undefined,
+            },
+        ]);
     });
 
-    it('maps permission and LiveKit token envelopes flexibly', () => {
+    it('maps permission envelopes flexibly', () => {
         expect(
             permissionsFromBackend({
                 canViewMeeting: true,
@@ -60,14 +67,6 @@ describe('backend API mappers', () => {
         ).toEqual({
             hasViewMeeting: true,
             hasEditMeeting: false,
-        });
-        expect(
-            roomTokenFromBackend({
-                livekit: { token: 'token', url: 'wss://livekit.example' },
-            }),
-        ).toEqual({
-            token: 'token',
-            url: 'wss://livekit.example',
         });
     });
 });

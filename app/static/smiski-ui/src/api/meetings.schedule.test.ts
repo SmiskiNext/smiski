@@ -7,7 +7,7 @@ vi.mock('@forge/bridge', () => ({ invoke: vi.fn(), requestRemote: vi.fn() }));
 
 import { buildScheduleMeetingPayload } from './meetings';
 
-describe('buildScheduleMeetingPayload', () => {
+describe('buildScheduleMeetingPayload (MeetScheduleMeetingRequest body)', () => {
     it('sends each selected invitee with email, accountId, and displayName', () => {
         const payload = buildScheduleMeetingPayload({
             issueKey: 'SMISKI-101',
@@ -43,7 +43,7 @@ describe('buildScheduleMeetingPayload', () => {
         ]);
     });
 
-    it('carries the time range and profile zone, and never a host object', () => {
+    it('carries the time range, organizer identity, and zone, and never a host object', () => {
         const payload = buildScheduleMeetingPayload({
             issueKey: 'SMISKI-101',
             title: 'Sprint planning',
@@ -51,6 +51,11 @@ describe('buildScheduleMeetingPayload', () => {
             endTime: '2026-08-01T03:00:00.000Z',
             zoneId: 'Asia/Ho_Chi_Minh',
             invitees: [],
+            organizer: {
+                accountId: 'acc-host',
+                displayName: 'Host User',
+                email: 'host@example.com',
+            },
         });
 
         expect(payload.timeRange).toEqual({
@@ -58,7 +63,10 @@ describe('buildScheduleMeetingPayload', () => {
             endTime: '2026-08-01T03:00:00.000Z',
         });
         expect(payload.zoneId).toBe('Asia/Ho_Chi_Minh');
-        expect(payload.issueLink).toMatchObject({
+        expect(payload.organizerEmail).toBe('host@example.com');
+        expect(payload.organizerDisplayName).toBe('Host User');
+        expect(payload.issueLink).toEqual({
+            issueId: undefined,
             issueKey: 'SMISKI-101',
             projectKey: 'SMISKI',
         });
