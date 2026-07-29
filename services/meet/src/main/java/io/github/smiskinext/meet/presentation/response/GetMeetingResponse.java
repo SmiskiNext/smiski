@@ -50,6 +50,11 @@ public record GetMeetingResponse(
 
     @Schema(name = "MeetingDetailInvitee", description = "Active invitee with RSVP status")
     public record Invitee(
+            @Schema(
+                    description =
+                            "Invitee identity used to remove the invitee via POST /meetings/{id}/invitees:batchDelete")
+            UUID id,
+
             String accountId,
             String email,
             String displayName,
@@ -104,6 +109,7 @@ public record GetMeetingResponse(
 
         List<Invitee> invitees = result.invitees().stream()
                 .map(invitee -> new Invitee(
+                        invitee.id(),
                         invitee.accountId(),
                         invitee.email(),
                         invitee.displayName(),

@@ -16,6 +16,26 @@ export function getLocalTimeZone(): string {
     }
 }
 
+/** True when `timeZone` is a resolvable IANA zone id (region-based, not a bare offset). */
+function isResolvableTimeZone(timeZone: string): boolean {
+    try {
+        new Intl.DateTimeFormat('en-US', { timeZone }).format();
+        return true;
+    } catch {
+        return false;
+    }
+}
+
+/**
+ * Resolve the meeting time zone from the invoking user's Jira profile zone.
+ * Returns the profile zone when it is a resolvable IANA id, otherwise falls
+ * back to the browser's local zone.
+ */
+export function resolveUserTimeZone(profileZone?: string): string {
+    if (profileZone && isResolvableTimeZone(profileZone)) return profileZone;
+    return getLocalTimeZone();
+}
+
 /** Common business timezones offered in the picker (local zone is prepended). */
 const COMMON_TIME_ZONES = [
     'UTC',

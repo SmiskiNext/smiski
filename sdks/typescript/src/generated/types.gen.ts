@@ -338,49 +338,6 @@ export type MeetProblemDetail = {
 };
 
 /**
- * Meeting invitee
- */
-export type MeetInvitee = {
-    email: string;
-    accountId: string;
-    displayName: string;
-};
-
-/**
- * Request body for replacing the invitee list of a meeting
- */
-export type MeetUpdateMeetingInviteesRequest = {
-    /**
-     * Full invitee list to synchronize
-     */
-    invitees: Array<MeetInvitee>;
-};
-
-/**
- * Meeting invitee snapshot
- */
-export type MeetMeetingInviteeSnapshot = {
-    id?: string;
-    accountId?: string;
-    email?: string;
-    displayName?: string;
-    role?: string;
-    status?: string;
-    invitedAt?: string;
-    /**
-     * Timestamp when the invitee responded; null if not yet responded
-     */
-    respondedAt?: string | null;
-};
-
-/**
- * Response containing the current active invitee list of a meeting
- */
-export type MeetUpdateMeetingInviteesResponse = {
-    invitees?: Array<MeetMeetingInviteeSnapshot>;
-};
-
-/**
  * Filters and pagination for listing tenant meetings
  */
 export type MeetListMeetingsRequest = {
@@ -459,6 +416,15 @@ export type MeetMeetingSummarySettings = {
     chatEnabled?: boolean;
     allowMicrophone?: boolean;
     allowVideo?: boolean;
+};
+
+/**
+ * Meeting invitee
+ */
+export type MeetInvitee = {
+    email: string;
+    accountId: string;
+    displayName: string;
 };
 
 /**
@@ -721,6 +687,91 @@ export type MeetJoinDecisionResponse = {
 };
 
 /**
+ * Request body for adding new invitees to a meeting
+ */
+export type MeetAddMeetingInviteesRequest = {
+    /**
+     * Invitees to add; at least one is required
+     */
+    invitees: Array<MeetInvitee>;
+};
+
+/**
+ * Response containing the invitees created by an add-invitees call
+ */
+export type MeetAddMeetingInviteesResponse = {
+    invitees?: Array<MeetAddedMeetingInviteeSnapshot>;
+};
+
+/**
+ * Created meeting invitee snapshot
+ */
+export type MeetAddedMeetingInviteeSnapshot = {
+    id?: string;
+    accountId?: string;
+    email?: string;
+    displayName?: string;
+    role?: string;
+    status?: string;
+    invitedAt?: string;
+    /**
+     * Timestamp when the invitee responded; null if not yet responded
+     */
+    respondedAt?: string | null;
+};
+
+/**
+ * Request body for removing invitees from a meeting by invitee id
+ */
+export type MeetRemoveMeetingInviteesRequest = {
+    /**
+     * Identifiers of the invitees to remove; at least one is required
+     */
+    inviteeIds: Array<string>;
+};
+
+/**
+ * Response containing the invitees removed by a batch-delete call
+ */
+export type MeetRemoveMeetingInviteesResponse = {
+    invitees?: Array<MeetRemovedMeetingInviteeSnapshot>;
+};
+
+/**
+ * Removed meeting invitee snapshot
+ */
+export type MeetRemovedMeetingInviteeSnapshot = {
+    id?: string;
+    accountId?: string;
+    email?: string;
+    displayName?: string;
+    role?: string;
+    status?: string;
+    invitedAt?: string;
+    /**
+     * Timestamp when the invitee responded; null if not yet responded
+     */
+    respondedAt?: string | null;
+};
+
+/**
+ * Snapshot of the invitee after responding to the invitation
+ */
+export type MeetMeetingInviteeResponse = {
+    id?: string;
+    accountId?: string;
+    email?: string;
+    displayName?: string;
+    role?: string;
+    status?: string;
+    invitedAt?: string;
+    /**
+     * Timestamp when the invitee responded; null if not yet responded
+     */
+    respondedAt?: string | null;
+};
+
+/**
  * A single meeting with its invitees and joined participants
  */
 export type MeetGetMeetingResponse = {
@@ -733,6 +784,10 @@ export type MeetGetMeetingResponse = {
  * Active invitee with RSVP status
  */
 export type MeetMeetingDetailInvitee = {
+    /**
+     * Invitee identity used to remove the invitee via POST /meetings/{id}/invitees:batchDelete
+     */
+    id?: string;
     accountId?: string;
     email?: string;
     displayName?: string;
@@ -1022,54 +1077,6 @@ export type UpdateResponses = {
 };
 
 export type UpdateResponse = UpdateResponses[keyof UpdateResponses];
-
-export type UpdateInviteesData = {
-    body: MeetUpdateMeetingInviteesRequest;
-    path: {
-        version: number;
-        id: string;
-    };
-    query?: never;
-    url: '/api/{version}/meetings/{id}/invitees';
-};
-
-export type UpdateInviteesErrors = {
-    /**
-     * Validation error or missing account
-     */
-    400: MeetProblemDetail;
-    /**
-     * Only the host may modify invitees
-     */
-    403: MeetProblemDetail;
-    /**
-     * Meeting not found
-     */
-    404: MeetProblemDetail;
-    /**
-     * Method Not Allowed
-     */
-    405: MeetProblemDetail;
-    /**
-     * Unsupported Media Type
-     */
-    415: MeetProblemDetail;
-    /**
-     * Internal Server Error
-     */
-    500: MeetProblemDetail;
-};
-
-export type UpdateInviteesError = UpdateInviteesErrors[keyof UpdateInviteesErrors];
-
-export type UpdateInviteesResponses = {
-    /**
-     * Invitees synchronized
-     */
-    200: MeetUpdateMeetingInviteesResponse;
-};
-
-export type UpdateInviteesResponse = UpdateInviteesResponses[keyof UpdateInviteesResponses];
 
 export type ReceiveData = {
     body: string;
@@ -1426,3 +1433,262 @@ export type AcceptJoinRequestsResponses = {
 };
 
 export type AcceptJoinRequestsResponse = AcceptJoinRequestsResponses[keyof AcceptJoinRequestsResponses];
+
+export type AddInviteesData = {
+    body: MeetAddMeetingInviteesRequest;
+    path: {
+        version: number;
+        id: string;
+    };
+    query?: never;
+    url: '/api/{version}/meetings/{id}/invitees';
+};
+
+export type AddInviteesErrors = {
+    /**
+     * Validation error or missing account
+     */
+    400: MeetProblemDetail;
+    /**
+     * Only the host may add invitees
+     */
+    403: MeetProblemDetail;
+    /**
+     * Meeting not found
+     */
+    404: MeetProblemDetail;
+    /**
+     * Method Not Allowed
+     */
+    405: MeetProblemDetail;
+    /**
+     * An account is already an active invitee
+     */
+    409: MeetProblemDetail;
+    /**
+     * Unsupported Media Type
+     */
+    415: MeetProblemDetail;
+    /**
+     * Internal Server Error
+     */
+    500: MeetProblemDetail;
+};
+
+export type AddInviteesError = AddInviteesErrors[keyof AddInviteesErrors];
+
+export type AddInviteesResponses = {
+    /**
+     * Invitees created
+     */
+    200: MeetAddMeetingInviteesResponse;
+};
+
+export type AddInviteesResponse = AddInviteesResponses[keyof AddInviteesResponses];
+
+export type BatchDeleteInviteesData = {
+    body: MeetRemoveMeetingInviteesRequest;
+    path: {
+        version: number;
+        id: string;
+    };
+    query?: never;
+    url: '/api/{version}/meetings/{id}/invitees:batchDelete';
+};
+
+export type BatchDeleteInviteesErrors = {
+    /**
+     * Validation error or missing account
+     */
+    400: MeetProblemDetail;
+    /**
+     * Only the host may remove invitees
+     */
+    403: MeetProblemDetail;
+    /**
+     * Meeting or invitee not found
+     */
+    404: MeetProblemDetail;
+    /**
+     * Method Not Allowed
+     */
+    405: MeetProblemDetail;
+    /**
+     * Unsupported Media Type
+     */
+    415: MeetProblemDetail;
+    /**
+     * Internal Server Error
+     */
+    500: MeetProblemDetail;
+};
+
+export type BatchDeleteInviteesError = BatchDeleteInviteesErrors[keyof BatchDeleteInviteesErrors];
+
+export type BatchDeleteInviteesResponses = {
+    /**
+     * Invitees removed
+     */
+    200: MeetRemoveMeetingInviteesResponse;
+};
+
+export type BatchDeleteInviteesResponse = BatchDeleteInviteesResponses[keyof BatchDeleteInviteesResponses];
+
+export type TentativeInvitationData = {
+    body?: never;
+    path: {
+        version: number;
+        id: string;
+        inviteeId: string;
+    };
+    query?: never;
+    url: '/api/{version}/meetings/{id}/invitees/{inviteeId}:tentative';
+};
+
+export type TentativeInvitationErrors = {
+    /**
+     * Missing account header
+     */
+    400: MeetProblemDetail;
+    /**
+     * The acting account does not own the target invitation
+     */
+    403: MeetProblemDetail;
+    /**
+     * Meeting or invitee not found for the current tenant
+     */
+    404: MeetProblemDetail;
+    /**
+     * Method Not Allowed
+     */
+    405: MeetProblemDetail;
+    /**
+     * The current status does not permit a tentative response
+     */
+    409: MeetProblemDetail;
+    /**
+     * Unsupported Media Type
+     */
+    415: MeetProblemDetail;
+    /**
+     * Internal Server Error
+     */
+    500: MeetProblemDetail;
+};
+
+export type TentativeInvitationError = TentativeInvitationErrors[keyof TentativeInvitationErrors];
+
+export type TentativeInvitationResponses = {
+    /**
+     * Invitation marked tentative
+     */
+    200: MeetMeetingInviteeResponse;
+};
+
+export type TentativeInvitationResponse = TentativeInvitationResponses[keyof TentativeInvitationResponses];
+
+export type DeclineInvitationData = {
+    body?: never;
+    path: {
+        version: number;
+        id: string;
+        inviteeId: string;
+    };
+    query?: never;
+    url: '/api/{version}/meetings/{id}/invitees/{inviteeId}:decline';
+};
+
+export type DeclineInvitationErrors = {
+    /**
+     * Missing account header
+     */
+    400: MeetProblemDetail;
+    /**
+     * The acting account does not own the target invitation
+     */
+    403: MeetProblemDetail;
+    /**
+     * Meeting or invitee not found for the current tenant
+     */
+    404: MeetProblemDetail;
+    /**
+     * Method Not Allowed
+     */
+    405: MeetProblemDetail;
+    /**
+     * The current status does not permit declining
+     */
+    409: MeetProblemDetail;
+    /**
+     * Unsupported Media Type
+     */
+    415: MeetProblemDetail;
+    /**
+     * Internal Server Error
+     */
+    500: MeetProblemDetail;
+};
+
+export type DeclineInvitationError = DeclineInvitationErrors[keyof DeclineInvitationErrors];
+
+export type DeclineInvitationResponses = {
+    /**
+     * Invitation declined
+     */
+    200: MeetMeetingInviteeResponse;
+};
+
+export type DeclineInvitationResponse = DeclineInvitationResponses[keyof DeclineInvitationResponses];
+
+export type AcceptInvitationData = {
+    body?: never;
+    path: {
+        version: number;
+        id: string;
+        inviteeId: string;
+    };
+    query?: never;
+    url: '/api/{version}/meetings/{id}/invitees/{inviteeId}:accept';
+};
+
+export type AcceptInvitationErrors = {
+    /**
+     * Missing account header
+     */
+    400: MeetProblemDetail;
+    /**
+     * The acting account does not own the target invitation
+     */
+    403: MeetProblemDetail;
+    /**
+     * Meeting or invitee not found for the current tenant
+     */
+    404: MeetProblemDetail;
+    /**
+     * Method Not Allowed
+     */
+    405: MeetProblemDetail;
+    /**
+     * The current status does not permit accepting
+     */
+    409: MeetProblemDetail;
+    /**
+     * Unsupported Media Type
+     */
+    415: MeetProblemDetail;
+    /**
+     * Internal Server Error
+     */
+    500: MeetProblemDetail;
+};
+
+export type AcceptInvitationError = AcceptInvitationErrors[keyof AcceptInvitationErrors];
+
+export type AcceptInvitationResponses = {
+    /**
+     * Invitation accepted
+     */
+    200: MeetMeetingInviteeResponse;
+};
+
+export type AcceptInvitationResponse = AcceptInvitationResponses[keyof AcceptInvitationResponses];

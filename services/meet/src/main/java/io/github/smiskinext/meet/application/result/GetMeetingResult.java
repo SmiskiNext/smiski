@@ -44,6 +44,7 @@ public record GetMeetingResult(
             boolean allowVideo) {}
 
     public record Invitee(
+            UUID id,
             String accountId,
             String email,
             String displayName,

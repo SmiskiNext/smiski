@@ -7,6 +7,7 @@ export interface MockUser {
     accountId: string;
     displayName: string;
     avatarUrl?: string;
+    timeZone?: string;
 }
 
 const AVATAR_PALETTE = [
@@ -40,6 +41,7 @@ export const CURRENT_USER: MockUser = {
     accountId: 'acc-current-jordan',
     displayName: 'Jordan Avery',
     avatarUrl: initialsAvatar('Jordan Avery', 0),
+    timeZone: 'Asia/Ho_Chi_Minh',
 };
 
 export const MOCK_USERS: MockUser[] = [

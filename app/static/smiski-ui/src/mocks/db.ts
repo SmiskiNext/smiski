@@ -202,14 +202,14 @@ export async function createInstantMeeting(
         hostName: actor.displayName,
         startedAt: new Date().toISOString(),
         status: 'RUNNING',
-        participantCount: 1 + (input.participantAccountIds?.length ?? 0),
+        participantCount: 1 + (input.invitees?.length ?? 0),
     };
     meetings = [meeting, ...meetings];
     persistMeetings(meetings);
     setMockParticipants(
         meeting.id,
         actor,
-        input.participantAccountIds,
+        (input.invitees ?? []).map((invitee) => invitee.accountId),
         identity.projectMembers,
     );
     return delay(cloneMeeting(meeting));
@@ -235,14 +235,14 @@ export async function scheduleMeeting(
         hostName: actor.displayName,
         scheduledAt: input.startTime,
         status: 'SCHEDULED',
-        participantCount: 1 + (input.participantAccountIds?.length ?? 0),
+        participantCount: 1 + input.invitees.length,
     };
     meetings = [meeting, ...meetings];
     persistMeetings(meetings);
     setMockParticipants(
         meeting.id,
         actor,
-        input.participantAccountIds,
+        input.invitees.map((invitee) => invitee.accountId),
         identity.projectMembers,
     );
     return delay(cloneMeeting(meeting));

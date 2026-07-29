@@ -55,9 +55,16 @@ class GetMeetingApplicationServiceTest {
                 .thenReturn(Optional.of(meetingDetail(meetingId)));
         Instant invitedAt = Instant.parse("2025-01-15T10:35:00Z");
         Instant joinedAt = Instant.parse("2025-01-15T11:00:00Z");
+        UUID inviteeId = UUID.randomUUID();
         when(meetingInviteeRepository.findSummariesByMeetingId(meetingId))
                 .thenReturn(List.of(new InviteeSummary(
-                        "member-1", "alice@example.com", "Alice", "ACCEPTED", invitedAt, null)));
+                        inviteeId,
+                        "member-1",
+                        "alice@example.com",
+                        "Alice",
+                        "ACCEPTED",
+                        invitedAt,
+                        null)));
         when(participationLogRepository.findDistinctParticipantSummariesByMeetingId(meetingId))
                 .thenReturn(List.of(new ParticipantSummary(
                         UUID.randomUUID(), meetingId, "member-1", "PARTICIPANT", joinedAt, null)));
@@ -70,6 +77,7 @@ class GetMeetingApplicationServiceTest {
         assertThat(value.meeting().id()).isEqualTo(meetingId);
         assertThat(value.meeting().hostId()).isEqualTo("host-1");
         assertThat(value.invitees()).singleElement().satisfies(invitee -> {
+            assertThat(invitee.id()).isEqualTo(inviteeId);
             assertThat(invitee.accountId()).isEqualTo("member-1");
             assertThat(invitee.status()).isEqualTo("ACCEPTED");
         });

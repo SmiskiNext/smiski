@@ -57,6 +57,7 @@ public final class GetMeetingMapper {
 
     private static GetMeetingResult.Invitee toInvitee(InviteeSummary summary) {
         return new GetMeetingResult.Invitee(
+                summary.id(),
                 summary.accountId(),
                 summary.email(),
                 summary.displayName(),

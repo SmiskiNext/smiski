@@ -13,10 +13,8 @@ import type {
     ScheduleMeetingInput,
     UpdateMeetingInput,
 } from '../api/meetings';
-import { useCurrentUser } from '../context/CurrentUserContext';
-import type { ProjectMember } from '../domain';
+import { createInstantMeeting, scheduleMeeting } from '../api/meetings';
 import * as mockDb from '../mocks/db';
-import { queryKeys } from './queryKeys';
 
 function useInvalidateMeetings() {
     const queryClient = useQueryClient();
@@ -28,44 +26,40 @@ function useInvalidateMeetings() {
 }
 
 /**
- * Captures the real Jira actor plus the project-member directory already
- * loaded by the meeting form. The mock database can then persist readable
- * names while retaining the same API payload contracts used by the backend.
+ * Create an instant meeting against the real `meet` backend (via the generated
+ * SDK over Forge Remote). Unlike schedule/update/cancel/start/end below, this
+ * flow does NOT fall back to the in-memory mock. The mutation resolves with the
+ * SDK-native `{ data, error }` result rather than throwing, so cache
+ * invalidation runs only when `result.data` is present and the modal branches
+ * on `result.error` (BREAKING; standalone `vite dev` cannot create instant
+ * meetings).
  */
-function useMockIdentityContext() {
-    const currentUser = useCurrentUser();
-    const queryClient = useQueryClient();
-
-    return (issueKey: string): mockDb.MockMeetingIdentityContext => {
-        const projectKey = issueKey.split('-')[0];
-        const projectMembers =
-            queryClient.getQueryData<ProjectMember[]>(
-                queryKeys.projectMembers(projectKey),
-            ) ?? [];
-        return { currentUser, projectMembers };
-    };
-}
-
 export function useCreateInstantMeeting() {
     const invalidate = useInvalidateMeetings();
-    const identityForIssue = useMockIdentityContext();
     return useMutation({
         mutationFn: (input: CreateInstantMeetingInput) =>
-            mockDb.createInstantMeeting(
-                input,
-                identityForIssue(input.issueKey),
-            ),
-        onSuccess: invalidate,
+            createInstantMeeting(input),
+        onSuccess: (result) => {
+            if (result.data) invalidate();
+        },
     });
 }
 
+/**
+ * Create a scheduled meeting against the real `meet` backend (via the generated
+ * SDK over Forge Remote). Like the instant flow, this does NOT fall back to the
+ * in-memory mock and resolves with the SDK-native `{ data, error }` result, so
+ * invalidation runs only when `result.data` is present (BREAKING; standalone
+ * `vite dev` cannot create scheduled meetings). The edit branch below stays on
+ * the mock.
+ */
 export function useScheduleMeeting() {
     const invalidate = useInvalidateMeetings();
-    const identityForIssue = useMockIdentityContext();
     return useMutation({
-        mutationFn: (input: ScheduleMeetingInput) =>
-            mockDb.scheduleMeeting(input, identityForIssue(input.issueKey)),
-        onSuccess: invalidate,
+        mutationFn: (input: ScheduleMeetingInput) => scheduleMeeting(input),
+        onSuccess: (result) => {
+            if (result.data) invalidate();
+        },
     });
 }
 

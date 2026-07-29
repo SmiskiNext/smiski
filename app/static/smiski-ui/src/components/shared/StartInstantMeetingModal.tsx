@@ -1,169 +1,188 @@
-import { type FormEvent, useState } from 'react';
+/**
+ * StartInstantMeetingModal — the shared "start instant meeting" form, built
+ * entirely with Ant Design (`Modal`, `Form`, `Input`, `Select`). Used by both
+ * the project-page dashboard (overlay chrome) and the Issue Panel (embedded in
+ * a Forge platform modal).
+ *
+ * Invitees are sourced from Jira site users through `WorkspaceUserPicker` and
+ * kept as full identity objects (`accountId`, `displayName`, `email`) so the
+ * create request satisfies the backend contract. Backend/resolver failures are
+ * shown inline and keep the modal open for correction.
+ */
+import { Alert, Form, Input, Modal } from 'antd';
+import { useState } from 'react';
+import type { WorkspaceUser } from '../../api/workspaceUsers';
+import { useCurrentUser } from '../../context/CurrentUserContext';
 import { useCreateInstantMeeting } from '../../hooks/useMeetingMutations';
-import { useProjectMembers } from '../../hooks/useProjectMembers';
-import { Button, Icon, Modal, MultiSelectDropdown } from '../ui';
+import { resolveUserTimeZone } from '../../utils/datetime';
 import { IssuePicker } from './IssuePicker';
+import { WorkspaceUserPicker } from './WorkspaceUserPicker';
 
 export interface StartInstantMeetingModalProps {
     isOpen: boolean;
     projectKey: string;
+    /** When provided, the meeting binds to this issue and the picker is hidden. */
+    issueKey?: string;
     onClose: () => void;
     onStarted: (meetingId: string) => void;
+    /** Pass 'embedded' when already rendered inside a Forge platform Modal. */
+    chrome?: 'overlay' | 'embedded';
+}
+
+interface InstantMeetingFormValues {
+    issueKey?: string;
+    title: string;
+}
+
+/**
+ * Bridges Ant Design `Form.Item`'s injected `value`/`onChange` to the
+ * `IssuePicker` selection contract so the picked issue key is form-controlled.
+ */
+function IssueField({
+    projectKey,
+    value,
+    onChange,
+}: {
+    projectKey: string;
+    value?: string;
+    onChange?: (issueKey: string) => void;
+}) {
+    return (
+        <IssuePicker
+            projectKey={projectKey}
+            value={value ?? ''}
+            autoFocus
+            onChange={(key) => onChange?.(key)}
+        />
+    );
 }
 
 export function StartInstantMeetingModal({
     isOpen,
     projectKey,
+    issueKey,
     onClose,
     onStarted,
+    chrome = 'overlay',
 }: StartInstantMeetingModalProps) {
+    const [form] = Form.useForm<InstantMeetingFormValues>();
+    const currentUser = useCurrentUser();
     const createMeeting = useCreateInstantMeeting();
-    const { members, loading: membersLoading } = useProjectMembers(projectKey);
-    const [errors, setErrors] = useState<{
-        issueKey?: string;
-        title?: string;
-        form?: string;
-    }>({});
-    const [pickedIssueKey, setPickedIssueKey] = useState('');
-    const [participantIds, setParticipantIds] = useState<string[]>([]);
+    const [invitees, setInvitees] = useState<WorkspaceUser[]>([]);
+    const [formError, setFormError] = useState<string | null>(null);
 
-    if (!isOpen) return null;
+    const handleSubmit = async (values: InstantMeetingFormValues) => {
+        setFormError(null);
+        const resolvedIssueKey = (issueKey ?? values.issueKey ?? '')
+            .trim()
+            .toUpperCase();
 
-    const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
-        event.preventDefault();
-        const form = new FormData(event.currentTarget);
-        const issueKey = pickedIssueKey.trim().toUpperCase();
-        const title = String(form.get('title') ?? '').trim();
-        const nextErrors: typeof errors = {};
+        const result = await createMeeting.mutateAsync({
+            issueKey: resolvedIssueKey,
+            projectKey,
+            title: values.title.trim(),
+            zoneId: resolveUserTimeZone(currentUser.timeZone),
+            invitees: invitees.map((user) => ({
+                accountId: user.accountId,
+                displayName: user.displayName,
+                email: user.email,
+            })),
+            host: {
+                accountId: currentUser.accountId,
+                displayName: currentUser.displayName,
+                email: currentUser.email,
+                avatarUrl: currentUser.avatarUrl,
+            },
+        });
 
-        if (!issueKey)
-            nextErrors.issueKey = `Enter an issue key, e.g. ${projectKey}-123.`;
-        else if (!issueKey.startsWith(`${projectKey}-`))
-            nextErrors.issueKey = `Issue must belong to project ${projectKey}.`;
-        if (!title) nextErrors.title = 'Enter a meeting title.';
-        if (Object.keys(nextErrors).length) {
-            setErrors(nextErrors);
+        if (result.error || !result.data) {
+            setFormError(
+                result.error?.message ?? 'Could not start the meeting.',
+            );
             return;
         }
 
-        try {
-            const meeting = await createMeeting.mutateAsync({
-                issueKey,
-                title,
-                participantAccountIds: participantIds,
-            });
-            onClose();
-            onStarted(meeting.id);
-        } catch (error) {
-            setErrors({
-                form:
-                    error instanceof Error
-                        ? error.message
-                        : 'Could not start the meeting.',
-            });
-        }
+        const meetingId = result.data.id;
+        resetAndClose();
+        onStarted(meetingId);
     };
+
+    const resetAndClose = () => {
+        form.resetFields();
+        setInvitees([]);
+        setFormError(null);
+        onClose();
+    };
+
+    const body = (
+        <Form
+            form={form}
+            layout='vertical'
+            requiredMark
+            onFinish={handleSubmit}
+            preserve={false}
+        >
+            {!issueKey && (
+                <Form.Item
+                    label='Issue'
+                    name='issueKey'
+                    rules={[
+                        {
+                            required: true,
+                            message: `Select an issue in ${projectKey}.`,
+                        },
+                        {
+                            validator: (_rule, value: string | undefined) =>
+                                !value
+                                || value
+                                    .trim()
+                                    .toUpperCase()
+                                    .startsWith(`${projectKey}-`)
+                                    ? Promise.resolve()
+                                    : Promise.reject(
+                                          new Error(
+                                              `Issue must belong to project ${projectKey}.`,
+                                          ),
+                                      ),
+                        },
+                    ]}
+                >
+                    <IssueField projectKey={projectKey} />
+                </Form.Item>
+            )}
+            <Form.Item
+                label='Title'
+                name='title'
+                rules={[{ required: true, message: 'Enter a meeting title.' }]}
+            >
+                <Input
+                    autoFocus={Boolean(issueKey)}
+                    placeholder='e.g. Investigate deployment failure'
+                />
+            </Form.Item>
+            <Form.Item label='Invitees'>
+                <WorkspaceUserPicker value={invitees} onChange={setInvitees} />
+            </Form.Item>
+            {formError && (
+                <Form.Item>
+                    <Alert type='error' message={formError} showIcon />
+                </Form.Item>
+            )}
+        </Form>
+    );
 
     return (
         <Modal
             title='Start instant meeting'
-            description='Every meeting must be linked to a Jira issue.'
-            size='lg'
-            onClose={onClose}
-            footer={
-                <>
-                    <Button variant='ghost' onClick={onClose}>
-                        Cancel
-                    </Button>
-                    <Button
-                        form='start-instant-meeting-form'
-                        type='submit'
-                        variant='primary'
-                        isLoading={createMeeting.isPending}
-                        leadingIcon={<Icon name='video' size={16} />}
-                    >
-                        Start meeting
-                    </Button>
-                </>
-            }
+            open={isOpen}
+            onCancel={resetAndClose}
+            onOk={() => form.submit()}
+            okText='Start meeting'
+            confirmLoading={createMeeting.isPending}
+            destroyOnClose
+            getContainer={chrome === 'embedded' ? false : undefined}
         >
-            <form
-                id='start-instant-meeting-form'
-                className='space-y-4'
-                onSubmit={handleSubmit}
-            >
-                <div className='block'>
-                    <span className='mb-1.5 block text-xs font-bold text-[var(--text-muted)]'>
-                        Issue <span className='text-red-500'>*</span>
-                    </span>
-                    <IssuePicker
-                        projectKey={projectKey}
-                        value={pickedIssueKey}
-                        autoFocus
-                        invalid={Boolean(errors.issueKey)}
-                        onChange={(key) => {
-                            setPickedIssueKey(key);
-                            if (errors.issueKey)
-                                setErrors((value) => ({
-                                    ...value,
-                                    issueKey: undefined,
-                                }));
-                        }}
-                    />
-                    {errors.issueKey && (
-                        <p className='mt-1.5 text-xs font-medium text-red-600 dark:text-red-300'>
-                            {errors.issueKey}
-                        </p>
-                    )}
-                </div>
-                <label className='block'>
-                    <span className='mb-1.5 block text-xs font-bold text-[var(--text-muted)]'>
-                        Title <span className='text-red-500'>*</span>
-                    </span>
-                    <input
-                        name='title'
-                        className='field-control'
-                        placeholder='e.g. Investigate deployment failure'
-                        onChange={() =>
-                            errors.title
-                            && setErrors((value) => ({
-                                ...value,
-                                title: undefined,
-                            }))
-                        }
-                    />
-                    {errors.title && (
-                        <p className='mt-1.5 text-xs font-medium text-red-600 dark:text-red-300'>
-                            {errors.title}
-                        </p>
-                    )}
-                </label>
-                <div className='block'>
-                    <span className='mb-1.5 block text-xs font-bold text-[var(--text-muted)]'>
-                        Participants
-                    </span>
-                    <MultiSelectDropdown
-                        ariaLabel='Participants'
-                        placeholder={
-                            membersLoading
-                                ? 'Loading members…'
-                                : 'Select participants'
-                        }
-                        disabled={membersLoading}
-                        values={participantIds}
-                        options={members.map((user) => ({
-                            value: user.accountId,
-                            label: user.displayName,
-                        }))}
-                        onChange={setParticipantIds}
-                    />
-                </div>
-                {errors.form && (
-                    <p className='text-xs font-medium text-red-600 dark:text-red-300'>
-                        {errors.form}
-                    </p>
-                )}
-            </form>
+            {body}
         </Modal>
     );
 }

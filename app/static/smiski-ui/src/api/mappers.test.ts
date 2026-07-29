@@ -1,10 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import {
     meetingFromBackend,
-    meetingsFromBackend,
+    participantsFromBackend,
     permissionsFromBackend,
-    roomTokenFromBackend,
-    scheduleMeetingRequest,
 } from './mappers';
 
 describe('backend API mappers', () => {
@@ -37,65 +35,30 @@ describe('backend API mappers', () => {
         });
     });
 
-    it('maps common list response envelopes', () => {
-        expect(
-            meetingsFromBackend({
-                items: [
-                    {
-                        id: 'm-1',
-                        title: 'One',
-                        status: 'SCHEDULED',
-                        issueKey: 'PROJ-1',
-                    },
-                ],
-            }),
-        ).toHaveLength(1);
-    });
-
-    it('builds the current scheduled-meeting backend request body', () => {
-        const request = scheduleMeetingRequest(
-            {
-                issueKey: 'PROJ-1',
-                title: 'Planning',
-                startTime: '2026-01-01T00:00:00Z',
-                participantAccountIds: ['account-456'],
-            },
-            {
-                currentUser: {
-                    accountId: 'account-123',
-                    displayName: 'Alice Nguyen',
-                    email: 'alice@example.com',
-                },
-                projectMembers: [
-                    {
-                        accountId: 'account-456',
-                        displayName: 'Bob Tran',
-                        email: 'bob@example.com',
-                    },
-                ],
-            },
-        );
-
-        expect(request).toMatchObject({
-            title: 'Planning',
-            issueLink: { issueKey: 'PROJ-1', projectKey: 'PROJ' },
-            organizerEmail: 'alice@example.com',
-            organizerDisplayName: 'Alice Nguyen',
-            invitees: [
+    it('maps a participant list envelope to the frontend domain model', () => {
+        const participants = participantsFromBackend({
+            participants: [
                 {
-                    accountId: 'account-456',
-                    displayName: 'Bob Tran',
-                    email: 'bob@example.com',
+                    accountId: 'account-123',
+                    displayName: 'Host User',
+                    role: 'HOST',
+                    joinedAt: '2026-01-01T00:00:00Z',
                 },
             ],
         });
-        expect(request.timeRange).toEqual({
-            startTime: '2026-01-01T00:00:00.000Z',
-            endTime: '2026-01-01T01:00:00.000Z',
-        });
+
+        expect(participants).toEqual([
+            {
+                accountId: 'account-123',
+                displayName: 'Host User',
+                role: 'HOST',
+                joinedAt: '2026-01-01T00:00:00Z',
+                leftAt: undefined,
+            },
+        ]);
     });
 
-    it('maps permission and LiveKit token envelopes flexibly', () => {
+    it('maps permission envelopes flexibly', () => {
         expect(
             permissionsFromBackend({
                 canViewMeeting: true,
@@ -104,14 +67,6 @@ describe('backend API mappers', () => {
         ).toEqual({
             hasViewMeeting: true,
             hasEditMeeting: false,
-        });
-        expect(
-            roomTokenFromBackend({
-                livekit: { token: 'token', url: 'wss://livekit.example' },
-            }),
-        ).toEqual({
-            token: 'token',
-            url: 'wss://livekit.example',
         });
     });
 });

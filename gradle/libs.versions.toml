@@ -17,6 +17,7 @@ uuidCreator = "6.1.1"
 cloudevents = "4.1.1"
 awsSdk = "2.46.17"
 resend = "4.13.0"
+biweekly = "0.6.8"
 palantirJavaFormat = "2.94.0"
 testcontainers = "1.21.3"
 archunit = "1.4.2"
@@ -85,6 +86,7 @@ cloudevents-json-jackson = { module = "io.cloudevents:cloudevents-json-jackson",
 cloudevents-kafka = { module = "io.cloudevents:cloudevents-kafka", version.ref = "cloudevents" }
 aws-s3 = { module = "software.amazon.awssdk:s3", version.ref = "awsSdk" }
 resend-java = { module = "com.resend:resend-java", version.ref = "resend" }
+biweekly = { module = "net.sf.biweekly:biweekly", version.ref = "biweekly" }
 
 # Spring Boot Starters (version managed by Spring Boot BOM)
 spring-boot-starter-aspectj = { module = "org.springframework.boot:spring-boot-starter-aspectj" }

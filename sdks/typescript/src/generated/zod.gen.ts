@@ -257,46 +257,6 @@ export const zMeetProblemDetail = z.object({
 });
 
 /**
- * Meeting invitee
- */
-export const zMeetInvitee = z.object({
-    email: z.email().min(0).max(255),
-    accountId: z.string().min(1),
-    displayName: z.string().min(0).max(255)
-});
-
-/**
- * Request body for replacing the invitee list of a meeting
- */
-export const zMeetUpdateMeetingInviteesRequest = z.object({
-    invitees: z.array(zMeetInvitee)
-});
-
-/**
- * Meeting invitee snapshot
- */
-export const zMeetMeetingInviteeSnapshot = z.object({
-    id: z.optional(z.uuid()),
-    accountId: z.optional(z.string()),
-    email: z.optional(z.string()),
-    displayName: z.optional(z.string()),
-    role: z.optional(z.string()),
-    status: z.optional(z.string()),
-    invitedAt: z.optional(z.iso.datetime()),
-    respondedAt: z.optional(z.union([
-        z.iso.datetime(),
-        z.null()
-    ]))
-});
-
-/**
- * Response containing the current active invitee list of a meeting
- */
-export const zMeetUpdateMeetingInviteesResponse = z.object({
-    invitees: z.optional(z.array(zMeetMeetingInviteeSnapshot))
-});
-
-/**
  * Filters and pagination for listing tenant meetings
  */
 export const zMeetListMeetingsRequest = z.object({
@@ -382,6 +342,15 @@ export const zMeetMeetingSummary = z.object({
 export const zMeetMeetingListPage = z.object({
     data: z.optional(z.array(zMeetMeetingSummary)),
     meta: z.optional(zMeetMeetingListPageMeta)
+});
+
+/**
+ * Meeting invitee
+ */
+export const zMeetInvitee = z.object({
+    email: z.email().min(1),
+    accountId: z.string().min(1),
+    displayName: z.string().min(1)
 });
 
 /**
@@ -599,9 +568,89 @@ export const zMeetJoinDecisionResponse = z.object({
 });
 
 /**
+ * Request body for adding new invitees to a meeting
+ */
+export const zMeetAddMeetingInviteesRequest = z.object({
+    invitees: z.array(zMeetInvitee).min(1)
+});
+
+/**
+ * Created meeting invitee snapshot
+ */
+export const zMeetAddedMeetingInviteeSnapshot = z.object({
+    id: z.optional(z.uuid()),
+    accountId: z.optional(z.string()),
+    email: z.optional(z.string()),
+    displayName: z.optional(z.string()),
+    role: z.optional(z.string()),
+    status: z.optional(z.string()),
+    invitedAt: z.optional(z.iso.datetime()),
+    respondedAt: z.optional(z.union([
+        z.iso.datetime(),
+        z.null()
+    ]))
+});
+
+/**
+ * Response containing the invitees created by an add-invitees call
+ */
+export const zMeetAddMeetingInviteesResponse = z.object({
+    invitees: z.optional(z.array(zMeetAddedMeetingInviteeSnapshot))
+});
+
+/**
+ * Request body for removing invitees from a meeting by invitee id
+ */
+export const zMeetRemoveMeetingInviteesRequest = z.object({
+    inviteeIds: z.array(z.uuid()).min(1)
+});
+
+/**
+ * Removed meeting invitee snapshot
+ */
+export const zMeetRemovedMeetingInviteeSnapshot = z.object({
+    id: z.optional(z.uuid()),
+    accountId: z.optional(z.string()),
+    email: z.optional(z.string()),
+    displayName: z.optional(z.string()),
+    role: z.optional(z.string()),
+    status: z.optional(z.string()),
+    invitedAt: z.optional(z.iso.datetime()),
+    respondedAt: z.optional(z.union([
+        z.iso.datetime(),
+        z.null()
+    ]))
+});
+
+/**
+ * Response containing the invitees removed by a batch-delete call
+ */
+export const zMeetRemoveMeetingInviteesResponse = z.object({
+    invitees: z.optional(z.array(zMeetRemovedMeetingInviteeSnapshot))
+});
+
+/**
+ * Snapshot of the invitee after responding to the invitation
+ */
+export const zMeetMeetingInviteeResponse = z.object({
+    id: z.optional(z.uuid()),
+    accountId: z.optional(z.string()),
+    email: z.optional(z.string()),
+    displayName: z.optional(z.string()),
+    role: z.optional(z.string()),
+    status: z.optional(z.string()),
+    invitedAt: z.optional(z.iso.datetime()),
+    respondedAt: z.optional(z.union([
+        z.iso.datetime(),
+        z.null()
+    ]))
+});
+
+/**
  * Active invitee with RSVP status
  */
 export const zMeetMeetingDetailInvitee = z.object({
+    id: z.optional(z.uuid()),
     accountId: z.optional(z.string()),
     email: z.optional(z.string()),
     displayName: z.optional(z.string()),
@@ -739,20 +788,6 @@ export const zUpdateData = z.object({
  */
 export const zUpdateResponse = zMeetUpdateMeetingResponse;
 
-export const zUpdateInviteesData = z.object({
-    body: zMeetUpdateMeetingInviteesRequest,
-    path: z.object({
-        version: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }),
-        id: z.uuid()
-    }),
-    query: z.optional(z.never())
-});
-
-/**
- * Invitees synchronized
- */
-export const zUpdateInviteesResponse = zMeetUpdateMeetingInviteesResponse;
-
 export const zReceiveData = z.object({
     body: z.string(),
     path: z.object({
@@ -857,3 +892,76 @@ export const zAcceptJoinRequestsData = z.object({
  * Per-item decision results
  */
 export const zAcceptJoinRequestsResponse = zMeetJoinDecisionResponse;
+
+export const zAddInviteesData = z.object({
+    body: zMeetAddMeetingInviteesRequest,
+    path: z.object({
+        version: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }),
+        id: z.uuid()
+    }),
+    query: z.optional(z.never())
+});
+
+/**
+ * Invitees created
+ */
+export const zAddInviteesResponse = zMeetAddMeetingInviteesResponse;
+
+export const zBatchDeleteInviteesData = z.object({
+    body: zMeetRemoveMeetingInviteesRequest,
+    path: z.object({
+        version: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }),
+        id: z.uuid()
+    }),
+    query: z.optional(z.never())
+});
+
+/**
+ * Invitees removed
+ */
+export const zBatchDeleteInviteesResponse = zMeetRemoveMeetingInviteesResponse;
+
+export const zTentativeInvitationData = z.object({
+    body: z.optional(z.never()),
+    path: z.object({
+        version: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }),
+        id: z.uuid(),
+        inviteeId: z.uuid()
+    }),
+    query: z.optional(z.never())
+});
+
+/**
+ * Invitation marked tentative
+ */
+export const zTentativeInvitationResponse = zMeetMeetingInviteeResponse;
+
+export const zDeclineInvitationData = z.object({
+    body: z.optional(z.never()),
+    path: z.object({
+        version: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }),
+        id: z.uuid(),
+        inviteeId: z.uuid()
+    }),
+    query: z.optional(z.never())
+});
+
+/**
+ * Invitation declined
+ */
+export const zDeclineInvitationResponse = zMeetMeetingInviteeResponse;
+
+export const zAcceptInvitationData = z.object({
+    body: z.optional(z.never()),
+    path: z.object({
+        version: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }),
+        id: z.uuid(),
+        inviteeId: z.uuid()
+    }),
+    query: z.optional(z.never())
+});
+
+/**
+ * Invitation accepted
+ */
+export const zAcceptInvitationResponse = zMeetMeetingInviteeResponse;

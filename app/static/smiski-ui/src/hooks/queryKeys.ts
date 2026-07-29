@@ -14,6 +14,7 @@ export const queryKeys = {
         ['issues', 'project', projectKey, query ?? ''] as const,
     projectMembers: (projectKey: string) =>
         ['members', 'project', projectKey] as const,
+    workspaceUsers: (query: string) => ['workspace-users', query] as const,
     meeting: (meetingId: string) => ['meeting', meetingId] as const,
     participants: (meetingId: string) => ['participants', meetingId] as const,
     recording: (meetingId: string) => ['recording', meetingId] as const,

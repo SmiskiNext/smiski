@@ -1,17 +1,34 @@
 import { invoke } from '@forge/bridge';
-import type { Meeting, MeetingStatus } from '../domain';
-import { apiRequest } from './client';
-import { shouldUseBackendApi } from './config';
-import { meetingEndpoints } from './endpoints';
 import {
-    createInstantMeetingRequest,
-    type MeetingApiContext,
-    meetingFromBackend,
-    meetingsFromBackend,
-    roomTokenFromBackend,
-    scheduleMeetingRequest,
-    updateMeetingRequest,
-} from './mappers';
+    createInstant,
+    type MeetCreateInstantMeetingRequest,
+    type MeetCreateInstantMeetingResponse,
+    type MeetLiveKit,
+    type MeetProblemDetail,
+    type MeetScheduleMeetingRequest,
+    type MeetScheduleMeetingResponse,
+    schedule,
+} from '@smiskinext/smiski-ts';
+import type { Meeting, MeetingStatus } from '../domain';
+import { getLocalTimeZone } from '../utils/datetime';
+import { apiConfig } from './config';
+import { forgeRemoteClient } from './forgeRemoteFetch';
+import { getDeviceId, meetingFromBackend } from './mappers';
+
+/** A meeting invitee, carrying the identity the backend requires. */
+export interface MeetingInviteeInput {
+    accountId: string;
+    displayName: string;
+    email: string;
+}
+
+/** The invoking user's identity used to populate host/organizer fields. */
+export interface InstantMeetingHostIdentity {
+    accountId: string;
+    displayName: string;
+    email?: string;
+    avatarUrl?: string;
+}
 
 /** Payload to create an instant meeting (UC01). */
 export interface CreateInstantMeetingInput {
@@ -21,8 +38,10 @@ export interface CreateInstantMeetingInput {
     title: string;
     description?: string;
     zoneId?: string;
-    /** Jira accountIds invited up front, if any. */
-    participantAccountIds?: string[];
+    /** Full invitees carrying accountId, displayName, and email. */
+    invitees?: MeetingInviteeInput[];
+    /** Host identity (from CurrentUserContext); resolves host/organizer fields. */
+    host?: InstantMeetingHostIdentity;
 }
 
 /** Payload to schedule a meeting (UC03). */
@@ -31,15 +50,16 @@ export interface ScheduleMeetingInput {
     issueId?: string;
     projectKey?: string;
     title: string;
-    /** ISO datetime. */
+    /** ISO-8601 UTC instant for the scheduled start. */
     startTime: string;
-    /** ISO datetime. Defaults to one hour after startTime for the backend DTO. */
-    endTime?: string;
-    durationMinutes?: number;
+    /** ISO-8601 UTC instant for the scheduled end. */
+    endTime: string;
     zoneId?: string;
     description?: string;
-    /** Jira accountIds invited up front, if any. */
-    participantAccountIds?: string[];
+    /** Invitees carrying full identity (accountId, displayName, email). */
+    invitees: MeetingInviteeInput[];
+    /** Organizer identity (from CurrentUserContext); resolves organizer fields. */
+    organizer?: InstantMeetingHostIdentity;
 }
 
 /** Partial edit of an existing scheduled meeting. */
@@ -65,128 +85,219 @@ export interface MeetingListFilters {
     search?: string;
 }
 
-/** List meetings bound to a single Issue (UC02/UC07). */
-export async function getIssueMeetings(issueKey: string): Promise<Meeting[]> {
-    const payload = await apiRequest<unknown>(meetingEndpoints.list, {
-        query: { issueKey },
-    });
-    return meetingsFromBackend(payload);
+/**
+ * Backend problem mapped for the create/schedule modals. Carries at least a
+ * human-readable `message`; `code`, `traceId`, and `status` are surfaced when
+ * the backend problem+json (RFC 9457) provides them.
+ */
+export interface MeetingProblem {
+    message: string;
+    code?: string;
+    traceId?: string;
+    status?: number;
 }
 
-/** List/search meetings across a project (dashboard). */
-export async function getProjectMeetings(
-    filters: MeetingListFilters,
-): Promise<Meeting[]> {
-    const payload = await apiRequest<unknown>(meetingEndpoints.list, {
-        query: { ...filters },
-    });
-    return meetingsFromBackend(payload);
+/** SDK-native result of instant creation: the meeting, its LiveKit access, or a problem. */
+export interface CreateInstantMeetingResult {
+    data?: Meeting;
+    livekit?: MeetLiveKit;
+    error?: MeetingProblem;
 }
 
-/** Fetch a single meeting by id. */
-export async function getMeeting(meetingId: string): Promise<Meeting> {
-    const payload = await apiRequest<unknown>(meetingEndpoints.byId(meetingId));
-    return meetingFromBackend(payload);
+/** SDK-native result of scheduled creation: the meeting or a problem. */
+export interface ScheduleMeetingResult {
+    data?: Meeting;
+    error?: MeetingProblem;
 }
 
-/** Create + start an instant meeting (UC01). */
+/** Default meeting settings shared by the instant and scheduled create flows. */
+const DEFAULT_MEETING_SETTINGS = {
+    admissionPolicy: 'OPEN',
+    maxParticipants: 50,
+    allowScreenShare: true,
+    chatEnabled: true,
+    allowMicrophone: true,
+    allowVideo: true,
+} as const;
+
+/**
+ * Build the instant-create request body from the form input, conforming to the
+ * OpenAPI `MeetCreateInstantMeetingRequest` contract (nested `issueLink`, a
+ * `settings` object, a `host` object, resolved `zoneId`, invitees). Pure and
+ * free of `@forge/bridge`, so the invitee contract (each carries `email`,
+ * `accountId`, `displayName`; no invitee → empty list) is unit-testable in
+ * isolation. The `deviceId` is passed in so the browser-only `localStorage`
+ * lookup stays out of this pure builder.
+ */
+export function buildInstantMeetingPayload(
+    input: CreateInstantMeetingInput,
+    deviceId: string,
+): MeetCreateInstantMeetingRequest {
+    const projectKey = input.projectKey ?? input.issueKey.split('-')[0];
+    return {
+        title: input.title,
+        description: input.description?.trim() || input.title,
+        issueLink: {
+            issueId: input.issueId,
+            issueKey: input.issueKey,
+            projectKey,
+        },
+        settings: { ...DEFAULT_MEETING_SETTINGS },
+        host: {
+            displayName: input.host?.displayName ?? 'Jira user',
+            deviceId,
+            avatarUrl: input.host?.avatarUrl,
+        },
+        organizerEmail: input.host?.email ?? '',
+        organizerDisplayName: input.host?.displayName ?? 'Jira user',
+        zoneId: input.zoneId ?? getLocalTimeZone(),
+        invitees: (input.invitees ?? []).map((invitee) => ({
+            accountId: invitee.accountId,
+            displayName: invitee.displayName,
+            email: invitee.email,
+        })),
+    };
+}
+
+/**
+ * Build the scheduled-create request body from the form input, conforming to
+ * the OpenAPI `MeetScheduleMeetingRequest` contract (`organizerEmail`,
+ * `organizerDisplayName`, nested `issueLink`, `settings`, `timeRange`, resolved
+ * `zoneId`, invitees). Carries no `host` object because the backend resolves
+ * host identity from the request header. Pure and free of `@forge/bridge`, so
+ * the payload contract is unit-testable in isolation, exactly like the instant
+ * builder.
+ */
+export function buildScheduleMeetingPayload(
+    input: ScheduleMeetingInput,
+): MeetScheduleMeetingRequest {
+    const projectKey = input.projectKey ?? input.issueKey.split('-')[0];
+    return {
+        title: input.title,
+        description: input.description?.trim() || input.title,
+        issueLink: {
+            issueId: input.issueId,
+            issueKey: input.issueKey,
+            projectKey,
+        },
+        settings: { ...DEFAULT_MEETING_SETTINGS },
+        timeRange: {
+            startTime: input.startTime,
+            endTime: input.endTime,
+        },
+        organizerEmail: input.organizer?.email ?? '',
+        organizerDisplayName: input.organizer?.displayName ?? 'Jira user',
+        zoneId: input.zoneId ?? getLocalTimeZone(),
+        invitees: input.invitees.map((invitee) => ({
+            accountId: invitee.accountId,
+            displayName: invitee.displayName,
+            email: invitee.email,
+        })),
+    };
+}
+
+/**
+ * Create + start an instant meeting (UC01) by calling the generated SDK
+ * `createInstant` operation, whose transport is bridged to Forge Remote. Forge
+ * attaches a signed Forge Invocation Token (FIT) as `Authorization: Bearer`;
+ * the app asserts NO tenant/account identity headers. There is no mock
+ * fallback: a rejected or unreachable backend surfaces as `error` in the
+ * SDK-native `{ data, error }` result the create-meeting modal renders.
+ */
 export async function createInstantMeeting(
     input: CreateInstantMeetingInput,
-    context?: MeetingApiContext,
-): Promise<Meeting> {
-    const payload = await apiRequest<unknown>(meetingEndpoints.createInstant, {
-        method: 'POST',
-        body: createInstantMeetingRequest(input, context),
-    });
-    return meetingFromBackend(payload);
+): Promise<CreateInstantMeetingResult> {
+    try {
+        const result = await createInstant({
+            client: forgeRemoteClient,
+            path: { version: apiConfig.apiVersion },
+            body: buildInstantMeetingPayload(input, getDeviceId()),
+        });
+        if (result.error !== undefined) {
+            return { error: toMeetingProblem(result.error) };
+        }
+        const response = result.data as MeetCreateInstantMeetingResponse;
+        return {
+            data: meetingFromBackend(response),
+            livekit: response.livekit,
+        };
+    } catch (error) {
+        return { error: toMeetingProblem(error) };
+    }
 }
 
-/** Create a scheduled meeting (UC03). */
+/**
+ * Create a scheduled meeting (UC03) by calling the generated SDK `schedule`
+ * operation, whose transport is bridged to Forge Remote. Forge attaches a
+ * signed Forge Invocation Token (FIT) as `Authorization: Bearer`; the app
+ * asserts NO tenant/account identity headers and sends no `host` object (host
+ * identity is resolved from the request header by the backend). There is no
+ * mock fallback: a rejected or unreachable backend surfaces as `error` in the
+ * SDK-native `{ data, error }` result the schedule form renders.
+ */
 export async function scheduleMeeting(
     input: ScheduleMeetingInput,
-    context?: MeetingApiContext,
-): Promise<Meeting> {
-    const payload = await apiRequest<unknown>(meetingEndpoints.schedule, {
-        method: 'POST',
-        body: scheduleMeetingRequest(input, context),
-    });
-    return meetingFromBackend(payload);
+): Promise<ScheduleMeetingResult> {
+    try {
+        const result = await schedule({
+            client: forgeRemoteClient,
+            path: { version: apiConfig.apiVersion },
+            body: buildScheduleMeetingPayload(input),
+        });
+        if (result.error !== undefined) {
+            return { error: toMeetingProblem(result.error) };
+        }
+        const response = result.data as MeetScheduleMeetingResponse;
+        return { data: meetingFromBackend(response) };
+    } catch (error) {
+        return { error: toMeetingProblem(error) };
+    }
 }
 
-/** Edit a scheduled meeting (requires EDIT_MEETING). */
-export async function updateMeeting(
-    meetingId: string,
-    input: UpdateMeetingInput,
-    context?: MeetingApiContext,
-): Promise<Meeting> {
-    const payload = await apiRequest<unknown>(
-        meetingEndpoints.update(meetingId),
-        {
-            method: 'PUT',
-            body: updateMeetingRequest(input, context),
-        },
+/**
+ * Map an SDK failure — a backend problem+json body, a thrown network/validation
+ * error, or a raw string — to the `MeetingProblem` the modals render, always
+ * yielding a human-readable `message`.
+ */
+function toMeetingProblem(source: unknown): MeetingProblem {
+    if (isProblemDetail(source)) {
+        return {
+            message:
+                source.detail
+                ?? source.title
+                ?? 'The meeting backend rejected the request.',
+            code: source.code,
+            traceId: source.traceId,
+            status: source.status,
+        };
+    }
+    if (source instanceof Error) {
+        return { message: source.message };
+    }
+    if (typeof source === 'string' && source.trim() !== '') {
+        return { message: source };
+    }
+    return { message: 'The meeting backend rejected the request.' };
+}
+
+function isProblemDetail(value: unknown): value is MeetProblemDetail {
+    return Boolean(
+        value
+            && typeof value === 'object'
+            && !(value instanceof Error)
+            && ('detail' in value
+                || 'title' in value
+                || 'code' in value
+                || 'status' in value),
     );
-    return meetingFromBackend(payload);
-}
-
-/** Cancel a scheduled meeting (requires EDIT_MEETING). */
-export async function cancelMeeting(meetingId: string): Promise<void> {
-    await apiRequest<unknown>(meetingEndpoints.cancel(meetingId), {
-        method: 'POST',
-    });
-}
-
-/** Transition a scheduled meeting to RUNNING (start). */
-export async function startMeeting(meetingId: string): Promise<Meeting> {
-    const payload = await apiRequest<unknown>(
-        meetingEndpoints.start(meetingId),
-        { method: 'POST' },
-    );
-    return payload == null
-        ? getMeeting(meetingId)
-        : meetingFromBackend(payload);
-}
-
-/** Transition a running meeting to COMPLETED. */
-export async function endMeeting(meetingId: string): Promise<Meeting> {
-    const payload = await apiRequest<unknown>(meetingEndpoints.end(meetingId), {
-        method: 'POST',
-    });
-    return payload == null
-        ? getMeeting(meetingId)
-        : meetingFromBackend(payload);
 }
 
 /** Mint a LiveKit room access token for the current user + meeting. */
 export async function getRoomToken(
     meetingId: string,
 ): Promise<{ token: string; url: string }> {
-    if (shouldUseBackendApi()) {
-        const payload = await apiRequest<unknown>(
-            meetingEndpoints.roomToken(meetingId),
-            {
-                method: 'POST',
-            },
-        );
-        return roomTokenFromBackend(payload);
-    }
     return invoke('getRoomToken', { meetingId }) as Promise<{
         token: string;
         url: string;
     }>;
-}
-
-/** Any RUNNING meeting hosted by the current user, optionally excluding one issue. */
-export async function findRunningMeetingHostedByUser(
-    accountId: string,
-    excludingIssueKey?: string,
-): Promise<Meeting | null> {
-    const payload = await apiRequest<unknown>(meetingEndpoints.hostConflict, {
-        query: { accountId, excludingIssueKey },
-    });
-    const meetings = meetingsFromBackend(payload);
-    if (meetings.length > 0) return meetings[0];
-    if (payload == null) return null;
-    const meeting = meetingFromBackend(payload);
-    return meeting.id ? meeting : null;
 }

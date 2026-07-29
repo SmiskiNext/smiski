@@ -13,6 +13,7 @@
  */
 import Resolver from '@forge/resolver';
 import { AccessToken } from 'livekit-server-sdk';
+import { searchUsers } from './jiraSdkClient';
 
 const resolver = new Resolver();
 
@@ -21,10 +22,21 @@ resolver.define('getIssueMeetings', async (_req) => {
     throw new Error('Not implemented: getIssueMeetings');
 });
 
-// TODO(UC01): create an instant meeting bound to the current Issue.
-resolver.define('createInstantMeeting', async (_req) => {
-    throw new Error('Not implemented: createInstantMeeting');
+/**
+ * Search Jira site (workspace) users as the invoking user. Identity is derived
+ * from the Forge context, never from the browser, so Jira enforces the user's
+ * own "Browse users" permission and a rejection (e.g. 403) surfaces as an error
+ * rather than a user list.
+ */
+resolver.define('searchWorkspaceUsers', async (req) => {
+    const query = (req.payload?.query as string | undefined) ?? '';
+    return searchUsers(query);
 });
+
+// NOTE(UC01): instant meetings are created by the Custom UI calling the `meet`
+// backend directly via Forge Remote (`requestRemote`), so Forge attaches the
+// signed FIT and the app asserts no tenant/account identity. There is no
+// resolver for it here — see static/smiski-ui/src/api/meetings.ts.
 
 // TODO(UC03): create a scheduled meeting bound to the current Issue.
 resolver.define('scheduleMeeting', async (_req) => {

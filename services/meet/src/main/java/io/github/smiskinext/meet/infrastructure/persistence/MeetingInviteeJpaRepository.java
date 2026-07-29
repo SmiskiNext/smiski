@@ -13,7 +13,7 @@ public interface MeetingInviteeJpaRepository extends JpaRepository<MeetingInvite
     List<MeetingInviteeJpaEntity> findByMeetingIdAndRemovedAtIsNull(UUID meetingId);
 
     @Query("select new io.github.smiskinext.meet.domain.projection.InviteeSummary("
-            + "i.accountId, i.email, i.displayName, i.status, i.invitedAt, i.respondedAt)"
+            + "i.id, i.accountId, i.email, i.displayName, i.status, i.invitedAt, i.respondedAt)"
             + " from MeetingInviteeJpaEntity i"
             + " where i.meetingId = :meetingId and i.removedAt is null")
     List<InviteeSummary> findSummaryProjectionsByMeetingId(@Param("meetingId") UUID meetingId);

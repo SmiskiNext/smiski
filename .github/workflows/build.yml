@@ -53,10 +53,20 @@ jobs:
         needs: changes
         if: needs.changes.outputs.app == 'true'
         runs-on: ubuntu-latest
+        permissions:
+            contents: read
+            packages: read
         steps:
             - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
 
             - uses: jdx/mise-action@e6a8b3978addb5a52f2b4cd9d91eafa7f0ab959d # v4
+
+            # app depends on the private @smiskinext/sdks-jira package on
+            # GitHub Packages; configure auth before any pnpm install.
+            - name: Configure GitHub Packages
+              uses: ./.github/actions/configure-github-packages
+              with:
+                  token: ${{ secrets.GITHUB_TOKEN }}
 
             - name: Get pnpm store directory
               id: pnpm-store
@@ -78,6 +88,12 @@ jobs:
 
             - name: Install app dependencies
               run: pnpm install --frozen-lockfile
+              working-directory: app
+
+            # smiski-ui imports @smiskinext/smiski-ts, an in-repo workspace
+            # package whose dist/ is gitignored. Build it before typecheck/build.
+            - name: Build Smiski TS SDK
+              run: pnpm --filter @smiskinext/smiski-ts build
               working-directory: app
 
             - name: Typecheck

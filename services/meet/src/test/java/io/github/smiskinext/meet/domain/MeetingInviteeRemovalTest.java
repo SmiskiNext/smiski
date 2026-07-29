@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import io.github.smiskinext.meet.domain.model.InviteeRole;
 import io.github.smiskinext.meet.domain.model.InviteeStatus;
+import io.github.smiskinext.meet.domain.model.MeetingContext;
 import io.github.smiskinext.meet.domain.model.MeetingInvitee;
 import io.github.smiskinext.meet.domain.model.valueobject.AccountId;
 import io.github.smiskinext.meet.domain.model.valueobject.Email;
@@ -35,6 +36,11 @@ class MeetingInviteeRemovalTest {
         assertThat(invitee.getRemovedAt()).hasValue(removedAt);
         assertThat(invitee.getId()).isNotNull();
         assertThat(invitee.getStatus()).isEqualTo(InviteeStatus.NEEDS_ACTION);
-        assertThat(invitee.accept().isFailure()).isTrue();
+        assertThat(invitee.accept(context()).isFailure()).isTrue();
+    }
+
+    private static MeetingContext context() {
+        return new MeetingContext(
+                "Title", null, null, "UTC", "host@example.com", "Host", "uid-1", 0);
     }
 }

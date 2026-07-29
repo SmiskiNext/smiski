@@ -1,0 +1,32 @@
+name: Configure GitHub Packages
+description:
+    Write a user-level ~/.npmrc so pnpm can authenticate to GitHub Packages for
+    the @smiskinext scope (e.g. the private @smiskinext/sdks-jira dependency).
+
+inputs:
+    token:
+        description:
+            Token with read:packages access to the @smiskinext scope. Pass
+            secrets.GITHUB_TOKEN; swap for a PAT if the package lives in another
+            repository that the default token cannot read.
+        required: true
+
+runs:
+    using: composite
+    steps:
+        # pnpm only expands env vars in auth credentials from a user-level
+        # (~/.npmrc) or trusted config, never from a committed project .npmrc.
+        # So configure the token at the user level at runtime. The value is
+        # written directly (already masked in Actions logs) via an env var to
+        # avoid interpolating the secret into the command line.
+        - name: Write ~/.npmrc for GitHub Packages
+          shell: bash
+          env:
+              NODE_AUTH_TOKEN: ${{ inputs.token }}
+          run: |
+              set -euo pipefail
+              {
+                printf '%s\n' '@smiskinext:registry=https://npm.pkg.github.com'
+                printf '//npm.pkg.github.com/:_authToken=%s\n' "$NODE_AUTH_TOKEN"
+              } > "$HOME/.npmrc"
+              echo "Configured $HOME/.npmrc for @smiskinext on npm.pkg.github.com"

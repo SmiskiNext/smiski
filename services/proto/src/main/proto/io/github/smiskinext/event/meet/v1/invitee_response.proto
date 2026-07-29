@@ -14,6 +14,15 @@ message InviteeAccepted {
   string invitee_email = 6;
   string status = 7;
   string accepted_at = 8;
+  string meeting_title = 9;
+  string start_time = 10;
+  string end_time = 11;
+  string zone_id = 12;
+  string organizer_email = 13;
+  string organizer_display_name = 14;
+  string invitee_display_name = 15;
+  string calendar_uid = 16;
+  int32 calendar_sequence = 17;
 }
 
 message InviteeDeclined {
@@ -25,4 +34,33 @@ message InviteeDeclined {
   string invitee_email = 6;
   string status = 7;
   string declined_at = 8;
+  string meeting_title = 9;
+  string start_time = 10;
+  string end_time = 11;
+  string zone_id = 12;
+  string organizer_email = 13;
+  string organizer_display_name = 14;
+  string invitee_display_name = 15;
+  string calendar_uid = 16;
+  int32 calendar_sequence = 17;
+}
+
+message InviteeTentative {
+  string event_id = 1;
+  string tenant_id = 2;
+  string meeting_id = 3;
+  string inviter_id = 4;
+  string invitee_id = 5;
+  string invitee_email = 6;
+  string status = 7;
+  string tentative_at = 8;
+  string meeting_title = 9;
+  string start_time = 10;
+  string end_time = 11;
+  string zone_id = 12;
+  string organizer_email = 13;
+  string organizer_display_name = 14;
+  string invitee_display_name = 15;
+  string calendar_uid = 16;
+  int32 calendar_sequence = 17;
 }

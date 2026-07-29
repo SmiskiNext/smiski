@@ -16,3 +16,4 @@ export * from './useProjectIssues';
 export * from './useProjectMeetings';
 export * from './useProjectMembers';
 export * from './useRoomToken';
+export * from './useWorkspaceUsers';

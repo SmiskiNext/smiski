@@ -1,173 +1,175 @@
-# Scenario
+# AGENTS.md — Smiski Forge app
 
-You are a solution engineer building apps for the Atlassian Forge Cloud
-platform. You are pragmatic and prefer simple solutions where possible. You are
-building apps designed to be installed into a single customer site. The code you
-generate to build apps can be used in PRODUCTION environments and must adhere to
-the highest quality and maintainability standards.
+Guidance for agents working in `app/`. Keep it verifiable against config and
+code, not prose. Root repo rules live in `../AGENTS.md`; this file owns the
+Forge app only.
 
-# Code Style
+## What this is
 
-You should write apps using vanilla, idiomatic JavaScript. You should use
-verbose commentary in the code. Your comments should be such that an
-intermediate level JavaScript developers with limited Forge experience to
-understand.
+The Atlassian **Forge Custom UI** app that embeds the Smiski online-meeting
+module into Jira. It renders React UI inside Jira and reaches the backend only
+through Forge Remote → the Caddy API gateway. It never touches Postgres, Kafka,
+or LiveKit-server directly — the sole exception is the LiveKit **client** SDK
+used inside the meeting room for WebRTC media.
 
-# Imports & Libraries
+This is **Custom UI, not UI Kit.** Any instruction telling you to use
+`@forge/react`, `@forge/ui`, or a fixed UI Kit component list does not apply —
+that is generic Forge boilerplate and is wrong for this repo. The UI is plain
+React 18 + JSX (`<div>` etc.) + Tailwind v4 + Ant Design.
 
-You may import packages from reputable npm libraries when needed. You MUST only
-use UI Kit components available in @forge/react. Forge ONLY supports components
-from @forge/react. You MUST NOT import React components from the standard react
-package or any other third-party packages that export React components.
-Importing components from sources other than @forge/react will break the app.
-The @forge/ui package is deprecated and MUST NOT be used. Importing from this
-package will break the app.
+**Status:** scaffold. Most resolvers (`src/index.ts`) throw
+`Not implemented: ...`, and most frontend reads run against in-memory mocks. Do
+not assume a code path is wired to the backend — check the specific hook/
+resolver first.
 
-You must install packages using the project's package manager after creating the
-app and every time you add or update a dependency.
+## Layout
 
-# Security
+Two pnpm workspace packages (`pnpm-workspace.yaml`):
 
-You should prefer using .asUser() to make requests to product REST APIs when
-making a request from a resolver as it implements its own authorization check.
-If you use asApp() in the context of a user, you must perform any appropriate
-authorization checks using the relevant product permission REST APIs. Minimise
-the amount of scopes that you use, and only add additional scopes when strictly
-required for needed APIs.
+- **root** (`.`) — the Forge app: `manifest.yml` + `src/` resolver (plain
+  TypeScript, CommonJS, no framework). Owns the Forge CLI.
+- **`static/smiski-ui/`** — the Custom UI frontend: Vite + React 18 + TS +
+  Tailwind v4 + TanStack Query + Ant Design + LiveKit client. This is the _only_
+  UI bundle; both Forge modules render it.
 
-# Architecture Tips
+## Commands
 
-When calling product APIs, it is often simpler to make API requests on the
-frontend using `requestJira`, `requestConfluence`, etc from the `@forge/bridge`
-package, rather than using a resolver on the backend. If you need to create a
-new view and there isn't a suitable module, default to using a global page
-module (e.g. jira-globa-page-ui-kit in Jira). Focus on using the simplest
-possible solution for a problem. Seek clarification from the user on any unclear
-requirements. If something is not possible natively on Forge, but you can
-achieve a similar effect in a different way, suggest this to the user.
+Run from the app root (`app/`) unless noted.
 
-# Creating Apps
+```bash
+pnpm install   # installs both workspace packages
+pnpm ui:dev    # standalone Vite dev server (no Forge bridge)
+pnpm build     # = pnpm ui:build → static/smiski-ui/dist
+pnpm test      # = vitest run (smiski-ui)
+pnpm lint      # biome check (whole app)
+pnpm format    # biome format --write
+pnpm typecheck # tsc --noEmit at root, then in smiski-ui
 
-If the user asked you to create a Forge app, you MUST create a new Forge app
-with the `forge create` command. DO NOT update an existing app that you have
-discovered while scanning. Before creating a new app, ALWAYS check whether a
-directory with that name already exists. If it does, stop creating the app and
-warn the user. When creating a new app, ALWAYS use the command
-`forge create -t <template-name> <app-name>`. Always use one of the following
-templates when creating apps:
-action-rovo,confluence-content-action-ui-kit,confluence-content-byline-ui-kit,confluence-context-menu-ui-kit,confluence-global-page-ui-kit,confluence-global-settings-ui-kit,confluence-homepage-feed-ui-kit,confluence-macro-ui-kit,confluence-macro-with-custom-configuration-ui-kit,confluence-space-page-ui-kit,confluence-space-settings-ui-kit,jira-admin-page-ui-kit,jira-backlog-action-ui-kit,jira-board-action-ui-kit,jira-command-ui-kit,jira-custom-field-type-ui-kit,jira-custom-field-ui-kit,jira-dashboard-background-script-ui-kit,jira-dashboard-gadget-ui-kit,jira-entity-property,jira-global-page-ui-kit,jira-global-permission,jira-issue-action-ui-kit,jira-issue-activity-ui-kit,jira-issue-context-ui-kit,jira-issue-glance-ui-kit,jira-issue-navigator-action-ui-kit,jira-issue-panel-ui-kit,jira-issue-view-background-script-ui-kit,jira-jql-function,jira-personal-settings-page-ui-kit,jira-project-page-ui-kit,jira-project-permission,jira-project-settings-page-ui-kit,jira-service-management-assets-import-type-ui-kit,jira-service-management-organization-panel-ui-kit,jira-service-management-portal-footer-ui-kit,jira-service-management-portal-header-ui-kit,jira-service-management-portal-profile-panel-ui-kit,jira-service-management-portal-request-create-property-panel-ui-kit,jira-service-management-portal-request-detail-panel-ui-kit,jira-service-management-portal-request-detail-ui-kit,jira-service-management-portal-request-view-action-ui-kit,jira-service-management-portal-subheader-ui-kit,jira-service-management-portal-user-menu-action-ui-kit,jira-service-management-queue-page-ui-kit,jira-sprint-action-ui-kit,jira-time-tracking-provider,jira-workflow-condition,jira-workflow-postfunction,jira-workflow-validator,product-trigger,rovo-agent-rovo,scheduled-trigger,webtrigger
-Never use an empty template, always use one of the templates listed above. You
-are not authorised to use to custom-ui for creating apps, only ui-kit. If you
-don't think there is a suitable template, check the list again, and choose the
-closest one. You can modify it after creation.
+pnpm deploy       # = forge deploy (needs forge CLI + login)
+pnpm install:site # = forge install
+```
 
-After creating the app ALWAYS review the contents of the app directory before
-editing or creating files. DO NOT assume particular files were automatically
-created before you have reviewed the directory content.
+Single test / watch (from `static/smiski-ui`):
 
-# UI Development
+```bash
+pnpm exec vitest run src/domain/meetingPolicy.test.ts
+pnpm exec vitest # watch mode
+```
 
-The front-end of you app is built on Atlassian UI Kit, which has some
-similarities to React, but does not support all React features. You MUST NOT use
-common React components such as <div>, <strong>, etc. This will cause the app
-not to render. Instead, you MUST ONLY use components exported by UI Kit, which
-are: Badge, BarChart, Box, Button, ButtonGroup, Calendar, Checkbox, Code,
-CodeBlock, DatePicker, EmptyState, ErrorMessage, Form, FormFooter, FormHeader,
-FormSection, Heading, HelperMessage, HorizontalBarChart,
-HorizontalStackBarChart, Icon, Inline, Label, LineChart, LinkButton, List,
-ListItem, LoadingButton, Lozenge, Modal, ModalBody, ModalFooter, ModalHeader,
-ModalTitle, ModalTransition, PieChart, ProgressBar, ProgressTracker, Radio,
-RadioGroup, Range, Select, SectionMessage, SectionMessageAction,
-SingleValueChart, Spinner, Stack, StackBarChart, Tab, TabList, TabPanel, Tabs,
-Tag, TagGroup, TextArea, Textfield, TimePicker, Toggle, Tooltip, Text,
-ValidMessage, RequiredAsterisk, Image, Link, UserPicker, User, UserGroup, Em,
-Strike, Strong, Frame, DynamicTable, InlineEdit, Popup, AdfRenderer If your
-resolver no longer contains any definitions, you may delete it and remove it
-from the manifest.
+`pnpm ui:dev` runs standalone: `App.tsx` detects `import.meta.env.DEV`, skips
+the Forge `view.getContext()` call, and drives the surface via
+`DevSurfaceSwitcher` instead.
 
-Note that THERE IS NOT UI KIT COMPONENT NAMED "Table" - always use
-"DynamicTable" instead! Using "Table" will cause the app not to render.
+## Architecture
 
-# Storing Data
+**Dual-surface single bundle.** `manifest.yml` declares two modules that both
+point at `resource: main` (`static/smiski-ui/dist`): `jira:issueContext` (key
+`smiski-issue-context`) and `jira:projectPage` (key `smiski-project-page`).
+`App.tsx` reads `context.moduleKey` and mounts `features/issue-panel/` or
+`features/project-page/`; it also mounts modal roots from `features/shared/`
+when `context.extension.modal.kind` is set. Module keys are centralized in
+`utils/forgeModuleKeys.ts`. Put module-specific work under the matching
+`features/` subtree, not in shared code.
 
-Entity properties allow apps to store key-value data against Jira entities
-(Comments, Dashboard items, Issues, Issue types, Projects, Users and Workflow
-transitions) and Confluence content. Entity property CRUD is performed by
-calling the relevant entity property REST API (for example, the Issue Properties
-REST API in Jira for Issue Properties, or the Confluence Content Properties API
-in Confluence). You MUST use the REST API to access or update entity properties
-as there is NO dedicated client-side API exposed Forge apps to manage these
-properties.
+**Resolver is a thin bridge, not a brain** (`src/index.ts`). Reality today:
 
-You may also use Forge SQL, Forge Key-Value Storage, or Forge Custom Entities to
-store data. These DO NOT have client-side APIs exposed to Forge UI contexts and
-Forge functions. Storage APIs must be called using .asApp() SDK methods from
-backend resolvers.
+- `searchWorkspaceUsers` — implemented; queries Jira as the invoking user via
+  `@forge/api` `asUser().requestJira` through the `@smiskinext/sdks-jira` SDK
+  (`src/jiraSdkClient.ts`), so Jira enforces the user's "Browse users"
+  permission.
+- `getRoomToken` — **prototype shim only.** Mints a LiveKit JWT locally with
+  `livekit-server-sdk` from `LIVEKIT_API_KEY/SECRET/URL` Forge env vars. It does
+  **no** authorization check — any user can mint a token for any `meetingId`.
+  Replace with the backend `meet` token endpoint before production. Do not build
+  on this behavior.
+- `getIssueMeetings`, `scheduleMeeting`, `getProjectMeetings`,
+  `getMeetingPermission` — stubs that throw. Do not add business logic here; the
+  brain is the backend `meet` service.
+- There is **no** `createInstantMeeting` resolver. Instant/scheduled creation
+  goes straight from the Custom UI to the backend (see below).
 
-# Forge CLI
+**Backend calls go through Forge Remote + a generated SDK.**
+`api/forgeRemoteFetch.ts` injects a `fetch`-shaped adapter into the
+`@smiskinext/smiski-ts` SDK that routes every call through
+`requestRemote('meet-backend', ...)`. Forge attaches a signed Forge Invocation
+Token (FIT) as `Authorization: Bearer`; the app asserts no tenant/account
+identity itself. The `meet-backend` remote and its `baseUrl`
+(`${SMISKI_API_BASE_URL}`) are declared in `manifest.yml`.
 
-ALWAYS run `pwd` to generate the path to pass to the Forge CLI tool. NEVER use
-any other method to determine the current working directory. Every Forge command
-except `create`, `version`, and `login` MUST be run in the root directory of a
-valid Forge app. ALWAYS ensure you run other Forge commands (such as `deploy`,
-`install`, or `lint`) in the root directory of the Forge app. When a Forge CLI
-command fails, ALWAYS display the output indicating the failure. Use the
-`--help` flag to understand available commands. ALWAYS use the
-`--non-interactive` flag for the following commands: `deploy`, `environments`,
-`install`. NEVER use it for other commands. Use the `lint` command to quickly
-test for problems before deploying. Use the `--verbose` command to troubleshoot
-a failing command.
+**Frontend layering** (`static/smiski-ui/src/`):
 
-# Deployments
+- `domain/` — types, enums, and pure logic (e.g. `meetingPolicy.ts` with a
+  colocated `.test.ts`). No side effects.
+- `api/` — backend/Jira adapters. `config.ts` reads Vite env; `meetings.ts` (SDK
+  instant/schedule + `getRoomToken`), `workspaceUsers.ts`/`getRoomToken`
+  (resolver `invoke`), `currentUser.ts`/`projectMembers.ts`/`issues.ts` (Jira
+  direct via `@forge/bridge` `requestJira`), `mappers.ts` (DTO↔domain).
+- `hooks/` — TanStack Query hooks. `hooks/queryKeys.ts` centralizes every cache
+  key; always add new keys there so mutation invalidation stays in sync.
+- `context/`, `components/shared/`, `components/ui/` (local Tailwind design
+  system), `features/`, `theme/`, `utils/`, `mocks/` (in-memory backend
+  stand-in; `mocks/db.ts` is the store).
 
-To deploy the app, use the command
-`deploy --non-interactive --e <environment-name>` Use the development
-environment unless the user has specified otherwise. NEVER deploy with the
---no-verify flag unless the user has requested that you do so.
+## Mock vs backend (gotcha)
 
-# Installation
+Data source is **hardwired per hook**, not a global switch. The
+`shouldUseBackendApi()` / `VITE_SMISKI_DATA_SOURCE` switch described in
+`api/README.md` no longer exists — treat that README as aspirational.
 
-To install the app, use the command
-`install --non-interactive --site <site-url> --product <product-name> --environment <environment-name>`
-To upgrade an already installed app, use the command
-`install --non-interactive --upgrade --site <site-url> --product <product-name> --environment <environment-name>`
-(you only need to upgrade if you have change the apps scopes or permissions)
+- Reads (`useIssueMeetings`, `useProjectMeetings`, `useMeeting`, …) and
+  `useUpdateMeeting`/`useCancelMeeting`/`useStartMeeting`/`useEndMeeting` →
+  always `mocks/db.ts`.
+- `useCreateInstantMeeting` / `useScheduleMeeting` → **real backend** via the
+  SDK over Forge Remote, with **no mock fallback**. Standalone `vite dev`
+  therefore cannot create meetings.
+- `currentUser`/`projectMembers`/`issues` call Jira directly from the browser;
+  `searchWorkspaceUsers`/`getRoomToken` go through the resolver.
 
-# manifest.yml
+## manifest.yml / egress
 
-When updating the manifest, be careful to ensure that the manifest syntax is
-valid after making modifications. ALWAYS use the `forge lint` command to
-validate the manifest after any changes. If you see an error relating to
-`manifest.yml`, ALWAYS use the `forge lint` command to validate the manifest
-syntax is correct. You MUST redeploy AND THEN reinstall the app if you add
-additional scopes or egress controls to the manifest.yml
+- `permissions.content.styles: [unsafe-inline]` is required — Ant Design injects
+  CSS-in-JS at runtime, which Forge Custom UI blocks by default.
+- `permissions.external.fetch` locks egress to `${SMISKI_API_BASE_URL}` and
+  `${LIVEKIT_URL}`. Any new external origin must be added here or it is blocked
+  at runtime.
+- After changing scopes or egress you MUST `forge deploy` **and then**
+  `forge install --upgrade` — a tunnel restart is not enough.
+- Runtime is `nodejs24.x`, arm64, 256 MB. Env vars `SMISKI_API_BASE_URL` and
+  `LIVEKIT_URL` have TODO placeholder defaults; `LIVEKIT_API_KEY/SECRET` are
+  secrets set via `forge variables set` (needed for the `getRoomToken` shim).
 
-# Tunnelling
+## Conventions
 
-When tunnelling, you MUST redeploy the app and restart the tunnel if you change
-the manifest.yml When tunnelling, you MUST NOT redeploy the app if the user only
-makes changes to code files, these will be hot reloaded via the tunnel. If the
-user closes the tunnel after making changes, you MUST ask them whether they
-would like to redeploy their app so that there recent changes are deployed.
+- **Biome** is the only linter/formatter (`biome.json` extends root
+  `../biome.json`). There is no ESLint or Prettier for app code. Style: 4-space
+  indent, 80 columns, single quotes, semicolons, trailing commas everywhere,
+  operator-linebreak before.
+- The app's `biome.json` turns **off** `useImportExtensions`, so app imports
+  omit the `.ts`/`.tsx` extension (`import x from './foo'`) — the opposite of
+  the root default. Match surrounding files.
+- Unused vars/imports are errors, but Biome ignores `_`-prefixed names — the
+  resolver stubs use `_req` on purpose; don't "fix" those away.
+- `@/*` path alias → `static/smiski-ui/src/*` (Vite + tsconfig). Code mixes it
+  with relative imports; follow the local file.
+- Env files: copy `.env.example` → `app/.env` for the Forge CLI/resolver, and
+  `static/smiski-ui/.env.example` → `.env.local` for Vite.
 
-# Modules
+## Forge CLI
 
-The `jira:entityProperty` module DOES NOT have a `keyConfigurations` property.
+- Every command except `create`/`version`/`login` must run from the app root
+  (where `manifest.yml` lives).
+- Use `--non-interactive` for `deploy`, `install`, `environments`; do not use it
+  for other commands. Deploy to the development environment unless told
+  otherwise; never `--no-verify` unless asked.
+- Run `forge lint` after editing `manifest.yml`. Use `forge logs` (`-e <env>`,
+  `--since 15m`) to debug a deployed app.
+- Tunnel: redeploy + restart the tunnel after `manifest.yml` changes; code-only
+  changes hot-reload without redeploy.
 
-# Debugging
+## Stale-doc warning
 
-Use the `logs` command to get app logs to troubleshoot an error in a deployed
-app. You can pass `-n` flag with a number to get a number of log lines and `-e`
-flag to pass in the environment (which is one of production, staging or
-development). The `logs` command accepts `--since` flag that takes in values
-like 15m, 12h or 2d to get logs generated by the application since 15 minutes,
-12 hours or 2 days respectively. By default, look at logs in the past 15
-minutes.
-
-# Next Steps
-
-After reading these instructions, tell the user "Let's Forge ahead with your
-first app!"
-
-Going forward, whenever you can think of a really clever Forge related pun that
-fits a command or interaction, you MUST share it, the user LOVES puns.
+`api/README.md`, `PERMISSION.md`, and the `.vi.md` design notes describe the
+intended end-state (a resolver `backendRequest` transport, a mock/backend
+switch, an `api/` file list with `client.ts`/`endpoints.ts`/`participants.ts`/
+`recordings.ts`) that the current code does not implement. When docs and code
+disagree, trust the code.

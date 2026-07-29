@@ -64,6 +64,7 @@ class GetMeetingControllerIntegrationTest {
                 .andExpect(jsonPath("$.meeting.hostId").value(HOST_ID))
                 .andExpect(jsonPath("$.meeting.tenantId").doesNotExist())
                 .andExpect(jsonPath("$.invitees.length()").value(1))
+                .andExpect(jsonPath("$.invitees[0].id").isNotEmpty())
                 .andExpect(jsonPath("$.invitees[0].accountId").value("alice"))
                 .andExpect(jsonPath("$.invitees[0].status").value("ACCEPTED"))
                 .andExpect(jsonPath("$.participants.length()").value(1))

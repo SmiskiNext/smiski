@@ -18,6 +18,7 @@ public enum MeetingErrorCode implements ErrorCode {
     LIVEKIT_UNAVAILABLE(ErrorCategory.UNAVAILABLE),
     MEETING_FULL(ErrorCategory.CONFLICT),
     INVITEE_NOT_FOUND(ErrorCategory.NOT_FOUND),
+    INVITEE_ALREADY_EXISTS(ErrorCategory.CONFLICT),
     INVALID_MEETING_DURATION(ErrorCategory.VALIDATION),
     USER_SERVICE_UNAVAILABLE(ErrorCategory.UNAVAILABLE),
     INVALID_SETTINGS(ErrorCategory.VALIDATION),

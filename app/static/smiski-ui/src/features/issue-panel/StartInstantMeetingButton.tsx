@@ -1,50 +1,53 @@
 import { Modal as ForgeModal } from '@forge/bridge';
 import { useState } from 'react';
-import {
-    ActiveMeetingWarningDialog,
-    InlineFeedback,
-} from '../../components/shared';
+import { ActiveMeetingWarningDialog } from '../../components/shared';
 import { Button, Icon } from '../../components/ui';
 import { useHostConflict } from '../../hooks/useHostConflict';
-import { useCreateInstantMeeting } from '../../hooks/useMeetingMutations';
 import {
     ACTIVE_MEETING_WARNING_MODAL_KIND,
     type ActiveMeetingWarningModalContext,
     type ActiveMeetingWarningModalResult,
 } from '../../utils/issuePanelModalContext';
+import {
+    instantModalPayloadFor,
+    shouldWarnBeforeInstant,
+} from './startInstantGate';
 
 export interface StartInstantMeetingButtonProps {
     issueKey: string;
+    projectKey?: string;
     disabled?: boolean;
-    onStarted?: (meetingId: string) => void;
     className?: string;
+    /**
+     * Opens the shared instant-meeting form for this issue. Called only after
+     * the host-conflict gate passes (no conflict, or the user confirmed the
+     * active-meeting warning) — the meeting is never created without the form.
+     */
+    onOpenInstantModal: (payload: {
+        issueKey: string;
+        projectKey: string;
+    }) => void;
 }
 
 export function StartInstantMeetingButton({
     issueKey,
+    projectKey,
     disabled,
-    onStarted,
     className,
+    onOpenInstantModal,
 }: StartInstantMeetingButtonProps) {
     const [isConfirmOpen, setConfirmOpen] = useState(false);
-    const [feedback, setFeedback] = useState<string | null>(null);
     const { conflictingMeeting } = useHostConflict(issueKey);
-    const createInstantMeeting = useCreateInstantMeeting();
 
-    const start = () =>
-        createInstantMeeting.mutate(
-            { issueKey, title: `Instant meeting — ${issueKey}` },
-            {
-                onSuccess: (meeting) => {
-                    setFeedback('Instant meeting started.');
-                    onStarted?.(meeting.id);
-                },
-            },
-        );
+    const openForm = () =>
+        onOpenInstantModal(instantModalPayloadFor(issueKey, projectKey));
 
     const handleClick = () => {
-        if (!conflictingMeeting) {
-            start();
+        if (
+            !conflictingMeeting
+            || !shouldWarnBeforeInstant(conflictingMeeting)
+        ) {
+            openForm();
             return;
         }
 
@@ -61,7 +64,7 @@ export function StartInstantMeetingButton({
             context,
             size: 'medium',
             onClose: (result: ActiveMeetingWarningModalResult | undefined) => {
-                if (result?.confirmed) start();
+                if (result?.confirmed) openForm();
             },
         }).open();
     };
@@ -75,24 +78,16 @@ export function StartInstantMeetingButton({
                 leadingIcon={<Icon name='video' size={15} />}
                 onClick={handleClick}
                 disabled={disabled}
-                isLoading={createInstantMeeting.isPending}
             >
                 Start instant
             </Button>
-            {feedback && (
-                <InlineFeedback
-                    appearance='success'
-                    message={feedback}
-                    onDismiss={() => setFeedback(null)}
-                />
-            )}
             {import.meta.env.DEV && isConfirmOpen && conflictingMeeting && (
                 <ActiveMeetingWarningDialog
                     conflictingMeeting={conflictingMeeting}
                     onClose={() => setConfirmOpen(false)}
                     onConfirm={() => {
                         setConfirmOpen(false);
-                        start();
+                        openForm();
                     }}
                 />
             )}

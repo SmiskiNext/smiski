@@ -35,6 +35,39 @@ modules:
         - key: resolver
           handler: index.handler
 
+    # Forge Remote endpoint binding the `meet` backend remote. Forge attaches a
+    # signed Forge Invocation Token (FIT) as `Authorization: Bearer` on every
+    # requestRemote call to this remote; the app itself asserts no tenant/account
+    # identity. `route.path` mirrors the backend path the Custom UI calls (see
+    # static/smiski-ui/src/api/meetings.ts). OAuth token flags stay disabled:
+    # requestRemote delivers only the FIT, and deriving tenant/account identity
+    # from it is the gateway's responsibility (deferred). Enable appUserToken
+    # later — with the read:app-user-token scope — if the backend must call Jira
+    # APIs on the user's behalf.
+    endpoint:
+        - key: meet-endpoint
+          remote: meet-backend
+          route:
+              path: /api/1/meetings:instant
+          auth:
+              appUserToken:
+                  enabled: false
+              appSystemToken:
+                  enabled: false
+
+# The self-hosted `meet` backend, reached through Forge Remote so Atlassian
+# attaches the FIT. `baseUrl` is the API gateway origin — the SAME env-var as
+# permissions.external.fetch.backend below, resolved by the CI/CD workflow per
+# Forge environment. `operations: [compute]` is required to call the remote; no
+# End-User Data is stored on the remote.
+remotes:
+    - key: meet-backend
+      baseUrl: '${SMISKI_API_BASE_URL}'
+      operations:
+          - compute
+      storage:
+          inScopeEUD: false
+
 resources:
     # Single Vite build output shared by both modules.
     # `pnpm --filter smiski-ui build` emits to static/smiski-ui/dist
@@ -48,14 +81,22 @@ permissions:
         # - read:me            # TODO: enable if we need the invoking user's identity/profile
         # - offline_access     # TODO: enable if the identity bridge needs refresh tokens
 
+    # Ant Design injects its styles at runtime (CSS-in-JS), which Forge Custom UI
+    # blocks by default. Allow inline styles so Ant Design renders under the
+    # Forge content security policy. See design D6 (BREAKING — major upgrade).
+    content:
+        styles:
+            - 'unsafe-inline'
+
     # The app talks to backend APIs only through the Caddy gateway. `backend`
-    # covers Forge resolver fetches; `client` covers Custom UI fetch/WebSocket
-    # traffic required by the LiveKit client in the meeting room.
+    # covers Forge resolver fetches and MUST match remotes[meet-backend].baseUrl
+    # above so Forge permits the outbound requestRemote call; `client` covers
+    # Custom UI fetch/WebSocket traffic required by the LiveKit client in the
+    # meeting room. The CI/CD workflow supplies the gateway for each environment.
     external:
         fetch:
             backend:
-                # The CI/CD workflow supplies the gateway for each Forge environment.
-                - address: '${SMISKI_API_BASE_URL}' # Caddy API gateway
+                - address: '${SMISKI_API_BASE_URL}' # Caddy API gateway == remotes[meet-backend].baseUrl
             client:
                 - address: '${SMISKI_API_BASE_URL}' # meeting/token endpoints
                 - address: '${LIVEKIT_URL}' # LiveKit signalling

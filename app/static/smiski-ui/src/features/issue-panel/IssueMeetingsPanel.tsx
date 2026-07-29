@@ -18,10 +18,12 @@ import {
     MeetingCard,
     MeetingDetailDialog,
     ScheduleMeetingModal,
+    StartInstantMeetingModal,
 } from '../../components/shared';
 import { Button, Icon } from '../../components/ui';
 import type { CurrentIssueContextValue, MeetingAction } from '../../domain';
 import { useIssueMeetings } from '../../hooks/useIssueMeetings';
+import { useIssuePanelInstantModal } from '../../hooks/useIssuePanelInstantModal';
 import { useIssuePanelMeetingDetailModal } from '../../hooks/useIssuePanelMeetingDetailModal';
 import { useIssuePanelMeetingRoomModal } from '../../hooks/useIssuePanelMeetingRoomModal';
 import { useIssuePanelScheduleModal } from '../../hooks/useIssuePanelScheduleModal';
@@ -62,6 +64,9 @@ export function IssueMeetingsPanel({
 
     const scheduleModal = useIssuePanelScheduleModal(() =>
         setFeedback('Meeting scheduled.'),
+    );
+    const instantModal = useIssuePanelInstantModal((meetingId) =>
+        openMeetingRoom(issue.projectKey, meetingId),
     );
     const detailModal = useIssuePanelMeetingDetailModal();
     const cancelMeeting = useCancelMeeting();
@@ -118,9 +123,8 @@ export function IssueMeetingsPanel({
                 <StartInstantMeetingButton
                     className='w-full'
                     issueKey={issue.issueKey}
-                    onStarted={(meetingId) =>
-                        openMeetingRoom(issue.projectKey, meetingId)
-                    }
+                    projectKey={issue.projectKey}
+                    onOpenInstantModal={instantModal.open}
                 />
                 <Button
                     size='sm'
@@ -199,6 +203,23 @@ export function IssueMeetingsPanel({
                                 : 'Meeting scheduled.',
                         );
                         scheduleModal.closeDev();
+                    }}
+                />
+            )}
+
+            {import.meta.env.DEV && instantModal.isDevOpen && (
+                <StartInstantMeetingModal
+                    isOpen
+                    issueKey={
+                        instantModal.devPayload?.issueKey ?? issue.issueKey
+                    }
+                    projectKey={
+                        instantModal.devPayload?.projectKey ?? issue.projectKey
+                    }
+                    onClose={instantModal.closeDev}
+                    onStarted={(meetingId) => {
+                        instantModal.closeDev();
+                        openMeetingRoom(issue.projectKey, meetingId);
                     }}
                 />
             )}
