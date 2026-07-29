@@ -1765,6 +1765,237 @@ paths:
           type: integer
           format: int32
         example: 1
+  /api/{version}/meetings/{id}/invitees/{inviteeId}:tentative:
+    post:
+      tags:
+        - meeting-controller
+      summary: Tentatively respond to a meeting invitation
+      description: Marks the caller's own meeting invitation as tentative. The acting account, resolved from the account header, must own the target invitee. Returns the updated invitee snapshot on success.
+      operationId: tentativeInvitation
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: inviteeId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Invitation marked tentative
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Meet_MeetingInviteeResponse'
+        '400':
+          description: Missing account header
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Meet_ProblemDetail'
+        '403':
+          description: The acting account does not own the target invitation
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Meet_ProblemDetail'
+        '404':
+          description: Meeting or invitee not found for the current tenant
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Meet_ProblemDetail'
+        '405':
+          description: Method Not Allowed
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Meet_ProblemDetail'
+        '409':
+          description: The current status does not permit a tentative response
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Meet_ProblemDetail'
+        '415':
+          description: Unsupported Media Type
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Meet_ProblemDetail'
+        '500':
+          description: Internal Server Error
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Meet_ProblemDetail'
+    parameters:
+      - name: version
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int32
+        example: 1
+  /api/{version}/meetings/{id}/invitees/{inviteeId}:decline:
+    post:
+      tags:
+        - meeting-controller
+      summary: Decline a meeting invitation
+      description: Declines the caller's own meeting invitation. The acting account, resolved from the account header, must own the target invitee. Returns the updated invitee snapshot on success.
+      operationId: declineInvitation
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: inviteeId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Invitation declined
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Meet_MeetingInviteeResponse'
+        '400':
+          description: Missing account header
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Meet_ProblemDetail'
+        '403':
+          description: The acting account does not own the target invitation
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Meet_ProblemDetail'
+        '404':
+          description: Meeting or invitee not found for the current tenant
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Meet_ProblemDetail'
+        '405':
+          description: Method Not Allowed
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Meet_ProblemDetail'
+        '409':
+          description: The current status does not permit declining
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Meet_ProblemDetail'
+        '415':
+          description: Unsupported Media Type
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Meet_ProblemDetail'
+        '500':
+          description: Internal Server Error
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Meet_ProblemDetail'
+    parameters:
+      - name: version
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int32
+        example: 1
+  /api/{version}/meetings/{id}/invitees/{inviteeId}:accept:
+    post:
+      tags:
+        - meeting-controller
+      summary: Accept a meeting invitation
+      description: Accepts the caller's own meeting invitation. The acting account, resolved from the account header, must own the target invitee. Returns the updated invitee snapshot on success.
+      operationId: acceptInvitation
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: inviteeId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Invitation accepted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Meet_MeetingInviteeResponse'
+        '400':
+          description: Missing account header
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Meet_ProblemDetail'
+        '403':
+          description: The acting account does not own the target invitation
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Meet_ProblemDetail'
+        '404':
+          description: Meeting or invitee not found for the current tenant
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Meet_ProblemDetail'
+        '405':
+          description: Method Not Allowed
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Meet_ProblemDetail'
+        '409':
+          description: The current status does not permit accepting
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Meet_ProblemDetail'
+        '415':
+          description: Unsupported Media Type
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Meet_ProblemDetail'
+        '500':
+          description: Internal Server Error
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Meet_ProblemDetail'
+    parameters:
+      - name: version
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int32
+        example: 1
 components:
   schemas:
     Tenant_App:
@@ -2813,6 +3044,32 @@ components:
     Meet_RemovedMeetingInviteeSnapshot:
       type: object
       description: Removed meeting invitee snapshot
+      properties:
+        id:
+          type: string
+          format: uuid
+        accountId:
+          type: string
+        email:
+          type: string
+        displayName:
+          type: string
+        role:
+          type: string
+        status:
+          type: string
+        invitedAt:
+          type: string
+          format: date-time
+        respondedAt:
+          type:
+            - string
+            - 'null'
+          format: date-time
+          description: Timestamp when the invitee responded; null if not yet responded
+    Meet_MeetingInviteeResponse:
+      type: object
+      description: Snapshot of the invitee after responding to the invitation
       properties:
         id:
           type: string

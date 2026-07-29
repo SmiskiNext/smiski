@@ -2,8 +2,8 @@
 
 import { client } from './client.gen.js';
 import type { Client, Options as Options2, TDataShape } from './client/index.js';
-import type { AcceptJoinRequestsData, AcceptJoinRequestsErrors, AcceptJoinRequestsResponses, BatchDeleteData, BatchDeleteErrors, BatchDeleteResponses, CreateInstantData, CreateInstantErrors, CreateInstantResponses, DeclineJoinRequestsData, DeclineJoinRequestsErrors, DeclineJoinRequestsResponses, DeleteData, DeleteErrors, DeleteResponses, GetData, GetErrors, GetResponses, JoinData, JoinErrors, JoinResponses, ListData, ListErrors, ListResponses, ReceiveData, ReceiveErrors, ReceiveResponses, RegisterData, RegisterErrors, RegisterResponses, ScheduleData, ScheduleErrors, ScheduleResponses, UninstallData, UninstallErrors, UninstallResponses, UpdateData, UpdateErrors, UpdateInviteesData, UpdateInviteesErrors, UpdateInviteesResponses, UpdateResponses } from './types.gen.js';
-import { zAcceptJoinRequestsData, zAcceptJoinRequestsResponse, zBatchDeleteData, zBatchDeleteResponse, zCreateInstantData, zCreateInstantResponse, zDeclineJoinRequestsData, zDeclineJoinRequestsResponse, zDeleteData, zDeleteResponse, zGetData, zGetResponse, zJoinData, zJoinResponse, zListData, zListResponse, zReceiveData, zRegisterData, zRegisterResponse, zScheduleData, zScheduleResponse, zUninstallData, zUninstallResponse, zUpdateData, zUpdateInviteesData, zUpdateInviteesResponse, zUpdateResponse } from './zod.gen.js';
+import type { AcceptInvitationData, AcceptInvitationErrors, AcceptInvitationResponses, AcceptJoinRequestsData, AcceptJoinRequestsErrors, AcceptJoinRequestsResponses, AddInviteesData, AddInviteesErrors, AddInviteesResponses, BatchDeleteData, BatchDeleteErrors, BatchDeleteInviteesData, BatchDeleteInviteesErrors, BatchDeleteInviteesResponses, BatchDeleteResponses, CreateInstantData, CreateInstantErrors, CreateInstantResponses, DeclineInvitationData, DeclineInvitationErrors, DeclineInvitationResponses, DeclineJoinRequestsData, DeclineJoinRequestsErrors, DeclineJoinRequestsResponses, DeleteData, DeleteErrors, DeleteResponses, GetData, GetErrors, GetResponses, JoinData, JoinErrors, JoinResponses, ListData, ListErrors, ListResponses, ReceiveData, ReceiveErrors, ReceiveResponses, RegisterData, RegisterErrors, RegisterResponses, ScheduleData, ScheduleErrors, ScheduleResponses, TentativeInvitationData, TentativeInvitationErrors, TentativeInvitationResponses, UninstallData, UninstallErrors, UninstallResponses, UpdateData, UpdateErrors, UpdateResponses } from './types.gen.js';
+import { zAcceptInvitationData, zAcceptInvitationResponse, zAcceptJoinRequestsData, zAcceptJoinRequestsResponse, zAddInviteesData, zAddInviteesResponse, zBatchDeleteData, zBatchDeleteInviteesData, zBatchDeleteInviteesResponse, zBatchDeleteResponse, zCreateInstantData, zCreateInstantResponse, zDeclineInvitationData, zDeclineInvitationResponse, zDeclineJoinRequestsData, zDeclineJoinRequestsResponse, zDeleteData, zDeleteResponse, zGetData, zGetResponse, zJoinData, zJoinResponse, zListData, zListResponse, zReceiveData, zRegisterData, zRegisterResponse, zScheduleData, zScheduleResponse, zTentativeInvitationData, zTentativeInvitationResponse, zUninstallData, zUninstallResponse, zUpdateData, zUpdateResponse } from './zod.gen.js';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean> = Options2<TData, ThrowOnError> & {
     /**
@@ -84,22 +84,6 @@ export const update = <ThrowOnError extends boolean = false>(options: Options<Up
     requestValidator: async (data) => await zUpdateData.parseAsync(data),
     responseValidator: async (data) => await zUpdateResponse.parseAsync(data),
     url: '/api/{version}/meetings/{id}',
-    ...options,
-    headers: {
-        'Content-Type': 'application/json',
-        ...options.headers
-    }
-});
-
-/**
- * Replace a meeting's invitee list
- *
- * Replaces the full invitee list of a SCHEDULED meeting as its host. Invitees are matched by accountId: new entries are created, existing entries have their display name updated, and absent entries are removed.
- */
-export const updateInvitees = <ThrowOnError extends boolean = false>(options: Options<UpdateInviteesData, ThrowOnError>) => (options.client ?? client).put<UpdateInviteesResponses, UpdateInviteesErrors, ThrowOnError>({
-    requestValidator: async (data) => await zUpdateInviteesData.parseAsync(data),
-    responseValidator: async (data) => await zUpdateInviteesResponse.parseAsync(data),
-    url: '/api/{version}/meetings/{id}/invitees',
     ...options,
     headers: {
         'Content-Type': 'application/json',
@@ -232,4 +216,72 @@ export const acceptJoinRequests = <ThrowOnError extends boolean = false>(options
         'Content-Type': 'application/json',
         ...options.headers
     }
+});
+
+/**
+ * Add invitees to a meeting
+ *
+ * Adds one or more new invitees to a SCHEDULED meeting as its host. Each new account is created with status NEEDS_ACTION. The request is atomic: if any submitted accountId is already an active invitee the whole batch is rejected with 409 INVITEE_ALREADY_EXISTS.
+ */
+export const addInvitees = <ThrowOnError extends boolean = false>(options: Options<AddInviteesData, ThrowOnError>) => (options.client ?? client).post<AddInviteesResponses, AddInviteesErrors, ThrowOnError>({
+    requestValidator: async (data) => await zAddInviteesData.parseAsync(data),
+    responseValidator: async (data) => await zAddInviteesResponse.parseAsync(data),
+    url: '/api/{version}/meetings/{id}/invitees',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Remove invitees from a meeting
+ *
+ * Removes one or more invitees from a SCHEDULED meeting as its host, by invitee id. The request is atomic: if any submitted id does not correspond to an active invitee of the meeting the whole batch is rejected with 404 INVITEE_NOT_FOUND.
+ */
+export const batchDeleteInvitees = <ThrowOnError extends boolean = false>(options: Options<BatchDeleteInviteesData, ThrowOnError>) => (options.client ?? client).post<BatchDeleteInviteesResponses, BatchDeleteInviteesErrors, ThrowOnError>({
+    requestValidator: async (data) => await zBatchDeleteInviteesData.parseAsync(data),
+    responseValidator: async (data) => await zBatchDeleteInviteesResponse.parseAsync(data),
+    url: '/api/{version}/meetings/{id}/invitees:batchDelete',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Tentatively respond to a meeting invitation
+ *
+ * Marks the caller's own meeting invitation as tentative. The acting account, resolved from the account header, must own the target invitee. Returns the updated invitee snapshot on success.
+ */
+export const tentativeInvitation = <ThrowOnError extends boolean = false>(options: Options<TentativeInvitationData, ThrowOnError>) => (options.client ?? client).post<TentativeInvitationResponses, TentativeInvitationErrors, ThrowOnError>({
+    requestValidator: async (data) => await zTentativeInvitationData.parseAsync(data),
+    responseValidator: async (data) => await zTentativeInvitationResponse.parseAsync(data),
+    url: '/api/{version}/meetings/{id}/invitees/{inviteeId}:tentative',
+    ...options
+});
+
+/**
+ * Decline a meeting invitation
+ *
+ * Declines the caller's own meeting invitation. The acting account, resolved from the account header, must own the target invitee. Returns the updated invitee snapshot on success.
+ */
+export const declineInvitation = <ThrowOnError extends boolean = false>(options: Options<DeclineInvitationData, ThrowOnError>) => (options.client ?? client).post<DeclineInvitationResponses, DeclineInvitationErrors, ThrowOnError>({
+    requestValidator: async (data) => await zDeclineInvitationData.parseAsync(data),
+    responseValidator: async (data) => await zDeclineInvitationResponse.parseAsync(data),
+    url: '/api/{version}/meetings/{id}/invitees/{inviteeId}:decline',
+    ...options
+});
+
+/**
+ * Accept a meeting invitation
+ *
+ * Accepts the caller's own meeting invitation. The acting account, resolved from the account header, must own the target invitee. Returns the updated invitee snapshot on success.
+ */
+export const acceptInvitation = <ThrowOnError extends boolean = false>(options: Options<AcceptInvitationData, ThrowOnError>) => (options.client ?? client).post<AcceptInvitationResponses, AcceptInvitationErrors, ThrowOnError>({
+    requestValidator: async (data) => await zAcceptInvitationData.parseAsync(data),
+    responseValidator: async (data) => await zAcceptInvitationResponse.parseAsync(data),
+    url: '/api/{version}/meetings/{id}/invitees/{inviteeId}:accept',
+    ...options
 });
