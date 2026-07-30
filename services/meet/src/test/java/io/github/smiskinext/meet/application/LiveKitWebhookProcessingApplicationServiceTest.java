@@ -8,10 +8,13 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import io.github.smiskinext.meet.application.service.LiveKitWebhookProcessingApplicationService;
+import io.github.smiskinext.meet.application.service.MeetingCompletionApplicationService;
 import io.github.smiskinext.meet.domain.event.MeetingCompletedEvent;
 import io.github.smiskinext.meet.domain.event.MeetingStartedEvent;
 import io.github.smiskinext.meet.domain.event.ParticipantJoinedEvent;
 import io.github.smiskinext.meet.domain.event.ParticipantLeftEvent;
+import io.github.smiskinext.meet.domain.event.ScreenShareStartedEvent;
+import io.github.smiskinext.meet.domain.event.ScreenShareStoppedEvent;
 import io.github.smiskinext.meet.domain.model.AdmissionPolicy;
 import io.github.smiskinext.meet.domain.model.CloseReason;
 import io.github.smiskinext.meet.domain.model.Meeting;
@@ -33,6 +36,7 @@ import io.github.smiskinext.meet.domain.model.valueobject.MeetingTitle;
 import io.github.smiskinext.meet.domain.model.valueobject.ParticipationLogId;
 import io.github.smiskinext.meet.domain.port.MeetingRepository;
 import io.github.smiskinext.meet.domain.port.ParticipationLogRepository;
+import io.github.smiskinext.meet.domain.port.ScreenShareStateRepository;
 import io.github.smiskinext.shared.domain.AggregateRoot;
 import io.github.smiskinext.shared.domain.DomainEvent;
 import io.github.smiskinext.shared.domain.EventPublisher;
@@ -57,6 +61,7 @@ class LiveKitWebhookProcessingApplicationServiceTest {
 
     private MeetingRepository meetingRepository;
     private ParticipationLogRepository participationLogRepository;
+    private ScreenShareStateRepository screenShareStateRepository;
     private EventPublisher eventPublisher;
     private LiveKitWebhookProcessingApplicationService service;
 
@@ -64,9 +69,17 @@ class LiveKitWebhookProcessingApplicationServiceTest {
     void setUp() {
         meetingRepository = mock(MeetingRepository.class);
         participationLogRepository = mock(ParticipationLogRepository.class);
+        screenShareStateRepository = mock(ScreenShareStateRepository.class);
         eventPublisher = mock(EventPublisher.class);
+        MeetingCompletionApplicationService meetingCompletionService =
+                new MeetingCompletionApplicationService(
+                        meetingRepository, participationLogRepository, eventPublisher);
         service = new LiveKitWebhookProcessingApplicationService(
-                meetingRepository, participationLogRepository, eventPublisher);
+                meetingRepository,
+                participationLogRepository,
+                screenShareStateRepository,
+                eventPublisher,
+                meetingCompletionService);
     }
 
     @Test
@@ -175,6 +188,19 @@ class LiveKitWebhookProcessingApplicationServiceTest {
     }
 
     @Test
+    void participantLeftWhileScreenSharingClearsShareStateAndEnqueuesStoppedEvent() {
+        ParticipationLog session = activeLog();
+        when(participationLogRepository.findActiveBySid(LiveKitParticipantSid.of(SID)))
+                .thenReturn(Optional.of(session));
+        when(screenShareStateRepository.isSharing(MEETING_UUID, "account-1")).thenReturn(true);
+
+        service.process(participantEvent("participant_left", Map.of()));
+
+        verify(screenShareStateRepository).clearSharing(MEETING_UUID, "account-1");
+        assertThat(publishedEvents(session)).anyMatch(e -> e instanceof ScreenShareStoppedEvent);
+    }
+
+    @Test
     void participantLeftForUnknownSidIsNoOp() {
         when(participationLogRepository.findActiveBySid(any())).thenReturn(Optional.empty());
 
@@ -217,16 +243,58 @@ class LiveKitWebhookProcessingApplicationServiceTest {
 
     @Test
     void nonHandledEventsChangeNoState() {
-        for (String type : List.of(
-                "track_published",
-                "track_unpublished",
-                "egress_started",
-                "ingress_started",
-                "participant_connection_aborted")) {
+        for (String type :
+                List.of("egress_started", "ingress_started", "participant_connection_aborted")) {
             service.process(participantEvent(type, Map.of()));
         }
 
         verify(meetingRepository, never()).save(any());
+        verify(participationLogRepository, never()).save(any());
+        verify(eventPublisher, never()).publishEventsOf(any());
+    }
+
+    @Test
+    void trackPublishedScreenShareStartsSharingAndEnqueuesStartedEvent() {
+        ParticipationLog session = activeLog();
+        when(participationLogRepository.findActiveBySid(LiveKitParticipantSid.of(SID)))
+                .thenReturn(Optional.of(session));
+        when(screenShareStateRepository.isSharing(MEETING_UUID, "account-1")).thenReturn(false);
+
+        service.process(trackEvent("track_published", "SCREEN_SHARE"));
+
+        verify(screenShareStateRepository).markSharing(MEETING_UUID, "account-1", EVENT_TIME);
+        verify(eventPublisher).publishEventsOf(session);
+        assertThat(publishedEvents(session)).anyMatch(e -> e instanceof ScreenShareStartedEvent);
+    }
+
+    @Test
+    void trackUnpublishedScreenShareStopsSharingAndEnqueuesStoppedEvent() {
+        ParticipationLog session = activeLog();
+        when(participationLogRepository.findActiveBySid(LiveKitParticipantSid.of(SID)))
+                .thenReturn(Optional.of(session));
+        when(screenShareStateRepository.isSharing(MEETING_UUID, "account-1")).thenReturn(true);
+
+        service.process(trackEvent("track_unpublished", "SCREEN_SHARE"));
+
+        verify(screenShareStateRepository).clearSharing(MEETING_UUID, "account-1");
+        verify(eventPublisher).publishEventsOf(session);
+        assertThat(publishedEvents(session)).anyMatch(e -> e instanceof ScreenShareStoppedEvent);
+    }
+
+    @Test
+    void trackPublishedForNonScreenShareSourceIsNoOp() {
+        service.process(trackEvent("track_published", "CAMERA"));
+
+        verify(participationLogRepository, never()).save(any());
+        verify(eventPublisher, never()).publishEventsOf(any());
+    }
+
+    @Test
+    void trackPublishedScreenShareForUnknownSidIsNoOp() {
+        when(participationLogRepository.findActiveBySid(any())).thenReturn(Optional.empty());
+
+        service.process(trackEvent("track_published", "SCREEN_SHARE"));
+
         verify(participationLogRepository, never()).save(any());
         verify(eventPublisher, never()).publishEventsOf(any());
     }
@@ -239,6 +307,8 @@ class LiveKitWebhookProcessingApplicationServiceTest {
                 null,
                 null,
                 Map.of(),
+                null,
+                null,
                 UUID.randomUUID().toString(),
                 EVENT_TIME);
     }
@@ -251,6 +321,22 @@ class LiveKitWebhookProcessingApplicationServiceTest {
                 IDENTITY,
                 SID,
                 attributes,
+                null,
+                null,
+                UUID.randomUUID().toString(),
+                EVENT_TIME);
+    }
+
+    private LiveKitWebhookEvent trackEvent(String type, String trackSource) {
+        return new LiveKitWebhookEvent(
+                type,
+                ROOM_NAME,
+                TENANT_ID,
+                IDENTITY,
+                SID,
+                Map.of(),
+                "TR_track1",
+                trackSource,
                 UUID.randomUUID().toString(),
                 EVENT_TIME);
     }

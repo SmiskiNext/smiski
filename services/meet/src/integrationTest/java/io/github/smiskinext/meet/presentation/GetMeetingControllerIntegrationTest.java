@@ -69,7 +69,8 @@ class GetMeetingControllerIntegrationTest {
                 .andExpect(jsonPath("$.invitees[0].status").value("ACCEPTED"))
                 .andExpect(jsonPath("$.participants.length()").value(1))
                 .andExpect(jsonPath("$.participants[0].accountId").value("alice"))
-                .andExpect(jsonPath("$.participants[0].leftAt").doesNotExist());
+                .andExpect(jsonPath("$.participants[0].leftAt").doesNotExist())
+                .andExpect(jsonPath("$.participants[0].screenSharing").value(false));
     }
 
     @Test

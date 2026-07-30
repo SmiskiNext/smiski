@@ -5,6 +5,7 @@ import io.github.smiskinext.meet.domain.model.valueobject.AccountId;
 import io.github.smiskinext.meet.domain.model.valueobject.LiveKitIdentity;
 import io.github.smiskinext.meet.domain.model.valueobject.LiveKitParticipantSid;
 import io.github.smiskinext.meet.domain.port.ParticipationLogRepository;
+import io.github.smiskinext.meet.domain.port.ScreenShareStateRepository;
 import io.github.smiskinext.meet.domain.projection.ParticipantSummary;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -12,6 +13,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import org.springframework.stereotype.Repository;
 
@@ -19,9 +21,13 @@ import org.springframework.stereotype.Repository;
 public class ParticipationLogRepositoryAdapter implements ParticipationLogRepository {
 
     private final ParticipationLogJpaRepository jpaRepository;
+    private final ScreenShareStateRepository screenShareStateRepository;
 
-    public ParticipationLogRepositoryAdapter(ParticipationLogJpaRepository jpaRepository) {
+    public ParticipationLogRepositoryAdapter(
+            ParticipationLogJpaRepository jpaRepository,
+            ScreenShareStateRepository screenShareStateRepository) {
         this.jpaRepository = jpaRepository;
+        this.screenShareStateRepository = screenShareStateRepository;
     }
 
     @Override
@@ -92,14 +98,16 @@ public class ParticipationLogRepositoryAdapter implements ParticipationLogReposi
                     .computeIfAbsent(session.accountId(), account -> new ArrayList<>())
                     .add(session);
         }
+        Set<String> sharingAccountIds = screenShareStateRepository.findSharingAccountIds(meetingId);
         List<ParticipantSummary> participants = new ArrayList<>(sessionsByAccount.size());
         for (List<ParticipantSummary> sessions : sessionsByAccount.values()) {
-            participants.add(collapse(sessions));
+            participants.add(collapse(sessions, sharingAccountIds));
         }
         return participants;
     }
 
-    private static ParticipantSummary collapse(List<ParticipantSummary> sessions) {
+    private static ParticipantSummary collapse(
+            List<ParticipantSummary> sessions, Set<String> sharingAccountIds) {
         ParticipantSummary mostRecent = sessions.getFirst();
         Instant earliestJoinedAt = mostRecent.joinedAt();
         boolean anyStillOpen = false;
@@ -117,12 +125,14 @@ public class ParticipationLogRepositoryAdapter implements ParticipationLogReposi
                 latestLeftAt = session.leftAt();
             }
         }
+        boolean screenSharing = anyStillOpen && sharingAccountIds.contains(mostRecent.accountId());
         return new ParticipantSummary(
                 mostRecent.id(),
                 mostRecent.meetingId(),
                 mostRecent.accountId(),
                 mostRecent.role(),
                 earliestJoinedAt,
-                anyStillOpen ? null : latestLeftAt);
+                anyStillOpen ? null : latestLeftAt,
+                screenSharing);
     }
 }

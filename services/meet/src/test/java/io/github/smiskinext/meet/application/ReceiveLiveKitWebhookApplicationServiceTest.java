@@ -41,6 +41,8 @@ class ReceiveLiveKitWebhookApplicationServiceTest {
                 null,
                 null,
                 Map.of(),
+                null,
+                null,
                 UUID.randomUUID().toString(),
                 Instant.now());
         when(verifier.verify("body", "auth")).thenReturn(Verification.valid(event));

@@ -36,6 +36,8 @@ public class LiveKitWebhookConsumer {
                 message.participantIdentity(),
                 message.participantSid(),
                 message.participantAttributes(),
+                message.trackSid(),
+                message.trackSource(),
                 message.webhookId(),
                 Instant.ofEpochSecond(message.occurredAtEpochSecond()));
     }

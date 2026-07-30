@@ -4,9 +4,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import io.github.smiskinext.meet.domain.port.ScreenShareStateRepository;
 import io.github.smiskinext.meet.domain.projection.ParticipantSummary;
 import java.time.Instant;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -14,12 +16,14 @@ import org.junit.jupiter.api.Test;
 class ParticipationLogRepositoryAdapterTest {
 
     private ParticipationLogJpaRepository jpaRepository;
+    private ScreenShareStateRepository screenShareStateRepository;
     private ParticipationLogRepositoryAdapter adapter;
 
     @BeforeEach
     void setUp() {
         jpaRepository = mock(ParticipationLogJpaRepository.class);
-        adapter = new ParticipationLogRepositoryAdapter(jpaRepository);
+        screenShareStateRepository = mock(ScreenShareStateRepository.class);
+        adapter = new ParticipationLogRepositoryAdapter(jpaRepository, screenShareStateRepository);
     }
 
     @Test
@@ -37,14 +41,18 @@ class ParticipationLogRepositoryAdapterTest {
                                 "member-1",
                                 "PARTICIPANT",
                                 secondJoin,
-                                null),
+                                null,
+                                false),
                         new ParticipantSummary(
                                 UUID.randomUUID(),
                                 meetingId,
                                 "member-1",
                                 "PARTICIPANT",
                                 firstJoin,
-                                firstLeave)));
+                                firstLeave,
+                                false)));
+        when(screenShareStateRepository.findSharingAccountIds(meetingId))
+                .thenReturn(Set.of("member-1"));
 
         List<ParticipantSummary> participants =
                 adapter.findDistinctParticipantSummariesByMeetingId(meetingId);
@@ -54,6 +62,7 @@ class ParticipationLogRepositoryAdapterTest {
             assertThat(participant.accountId()).isEqualTo("member-1");
             assertThat(participant.joinedAt()).isEqualTo(firstJoin);
             assertThat(participant.leftAt()).isNull();
+            assertThat(participant.screenSharing()).isTrue();
         });
     }
 
@@ -72,14 +81,17 @@ class ParticipationLogRepositoryAdapterTest {
                                 "member-1",
                                 "PARTICIPANT",
                                 secondJoin,
-                                secondLeave),
+                                secondLeave,
+                                false),
                         new ParticipantSummary(
                                 UUID.randomUUID(),
                                 meetingId,
                                 "member-1",
                                 "PARTICIPANT",
                                 firstJoin,
-                                firstLeave)));
+                                firstLeave,
+                                false)));
+        when(screenShareStateRepository.findSharingAccountIds(meetingId)).thenReturn(Set.of());
 
         List<ParticipantSummary> participants =
                 adapter.findDistinctParticipantSummariesByMeetingId(meetingId);
@@ -87,6 +99,7 @@ class ParticipationLogRepositoryAdapterTest {
         assertThat(participants).singleElement().satisfies(participant -> {
             assertThat(participant.joinedAt()).isEqualTo(firstJoin);
             assertThat(participant.leftAt()).isEqualTo(secondLeave);
+            assertThat(participant.screenSharing()).isFalse();
         });
     }
 
@@ -102,14 +115,17 @@ class ParticipationLogRepositoryAdapterTest {
                                 "member-2",
                                 "PARTICIPANT",
                                 joinedAt,
-                                null),
+                                null,
+                                false),
                         new ParticipantSummary(
                                 UUID.randomUUID(),
                                 meetingId,
                                 "member-1",
                                 "PARTICIPANT",
                                 joinedAt,
-                                null)));
+                                null,
+                                false)));
+        when(screenShareStateRepository.findSharingAccountIds(meetingId)).thenReturn(Set.of());
 
         List<ParticipantSummary> participants =
                 adapter.findDistinctParticipantSummariesByMeetingId(meetingId);

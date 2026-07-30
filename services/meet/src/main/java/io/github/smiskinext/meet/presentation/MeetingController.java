@@ -1,8 +1,10 @@
 package io.github.smiskinext.meet.presentation;
 
 import io.github.smiskinext.meet.application.command.AcceptMeetingInviteeCommand;
+import io.github.smiskinext.meet.application.command.CancelMeetingCommand;
 import io.github.smiskinext.meet.application.command.CreateInstantMeetingCommand;
 import io.github.smiskinext.meet.application.command.DeclineMeetingInviteeCommand;
+import io.github.smiskinext.meet.application.command.EndMeetingCommand;
 import io.github.smiskinext.meet.application.command.ScheduleMeetingCommand;
 import io.github.smiskinext.meet.application.command.TentativeMeetingInviteeCommand;
 import io.github.smiskinext.meet.application.query.GetMeetingQuery;
@@ -10,10 +12,12 @@ import io.github.smiskinext.meet.application.result.AcceptJoinRequestsResult;
 import io.github.smiskinext.meet.application.result.AcceptMeetingInviteeResult;
 import io.github.smiskinext.meet.application.result.AddMeetingInviteesResult;
 import io.github.smiskinext.meet.application.result.BatchDeleteMeetingsResult;
+import io.github.smiskinext.meet.application.result.CancelMeetingResult;
 import io.github.smiskinext.meet.application.result.CreateInstantMeetingResult;
 import io.github.smiskinext.meet.application.result.DeclineJoinRequestsResult;
 import io.github.smiskinext.meet.application.result.DeclineMeetingInviteeResult;
 import io.github.smiskinext.meet.application.result.DeleteMeetingResult;
+import io.github.smiskinext.meet.application.result.EndMeetingResult;
 import io.github.smiskinext.meet.application.result.GetMeetingResult;
 import io.github.smiskinext.meet.application.result.ListMeetingsResult;
 import io.github.smiskinext.meet.application.result.RemoveMeetingInviteesResult;
@@ -25,10 +29,12 @@ import io.github.smiskinext.meet.application.usecase.AcceptJoinRequestsUseCase;
 import io.github.smiskinext.meet.application.usecase.AcceptMeetingInviteeUseCase;
 import io.github.smiskinext.meet.application.usecase.AddMeetingInviteesUseCase;
 import io.github.smiskinext.meet.application.usecase.BatchDeleteMeetingsUseCase;
+import io.github.smiskinext.meet.application.usecase.CancelMeetingUseCase;
 import io.github.smiskinext.meet.application.usecase.CreateInstantMeetingUseCase;
 import io.github.smiskinext.meet.application.usecase.DeclineJoinRequestsUseCase;
 import io.github.smiskinext.meet.application.usecase.DeclineMeetingInviteeUseCase;
 import io.github.smiskinext.meet.application.usecase.DeleteMeetingUseCase;
+import io.github.smiskinext.meet.application.usecase.EndMeetingUseCase;
 import io.github.smiskinext.meet.application.usecase.GetMeetingUseCase;
 import io.github.smiskinext.meet.application.usecase.ListMeetingsUseCase;
 import io.github.smiskinext.meet.application.usecase.RemoveMeetingInviteesUseCase;
@@ -49,8 +55,10 @@ import io.github.smiskinext.meet.presentation.request.ScheduleMeetingRequest;
 import io.github.smiskinext.meet.presentation.request.UpdateMeetingRequest;
 import io.github.smiskinext.meet.presentation.response.AddMeetingInviteesResponse;
 import io.github.smiskinext.meet.presentation.response.BatchDeleteMeetingsResponse;
+import io.github.smiskinext.meet.presentation.response.CancelMeetingResponse;
 import io.github.smiskinext.meet.presentation.response.CreateInstantMeetingResponse;
 import io.github.smiskinext.meet.presentation.response.DeleteMeetingResponse;
+import io.github.smiskinext.meet.presentation.response.EndMeetingResponse;
 import io.github.smiskinext.meet.presentation.response.GetMeetingResponse;
 import io.github.smiskinext.meet.presentation.response.JoinDecisionResponse;
 import io.github.smiskinext.meet.presentation.response.JoinMeetingResponse;
@@ -103,6 +111,8 @@ public class MeetingController {
     private final ListMeetingsUseCase listMeetingsUseCase;
     private final GetMeetingUseCase getMeetingUseCase;
     private final DeleteMeetingUseCase deleteMeetingUseCase;
+    private final CancelMeetingUseCase cancelMeetingUseCase;
+    private final EndMeetingUseCase endMeetingUseCase;
     private final BatchDeleteMeetingsUseCase batchDeleteMeetingsUseCase;
     private final RequestJoinUseCase requestJoinUseCase;
     private final AcceptJoinRequestsUseCase acceptJoinRequestsUseCase;
@@ -121,6 +131,8 @@ public class MeetingController {
             ListMeetingsUseCase listMeetingsUseCase,
             GetMeetingUseCase getMeetingUseCase,
             DeleteMeetingUseCase deleteMeetingUseCase,
+            CancelMeetingUseCase cancelMeetingUseCase,
+            EndMeetingUseCase endMeetingUseCase,
             BatchDeleteMeetingsUseCase batchDeleteMeetingsUseCase,
             RequestJoinUseCase requestJoinUseCase,
             AcceptJoinRequestsUseCase acceptJoinRequestsUseCase,
@@ -137,6 +149,8 @@ public class MeetingController {
         this.listMeetingsUseCase = listMeetingsUseCase;
         this.getMeetingUseCase = getMeetingUseCase;
         this.deleteMeetingUseCase = deleteMeetingUseCase;
+        this.cancelMeetingUseCase = cancelMeetingUseCase;
+        this.endMeetingUseCase = endMeetingUseCase;
         this.batchDeleteMeetingsUseCase = batchDeleteMeetingsUseCase;
         this.requestJoinUseCase = requestJoinUseCase;
         this.acceptJoinRequestsUseCase = acceptJoinRequestsUseCase;
@@ -1068,6 +1082,185 @@ public class MeetingController {
                 new io.github.smiskinext.meet.application.command.DeleteMeetingCommand(
                         id, TenantContext.getCurrentTenant(), accountId));
         return responder.ok(result.map(DeleteMeetingResponse::from));
+    }
+
+    @Operation(
+            summary = "Cancel a scheduled meeting",
+            description = "Cancels a meeting that has not started yet, as its host. "
+                    + "Only meetings in SCHEDULED status can be canceled; use the end action "
+                    + "for a running meeting. Returns the canceled meeting snapshot.")
+    @ApiResponses({
+        @ApiResponse(
+                responseCode = "200",
+                description = "Meeting canceled; returns the canceled meeting snapshot",
+                content =
+                        @Content(
+                                mediaType = "application/json",
+                                schema = @Schema(implementation = CancelMeetingResponse.class))),
+        @ApiResponse(
+                responseCode = "400",
+                description = "Missing account header",
+                content =
+                        @Content(
+                                mediaType = "application/problem+json",
+                                schema = @Schema(implementation = ProblemDetailSchema.class),
+                                examples = @ExampleObject(name = "missingAccount", value = """
+                        {
+                          "type": "about:blank",
+                          "title": "Bad Request",
+                          "status": 400,
+                          "detail": "X-Account-Id header is required",
+                          "code": "VALIDATION_ERROR",
+                          "traceId": "6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a"
+                        }"""))),
+        @ApiResponse(
+                responseCode = "403",
+                description = "Only the host may cancel the meeting",
+                content =
+                        @Content(
+                                mediaType = "application/problem+json",
+                                schema = @Schema(implementation = ProblemDetailSchema.class),
+                                examples = @ExampleObject(name = "notOwner", value = """
+                        {
+                          "type": "about:blank",
+                          "title": "Not the meeting owner",
+                          "status": 403,
+                          "detail": "You are not the host of this meeting.",
+                          "code": "NOT_OWNER",
+                          "traceId": "6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a"
+                        }"""))),
+        @ApiResponse(
+                responseCode = "404",
+                description = "Meeting not found or already deleted",
+                content =
+                        @Content(
+                                mediaType = "application/problem+json",
+                                schema = @Schema(implementation = ProblemDetailSchema.class),
+                                examples = @ExampleObject(name = "notFound", value = """
+                        {
+                          "type": "about:blank",
+                          "title": "Meeting not found",
+                          "status": 404,
+                          "detail": "No meeting matches the given identifier.",
+                          "code": "MEETING_NOT_FOUND",
+                          "traceId": "6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a"
+                        }"""))),
+        @ApiResponse(
+                responseCode = "409",
+                description = "The meeting is not in SCHEDULED status and cannot be canceled",
+                content =
+                        @Content(
+                                mediaType = "application/problem+json",
+                                schema = @Schema(implementation = ProblemDetailSchema.class),
+                                examples = @ExampleObject(name = "invalidTransition", value = """
+                        {
+                          "type": "about:blank",
+                          "title": "Invalid status transition",
+                          "status": 409,
+                          "detail": "The meeting cannot transition from its current status to CANCELED.",
+                          "code": "INVALID_STATUS_TRANSITION",
+                          "traceId": "6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a"
+                        }""")))
+    })
+    @PostMapping("/meetings/{id}:cancel")
+    public ResponseEntity<Object> cancel(@PathVariable UUID id) {
+        String accountId = AccountContext.getCurrentAccount().orElse(null);
+        if (accountId == null) {
+            return missingAccount();
+        }
+        Result<CancelMeetingResult, MeetingError> result = cancelMeetingUseCase.execute(
+                new CancelMeetingCommand(id, TenantContext.getCurrentTenant(), accountId));
+        return responder.ok(result.map(CancelMeetingResponse::from));
+    }
+
+    @Operation(
+            summary = "End a running meeting",
+            description = "Ends a meeting that is currently running, as its host, immediately. "
+                    + "The meeting transitions to COMPLETED synchronously and its LiveKit room "
+                    + "is torn down best-effort. Use the cancel action for a meeting that has "
+                    + "not started yet. Returns the ended meeting snapshot.")
+    @ApiResponses({
+        @ApiResponse(
+                responseCode = "200",
+                description = "Meeting ended; returns the ended meeting snapshot",
+                content =
+                        @Content(
+                                mediaType = "application/json",
+                                schema = @Schema(implementation = EndMeetingResponse.class))),
+        @ApiResponse(
+                responseCode = "400",
+                description = "Missing account header",
+                content =
+                        @Content(
+                                mediaType = "application/problem+json",
+                                schema = @Schema(implementation = ProblemDetailSchema.class),
+                                examples = @ExampleObject(name = "missingAccount", value = """
+                        {
+                          "type": "about:blank",
+                          "title": "Bad Request",
+                          "status": 400,
+                          "detail": "X-Account-Id header is required",
+                          "code": "VALIDATION_ERROR",
+                          "traceId": "6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a"
+                        }"""))),
+        @ApiResponse(
+                responseCode = "403",
+                description = "Only the host may end the meeting",
+                content =
+                        @Content(
+                                mediaType = "application/problem+json",
+                                schema = @Schema(implementation = ProblemDetailSchema.class),
+                                examples = @ExampleObject(name = "notOwner", value = """
+                        {
+                          "type": "about:blank",
+                          "title": "Not the meeting owner",
+                          "status": 403,
+                          "detail": "You are not the host of this meeting.",
+                          "code": "NOT_OWNER",
+                          "traceId": "6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a"
+                        }"""))),
+        @ApiResponse(
+                responseCode = "404",
+                description = "Meeting not found or already deleted",
+                content =
+                        @Content(
+                                mediaType = "application/problem+json",
+                                schema = @Schema(implementation = ProblemDetailSchema.class),
+                                examples = @ExampleObject(name = "notFound", value = """
+                        {
+                          "type": "about:blank",
+                          "title": "Meeting not found",
+                          "status": 404,
+                          "detail": "No meeting matches the given identifier.",
+                          "code": "MEETING_NOT_FOUND",
+                          "traceId": "6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a"
+                        }"""))),
+        @ApiResponse(
+                responseCode = "409",
+                description = "The meeting is not in RUNNING status and cannot be ended",
+                content =
+                        @Content(
+                                mediaType = "application/problem+json",
+                                schema = @Schema(implementation = ProblemDetailSchema.class),
+                                examples = @ExampleObject(name = "notRunning", value = """
+                        {
+                          "type": "about:blank",
+                          "title": "Meeting is not running",
+                          "status": 409,
+                          "detail": "The meeting is not currently running.",
+                          "code": "MEETING_NOT_RUNNING",
+                          "traceId": "6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a"
+                        }""")))
+    })
+    @PostMapping("/meetings/{id}:end")
+    public ResponseEntity<Object> end(@PathVariable UUID id) {
+        String accountId = AccountContext.getCurrentAccount().orElse(null);
+        if (accountId == null) {
+            return missingAccount();
+        }
+        Result<EndMeetingResult, MeetingError> result = endMeetingUseCase.execute(
+                new EndMeetingCommand(id, TenantContext.getCurrentTenant(), accountId));
+        return responder.ok(result.map(EndMeetingResponse::from));
     }
 
     @Operation(

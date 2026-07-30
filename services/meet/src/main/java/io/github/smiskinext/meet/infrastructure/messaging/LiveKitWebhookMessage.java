@@ -13,6 +13,10 @@ import org.jspecify.annotations.Nullable;
  * @param participantIdentity   the participant identity
  * @param participantSid        the participant session id
  * @param participantAttributes participant attributes
+ * @param trackSid              the LiveKit track session id, present for track_published/
+ *                              track_unpublished events
+ * @param trackSource           the LiveKit track source, present for track_published/
+ *                              track_unpublished events
  * @param webhookId             the LiveKit webhook delivery id
  * @param occurredAtEpochSecond the event creation time as epoch seconds
  */
@@ -23,5 +27,7 @@ public record LiveKitWebhookMessage(
         @Nullable String participantIdentity,
         @Nullable String participantSid,
         Map<String, String> participantAttributes,
+        @Nullable String trackSid,
+        @Nullable String trackSource,
         String webhookId,
         long occurredAtEpochSecond) {}

@@ -7,6 +7,7 @@ import java.time.Instant;
 import java.util.Map;
 import livekit.LivekitModels.ParticipantInfo;
 import livekit.LivekitModels.Room;
+import livekit.LivekitModels.TrackInfo;
 import livekit.LivekitWebhook.WebhookEvent;
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
@@ -53,6 +54,7 @@ public class LiveKitWebhookVerifierAdapter implements LiveKitWebhookVerifier {
     private LiveKitWebhookEvent toDomain(WebhookEvent event) {
         Room room = event.hasRoom() ? event.getRoom() : null;
         ParticipantInfo participant = event.hasParticipant() ? event.getParticipant() : null;
+        TrackInfo track = event.hasTrack() ? event.getTrack() : null;
         return new LiveKitWebhookEvent(
                 event.getEvent(),
                 room != null ? room.getName() : null,
@@ -60,6 +62,8 @@ public class LiveKitWebhookVerifierAdapter implements LiveKitWebhookVerifier {
                 participant != null ? participant.getIdentity() : null,
                 participant != null ? participant.getSid() : null,
                 participant != null ? participant.getAttributesMap() : Map.of(),
+                track != null ? track.getSid() : null,
+                track != null ? track.getSource().name() : null,
                 event.getId(),
                 Instant.ofEpochSecond(event.getCreatedAt()));
     }

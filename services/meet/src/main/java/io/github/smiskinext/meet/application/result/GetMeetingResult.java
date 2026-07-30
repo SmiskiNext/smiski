@@ -56,5 +56,6 @@ public record GetMeetingResult(
             String accountId,
             String role,
             Instant joinedAt,
-            @Nullable Instant leftAt) {}
+            @Nullable Instant leftAt,
+            boolean screenSharing) {}
 }

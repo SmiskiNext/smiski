@@ -3,6 +3,8 @@ package io.github.smiskinext.meet.domain.model;
 import com.github.f4b6a3.uuid.UuidCreator;
 import io.github.smiskinext.meet.domain.event.ParticipantJoinedEvent;
 import io.github.smiskinext.meet.domain.event.ParticipantLeftEvent;
+import io.github.smiskinext.meet.domain.event.ScreenShareStartedEvent;
+import io.github.smiskinext.meet.domain.event.ScreenShareStoppedEvent;
 import io.github.smiskinext.meet.domain.model.valueobject.AccountId;
 import io.github.smiskinext.meet.domain.model.valueobject.LiveKitIdentity;
 import io.github.smiskinext.meet.domain.model.valueobject.LiveKitParticipantSid;
@@ -194,6 +196,42 @@ public class ParticipationLog extends AggregateRoot<ParticipationLogId> {
         if (this.leftAt != null) return;
         this.leftAt = at;
         this.closeReason = CloseReason.SUPERSEDED;
+    }
+
+    /**
+     * Registers a {@link ScreenShareStartedEvent}, called by the {@code track_published} webhook
+     * handler for a {@code SCREEN_SHARE} track. Current sharing state lives in {@code
+     * ScreenShareStateRepository} (Redis), not on this aggregate; callers are expected to check
+     * that state before calling so redelivered webhooks don't double-publish.
+     *
+     * @param at the webhook event time
+     */
+    public void startScreenShare(Instant at) {
+        registerEvent(new ScreenShareStartedEvent(
+                UUID.randomUUID(),
+                tenantId.value(),
+                meetingId.value(),
+                accountId.value(),
+                livekitIdentity.value(),
+                at));
+    }
+
+    /**
+     * Registers a {@link ScreenShareStoppedEvent}, called by the {@code track_unpublished} webhook
+     * handler for a {@code SCREEN_SHARE} track (or when the participant leaves while still
+     * sharing). Current sharing state lives in {@code ScreenShareStateRepository} (Redis), not on
+     * this aggregate; callers are expected to check that state before calling.
+     *
+     * @param at the webhook event time
+     */
+    public void stopScreenShare(Instant at) {
+        registerEvent(new ScreenShareStoppedEvent(
+                UUID.randomUUID(),
+                tenantId.value(),
+                meetingId.value(),
+                accountId.value(),
+                livekitIdentity.value(),
+                at));
     }
 
     // -------------------------------------------------------------------------

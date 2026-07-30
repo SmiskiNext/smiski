@@ -75,7 +75,10 @@ public record GetMeetingResponse(
             @Schema(
                     description = "Latest leave time; null while the participant is still present",
                     nullable = true)
-            @Nullable Instant leftAt) {}
+            @Nullable Instant leftAt,
+
+            @Schema(description = "Whether the participant is currently sharing their screen")
+            boolean screenSharing) {}
 
     public static GetMeetingResponse from(GetMeetingResult result) {
         GetMeetingResult.Meeting meeting = result.meeting();
@@ -123,7 +126,8 @@ public record GetMeetingResponse(
                         participant.accountId(),
                         participant.role(),
                         participant.joinedAt(),
-                        participant.leftAt()))
+                        participant.leftAt(),
+                        participant.screenSharing()))
                 .toList();
 
         return new GetMeetingResponse(meetingView, invitees, participants);

@@ -20,6 +20,10 @@ import org.jspecify.annotations.Nullable;
  * @param participantIdentity the participant identity of the form {@code <accountId>:<deviceId>}
  * @param participantSid      the LiveKit participant session id
  * @param participantAttributes participant attributes (carries the participant role)
+ * @param trackSid            the LiveKit track session id, present for track_published/
+ *                            track_unpublished events
+ * @param trackSource         the LiveKit track source (e.g. {@code SCREEN_SHARE}, {@code CAMERA}),
+ *                            present for track_published/track_unpublished events
  * @param webhookId           the LiveKit webhook delivery id
  * @param occurredAt          the event creation time
  */
@@ -30,6 +34,8 @@ public record LiveKitWebhookEvent(
         @Nullable String participantIdentity,
         @Nullable String participantSid,
         Map<String, String> participantAttributes,
+        @Nullable String trackSid,
+        @Nullable String trackSource,
         String webhookId,
         Instant occurredAt)
         implements ValueObject {

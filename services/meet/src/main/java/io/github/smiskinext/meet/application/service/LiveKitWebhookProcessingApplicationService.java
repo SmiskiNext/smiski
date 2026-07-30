@@ -10,10 +10,9 @@ import io.github.smiskinext.meet.domain.model.valueobject.LiveKitWebhookEvent;
 import io.github.smiskinext.meet.domain.model.valueobject.MeetingId;
 import io.github.smiskinext.meet.domain.port.MeetingRepository;
 import io.github.smiskinext.meet.domain.port.ParticipationLogRepository;
+import io.github.smiskinext.meet.domain.port.ScreenShareStateRepository;
 import io.github.smiskinext.shared.domain.EventPublisher;
 import io.github.smiskinext.shared.domain.Result;
-import java.time.Instant;
-import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.slf4j.Logger;
@@ -37,18 +36,25 @@ public class LiveKitWebhookProcessingApplicationService {
 
     private static final String ROOM_NAME_PREFIX = "meeting-";
     private static final String ROLE_ATTRIBUTE = "role";
+    private static final String SCREEN_SHARE_SOURCE = "SCREEN_SHARE";
 
     private final MeetingRepository meetingRepository;
     private final ParticipationLogRepository participationLogRepository;
+    private final ScreenShareStateRepository screenShareStateRepository;
     private final EventPublisher eventPublisher;
+    private final MeetingCompletionApplicationService meetingCompletionService;
 
     public LiveKitWebhookProcessingApplicationService(
             MeetingRepository meetingRepository,
             ParticipationLogRepository participationLogRepository,
-            EventPublisher eventPublisher) {
+            ScreenShareStateRepository screenShareStateRepository,
+            EventPublisher eventPublisher,
+            MeetingCompletionApplicationService meetingCompletionService) {
         this.meetingRepository = meetingRepository;
         this.participationLogRepository = participationLogRepository;
+        this.screenShareStateRepository = screenShareStateRepository;
         this.eventPublisher = eventPublisher;
+        this.meetingCompletionService = meetingCompletionService;
     }
 
     @Transactional
@@ -58,6 +64,8 @@ public class LiveKitWebhookProcessingApplicationService {
             case "room_finished" -> handleRoomFinished(event);
             case "participant_joined" -> handleParticipantJoined(event);
             case "participant_left" -> handleParticipantLeft(event);
+            case "track_published" -> handleTrackPublished(event);
+            case "track_unpublished" -> handleTrackUnpublished(event);
             default ->
                 log.debug("Ignoring non-handled LiveKit webhook event: {}", event.eventType());
         }
@@ -90,20 +98,7 @@ public class LiveKitWebhookProcessingApplicationService {
         if (lookup.isEmpty()) {
             return;
         }
-        Meeting meeting = lookup.get();
-        Result<Void, ?> completeResult = meeting.complete();
-        if (completeResult.isFailure()) {
-            return;
-        }
-        Instant occurredAt = event.occurredAt();
-        List<ParticipationLog> active =
-                participationLogRepository.findActiveByMeetingId(meetingId.get().value());
-        for (ParticipationLog session : active) {
-            session.leave(occurredAt);
-            participationLogRepository.save(session);
-        }
-        meetingRepository.save(meeting);
-        eventPublisher.publishEventsOf(meeting);
+        meetingCompletionService.completeAndCloseParticipation(lookup.get(), event.occurredAt());
     }
 
     private void handleParticipantJoined(LiveKitWebhookEvent event) {
@@ -155,6 +150,54 @@ public class LiveKitWebhookProcessingApplicationService {
         session.recordLeft(event.occurredAt());
         participationLogRepository.save(session);
         eventPublisher.publishEventsOf(session);
+
+        UUID meetingId = session.getMeetingId().value();
+        String accountId = session.getAccountId().value();
+        if (screenShareStateRepository.isSharing(meetingId, accountId)) {
+            screenShareStateRepository.clearSharing(meetingId, accountId);
+            session.stopScreenShare(event.occurredAt());
+            eventPublisher.publishEventsOf(session);
+        }
+    }
+
+    private void handleTrackPublished(LiveKitWebhookEvent event) {
+        Optional<ParticipationLog> lookup = activeScreenShareSession(event);
+        if (lookup.isEmpty()) {
+            return;
+        }
+        ParticipationLog session = lookup.get();
+        UUID meetingId = session.getMeetingId().value();
+        String accountId = session.getAccountId().value();
+        if (screenShareStateRepository.isSharing(meetingId, accountId)) {
+            return;
+        }
+        session.startScreenShare(event.occurredAt());
+        screenShareStateRepository.markSharing(meetingId, accountId, event.occurredAt());
+        eventPublisher.publishEventsOf(session);
+    }
+
+    private void handleTrackUnpublished(LiveKitWebhookEvent event) {
+        Optional<ParticipationLog> lookup = activeScreenShareSession(event);
+        if (lookup.isEmpty()) {
+            return;
+        }
+        ParticipationLog session = lookup.get();
+        UUID meetingId = session.getMeetingId().value();
+        String accountId = session.getAccountId().value();
+        if (!screenShareStateRepository.isSharing(meetingId, accountId)) {
+            return;
+        }
+        session.stopScreenShare(event.occurredAt());
+        screenShareStateRepository.clearSharing(meetingId, accountId);
+        eventPublisher.publishEventsOf(session);
+    }
+
+    private Optional<ParticipationLog> activeScreenShareSession(LiveKitWebhookEvent event) {
+        if (!SCREEN_SHARE_SOURCE.equals(event.trackSource()) || event.participantSid() == null) {
+            return Optional.empty();
+        }
+        return participationLogRepository.findActiveBySid(
+                LiveKitParticipantSid.of(event.participantSid()));
     }
 
     private Optional<MeetingId> parseMeetingId(LiveKitWebhookEvent event) {

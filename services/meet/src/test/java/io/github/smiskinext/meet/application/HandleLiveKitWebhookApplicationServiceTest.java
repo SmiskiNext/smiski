@@ -70,6 +70,8 @@ class HandleLiveKitWebhookApplicationServiceTest {
                 null,
                 null,
                 Map.of(),
+                null,
+                null,
                 UUID.randomUUID().toString(),
                 Instant.parse("2025-02-01T14:00:00Z"));
     }

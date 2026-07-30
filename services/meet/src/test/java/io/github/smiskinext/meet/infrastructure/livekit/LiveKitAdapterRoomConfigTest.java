@@ -1,9 +1,13 @@
 package io.github.smiskinext.meet.infrastructure.livekit;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.github.smiskinext.meet.domain.MeetingError;
 import io.github.smiskinext.meet.domain.model.AdmissionPolicy;
 import io.github.smiskinext.meet.domain.model.ParticipantRole;
 import io.github.smiskinext.meet.domain.model.valueobject.LiveKitIdentity;
@@ -13,10 +17,16 @@ import io.github.smiskinext.meet.domain.model.valueobject.MeetingId;
 import io.github.smiskinext.meet.domain.model.valueobject.MeetingSettings;
 import io.github.smiskinext.meet.domain.model.valueobject.ParticipantAttributes;
 import io.github.smiskinext.shared.domain.Result;
+import io.livekit.server.RoomServiceClient;
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.UUID;
+import okhttp3.MediaType;
+import okhttp3.ResponseBody;
 import org.junit.jupiter.api.Test;
+import retrofit2.Call;
+import retrofit2.Response;
 
 class LiveKitAdapterRoomConfigTest {
 
@@ -24,13 +34,17 @@ class LiveKitAdapterRoomConfigTest {
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
-    private final LiveKitAdapter adapter = new LiveKitAdapter(new LiveKitProperties(
-            "http://localhost:7880",
-            "ws://localhost:7880",
-            "test-key",
-            "test-secret-must-be-at-least-32-characters",
-            "livekit-webhook-events",
-            1800));
+    private final RoomServiceClient roomServiceClient = mock(RoomServiceClient.class);
+
+    private final LiveKitAdapter adapter = new LiveKitAdapter(
+            new LiveKitProperties(
+                    "http://localhost:7880",
+                    "ws://localhost:7880",
+                    "test-key",
+                    "test-secret-must-be-at-least-32-characters",
+                    "livekit-webhook-events",
+                    1800),
+            roomServiceClient);
 
     @Test
     void hostTokenCarriesRoomConfigurationMetadataEqualToTenant() {
@@ -62,6 +76,51 @@ class LiveKitAdapterRoomConfigTest {
         assertThat(roomConfig.isMissingNode()).isFalse();
         assertThat(roomConfig.path("metadata").asText()).isEqualTo(TENANT_ID);
         assertThat(roomConfig.path("name").asText()).isEqualTo(roomName.value());
+    }
+
+    @Test
+    void deleteRoomReturnsSuccessOnSuccessfulHttpResponse() throws IOException {
+        LiveKitRoomName roomName = LiveKitRoomName.fromMeetingId(MeetingId.of(UUID.randomUUID()));
+        @SuppressWarnings("unchecked")
+        Call<Void> call = mock(Call.class);
+        when(roomServiceClient.deleteRoom(eq(roomName.value()))).thenReturn(call);
+        when(call.execute()).thenReturn(Response.success(null));
+
+        Result<Void, MeetingError> result = adapter.deleteRoom(roomName);
+
+        assertThat(result.isSuccess()).isTrue();
+    }
+
+    @Test
+    void deleteRoomReturnsFailureOnUnsuccessfulHttpResponse() throws IOException {
+        LiveKitRoomName roomName = LiveKitRoomName.fromMeetingId(MeetingId.of(UUID.randomUUID()));
+        @SuppressWarnings("unchecked")
+        Call<Void> call = mock(Call.class);
+        when(roomServiceClient.deleteRoom(eq(roomName.value()))).thenReturn(call);
+        when(call.execute())
+                .thenReturn(Response.error(
+                        404, ResponseBody.create(MediaType.parse("application/json"), "{}")));
+
+        Result<Void, MeetingError> result = adapter.deleteRoom(roomName);
+
+        assertThat(result.isSuccess()).isFalse();
+        assertThat(((Result.Failure<Void, MeetingError>) result).error())
+                .isInstanceOf(MeetingError.LiveKitUnavailable.class);
+    }
+
+    @Test
+    void deleteRoomReturnsFailureWhenClientThrows() throws IOException {
+        LiveKitRoomName roomName = LiveKitRoomName.fromMeetingId(MeetingId.of(UUID.randomUUID()));
+        @SuppressWarnings("unchecked")
+        Call<Void> call = mock(Call.class);
+        when(roomServiceClient.deleteRoom(eq(roomName.value()))).thenReturn(call);
+        when(call.execute()).thenThrow(new IOException("network down"));
+
+        Result<Void, MeetingError> result = adapter.deleteRoom(roomName);
+
+        assertThat(result.isSuccess()).isFalse();
+        assertThat(((Result.Failure<Void, MeetingError>) result).error())
+                .isInstanceOf(MeetingError.LiveKitUnavailable.class);
     }
 
     private JsonNode decodePayload(String jwt) {

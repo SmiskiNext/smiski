@@ -33,6 +33,8 @@ public class LiveKitWebhookKafkaPublisher implements LiveKitWebhookPublisher {
                 event.participantIdentity(),
                 event.participantSid(),
                 event.participantAttributes(),
+                event.trackSid(),
+                event.trackSource(),
                 event.webhookId(),
                 event.occurredAt().getEpochSecond());
         String key = event.roomName() != null ? event.roomName() : event.webhookId();
