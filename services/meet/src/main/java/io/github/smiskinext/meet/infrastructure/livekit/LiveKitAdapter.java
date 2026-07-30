@@ -15,18 +15,23 @@ import io.livekit.server.CanUpdateOwnMetadata;
 import io.livekit.server.RoomAdmin;
 import io.livekit.server.RoomJoin;
 import io.livekit.server.RoomName;
+import io.livekit.server.RoomServiceClient;
+import java.io.IOException;
 import java.util.List;
 import livekit.LivekitRoom.RoomConfiguration;
 import org.jspecify.annotations.Nullable;
 import org.springframework.stereotype.Component;
+import retrofit2.Response;
 
 @Component
 public class LiveKitAdapter implements LiveKitPort {
 
     private final LiveKitProperties properties;
+    private final RoomServiceClient roomServiceClient;
 
-    public LiveKitAdapter(LiveKitProperties properties) {
+    public LiveKitAdapter(LiveKitProperties properties, RoomServiceClient roomServiceClient) {
         this.properties = properties;
+        this.roomServiceClient = roomServiceClient;
     }
 
     @Override
@@ -88,7 +93,19 @@ public class LiveKitAdapter implements LiveKitPort {
 
     @Override
     public Result<Void, MeetingError> deleteRoom(LiveKitRoomName roomName) {
-        throw new UnsupportedOperationException("Not implemented in create-instant-meeting slice");
+        try {
+            Response<Void> response =
+                    roomServiceClient.deleteRoom(roomName.value()).execute();
+            if (!response.isSuccessful()) {
+                return Result.failure(
+                        new MeetingError.LiveKitUnavailable("Room deletion failed: HTTP "
+                                + response.code() + " for room " + roomName.value()));
+            }
+            return Result.success();
+        } catch (IOException e) {
+            return Result.failure(
+                    new MeetingError.LiveKitUnavailable("Room deletion failed: " + e.getMessage()));
+        }
     }
 
     @Override
