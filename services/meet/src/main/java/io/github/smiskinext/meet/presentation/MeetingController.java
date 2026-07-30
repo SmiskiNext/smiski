@@ -1002,7 +1002,42 @@ public class MeetingController {
                 content =
                         @Content(
                                 mediaType = "application/json",
-                                schema = @Schema(implementation = DeleteMeetingResponse.class))),
+                                schema = @Schema(implementation = DeleteMeetingResponse.class),
+                                examples = @ExampleObject(name = "deleted", value = """
+                        {
+                          "meeting": {
+                            "id": "0195e0c2-8f3a-7c21-b9d4-2f1a6e7c8d90",
+                            "hostId": "account-123",
+                            "shortCode": "abc-defg-hij",
+                            "type": "SCHEDULED",
+                            "status": "DELETED",
+                            "title": "Sprint planning",
+                            "description": "Plan the next sprint",
+                            "issueLink": {
+                              "issueId": "10001",
+                              "issueKey": "PROJ-1",
+                              "projectKey": "PROJ"
+                            },
+                            "settings": {
+                              "admissionPolicy": "OPEN",
+                              "maxParticipants": 50,
+                              "allowScreenShare": true,
+                              "chatEnabled": true,
+                              "allowMicrophone": true,
+                              "allowVideo": true
+                            },
+                            "startTime": "2025-02-01T14:00:00Z",
+                            "endTime": "2025-02-01T15:00:00Z",
+                            "zoneId": "Asia/Ho_Chi_Minh",
+                            "organizerEmail": "host@example.com",
+                            "organizerDisplayName": "Host User",
+                            "calendarUid": "meeting-0195e0c2@smiski.app",
+                            "calendarSequence": 0,
+                            "createdAt": "2025-01-15T10:30:00Z",
+                            "deletedAt": "2025-01-20T09:00:00Z",
+                            "deletedBy": "account-123"
+                          }
+                        }"""))),
         @ApiResponse(
                 responseCode = "400",
                 description = "Missing account header",
@@ -1097,9 +1132,44 @@ public class MeetingController {
                         @Content(
                                 mediaType = "application/json",
                                 schema =
-                                        @Schema(
-                                                implementation =
-                                                        BatchDeleteMeetingsResponse.class))),
+                                        @Schema(implementation = BatchDeleteMeetingsResponse.class),
+                                examples = @ExampleObject(name = "batchDeleted", value = """
+                        {
+                          "meetings": [
+                            {
+                              "id": "0195e0c2-8f3a-7c21-b9d4-2f1a6e7c8d90",
+                              "hostId": "account-123",
+                              "shortCode": "abc-defg-hij",
+                              "type": "SCHEDULED",
+                              "status": "DELETED",
+                              "title": "Sprint planning",
+                              "description": "Plan the next sprint",
+                              "issueLink": {
+                                "issueId": "10001",
+                                "issueKey": "PROJ-1",
+                                "projectKey": "PROJ"
+                              },
+                              "settings": {
+                                "admissionPolicy": "OPEN",
+                                "maxParticipants": 50,
+                                "allowScreenShare": true,
+                                "chatEnabled": true,
+                                "allowMicrophone": true,
+                                "allowVideo": true
+                              },
+                              "startTime": "2025-02-01T14:00:00Z",
+                              "endTime": "2025-02-01T15:00:00Z",
+                              "zoneId": "Asia/Ho_Chi_Minh",
+                              "organizerEmail": "host@example.com",
+                              "organizerDisplayName": "Host User",
+                              "calendarUid": "meeting-0195e0c2@smiski.app",
+                              "calendarSequence": 0,
+                              "createdAt": "2025-01-15T10:30:00Z",
+                              "deletedAt": "2025-01-20T09:00:00Z",
+                              "deletedBy": "account-123"
+                            }
+                          ]
+                        }"""))),
         @ApiResponse(
                 responseCode = "400",
                 description = "Validation error or missing account header",
@@ -1569,35 +1639,82 @@ public class MeetingController {
                 content =
                         @Content(
                                 mediaType = "application/json",
-                                schema = @Schema(implementation = MeetingInviteeResponse.class))),
+                                schema = @Schema(implementation = MeetingInviteeResponse.class),
+                                examples = @ExampleObject(name = "accepted", value = """
+                        {
+                          "id": "0195e0c2-8f3a-7c21-b9d4-3a2b1c4d5e60",
+                          "accountId": "account-456",
+                          "email": "alice@example.com",
+                          "displayName": "Alice Nguyen",
+                          "role": "REQ_PARTICIPANT",
+                          "status": "ACCEPTED",
+                          "invitedAt": "2025-01-15T10:35:00Z",
+                          "respondedAt": "2025-01-16T08:00:00Z"
+                        }"""))),
         @ApiResponse(
                 responseCode = "400",
                 description = "Missing account header",
                 content =
                         @Content(
                                 mediaType = "application/problem+json",
-                                schema = @Schema(implementation = ProblemDetailSchema.class))),
+                                schema = @Schema(implementation = ProblemDetailSchema.class),
+                                examples = @ExampleObject(name = "missingAccount", value = """
+                        {
+                          "type": "about:blank",
+                          "title": "Bad Request",
+                          "status": 400,
+                          "detail": "X-Account-Id header is required",
+                          "code": "VALIDATION_ERROR",
+                          "traceId": "6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a"
+                        }"""))),
         @ApiResponse(
                 responseCode = "403",
                 description = "The acting account does not own the target invitation",
                 content =
                         @Content(
                                 mediaType = "application/problem+json",
-                                schema = @Schema(implementation = ProblemDetailSchema.class))),
+                                schema = @Schema(implementation = ProblemDetailSchema.class),
+                                examples = @ExampleObject(name = "notOwner", value = """
+                        {
+                          "type": "about:blank",
+                          "title": "Not authorized",
+                          "status": 403,
+                          "detail": "You do not own the requested user scope.",
+                          "code": "NOT_OWNER",
+                          "traceId": "6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a"
+                        }"""))),
         @ApiResponse(
                 responseCode = "404",
                 description = "Meeting or invitee not found for the current tenant",
                 content =
                         @Content(
                                 mediaType = "application/problem+json",
-                                schema = @Schema(implementation = ProblemDetailSchema.class))),
+                                schema = @Schema(implementation = ProblemDetailSchema.class),
+                                examples = @ExampleObject(name = "notFound", value = """
+                        {
+                          "type": "about:blank",
+                          "title": "Invitee not found",
+                          "status": 404,
+                          "detail": "No invitee matches the given identifier.",
+                          "code": "INVITEE_NOT_FOUND",
+                          "traceId": "6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a"
+                        }"""))),
         @ApiResponse(
                 responseCode = "409",
                 description = "The current status does not permit accepting",
                 content =
                         @Content(
                                 mediaType = "application/problem+json",
-                                schema = @Schema(implementation = ProblemDetailSchema.class)))
+                                schema = @Schema(implementation = ProblemDetailSchema.class),
+                                examples = @ExampleObject(name = "invalidTransition", value = """
+                        {
+                          "type": "about:blank",
+                          "title": "Invalid invitee transition",
+                          "status": 409,
+                          "detail": "Cannot transition from ACCEPTED to ACCEPTED.",
+                          "code": "INVALID_INVITEE_TRANSITION",
+                          "traceId": "6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a"
+                        }""")))
     })
     @PostMapping("/meetings/{id}/invitees/{inviteeId}:accept")
     public ResponseEntity<Object> acceptInvitation(
@@ -1625,35 +1742,82 @@ public class MeetingController {
                 content =
                         @Content(
                                 mediaType = "application/json",
-                                schema = @Schema(implementation = MeetingInviteeResponse.class))),
+                                schema = @Schema(implementation = MeetingInviteeResponse.class),
+                                examples = @ExampleObject(name = "declined", value = """
+                        {
+                          "id": "0195e0c2-8f3a-7c21-b9d4-3a2b1c4d5e60",
+                          "accountId": "account-456",
+                          "email": "alice@example.com",
+                          "displayName": "Alice Nguyen",
+                          "role": "REQ_PARTICIPANT",
+                          "status": "DECLINED",
+                          "invitedAt": "2025-01-15T10:35:00Z",
+                          "respondedAt": "2025-01-16T08:00:00Z"
+                        }"""))),
         @ApiResponse(
                 responseCode = "400",
                 description = "Missing account header",
                 content =
                         @Content(
                                 mediaType = "application/problem+json",
-                                schema = @Schema(implementation = ProblemDetailSchema.class))),
+                                schema = @Schema(implementation = ProblemDetailSchema.class),
+                                examples = @ExampleObject(name = "missingAccount", value = """
+                        {
+                          "type": "about:blank",
+                          "title": "Bad Request",
+                          "status": 400,
+                          "detail": "X-Account-Id header is required",
+                          "code": "VALIDATION_ERROR",
+                          "traceId": "6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a"
+                        }"""))),
         @ApiResponse(
                 responseCode = "403",
                 description = "The acting account does not own the target invitation",
                 content =
                         @Content(
                                 mediaType = "application/problem+json",
-                                schema = @Schema(implementation = ProblemDetailSchema.class))),
+                                schema = @Schema(implementation = ProblemDetailSchema.class),
+                                examples = @ExampleObject(name = "notOwner", value = """
+                        {
+                          "type": "about:blank",
+                          "title": "Not authorized",
+                          "status": 403,
+                          "detail": "You do not own the requested user scope.",
+                          "code": "NOT_OWNER",
+                          "traceId": "6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a"
+                        }"""))),
         @ApiResponse(
                 responseCode = "404",
                 description = "Meeting or invitee not found for the current tenant",
                 content =
                         @Content(
                                 mediaType = "application/problem+json",
-                                schema = @Schema(implementation = ProblemDetailSchema.class))),
+                                schema = @Schema(implementation = ProblemDetailSchema.class),
+                                examples = @ExampleObject(name = "notFound", value = """
+                        {
+                          "type": "about:blank",
+                          "title": "Invitee not found",
+                          "status": 404,
+                          "detail": "No invitee matches the given identifier.",
+                          "code": "INVITEE_NOT_FOUND",
+                          "traceId": "6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a"
+                        }"""))),
         @ApiResponse(
                 responseCode = "409",
                 description = "The current status does not permit declining",
                 content =
                         @Content(
                                 mediaType = "application/problem+json",
-                                schema = @Schema(implementation = ProblemDetailSchema.class)))
+                                schema = @Schema(implementation = ProblemDetailSchema.class),
+                                examples = @ExampleObject(name = "invalidTransition", value = """
+                        {
+                          "type": "about:blank",
+                          "title": "Invalid invitee transition",
+                          "status": 409,
+                          "detail": "Cannot transition from DECLINED to DECLINED.",
+                          "code": "INVALID_INVITEE_TRANSITION",
+                          "traceId": "6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a"
+                        }""")))
     })
     @PostMapping("/meetings/{id}/invitees/{inviteeId}:decline")
     public ResponseEntity<Object> declineInvitation(
@@ -1681,35 +1845,82 @@ public class MeetingController {
                 content =
                         @Content(
                                 mediaType = "application/json",
-                                schema = @Schema(implementation = MeetingInviteeResponse.class))),
+                                schema = @Schema(implementation = MeetingInviteeResponse.class),
+                                examples = @ExampleObject(name = "tentative", value = """
+                        {
+                          "id": "0195e0c2-8f3a-7c21-b9d4-3a2b1c4d5e60",
+                          "accountId": "account-456",
+                          "email": "alice@example.com",
+                          "displayName": "Alice Nguyen",
+                          "role": "REQ_PARTICIPANT",
+                          "status": "TENTATIVE",
+                          "invitedAt": "2025-01-15T10:35:00Z",
+                          "respondedAt": "2025-01-16T08:00:00Z"
+                        }"""))),
         @ApiResponse(
                 responseCode = "400",
                 description = "Missing account header",
                 content =
                         @Content(
                                 mediaType = "application/problem+json",
-                                schema = @Schema(implementation = ProblemDetailSchema.class))),
+                                schema = @Schema(implementation = ProblemDetailSchema.class),
+                                examples = @ExampleObject(name = "missingAccount", value = """
+                        {
+                          "type": "about:blank",
+                          "title": "Bad Request",
+                          "status": 400,
+                          "detail": "X-Account-Id header is required",
+                          "code": "VALIDATION_ERROR",
+                          "traceId": "6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a"
+                        }"""))),
         @ApiResponse(
                 responseCode = "403",
                 description = "The acting account does not own the target invitation",
                 content =
                         @Content(
                                 mediaType = "application/problem+json",
-                                schema = @Schema(implementation = ProblemDetailSchema.class))),
+                                schema = @Schema(implementation = ProblemDetailSchema.class),
+                                examples = @ExampleObject(name = "notOwner", value = """
+                        {
+                          "type": "about:blank",
+                          "title": "Not authorized",
+                          "status": 403,
+                          "detail": "You do not own the requested user scope.",
+                          "code": "NOT_OWNER",
+                          "traceId": "6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a"
+                        }"""))),
         @ApiResponse(
                 responseCode = "404",
                 description = "Meeting or invitee not found for the current tenant",
                 content =
                         @Content(
                                 mediaType = "application/problem+json",
-                                schema = @Schema(implementation = ProblemDetailSchema.class))),
+                                schema = @Schema(implementation = ProblemDetailSchema.class),
+                                examples = @ExampleObject(name = "notFound", value = """
+                        {
+                          "type": "about:blank",
+                          "title": "Invitee not found",
+                          "status": 404,
+                          "detail": "No invitee matches the given identifier.",
+                          "code": "INVITEE_NOT_FOUND",
+                          "traceId": "6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a"
+                        }"""))),
         @ApiResponse(
                 responseCode = "409",
                 description = "The current status does not permit a tentative response",
                 content =
                         @Content(
                                 mediaType = "application/problem+json",
-                                schema = @Schema(implementation = ProblemDetailSchema.class)))
+                                schema = @Schema(implementation = ProblemDetailSchema.class),
+                                examples = @ExampleObject(name = "invalidTransition", value = """
+                        {
+                          "type": "about:blank",
+                          "title": "Invalid invitee transition",
+                          "status": 409,
+                          "detail": "Cannot transition from TENTATIVE to TENTATIVE.",
+                          "code": "INVALID_INVITEE_TRANSITION",
+                          "traceId": "6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a"
+                        }""")))
     })
     @PostMapping("/meetings/{id}/invitees/{inviteeId}:tentative")
     public ResponseEntity<Object> tentativeInvitation(
