@@ -1,10 +1,14 @@
 /**
  * useMeetingParticipants — participant roster for a meeting.
- * Swap point: replace `queryFn` with `api.getMeetingParticipants(meetingId)`.
+ *
+ * Every call site already fetches the same meeting's detail via `useMeeting`,
+ * and the backend `get` response already embeds the participant list — so
+ * this shares `useMeeting`'s query (same key + fetcher) via `select` instead
+ * of issuing a second, redundant request.
  */
 import { useQuery } from '@tanstack/react-query';
+import { getMeeting } from '../api/meetings';
 import { useCurrentUser } from '../context/CurrentUserContext';
-import { listMeetingParticipants } from '../mocks/db';
 import { resolveParticipantDisplayNames } from '../mocks/participants';
 import { queryKeys } from './queryKeys';
 import { useProjectMembers } from './useProjectMembers';
@@ -17,10 +21,11 @@ export function useMeetingParticipants(
     const projectMembers = useProjectMembers(projectKey);
     const query = useQuery({
         queryKey: meetingId
-            ? queryKeys.participants(meetingId)
-            : ['participants', 'none'],
-        queryFn: () => listMeetingParticipants(meetingId as string),
+            ? queryKeys.meeting(meetingId)
+            : ['meeting', 'none'],
+        queryFn: () => getMeeting(meetingId as string),
         enabled: Boolean(meetingId),
+        select: (data) => data.participants,
     });
 
     const participants = resolveParticipantDisplayNames(

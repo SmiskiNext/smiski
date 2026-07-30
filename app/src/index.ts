@@ -12,7 +12,6 @@
  * here — see architecture_vi.md (Forge Remote / JWT-JWKS auth bridge).
  */
 import Resolver from '@forge/resolver';
-import { AccessToken } from 'livekit-server-sdk';
 import { searchUsers } from './jiraSdkClient';
 
 const resolver = new Resolver();
@@ -53,46 +52,11 @@ resolver.define('getMeetingPermission', async (_req) => {
     throw new Error('Not implemented: getMeetingPermission');
 });
 
-// ⚠️ TEMPORARY PROTOTYPE SHIM — mints the LiveKit JWT directly in this
-// resolver using livekit-server-sdk (pure local JWT signing, no network
-// call), bypassing the designed Kong → `meet` service flow described in
-// architecture.vi.md, which does not exist yet. Replace this with a call to
-// the real `meet` service's token-issuance endpoint once it exists, and
-// remove this comment block when that happens.
-//
-// No authorization check against a real meeting/participant roster is done
-// here — any user who can open this app can mint a token for any
-// `meetingId` string. Acceptable for this prototype only.
-resolver.define('getRoomToken', async (req) => {
-    const meetingId = req.payload?.meetingId as string | undefined;
-    if (!meetingId) throw new Error('getRoomToken: meetingId is required');
-
-    const accountId = req.context.accountId as string | undefined;
-    if (!accountId)
-        throw new Error('getRoomToken: no invoking user accountId in context');
-
-    const apiKey = process.env.LIVEKIT_API_KEY;
-    const apiSecret = process.env.LIVEKIT_API_SECRET;
-    const url = process.env.LIVEKIT_URL;
-    if (!apiKey || !apiSecret || !url) {
-        throw new Error(
-            'getRoomToken: LIVEKIT_API_KEY / LIVEKIT_API_SECRET / LIVEKIT_URL not configured (forge variables set)',
-        );
-    }
-
-    const accessToken = new AccessToken(apiKey, apiSecret, {
-        identity: accountId,
-        ttl: '4h',
-    });
-    accessToken.addGrant({
-        roomJoin: true,
-        room: meetingId,
-        canPublish: true,
-        canSubscribe: true,
-    });
-    const token = await accessToken.toJwt();
-
-    return { token, url };
-});
+// NOTE: room-token minting no longer lives here. The Custom UI calls the
+// real `meet` backend's `join` operation directly via Forge Remote
+// (`static/smiski-ui/src/api/meetings.ts`'s `getRoomToken`/`joinMeeting`),
+// which authorizes the request against the actual meeting/participant
+// roster — replacing the insecure local-JWT-minting shim this resolver used
+// to provide.
 
 export const handler = resolver.getDefinitions();

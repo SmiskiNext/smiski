@@ -6,15 +6,19 @@
  * The CREATE branch calls the real `meet` backend through Forge Remote
  * (`useScheduleMeeting`), capturing a start time, an end time, and a time zone
  * (seeded from the invoking user's Jira profile), plus invitees carrying full
- * identity from `WorkspaceUserPicker`. The EDIT branch stays on the in-memory
- * mock (`useUpdateMeeting`) and keeps its prior title/description/start-time
- * behavior. Backend failures are shown inline and keep the modal open.
+ * identity from `WorkspaceUserPicker`. The EDIT branch also calls the real
+ * backend (`useUpdateMeeting`), but the backend `update` operation is a full
+ * replace, so it first fetches the meeting's full detail (`useMeeting`) to
+ * carry forward `issueLink`/`settings`/`zoneId`/`endTime` unchanged — this
+ * form only edits title/description/start-time. Backend failures are shown
+ * inline and keep the modal open.
  */
 import { Alert, Form, Input, Modal, Select } from 'antd';
 import { useState } from 'react';
 import type { WorkspaceUser } from '../../api/workspaceUsers';
 import { useCurrentUser } from '../../context/CurrentUserContext';
 import type { Meeting } from '../../domain';
+import { useMeeting } from '../../hooks/useMeeting';
 import {
     useScheduleMeeting,
     useUpdateMeeting,
@@ -103,6 +107,10 @@ export function ScheduleMeetingModal({
     const scheduleMeeting = useScheduleMeeting();
     const updateMeeting = useUpdateMeeting();
     const isEdit = Boolean(meeting);
+    // The backend `update` request is a full replace; fetch the current full
+    // detail (settings/zoneId/endTime) this form doesn't itself edit so it can
+    // be carried forward unchanged.
+    const editDetail = useMeeting(isEdit ? meeting?.id : undefined);
     // Issue-context modal payloads normally include the project key, but derive
     // it from the linked issue as a defensive fallback so the picker/invitees
     // are never disabled merely because the optional context field was absent.
@@ -148,10 +156,21 @@ export function ScheduleMeetingModal({
         }
 
         if (isEdit && meeting) {
+            if (!editDetail.meeting) {
+                setFormError(
+                    'Meeting details are still loading — try again in a moment.',
+                );
+                return;
+            }
             try {
                 const updated = await updateMeeting.mutateAsync({
                     meetingId: meeting.id,
-                    input: { title, description, startTime: startIso },
+                    input: {
+                        title,
+                        description,
+                        startTime: startIso,
+                        detail: editDetail.meeting,
+                    },
                 });
                 onSubmitted?.(updated.id);
                 resetAndClose();
@@ -339,7 +358,9 @@ export function ScheduleMeetingModal({
             onOk={() => form.submit()}
             okText={isEdit ? 'Save changes' : 'Schedule meeting'}
             confirmLoading={
-                scheduleMeeting.isPending || updateMeeting.isPending
+                scheduleMeeting.isPending
+                || updateMeeting.isPending
+                || (isEdit && editDetail.loading)
             }
             destroyOnClose
             getContainer={chrome === 'embedded' ? false : undefined}

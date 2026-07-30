@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
     meetingFromBackend,
+    meetingsFromBackend,
     participantsFromBackend,
     permissionsFromBackend,
 } from './mappers';
@@ -33,6 +34,69 @@ describe('backend API mappers', () => {
             status: 'RUNNING',
             startedAt: '2026-01-01T00:00:00Z',
         });
+    });
+
+    it('keeps a SCHEDULED-type meeting\'s scheduledAt/startedAt once it has COMPLETED', () => {
+        const meeting = meetingFromBackend({
+            meeting: {
+                id: 'm-1',
+                type: 'SCHEDULED',
+                status: 'COMPLETED',
+                title: 'Sprint planning',
+                startTime: '2026-01-01T09:00:00Z',
+                createdAt: '2025-12-20T00:00:00Z',
+                endedAt: '2026-01-01T10:00:00Z',
+            },
+        });
+
+        expect(meeting).toMatchObject({
+            status: 'COMPLETED',
+            scheduledAt: '2026-01-01T09:00:00Z',
+            startedAt: '2026-01-01T09:00:00Z',
+            endedAt: '2026-01-01T10:00:00Z',
+        });
+    });
+
+    it('drops scheduledAt/startedAt for a CANCELED meeting that never ran', () => {
+        const meeting = meetingFromBackend({
+            meeting: {
+                id: 'm-2',
+                type: 'SCHEDULED',
+                status: 'CANCELED',
+                title: 'Retro',
+                startTime: '2026-01-01T09:00:00Z',
+                createdAt: '2025-12-20T00:00:00Z',
+            },
+        });
+
+        expect(meeting.scheduledAt).toBe('2026-01-01T09:00:00Z');
+        expect(meeting.startedAt).toBeUndefined();
+    });
+
+    it('maps a list-page envelope to domain meetings', () => {
+        const meetings = meetingsFromBackend({
+            data: [
+                {
+                    id: 'm-3',
+                    type: 'INSTANT',
+                    status: 'RUNNING',
+                    title: 'Huddle',
+                    issueKey: 'PROJ-9',
+                    createdAt: '2026-01-01T00:00:00Z',
+                },
+            ],
+            meta: { size: 1, hasNext: false },
+        });
+
+        expect(meetings).toEqual([
+            expect.objectContaining({
+                id: 'm-3',
+                issueKey: 'PROJ-9',
+                projectKey: 'PROJ',
+                status: 'RUNNING',
+                startedAt: '2026-01-01T00:00:00Z',
+            }),
+        ]);
     });
 
     it('maps a participant list envelope to the frontend domain model', () => {

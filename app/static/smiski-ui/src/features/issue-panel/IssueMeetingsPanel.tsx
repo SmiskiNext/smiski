@@ -98,8 +98,8 @@ export function IssueMeetingsPanel({
                 break;
             case 'START':
                 startMeeting.mutate(meeting.id, {
-                    onSuccess: (started) =>
-                        openMeetingRoom(issue.projectKey, started.id),
+                    onSuccess: (_result, meetingId) =>
+                        openMeetingRoom(issue.projectKey, meetingId),
                 });
                 break;
             case 'JOIN':

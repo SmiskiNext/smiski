@@ -60,7 +60,7 @@ export function Dashboard({ projectKey, onOpenRoom }: DashboardProps) {
                 break;
             case 'START':
                 startMeeting.mutate(meeting.id, {
-                    onSuccess: (started) => onOpenRoom(started.id),
+                    onSuccess: (_result, meetingId) => onOpenRoom(meetingId),
                 });
                 break;
             case 'JOIN':

@@ -1,9 +1,11 @@
 /**
  * useProjectMeetings — meetings across a project for the dashboard table.
  *
- * Backed by React Query over the mock in-memory db. Swap point for real
- * wiring: replace the `queryFn` below with `api.getProjectMeetings(filters)`
- * (same signature) once the Kong Gateway integration exists.
+ * Still backed by the in-memory mock: the backend `meet` `list` operation
+ * only supports an exact `issueKey` filter (plus creator/status/search), not
+ * a project-wide one, so there is no contract-correct way to wire this to
+ * the real API yet without either scanning every issue in the project
+ * (wrong/expensive) or a backend change (out of scope here).
  */
 import { useQuery } from '@tanstack/react-query';
 import type { MeetingListFilters } from '../api/meetings';
@@ -24,7 +26,6 @@ export function useProjectMeetings(
 ): UseProjectMeetingsResult {
     const query = useQuery({
         queryKey: queryKeys.projectMeetings(filters),
-        // TODO: swap for api.getProjectMeetings(filters) once the backend is wired up.
         queryFn: () => listProjectMeetings(filters),
         enabled,
     });

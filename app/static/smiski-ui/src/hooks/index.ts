@@ -10,7 +10,6 @@ export * from './useMeeting';
 export * from './useMeetingMutations';
 export * from './useMeetingParticipants';
 export * from './useMeetingPermission';
-export * from './useMeetingRecording';
 export * from './useNavigateToMeetingRoom';
 export * from './useProjectIssues';
 export * from './useProjectMeetings';

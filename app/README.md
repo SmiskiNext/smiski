@@ -269,20 +269,12 @@ scopes or egress permissions.
 
 ### LiveKit configuration
 
-The temporary `getRoomToken` resolver reads these Forge environment variables:
-
-- `LIVEKIT_API_KEY`
-- `LIVEKIT_API_SECRET`
-- `LIVEKIT_URL`
-
-Store credentials as Forge environment variables for the target environment;
-never commit them. The LiveKit WebSocket origin must also be permitted under
-`permissions.external.fetch.client` in `manifest.yml`.
-
-> [!WARNING] The current resolver accepts any non-empty meeting ID from a user
-> who can invoke the app and does not verify meeting membership or permission
-> before minting a token. This implementation is for prototype testing only and
-> must be replaced before production use.
+Room access tokens are minted by the backend `meet` service's `join`
+operation (called from the Custom UI via Forge Remote), not by this app —
+`LIVEKIT_API_KEY`/`LIVEKIT_API_SECRET` are backend secrets, not Forge app
+variables. The app only needs `LIVEKIT_URL` (the LiveKit WebSocket origin),
+which must also be permitted under `permissions.external.fetch.client` in
+`manifest.yml`.
 
 ## Forge manifest notes
 

@@ -77,11 +77,11 @@ when `context.extension.modal.kind` is set. Module keys are centralized in
   `@forge/api` `asUser().requestJira` through the `@smiskinext/sdks-jira` SDK
   (`src/jiraSdkClient.ts`), so Jira enforces the user's "Browse users"
   permission.
-- `getRoomToken` — **prototype shim only.** Mints a LiveKit JWT locally with
-  `livekit-server-sdk` from `LIVEKIT_API_KEY/SECRET/URL` Forge env vars. It does
-  **no** authorization check — any user can mint a token for any `meetingId`.
-  Replace with the backend `meet` token endpoint before production. Do not build
-  on this behavior.
+- There is **no** `getRoomToken` resolver anymore. Room tokens are minted by
+  the backend `meet` service's `join` operation, called directly from the
+  Custom UI via Forge Remote (`api/meetings.ts`'s `getRoomToken`/
+  `joinMeeting`) — the old locally-signed-JWT shim (no authorization check)
+  is gone.
 - `getIssueMeetings`, `scheduleMeeting`, `getProjectMeetings`,
   `getMeetingPermission` — stubs that throw. Do not add business logic here; the
   brain is the backend `meet` service.
@@ -100,8 +100,9 @@ identity itself. The `meet-backend` remote and its `baseUrl`
 
 - `domain/` — types, enums, and pure logic (e.g. `meetingPolicy.ts` with a
   colocated `.test.ts`). No side effects.
-- `api/` — backend/Jira adapters. `config.ts` reads Vite env; `meetings.ts` (SDK
-  instant/schedule + `getRoomToken`), `workspaceUsers.ts`/`getRoomToken`
+- `api/` — backend/Jira adapters. `config.ts` reads Vite env; `meetings.ts`
+  (all real `meet` backend calls: instant/schedule/get/list/update/cancel/
+  join, over the generated SDK + Forge Remote), `workspaceUsers.ts`
   (resolver `invoke`), `currentUser.ts`/`projectMembers.ts`/`issues.ts` (Jira
   direct via `@forge/bridge` `requestJira`), `mappers.ts` (DTO↔domain).
 - `hooks/` — TanStack Query hooks. `hooks/queryKeys.ts` centralizes every cache
@@ -116,14 +117,21 @@ Data source is **hardwired per hook**, not a global switch. The
 `shouldUseBackendApi()` / `VITE_SMISKI_DATA_SOURCE` switch described in
 `api/README.md` no longer exists — treat that README as aspirational.
 
-- Reads (`useIssueMeetings`, `useProjectMeetings`, `useMeeting`, …) and
-  `useUpdateMeeting`/`useCancelMeeting`/`useStartMeeting`/`useEndMeeting` →
-  always `mocks/db.ts`.
-- `useCreateInstantMeeting` / `useScheduleMeeting` → **real backend** via the
-  SDK over Forge Remote, with **no mock fallback**. Standalone `vite dev`
-  therefore cannot create meetings.
+- `useMeeting`, `useMeetingParticipants` (derived from the same `get` query),
+  `useIssueMeetings`, `useCreateInstantMeeting`, `useScheduleMeeting`,
+  `useUpdateMeeting`, `useCancelMeeting`, `useStartMeeting` (joins as host),
+  and room-entry (`useRoomToken`) → **real backend**, over the generated SDK
+  + Forge Remote, with **no mock fallback**. Standalone `vite dev` therefore
+  cannot create/update/cancel/start meetings or enter a room.
+- `useProjectMeetings` → still `mocks/db.ts` — the backend `list` operation
+  has no project-wide filter (only exact `issueKey`), so this can't be
+  wired without a backend change.
+- `useEndMeeting` → still `mocks/db.ts` — no backend "end meeting" endpoint
+  exists (RUNNING→COMPLETED only happens via an async LiveKit webhook).
+- `useMeetingPermission` → still its own inline mock; it's a Jira permission
+  concept, not a `meet` backend one.
 - `currentUser`/`projectMembers`/`issues` call Jira directly from the browser;
-  `searchWorkspaceUsers`/`getRoomToken` go through the resolver.
+  `searchWorkspaceUsers` goes through the resolver.
 
 ## manifest.yml / egress
 
@@ -135,8 +143,9 @@ Data source is **hardwired per hook**, not a global switch. The
 - After changing scopes or egress you MUST `forge deploy` **and then**
   `forge install --upgrade` — a tunnel restart is not enough.
 - Runtime is `nodejs24.x`, arm64, 256 MB. Env vars `SMISKI_API_BASE_URL` and
-  `LIVEKIT_URL` have TODO placeholder defaults; `LIVEKIT_API_KEY/SECRET` are
-  secrets set via `forge variables set` (needed for the `getRoomToken` shim).
+  `LIVEKIT_URL` have TODO placeholder defaults. `LIVEKIT_API_KEY/SECRET` are
+  no longer needed by this app (only by the backend `meet` service) now that
+  room tokens come from the real `join` endpoint.
 
 ## Conventions
 

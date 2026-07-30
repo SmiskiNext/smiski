@@ -1,14 +1,12 @@
 /**
- * In-memory mock "database" for frontend-only development.
- *
- * Function names/signatures deliberately mirror `src/api/*.ts` (the real,
- * still-throwing Kong Gateway client). Swapping a hook from this module to
- * `../api/*` later is a one-line import change — see hooks/*.ts for the
- * exact swap points, each marked with a TODO.
+ * In-memory mock "database" for frontend-only development. Still backs
+ * `useProjectMeetings` (no project-wide filter in the `meet` backend
+ * contract) and `useEndMeeting` (no end-meeting backend endpoint); most other
+ * reads/mutations have moved to `../api/meetings.ts` (see hooks/*.ts).
  *
  * State is a module-level mutable array mirrored to `localStorage`, so
- * mutations (start/cancel/schedule/record) survive page reloads / re-opening
- * the Forge modal iframe — still no backend, just a slightly stickier mock.
+ * mutations survive page reloads / re-opening the Forge modal iframe — still
+ * no backend, just a slightly stickier mock.
  */
 
 import type {
@@ -17,14 +15,12 @@ import type {
     ScheduleMeetingInput,
     UpdateMeetingInput,
 } from '../api/meetings';
-import type { Meeting, Participant, ProjectMember, Recording } from '../domain';
+import type { Meeting, ProjectMember } from '../domain';
 import { INITIAL_MOCK_MEETINGS } from './meetings';
 import {
-    getMockParticipants,
     migrateMockParticipantIdentity,
     setMockParticipants,
 } from './participants';
-import { getMockRecording, MOCK_RECORDINGS } from './recordings';
 import { CURRENT_USER } from './users';
 
 const NETWORK_DELAY_MS = 350;
@@ -64,7 +60,6 @@ function persistMeetings(value: Meeting[]): void {
 }
 
 let meetings: Meeting[] = loadMeetings();
-const recordings: Record<string, Recording> = { ...MOCK_RECORDINGS };
 // Derived from persisted state so ids never collide after a reload.
 let nextId = meetings.reduce((max, m) => {
     const n = Number(m.id.split('-').pop());
@@ -308,39 +303,3 @@ export async function endMeeting(meetingId: string): Promise<Meeting> {
     return delay(cloneMeeting(updated));
 }
 
-export async function listMeetingParticipants(
-    meetingId: string,
-): Promise<Participant[]> {
-    return delay(getMockParticipants(meetingId));
-}
-
-export async function getMeetingRecording(
-    meetingId: string,
-): Promise<Recording | null> {
-    return delay(recordings[meetingId] ?? getMockRecording(meetingId));
-}
-
-export async function startRecording(meetingId: string): Promise<Recording> {
-    const recording: Recording = {
-        id: recordings[meetingId]?.id ?? generateId('r'),
-        meetingId,
-        status: 'RECORDING',
-        startedAt: new Date().toISOString(),
-    };
-    recordings[meetingId] = recording;
-    return delay({ ...recording });
-}
-
-export async function stopRecording(meetingId: string): Promise<Recording> {
-    const existing = recordings[meetingId];
-    const recording: Recording = {
-        id: existing?.id ?? generateId('r'),
-        meetingId,
-        status: 'COMPLETED',
-        startedAt: existing?.startedAt,
-        endedAt: new Date().toISOString(),
-        fileUrl: 'https://example.invalid/recordings/mock.mp4',
-    };
-    recordings[meetingId] = recording;
-    return delay({ ...recording });
-}

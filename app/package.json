@@ -25,7 +25,6 @@
     "dependencies": {
         "@forge/api": "8.0.1-next.0",
         "@forge/resolver": "2.0.0",
-        "livekit-server-sdk": "^2.17.0",
         "@smiskinext/sdks-jira": "1001.0.0-05f20e18"
     },
     "devDependencies": {
