@@ -11,6 +11,7 @@ import io.github.smiskinext.shared.domain.Result;
 import io.github.smiskinext.shared.domain.valueobject.TenantId;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.List;
 import org.junit.jupiter.api.Test;
 
 class MeetingUpdateTest {
@@ -29,7 +30,8 @@ class MeetingUpdateTest {
                 MeetingTimeZone.of("UTC"),
                 MeetingTimeRange.of(
                         Instant.now().plus(3, ChronoUnit.HOURS),
-                        Instant.now().plus(4, ChronoUnit.HOURS)));
+                        Instant.now().plus(4, ChronoUnit.HOURS)),
+                List.of());
 
         assertThat(result.isSuccess()).isTrue();
         assertThat(meeting.getDomainEvents())
@@ -51,7 +53,8 @@ class MeetingUpdateTest {
                 meeting.getDescription(),
                 meeting.getIssueLink(),
                 meeting.getTimeZone(),
-                meeting.getTimeRange().orElseThrow());
+                meeting.getTimeRange().orElseThrow(),
+                List.of());
 
         assertThat(result.isSuccess()).isTrue();
         assertThat(meeting.getDomainEvents()).isEmpty();
@@ -69,7 +72,8 @@ class MeetingUpdateTest {
                 meeting.getDescription(),
                 meeting.getIssueLink(),
                 meeting.getTimeZone(),
-                meeting.getTimeRange().orElseThrow());
+                meeting.getTimeRange().orElseThrow(),
+                List.of());
         assertThat(nonHost).isInstanceOf(Result.Failure.class);
         assertThat(((Result.Failure<Void, MeetingError>) nonHost).error())
                 .isInstanceOf(MeetingError.NotAuthorized.class);
@@ -81,7 +85,8 @@ class MeetingUpdateTest {
                 meeting.getDescription(),
                 meeting.getIssueLink(),
                 MeetingTimeZone.of("UTC"),
-                meeting.getTimeRange().orElseThrow());
+                meeting.getTimeRange().orElseThrow(),
+                List.of());
         assertThat(((Result.Failure<Void, MeetingError>) running).error())
                 .isInstanceOf(MeetingError.InvalidStatusTransition.class);
     }
@@ -96,7 +101,8 @@ class MeetingUpdateTest {
                 "Changed while running",
                 meeting.getIssueLink(),
                 meeting.getTimeZone(),
-                meeting.getTimeRange().orElseThrow());
+                meeting.getTimeRange().orElseThrow(),
+                List.of());
 
         assertThat(result.isSuccess()).isTrue();
         assertThat(meeting.getTitle().value()).isEqualTo("Running update");
@@ -117,7 +123,8 @@ class MeetingUpdateTest {
                     meeting.getDescription(),
                     meeting.getIssueLink(),
                     meeting.getTimeZone(),
-                    meeting.getTimeRange().orElseThrow());
+                    meeting.getTimeRange().orElseThrow(),
+                    List.of());
 
             assertThat(result.isFailure()).isTrue();
             assertThat(meeting.getTitle().value()).isEqualTo("Title");

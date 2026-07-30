@@ -9,12 +9,14 @@ import io.github.smiskinext.meet.application.service.UpdateMeetingApplicationSer
 import io.github.smiskinext.meet.domain.MeetingError;
 import io.github.smiskinext.meet.domain.model.Meeting;
 import io.github.smiskinext.meet.domain.model.valueobject.*;
+import io.github.smiskinext.meet.domain.port.MeetingInviteeRepository;
 import io.github.smiskinext.meet.domain.port.MeetingRepository;
 import io.github.smiskinext.shared.domain.EventPublisher;
 import io.github.smiskinext.shared.domain.Result;
 import io.github.smiskinext.shared.domain.valueobject.TenantId;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
 
@@ -23,11 +25,13 @@ class UpdateMeetingApplicationServiceTest {
     @Test
     void successfulUpdateUsesLockedLookupSavesAndPublishes() {
         MeetingRepository repository = mock(MeetingRepository.class);
+        MeetingInviteeRepository inviteeRepository = mock(MeetingInviteeRepository.class);
         EventPublisher publisher = mock(EventPublisher.class);
         Meeting meeting = meeting();
         when(repository.findByIdWithLock(meeting.getId().value())).thenReturn(Optional.of(meeting));
+        when(inviteeRepository.findByMeetingId(meeting.getId().value())).thenReturn(List.of());
         UpdateMeetingApplicationService service =
-                new UpdateMeetingApplicationService(repository, publisher);
+                new UpdateMeetingApplicationService(repository, inviteeRepository, publisher);
 
         Result<UpdateMeetingResult, MeetingError> result =
                 service.execute(command(meeting, "host"));
@@ -44,10 +48,11 @@ class UpdateMeetingApplicationServiceTest {
     @Test
     void missingAndUnauthorizedUpdatesPersistAndPublishNothing() {
         MeetingRepository repository = mock(MeetingRepository.class);
+        MeetingInviteeRepository inviteeRepository = mock(MeetingInviteeRepository.class);
         EventPublisher publisher = mock(EventPublisher.class);
         Meeting meeting = meeting();
         UpdateMeetingApplicationService service =
-                new UpdateMeetingApplicationService(repository, publisher);
+                new UpdateMeetingApplicationService(repository, inviteeRepository, publisher);
 
         Result<UpdateMeetingResult, MeetingError> missing =
                 service.execute(command(meeting, "host"));
@@ -55,6 +60,7 @@ class UpdateMeetingApplicationServiceTest {
                 .isInstanceOf(MeetingError.MeetingNotFound.class);
 
         when(repository.findByIdWithLock(meeting.getId().value())).thenReturn(Optional.of(meeting));
+        when(inviteeRepository.findByMeetingId(meeting.getId().value())).thenReturn(List.of());
         Result<UpdateMeetingResult, MeetingError> unauthorized =
                 service.execute(command(meeting, "other"));
         assertThat(((Result.Failure<UpdateMeetingResult, MeetingError>) unauthorized).error())

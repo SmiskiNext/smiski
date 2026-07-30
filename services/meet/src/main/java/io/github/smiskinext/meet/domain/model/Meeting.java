@@ -410,7 +410,8 @@ public class Meeting extends AggregateRoot<MeetingId> {
             String newDescription,
             JiraIssueLink newIssueLink,
             MeetingTimeZone newTimeZone,
-            MeetingTimeRange newTimeRange) {
+            MeetingTimeRange newTimeRange,
+            List<MeetingInfoUpdatedEvent.InviteeInfo> invitees) {
         if (!hostId.equals(updatedBy)) {
             return Result.failure(
                     new MeetingError.NotAuthorized(updatedBy.value(), hostId.value()));
@@ -464,6 +465,7 @@ public class Meeting extends AggregateRoot<MeetingId> {
                 status,
                 oldInfo,
                 infoSnapshot(),
+                List.copyOf(invitees),
                 now));
         return Result.success();
     }

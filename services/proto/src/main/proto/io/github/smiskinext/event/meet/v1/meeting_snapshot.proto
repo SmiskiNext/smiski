@@ -50,6 +50,15 @@ message MeetingInfoUpdated {
   MeetingInfoSnapshot old_info = 6;
   MeetingInfoSnapshot new_info = 7;
   string updated_at = 8;
+  repeated InviteeInfo invitees = 9;
+
+  message InviteeInfo {
+    string account_id = 1;
+    string email = 2;
+    string display_name = 3;
+    string invitee_id = 4;
+    string status = 5;
+  }
 }
 
 message MeetingInfoSnapshot {

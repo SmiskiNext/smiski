@@ -84,7 +84,7 @@ class UpdateMeetingControllerIntegrationTest {
                         "SELECT event_type FROM outbox_event WHERE aggregate_id = ?::uuid",
                         String.class,
                         meetingId))
-                .contains("meeting.info.update")
+                .contains("io.github.smiskinext.meet.meeting.info.updated.v1")
                 .doesNotContain("meeting.settings.update");
     }
 
