@@ -1,5 +1,9 @@
 # delete-meeting
 
+## Purpose
+
+TBD - created by archiving change delete-meeting. Update Purpose after archive.
+
 ## Requirements
 
 ### Requirement: Host-only single meeting soft-delete endpoint

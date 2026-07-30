@@ -1,6 +1,11 @@
 # get-meeting-detail Specification
 
-## ADDED Requirements
+## Purpose
+
+TBD - created by archiving change get-meeting-detail. Update Purpose after
+archive.
+
+## Requirements
 
 ### Requirement: Get meeting detail endpoint
 

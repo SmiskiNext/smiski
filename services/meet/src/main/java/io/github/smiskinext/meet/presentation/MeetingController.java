@@ -25,6 +25,7 @@ import io.github.smiskinext.meet.application.result.RequestJoinResult;
 import io.github.smiskinext.meet.application.result.ScheduleMeetingResult;
 import io.github.smiskinext.meet.application.result.TentativeMeetingInviteeResult;
 import io.github.smiskinext.meet.application.result.UpdateMeetingResult;
+import io.github.smiskinext.meet.application.result.UpdateMeetingSettingsResult;
 import io.github.smiskinext.meet.application.usecase.AcceptJoinRequestsUseCase;
 import io.github.smiskinext.meet.application.usecase.AcceptMeetingInviteeUseCase;
 import io.github.smiskinext.meet.application.usecase.AddMeetingInviteesUseCase;
@@ -41,6 +42,7 @@ import io.github.smiskinext.meet.application.usecase.RemoveMeetingInviteesUseCas
 import io.github.smiskinext.meet.application.usecase.RequestJoinUseCase;
 import io.github.smiskinext.meet.application.usecase.ScheduleMeetingUseCase;
 import io.github.smiskinext.meet.application.usecase.TentativeMeetingInviteeUseCase;
+import io.github.smiskinext.meet.application.usecase.UpdateMeetingSettingsUseCase;
 import io.github.smiskinext.meet.application.usecase.UpdateMeetingUseCase;
 import io.github.smiskinext.meet.domain.ListMeetingsError;
 import io.github.smiskinext.meet.domain.MeetingError;
@@ -53,6 +55,7 @@ import io.github.smiskinext.meet.presentation.request.ListMeetingsRequest;
 import io.github.smiskinext.meet.presentation.request.RemoveMeetingInviteesRequest;
 import io.github.smiskinext.meet.presentation.request.ScheduleMeetingRequest;
 import io.github.smiskinext.meet.presentation.request.UpdateMeetingRequest;
+import io.github.smiskinext.meet.presentation.request.UpdateMeetingSettingsRequest;
 import io.github.smiskinext.meet.presentation.response.AddMeetingInviteesResponse;
 import io.github.smiskinext.meet.presentation.response.BatchDeleteMeetingsResponse;
 import io.github.smiskinext.meet.presentation.response.CancelMeetingResponse;
@@ -68,6 +71,7 @@ import io.github.smiskinext.meet.presentation.response.MeetingSummaryResponse;
 import io.github.smiskinext.meet.presentation.response.RemoveMeetingInviteesResponse;
 import io.github.smiskinext.meet.presentation.response.ScheduleMeetingResponse;
 import io.github.smiskinext.meet.presentation.response.UpdateMeetingResponse;
+import io.github.smiskinext.meet.presentation.response.UpdateMeetingSettingsResponse;
 import io.github.smiskinext.shared.domain.Result;
 import io.github.smiskinext.shared.infrastructure.identity.AccountContext;
 import io.github.smiskinext.shared.infrastructure.tenancy.TenantContext;
@@ -106,6 +110,7 @@ public class MeetingController {
     private final CreateInstantMeetingUseCase createInstantMeetingUseCase;
     private final ScheduleMeetingUseCase scheduleMeetingUseCase;
     private final UpdateMeetingUseCase updateMeetingUseCase;
+    private final UpdateMeetingSettingsUseCase updateMeetingSettingsUseCase;
     private final AddMeetingInviteesUseCase addMeetingInviteesUseCase;
     private final RemoveMeetingInviteesUseCase removeMeetingInviteesUseCase;
     private final ListMeetingsUseCase listMeetingsUseCase;
@@ -126,6 +131,7 @@ public class MeetingController {
             CreateInstantMeetingUseCase createInstantMeetingUseCase,
             ScheduleMeetingUseCase scheduleMeetingUseCase,
             UpdateMeetingUseCase updateMeetingUseCase,
+            UpdateMeetingSettingsUseCase updateMeetingSettingsUseCase,
             AddMeetingInviteesUseCase addMeetingInviteesUseCase,
             RemoveMeetingInviteesUseCase removeMeetingInviteesUseCase,
             ListMeetingsUseCase listMeetingsUseCase,
@@ -144,6 +150,7 @@ public class MeetingController {
         this.createInstantMeetingUseCase = createInstantMeetingUseCase;
         this.scheduleMeetingUseCase = scheduleMeetingUseCase;
         this.updateMeetingUseCase = updateMeetingUseCase;
+        this.updateMeetingSettingsUseCase = updateMeetingSettingsUseCase;
         this.addMeetingInviteesUseCase = addMeetingInviteesUseCase;
         this.removeMeetingInviteesUseCase = removeMeetingInviteesUseCase;
         this.listMeetingsUseCase = listMeetingsUseCase;
@@ -378,14 +385,15 @@ public class MeetingController {
     }
 
     @Operation(
-            summary = "Update a meeting",
-            description = "Updates a meeting as its host. "
-                    + "Information and settings are mutable while scheduled or running; scheduled details "
-                    + "are mutable only while scheduled.")
+            summary = "Update meeting information",
+            description = "Updates a meeting's information as its host: title, description, "
+                    + "issue link, zone ID, and time range. Mutable while scheduled or running; "
+                    + "zone ID and time range are mutable only while scheduled. To replace the "
+                    + "settings block, use PUT /meetings/{id}/settings instead.")
     @ApiResponses({
         @ApiResponse(
                 responseCode = "200",
-                description = "Meeting updated",
+                description = "Meeting information updated",
                 content =
                         @Content(
                                 mediaType = "application/json",
@@ -404,14 +412,6 @@ public class MeetingController {
                               "issueId": "10001",
                               "issueKey": "PROJ-1",
                               "projectKey": "PROJ"
-                            },
-                            "settings": {
-                              "admissionPolicy": "ALLOW_ALL",
-                              "maxParticipants": 50,
-                              "allowScreenShare": true,
-                              "chatEnabled": true,
-                              "allowMicrophone": true,
-                              "allowVideo": true
                             },
                             "startTime": "2025-02-01T14:00:00Z",
                             "endTime": "2025-02-01T15:00:00Z",
@@ -506,6 +506,121 @@ public class MeetingController {
         Result<UpdateMeetingResult, MeetingError> result = updateMeetingUseCase.execute(
                 request.toCommand(id, accountId, TenantContext.getCurrentTenant()));
         return responder.ok(result.map(UpdateMeetingResponse::from));
+    }
+
+    @Operation(
+            summary = "Replace meeting settings",
+            description = "Replaces the entire meeting settings block as its host: "
+                    + "admission policy, participant limit, and media/chat permissions. "
+                    + "Permitted while the meeting is SCHEDULED or RUNNING. When the change "
+                    + "affects media permissions, every connected non-host participant's LiveKit "
+                    + "publish permission is updated in real time on a best-effort basis; the "
+                    + "host is never affected.")
+    @ApiResponses({
+        @ApiResponse(
+                responseCode = "200",
+                description = "Settings updated",
+                content =
+                        @Content(
+                                mediaType = "application/json",
+                                schema =
+                                        @Schema(
+                                                implementation =
+                                                        UpdateMeetingSettingsResponse.class),
+                                examples = @ExampleObject(name = "updated", value = """
+                        {
+                          "meetingId": "0195e0c2-8f3a-7c21-b9d4-2f1a6e7c8d90",
+                          "admissionPolicy": "ALLOW_ALL",
+                          "maxParticipants": 50,
+                          "allowScreenShare": true,
+                          "chatEnabled": true,
+                          "allowMicrophone": true,
+                          "allowVideo": true
+                        }"""))),
+        @ApiResponse(
+                responseCode = "400",
+                description = "Validation error or missing account",
+                content =
+                        @Content(
+                                mediaType = "application/problem+json",
+                                schema = @Schema(implementation = ProblemDetailSchema.class),
+                                examples = {
+                                    @ExampleObject(
+                                            name = "validationError",
+                                            summary = "Validation failure",
+                                            value = """
+                            {
+                              "type": "about:blank",
+                              "title": "Bad Request",
+                              "status": 400,
+                              "detail": "The request body failed validation",
+                              "code": "VALIDATION_ERROR",
+                              "traceId": "6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a",
+                              "errors": [
+                                {"field": "maxParticipants", "code": "RANGE", "message": "must be between 2 and 100"}
+                              ]
+                            }"""),
+                                    @ExampleObject(
+                                            name = "missingAccount",
+                                            summary = "Missing X-Account-Id header",
+                                            value = """
+                            {
+                              "type": "about:blank",
+                              "title": "Bad Request",
+                              "status": 400,
+                              "detail": "X-Account-Id header is required",
+                              "code": "VALIDATION_ERROR",
+                              "traceId": "6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a"
+                            }""")
+                                })),
+        @ApiResponse(
+                responseCode = "403",
+                description = "Only the host may replace the settings",
+                content =
+                        @Content(
+                                mediaType = "application/problem+json",
+                                schema = @Schema(implementation = ProblemDetailSchema.class),
+                                examples = @ExampleObject(name = "notAuthorized", value = """
+                        {
+                          "type": "about:blank",
+                          "title": "Forbidden",
+                          "status": 403,
+                          "detail": "Only the host may change the meeting settings",
+                          "code": "NOT_AUTHORIZED",
+                          "traceId": "6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a"
+                        }"""))),
+        @ApiResponse(
+                responseCode = "404",
+                description = "Meeting not found",
+                content =
+                        @Content(
+                                mediaType = "application/problem+json",
+                                schema = @Schema(implementation = ProblemDetailSchema.class),
+                                examples = @ExampleObject(name = "notFound", value = """
+                        {
+                          "type": "about:blank",
+                          "title": "Not Found",
+                          "status": 404,
+                          "detail": "Meeting not found",
+                          "code": "MEETING_NOT_FOUND",
+                          "traceId": "6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a"
+                        }""")))
+    })
+    @PutMapping("/meetings/{id}/settings")
+    public ResponseEntity<Object> updateSettings(
+            @PathVariable UUID id, @Valid @RequestBody UpdateMeetingSettingsRequest request) {
+        String accountId = AccountContext.getCurrentAccount().orElse(null);
+        if (accountId == null) {
+            return ResponseEntity.badRequest()
+                    .contentType(org.springframework.http.MediaType.APPLICATION_PROBLEM_JSON)
+                    .body(org.springframework.http.ProblemDetail.forStatusAndDetail(
+                            org.springframework.http.HttpStatus.BAD_REQUEST,
+                            "X-Account-Id header is required"));
+        }
+        Result<UpdateMeetingSettingsResult, MeetingError> result =
+                updateMeetingSettingsUseCase.execute(
+                        request.toCommand(id, accountId, TenantContext.getCurrentTenant()));
+        return responder.ok(result.map(UpdateMeetingSettingsResponse::from));
     }
 
     @Operation(

@@ -1,6 +1,10 @@
 # meeting-cancellation Specification
 
-## ADDED Requirements
+## Purpose
+
+TBD - created by archiving change cancel-meeting. Update Purpose after archive.
+
+## Requirements
 
 ### Requirement: Host-only manual meeting cancellation endpoint
 

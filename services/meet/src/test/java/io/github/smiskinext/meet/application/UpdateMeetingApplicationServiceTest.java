@@ -72,7 +72,6 @@ class UpdateMeetingApplicationServiceTest {
                 "Updated",
                 "Updated description",
                 new UpdateMeetingCommand.IssueLink("ISS-2", "PROJ-2", "PROJ"),
-                new UpdateMeetingCommand.Settings("ALLOW_ALL", 50, true, true, true, true),
                 "UTC",
                 new UpdateMeetingCommand.TimeRange(range.start(), range.end()));
     }

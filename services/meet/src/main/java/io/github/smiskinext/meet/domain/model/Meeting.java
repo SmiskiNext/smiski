@@ -404,12 +404,11 @@ public class Meeting extends AggregateRoot<MeetingId> {
                 Instant.now()));
     }
 
-    public Result<Void, MeetingError> update(
+    public Result<Void, MeetingError> updateInfo(
             AccountId updatedBy,
             MeetingTitle newTitle,
             String newDescription,
             JiraIssueLink newIssueLink,
-            MeetingSettings newSettings,
             MeetingTimeZone newTimeZone,
             MeetingTimeRange newTimeRange) {
         if (!hostId.equals(updatedBy)) {
@@ -438,51 +437,65 @@ public class Meeting extends AggregateRoot<MeetingId> {
         }
 
         MeetingInfoSnapshot oldInfo = infoSnapshot();
-        MeetingSettings oldSettings = settings;
         boolean infoChanged = !title.equals(newTitle)
                 || !description.equals(newDescription)
                 || !issueLink.equals(newIssueLink)
                 || scheduledFieldsChanged;
-        boolean settingsChanged = !settings.equals(newSettings);
 
-        if (!infoChanged && !settingsChanged) {
+        if (!infoChanged) {
             return Result.success();
         }
 
         title = newTitle;
         description = newDescription;
         issueLink = newIssueLink;
-        settings = newSettings;
         timeZone = newTimeZone;
         timeRange = newTimeRange;
 
         Instant now = Instant.now();
         this.updatedAt = now;
-        if (infoChanged) {
-            calendarSequence++;
-            registerEvent(new MeetingInfoUpdatedEvent(
-                    UUID.randomUUID(),
-                    tenantId.value(),
-                    id.value(),
-                    hostId.value(),
-                    updatedBy.value(),
-                    status,
-                    oldInfo,
-                    infoSnapshot(),
-                    now));
+        calendarSequence++;
+        registerEvent(new MeetingInfoUpdatedEvent(
+                UUID.randomUUID(),
+                tenantId.value(),
+                id.value(),
+                hostId.value(),
+                updatedBy.value(),
+                status,
+                oldInfo,
+                infoSnapshot(),
+                now));
+        return Result.success();
+    }
+
+    public Result<Void, MeetingError> updateSettings(AccountId actor, MeetingSettings newSettings) {
+        if (!hostId.equals(actor)) {
+            return Result.failure(new MeetingError.NotAuthorized(actor.value(), hostId.value()));
         }
-        if (settingsChanged) {
-            registerEvent(new MeetingSettingsUpdatedEvent(
-                    UUID.randomUUID(),
-                    tenantId.value(),
-                    id.value(),
-                    hostId.value(),
-                    updatedBy.value(),
-                    status,
-                    oldSettings,
-                    newSettings,
-                    now));
+        if (status == MeetingStatus.COMPLETED || status == MeetingStatus.CANCELED) {
+            return Result.failure(
+                    new MeetingError.InvalidStatusTransition(status, MeetingStatus.SCHEDULED));
         }
+
+        if (settings.equals(newSettings)) {
+            return Result.success();
+        }
+
+        MeetingSettings oldSettings = settings;
+        settings = newSettings;
+
+        Instant now = Instant.now();
+        this.updatedAt = now;
+        registerEvent(new MeetingSettingsUpdatedEvent(
+                UUID.randomUUID(),
+                tenantId.value(),
+                id.value(),
+                hostId.value(),
+                actor.value(),
+                status,
+                oldSettings,
+                newSettings,
+                now));
         return Result.success();
     }
 

@@ -16,50 +16,40 @@ import org.junit.jupiter.api.Test;
 class MeetingUpdateTest {
 
     @Test
-    void scheduledHostUpdatePublishesOneEventPerChangedGroup() {
+    void scheduledHostUpdateInfoPublishesOnlyInfoEvent() {
         Meeting meeting = scheduledMeeting();
         String calendarUid = meeting.getCalendarUid();
         meeting.clearDomainEvents();
-        MeetingSettings settings = new MeetingSettings(
-                io.github.smiskinext.meet.domain.model.AdmissionPolicy.ALLOW_ALL,
-                50,
-                true,
-                true,
-                true,
-                true);
 
-        Result<Void, MeetingError> result = meeting.update(
+        Result<Void, MeetingError> result = meeting.updateInfo(
                 AccountId.of("host"),
                 MeetingTitle.of("Updated"),
                 "Updated description",
                 JiraIssueLink.of("ISS-2", "PROJ-2", "PROJ"),
-                settings,
                 MeetingTimeZone.of("UTC"),
                 MeetingTimeRange.of(
                         Instant.now().plus(3, ChronoUnit.HOURS),
                         Instant.now().plus(4, ChronoUnit.HOURS)));
 
         assertThat(result.isSuccess()).isTrue();
-        assertThat(meeting.getDomainEvents()).hasSize(2);
-        assertThat(meeting.getDomainEvents()).anyMatch(MeetingInfoUpdatedEvent.class::isInstance);
         assertThat(meeting.getDomainEvents())
-                .anyMatch(MeetingSettingsUpdatedEvent.class::isInstance);
+                .singleElement()
+                .isInstanceOf(MeetingInfoUpdatedEvent.class);
         assertThat(meeting.getCalendarUid()).isEqualTo(calendarUid);
         assertThat(meeting.getCalendarSequence()).isEqualTo(1);
     }
 
     @Test
-    void noOpUpdatePublishesNoEvent() {
+    void noOpUpdateInfoPublishesNoEvent() {
         Meeting meeting = scheduledMeeting();
         int initialSequence = meeting.getCalendarSequence();
         meeting.clearDomainEvents();
 
-        Result<Void, MeetingError> result = meeting.update(
+        Result<Void, MeetingError> result = meeting.updateInfo(
                 AccountId.of("host"),
                 meeting.getTitle(),
                 meeting.getDescription(),
                 meeting.getIssueLink(),
-                meeting.getSettings(),
                 meeting.getTimeZone(),
                 meeting.getTimeRange().orElseThrow());
 
@@ -69,7 +59,74 @@ class MeetingUpdateTest {
     }
 
     @Test
-    void settingsOnlyUpdateDoesNotIncreaseCalendarSequence() {
+    void nonHostAndRunningScheduledFieldChangesAreRejected() {
+        Meeting meeting = scheduledMeeting();
+        meeting.clearDomainEvents();
+
+        Result<Void, MeetingError> nonHost = meeting.updateInfo(
+                AccountId.of("other"),
+                meeting.getTitle(),
+                meeting.getDescription(),
+                meeting.getIssueLink(),
+                meeting.getTimeZone(),
+                meeting.getTimeRange().orElseThrow());
+        assertThat(nonHost).isInstanceOf(Result.Failure.class);
+        assertThat(((Result.Failure<Void, MeetingError>) nonHost).error())
+                .isInstanceOf(MeetingError.NotAuthorized.class);
+
+        assertThat(meeting.start().isSuccess()).isTrue();
+        Result<Void, MeetingError> running = meeting.updateInfo(
+                AccountId.of("host"),
+                meeting.getTitle(),
+                meeting.getDescription(),
+                meeting.getIssueLink(),
+                MeetingTimeZone.of("UTC"),
+                meeting.getTimeRange().orElseThrow());
+        assertThat(((Result.Failure<Void, MeetingError>) running).error())
+                .isInstanceOf(MeetingError.InvalidStatusTransition.class);
+    }
+
+    @Test
+    void runningMeetingAcceptsInformationWithoutScheduledFieldChange() {
+        Meeting meeting = reconstituted(MeetingStatus.RUNNING);
+
+        Result<Void, MeetingError> result = meeting.updateInfo(
+                AccountId.of("host"),
+                MeetingTitle.of("Running update"),
+                "Changed while running",
+                meeting.getIssueLink(),
+                meeting.getTimeZone(),
+                meeting.getTimeRange().orElseThrow());
+
+        assertThat(result.isSuccess()).isTrue();
+        assertThat(meeting.getTitle().value()).isEqualTo("Running update");
+        assertThat(meeting.getDomainEvents())
+                .singleElement()
+                .isInstanceOf(MeetingInfoUpdatedEvent.class);
+    }
+
+    @Test
+    void terminalMeetingsRejectInfoUpdatesWithoutEvents() {
+        for (MeetingStatus status :
+                new MeetingStatus[] {MeetingStatus.COMPLETED, MeetingStatus.CANCELED}) {
+            Meeting meeting = reconstituted(status);
+
+            Result<Void, MeetingError> result = meeting.updateInfo(
+                    AccountId.of("host"),
+                    MeetingTitle.of("Rejected"),
+                    meeting.getDescription(),
+                    meeting.getIssueLink(),
+                    meeting.getTimeZone(),
+                    meeting.getTimeRange().orElseThrow());
+
+            assertThat(result.isFailure()).isTrue();
+            assertThat(meeting.getTitle().value()).isEqualTo("Title");
+            assertThat(meeting.getDomainEvents()).isEmpty();
+        }
+    }
+
+    @Test
+    void hostUpdateSettingsPublishesOnlySettingsEvent() {
         Meeting meeting = scheduledMeeting();
         String calendarUid = meeting.getCalendarUid();
         int initialSequence = meeting.getCalendarSequence();
@@ -82,56 +139,33 @@ class MeetingUpdateTest {
                 true,
                 true);
 
-        Result<Void, MeetingError> result = meeting.update(
-                AccountId.of("host"),
-                meeting.getTitle(),
-                meeting.getDescription(),
-                meeting.getIssueLink(),
-                settings,
-                meeting.getTimeZone(),
-                meeting.getTimeRange().orElseThrow());
+        Result<Void, MeetingError> result = meeting.updateSettings(AccountId.of("host"), settings);
 
         assertThat(result.isSuccess()).isTrue();
         assertThat(meeting.getDomainEvents())
                 .singleElement()
                 .isInstanceOf(MeetingSettingsUpdatedEvent.class);
+        assertThat(meeting.getSettings()).isEqualTo(settings);
         assertThat(meeting.getCalendarUid()).isEqualTo(calendarUid);
         assertThat(meeting.getCalendarSequence()).isEqualTo(initialSequence);
     }
 
     @Test
-    void nonHostAndRunningScheduledFieldChangesAreRejected() {
+    void noOpUpdateSettingsPublishesNoEvent() {
         Meeting meeting = scheduledMeeting();
         meeting.clearDomainEvents();
 
-        Result<Void, MeetingError> nonHost = meeting.update(
-                AccountId.of("other"),
-                meeting.getTitle(),
-                meeting.getDescription(),
-                meeting.getIssueLink(),
-                meeting.getSettings(),
-                meeting.getTimeZone(),
-                meeting.getTimeRange().orElseThrow());
-        assertThat(nonHost).isInstanceOf(Result.Failure.class);
-        assertThat(((Result.Failure<Void, MeetingError>) nonHost).error())
-                .isInstanceOf(MeetingError.NotAuthorized.class);
+        Result<Void, MeetingError> result =
+                meeting.updateSettings(AccountId.of("host"), meeting.getSettings());
 
-        assertThat(meeting.start().isSuccess()).isTrue();
-        Result<Void, MeetingError> running = meeting.update(
-                AccountId.of("host"),
-                meeting.getTitle(),
-                meeting.getDescription(),
-                meeting.getIssueLink(),
-                meeting.getSettings(),
-                MeetingTimeZone.of("UTC"),
-                meeting.getTimeRange().orElseThrow());
-        assertThat(((Result.Failure<Void, MeetingError>) running).error())
-                .isInstanceOf(MeetingError.InvalidStatusTransition.class);
+        assertThat(result.isSuccess()).isTrue();
+        assertThat(meeting.getDomainEvents()).isEmpty();
     }
 
     @Test
-    void runningMeetingAcceptsInformationAndSettingsWithPastScheduledRange() {
-        Meeting meeting = reconstituted(MeetingStatus.RUNNING);
+    void nonHostUpdateSettingsIsRejected() {
+        Meeting meeting = scheduledMeeting();
+        meeting.clearDomainEvents();
         MeetingSettings settings = new MeetingSettings(
                 io.github.smiskinext.meet.domain.model.AdmissionPolicy.ALLOW_ALL,
                 25,
@@ -140,39 +174,54 @@ class MeetingUpdateTest {
                 true,
                 true);
 
-        Result<Void, MeetingError> result = meeting.update(
-                AccountId.of("host"),
-                MeetingTitle.of("Running update"),
-                "Changed while running",
-                meeting.getIssueLink(),
-                settings,
-                meeting.getTimeZone(),
-                meeting.getTimeRange().orElseThrow());
+        Result<Void, MeetingError> result = meeting.updateSettings(AccountId.of("other"), settings);
 
-        assertThat(result.isSuccess()).isTrue();
-        assertThat(meeting.getTitle().value()).isEqualTo("Running update");
-        assertThat(meeting.getDomainEvents()).hasSize(2);
+        assertThat(result.isFailure()).isTrue();
+        assertThat(((Result.Failure<Void, MeetingError>) result).error())
+                .isInstanceOf(MeetingError.NotAuthorized.class);
+        assertThat(meeting.getDomainEvents()).isEmpty();
     }
 
     @Test
-    void terminalMeetingsRejectAllUpdatesWithoutEvents() {
+    void terminalMeetingsRejectSettingsUpdatesWithoutEvents() {
+        MeetingSettings settings = new MeetingSettings(
+                io.github.smiskinext.meet.domain.model.AdmissionPolicy.ALLOW_ALL,
+                25,
+                true,
+                true,
+                true,
+                true);
         for (MeetingStatus status :
                 new MeetingStatus[] {MeetingStatus.COMPLETED, MeetingStatus.CANCELED}) {
             Meeting meeting = reconstituted(status);
 
-            Result<Void, MeetingError> result = meeting.update(
-                    AccountId.of("host"),
-                    MeetingTitle.of("Rejected"),
-                    meeting.getDescription(),
-                    meeting.getIssueLink(),
-                    meeting.getSettings(),
-                    meeting.getTimeZone(),
-                    meeting.getTimeRange().orElseThrow());
+            Result<Void, MeetingError> result =
+                    meeting.updateSettings(AccountId.of("host"), settings);
 
             assertThat(result.isFailure()).isTrue();
-            assertThat(meeting.getTitle().value()).isEqualTo("Title");
+            assertThat(meeting.getSettings()).isEqualTo(MeetingSettings.defaults());
             assertThat(meeting.getDomainEvents()).isEmpty();
         }
+    }
+
+    @Test
+    void runningMeetingAcceptsSettingsReplacement() {
+        Meeting meeting = reconstituted(MeetingStatus.RUNNING);
+        MeetingSettings settings = new MeetingSettings(
+                io.github.smiskinext.meet.domain.model.AdmissionPolicy.ALLOW_ALL,
+                25,
+                false,
+                true,
+                true,
+                true);
+
+        Result<Void, MeetingError> result = meeting.updateSettings(AccountId.of("host"), settings);
+
+        assertThat(result.isSuccess()).isTrue();
+        assertThat(meeting.getSettings()).isEqualTo(settings);
+        assertThat(meeting.getDomainEvents())
+                .singleElement()
+                .isInstanceOf(MeetingSettingsUpdatedEvent.class);
     }
 
     private Meeting scheduledMeeting() {

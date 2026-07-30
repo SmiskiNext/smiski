@@ -4,7 +4,6 @@ import io.github.smiskinext.meet.application.command.UpdateMeetingCommand;
 import io.github.smiskinext.meet.application.result.UpdateMeetingResult;
 import io.github.smiskinext.meet.application.usecase.UpdateMeetingUseCase;
 import io.github.smiskinext.meet.domain.MeetingError;
-import io.github.smiskinext.meet.domain.model.AdmissionPolicy;
 import io.github.smiskinext.meet.domain.model.Meeting;
 import io.github.smiskinext.meet.domain.model.valueobject.*;
 import io.github.smiskinext.meet.domain.port.MeetingRepository;
@@ -36,18 +35,11 @@ public class UpdateMeetingApplicationService implements UpdateMeetingUseCase {
         }
 
         try {
-            MeetingSettings settings = new MeetingSettings(
-                    AdmissionPolicy.valueOf(command.settings().admissionPolicy()),
-                    command.settings().maxParticipants(),
-                    command.settings().allowScreenShare(),
-                    command.settings().chatEnabled(),
-                    command.settings().allowMicrophone(),
-                    command.settings().allowVideo());
             MeetingTimeRange timeRange = command.timeRange() == null
                     ? null
                     : MeetingTimeRange.of(
                             command.timeRange().startTime(), command.timeRange().endTime());
-            Result<Void, MeetingError> update = meeting.update(
+            Result<Void, MeetingError> update = meeting.updateInfo(
                     AccountId.of(command.accountId()),
                     MeetingTitle.of(command.title()),
                     command.description(),
@@ -55,7 +47,6 @@ public class UpdateMeetingApplicationService implements UpdateMeetingUseCase {
                             command.issueLink().issueId(),
                             command.issueLink().issueKey(),
                             command.issueLink().projectKey()),
-                    settings,
                     MeetingTimeZone.of(command.zoneId()),
                     timeRange);
             if (update.isFailure()) {
@@ -73,7 +64,6 @@ public class UpdateMeetingApplicationService implements UpdateMeetingUseCase {
 
     private UpdateMeetingResult toResult(Meeting meeting) {
         JiraIssueLink link = meeting.getIssueLink();
-        MeetingSettings settings = meeting.getSettings();
         return new UpdateMeetingResult(
                 meeting.getId().value(),
                 meeting.getHostId().value(),
@@ -84,13 +74,6 @@ public class UpdateMeetingApplicationService implements UpdateMeetingUseCase {
                 meeting.getDescription(),
                 new UpdateMeetingResult.IssueLink(
                         link.issueId(), link.issueKey(), link.projectKey()),
-                new UpdateMeetingResult.Settings(
-                        settings.admissionPolicy().name(),
-                        settings.maxParticipants(),
-                        settings.allowScreenShare(),
-                        settings.chatEnabled(),
-                        settings.allowMicrophone(),
-                        settings.allowVideo()),
                 meeting.getTimeRange().map(MeetingTimeRange::start).orElse(null),
                 meeting.getTimeRange().map(MeetingTimeRange::end).orElse(null),
                 meeting.getTimeZone().value(),

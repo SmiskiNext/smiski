@@ -65,6 +65,15 @@ public record ParticipantGrants(
         };
     }
 
+    /**
+     * Derives media-only grants for runtime permission sync.
+     *
+     * <p>The returned grant carries only the media decision ({@code canPublish} and
+     * {@code allowedSources}). Chat permission ({@code canPublishData}) is set to
+     * {@code false} here because it must be preserved from the participant's current
+     * LiveKit state at the adapter boundary — never overwritten from settings during
+     * runtime enforcement.
+     */
     public static ParticipantGrants fromSettingsForRuntimeSync(
             @Nullable MeetingSettings settings, ParticipantRole role) {
         return switch (role) {
@@ -77,10 +86,7 @@ public record ParticipantGrants(
                         || settings.allowVideo()
                         || settings.allowScreenShare();
                 yield new ParticipantGrants(
-                        anyMediaSourceEnabled,
-                        settings.chatEnabled(),
-                        true,
-                        buildAllowedSources(settings));
+                        anyMediaSourceEnabled, false, true, buildAllowedSources(settings));
             }
         };
     }

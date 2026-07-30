@@ -1,44 +1,4 @@
-# update-meeting Specification
-
-## Purpose
-
-TBD - created by archiving change add-update-meeting. Update Purpose after
-archive.
-
-## Requirements
-
-### Requirement: Host-only meeting update endpoint
-
-The system SHALL expose `PUT /api/1/meetings/{id}` for updating a meeting. The
-acting account SHALL be resolved from the configured account header, the tenant
-SHALL be resolved from the tenant context, and only the meeting host SHALL be
-authorized to update the meeting. A successful update SHALL return `200 OK` with
-the complete meeting snapshot excluding the tenant identifier.
-
-#### Scenario: Host updates a meeting
-
-- **WHEN** the host sends a valid `PUT /api/1/meetings/{id}` request with the
-  account header
-- **THEN** the system persists the permitted changes and returns `200 OK` with
-  the full meeting snapshot
-
-#### Scenario: Non-host update is rejected
-
-- **WHEN** an account that is not the meeting host sends an update request
-- **THEN** the system returns an RFC 9457 Problem Details response with the
-  authorization error code and does not change the meeting
-
-#### Scenario: Missing account identity is rejected
-
-- **WHEN** the update request does not contain the configured account header
-- **THEN** the system returns `400` Problem Details and does not change the
-  meeting
-
-#### Scenario: Unknown meeting is rejected
-
-- **WHEN** the update request references an ID that does not exist in the tenant
-- **THEN** the system returns a meeting-not-found Problem Details response and
-  does not publish an event
+## MODIFIED Requirements
 
 ### Requirement: Status-aware mutable fields
 
