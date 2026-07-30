@@ -12,7 +12,7 @@ import org.jspecify.annotations.Nullable;
  * expressions cannot convert a {@code String} column into a domain enum. The adapter converts these
  * into the enum-typed {@link io.github.smiskinext.meet.domain.projection.MeetingDetail}.
  */
-record MeetingDetailProjection(
+public record MeetingDetailProjection(
         UUID id,
         String hostId,
         String shortCode,
