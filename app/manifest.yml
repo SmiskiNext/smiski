@@ -30,6 +30,21 @@ modules:
           layout: blank
           icon: https://developer.atlassian.com/platform/forge/images/issue-panel-icon.svg
 
+    # Custom Jira project permissions (per app/PERMISSION.md): a 2-level
+    # View/Edit model, Edit implying View. Once deployed, a Jira/Project Admin
+    # assigns these to roles/groups/users via the project's Permission
+    # Scheme UI — this app only declares them and reads them back
+    # (`getMeetingPermission` in src/index.ts, via `GET /rest/api/3/mypermissions`).
+    jira:projectPermission:
+        - key: view-meeting
+          name: View Meeting
+          description: View meeting info and history, view meeting detail, join a Running meeting, view recording if available.
+          category: projects
+        - key: edit-meeting
+          name: Edit Meeting
+          description: Create, schedule, start, edit, cancel, and end meetings; start/stop recording.
+          category: projects
+
     function:
         - key: resolver
           handler: index.handler
@@ -64,6 +79,7 @@ remotes:
       baseUrl: '${SMISKI_API_BASE_URL}'
       operations:
           - compute
+          - storage
       storage:
           inScopeEUD: false
 

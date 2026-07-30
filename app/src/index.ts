@@ -12,7 +12,7 @@
  * here — see architecture_vi.md (Forge Remote / JWT-JWKS auth bridge).
  */
 import Resolver from '@forge/resolver';
-import { searchUsers } from './jiraSdkClient';
+import { getMeetingPermission, searchUsers } from './jiraSdkClient';
 
 const resolver = new Resolver();
 
@@ -47,9 +47,21 @@ resolver.define('getProjectMeetings', async (_req) => {
     throw new Error('Not implemented: getProjectMeetings');
 });
 
-// TODO: resolve the current user's permission (VIEW_MEETING / EDIT_MEETING).
-resolver.define('getMeetingPermission', async (_req) => {
-    throw new Error('Not implemented: getMeetingPermission');
+/**
+ * Resolves the invoking user's `View Meeting`/`Edit Meeting` custom Jira
+ * permission (declared in `manifest.yml` under `jira:projectPermission`) for
+ * a project, via `asUser().requestJira` — see `jiraSdkClient.ts`.
+ *
+ * NOTE: this is UI gating only. The `meet` backend does not yet re-check
+ * this permission itself (it only checks meeting-host ownership on
+ * update/delete) — see app/AGENTS.md for the researched follow-up mechanism
+ * (`appUserToken` + a direct Jira REST call from the backend).
+ */
+resolver.define('getMeetingPermission', async (req) => {
+    const projectKey = req.payload?.projectKey as string | undefined;
+    if (!projectKey)
+        throw new Error('getMeetingPermission: projectKey is required');
+    return getMeetingPermission(projectKey);
 });
 
 // NOTE: room-token minting no longer lives here. The Custom UI calls the

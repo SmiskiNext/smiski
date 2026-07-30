@@ -77,14 +77,22 @@ when `context.extension.modal.kind` is set. Module keys are centralized in
   `@forge/api` `asUser().requestJira` through the `@smiskinext/sdks-jira` SDK
   (`src/jiraSdkClient.ts`), so Jira enforces the user's "Browse users"
   permission.
+- `getMeetingPermission` — implemented; checks the invoking user's custom
+  `View Meeting`/`Edit Meeting` Jira project permission (declared in
+  `manifest.yml`'s `jira:projectPermission`, per `PERMISSION.md`) via
+  `jiraSdkClient.ts`'s `getMeetingPermission` (`GET /rest/api/3/mypermissions`
+  as the user, after resolving the real permission keys from
+  `GET /rest/api/3/permissions` — Jira may not echo back the bare manifest
+  `key`). **UI gating only** — the `meet` backend does not yet re-check this;
+  see "Backend permission enforcement (not yet built)" below.
 - There is **no** `getRoomToken` resolver anymore. Room tokens are minted by
   the backend `meet` service's `join` operation, called directly from the
   Custom UI via Forge Remote (`api/meetings.ts`'s `getRoomToken`/
   `joinMeeting`) — the old locally-signed-JWT shim (no authorization check)
   is gone.
-- `getIssueMeetings`, `scheduleMeeting`, `getProjectMeetings`,
-  `getMeetingPermission` — stubs that throw. Do not add business logic here; the
-  brain is the backend `meet` service.
+- `getIssueMeetings`, `scheduleMeeting`, `getProjectMeetings` — stubs that
+  throw. Do not add business logic here; the brain is the backend `meet`
+  service.
 - There is **no** `createInstantMeeting` resolver. Instant/scheduled creation
   goes straight from the Custom UI to the backend (see below).
 
@@ -128,10 +136,34 @@ Data source is **hardwired per hook**, not a global switch. The
   wired without a backend change.
 - `useEndMeeting` → still `mocks/db.ts` — no backend "end meeting" endpoint
   exists (RUNNING→COMPLETED only happens via an async LiveKit webhook).
-- `useMeetingPermission` → still its own inline mock; it's a Jira permission
-  concept, not a `meet` backend one.
+- `useMeetingPermission` → **real** in a Forge context (resolver →
+  `getMeetingPermission`, see above); mocked (always full access) only in
+  standalone `vite dev`, which has no Forge bridge.
 - `currentUser`/`projectMembers`/`issues` call Jira directly from the browser;
-  `searchWorkspaceUsers` goes through the resolver.
+  `searchWorkspaceUsers`/`getMeetingPermission` go through the resolver.
+
+## Backend permission enforcement (not yet built)
+
+`meet` has **no** Jira-permission concept today — only a host-ownership check
+on `update`/`delete` (`hostId.equals(...)`), nothing on `list`/`get`/`join`.
+Until backend enforcement exists, `View Meeting`/`Edit Meeting` is **UI-only**
+— exactly the anti-pattern `PERMISSION.md` §7 warns against (frontend hiding
+is not a security layer). Researched mechanism for the follow-up, so it
+doesn't need re-discovering:
+
+- Forge Remote backends **can** call Jira REST APIs directly: enable
+  `appUserToken` (needs the `read:app-user-token` scope) on the relevant
+  `endpoint` entries in `manifest.yml` (currently only `meet-endpoint` /
+  `/api/1/meetings:instant` exists, and has both `appUserToken`/
+  `appSystemToken` disabled — each distinct backend path needs its own
+  `endpoint` entry with matching `route.path`, since auth attaches per
+  declared endpoint, not globally per remote).
+- The token arrives at `meet` in the `x-forge-oauth-user` header; use it as a
+  `Bearer` token against the FIT's `apiBaseUrl` claim (**not** the site URL)
+  to call `GET /rest/api/3/mypermissions` directly from Java
+  (`RestTemplate`/`WebClient`) — mirrors the same `getMeetingPermission`
+  logic already implemented in `jiraSdkClient.ts`, just from the backend
+  instead of the resolver.
 
 ## manifest.yml / egress
 
@@ -177,8 +209,11 @@ Data source is **hardwired per hook**, not a global switch. The
 
 ## Stale-doc warning
 
-`api/README.md`, `PERMISSION.md`, and the `.vi.md` design notes describe the
-intended end-state (a resolver `backendRequest` transport, a mock/backend
-switch, an `api/` file list with `client.ts`/`endpoints.ts`/`participants.ts`/
-`recordings.ts`) that the current code does not implement. When docs and code
-disagree, trust the code.
+`api/README.md` and the `.vi.md` design notes describe an intended end-state
+(a resolver `backendRequest` transport, a mock/backend switch, an `api/` file
+list with `client.ts`/`endpoints.ts`/`participants.ts`/`recordings.ts`) that
+the current code does not implement. When docs and code disagree, trust the
+code. `PERMISSION.md`'s permission *model* (View/Edit Meeting, the
+state×permission matrix) is accurate and now partially implemented (frontend
++ resolver, per "Backend permission enforcement" above) — its §7 backend
+re-check requirement is the part still outstanding.
