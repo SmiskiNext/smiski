@@ -1,16 +1,15 @@
 /**
  * useProjectMeetings — meetings across a project for the dashboard table.
  *
- * Still backed by the in-memory mock: the backend `meet` `list` operation
- * only supports an exact `issueKey` filter (plus creator/status/search), not
- * a project-wide one, so there is no contract-correct way to wire this to
- * the real API yet without either scanning every issue in the project
- * (wrong/expensive) or a backend change (out of scope here).
+ * Demo branch: backed by the Forge-KVS meeting store (`getProjectMeetings`
+ * resolver, see `app/src/meetingStore.ts`), which supports a project-wide
+ * filter directly — unlike the real `meet` backend's `list` operation, which
+ * only supports an exact `issueKey` filter.
  */
 import { useQuery } from '@tanstack/react-query';
 import type { MeetingListFilters } from '../api/meetings';
+import { listProjectMeetings } from '../api/meetings';
 import type { Meeting } from '../domain';
-import { listProjectMeetings } from '../mocks/db';
 import { queryKeys } from './queryKeys';
 
 export interface UseProjectMeetingsResult {

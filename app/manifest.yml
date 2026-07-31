@@ -94,6 +94,7 @@ permissions:
         - read:jira-work
         - read:jira-user # current user (/myself) + assignable project member lookup
         - read:permission:jira # list/check custom View Meeting / Edit Meeting permissions
+        - storage:app # Forge KVS — demo meeting store (app/src/meetingStore.ts)
         # - read:me            # TODO: enable if we need the invoking user's identity/profile
         # - offline_access     # TODO: enable if the identity bridge needs refresh tokens
 
@@ -125,6 +126,15 @@ environment:
           default: 'https://TODO-caddy-gateway.smiski.example'
         - key: LIVEKIT_URL
           default: 'wss://smiski-meeting-2rcpqikr.livekit.cloud'
+        # LiveKit Cloud API key/secret for the project behind LIVEKIT_URL
+        # above. No default — set per environment with:
+        #   forge variables set --encrypt LIVEKIT_API_KEY <value> -e <env>
+        #   forge variables set --encrypt LIVEKIT_API_SECRET <value> -e <env>
+        # Used only by app/src/liveKitToken.ts to mint room tokens directly
+        # from the resolver (demo: bypasses the `meet` backend's own
+        # LiveKit token minting).
+        - LIVEKIT_API_KEY
+        - LIVEKIT_API_SECRET
 
 app:
     runtime:

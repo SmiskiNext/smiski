@@ -11,12 +11,18 @@ importers:
       '@forge/api':
         specifier: 8.0.1-next.0
         version: 8.0.1-next.0(typescript@5.9.3)
+      '@forge/kvs':
+        specifier: ^2.0.2
+        version: 2.0.2(typescript@5.9.3)
       '@forge/resolver':
         specifier: 2.0.0
         version: 2.0.0(typescript@5.9.3)
       '@smiskinext/sdks-jira':
         specifier: 1001.0.0-05f20e18
         version: 1001.0.0-05f20e18(@hey-api/openapi-ts@0.99.0(typescript@5.9.3))
+      livekit-server-sdk:
+        specifier: ^2.17.0
+        version: 2.17.0
     devDependencies:
       '@biomejs/biome':
         specifier: ^2.4.15
@@ -612,6 +618,14 @@ packages:
       typescript:
         optional: true
 
+  '@forge/api@8.0.2':
+    resolution: {integrity: sha512-vQKcdIshsC+5pzjxf7UYacD6Df2+mz2aqM1qobYtQ3vrqJPfzj7mxu7lx2YXiRN82Hl1NkiD3CghKdzihABDAw==}
+    peerDependencies:
+      typescript: '>=5.0.0'
+    peerDependenciesMeta:
+      typescript:
+        optional: true
+
   '@forge/auth@1.0.0':
     resolution: {integrity: sha512-lEwaTIS9lZAMeuf9TfuP/OyhoJz1SCoIt5ZbgbgPtG3SV/KYdI2qSW6xafnONy0iAaKJo5D3VDBEbm7K1d+qog==}
     peerDependencies:
@@ -682,6 +696,14 @@ packages:
       typescript:
         optional: true
 
+  '@forge/kvs@2.0.2':
+    resolution: {integrity: sha512-kk7qy3nhkXYalaDb+GaiZFg4K6zjBu0P/0V3bQhAQGTLM6cjDPoBo4/PMVkaOi4MuP+CJoGIjguLi35ZAr0PaA==}
+    peerDependencies:
+      typescript: '>=5.0.0'
+    peerDependenciesMeta:
+      typescript:
+        optional: true
+
   '@forge/lint@6.0.1':
     resolution: {integrity: sha512-Z2LzxCCVopHjZvXOJBC+NnOXG90JXgV4ADDmnvRjuhNZEZJ41mU5LLDIagC2Epbq9y2avEwuBOPtRe9P9oTkrA==}
     peerDependencies:
@@ -700,6 +722,14 @@ packages:
 
   '@forge/manifest@13.1.0-next.6':
     resolution: {integrity: sha512-cg3aHJ/fT8kDtGWG/LooTcqiHTAQhjN65Z0BcZ4K2Inn62lRMeVSG03zXwItOvEkm30qAgDY/QEQ6Ir03L4cCw==}
+    peerDependencies:
+      typescript: '>=5.0.0'
+    peerDependenciesMeta:
+      typescript:
+        optional: true
+
+  '@forge/manifest@13.2.0':
+    resolution: {integrity: sha512-Ek4tWw3YwgwemNsv0gCoMu7DuH8PqsavwXk7zMpNblxP0IrOsVyDxsrDSeDh7PvlSOznxqp8uJndLj4ZhTW3+g==}
     peerDependencies:
       typescript: '>=5.0.0'
     peerDependenciesMeta:
@@ -1001,6 +1031,9 @@ packages:
 
   '@livekit/protocol@1.46.6':
     resolution: {integrity: sha512-upzlHP1vi/kZ/QqALZTFskQ0ifqc2f15RKucHYOsIHJsaXvEYanG75mAb7o+Yomfs4XhQ4BaRsdY+TFHXpaqrg==}
+
+  '@livekit/protocol@1.50.4':
+    resolution: {integrity: sha512-L1uggNQAqyY21smQY8AllyOYbcv9Me9TaxwuLytL1R8ck9nbYPmQLNwEDi3pOFGAMa5F8I2nUi2Jc59W5awxlA==}
 
   '@lukeed/ms@2.0.2':
     resolution: {integrity: sha512-9I2Zn6+NJLfaGoz9jN3lpwDgAYvfGeNYdbAIjJOqzs4Tpc+VU3Jqq4IofSUBKajiDS8k9fZIg18/z13mpk1bsA==}
@@ -3096,6 +3129,9 @@ packages:
     resolution: {integrity: sha512-AC/7JofJvZGrrneWNaEnJeOLUx+JlGt7tNa0wZiRPT4MY1wmfKjt2+6O2p2uz2+skll8OZZmJMNqeke7kKbNgQ==}
     hasBin: true
 
+  jose@5.10.0:
+    resolution: {integrity: sha512-s+3Al/p9g32Iq+oqXxkW//7jk2Vig6FF1CFqzVXoTUXt2qz89YWbL+OwS17NFYEvxC35n0FKeGO2LGYSxeM2Gg==}
+
   jose@6.2.3:
     resolution: {integrity: sha512-YYVDInQKFJfR/xa3ojUTl8c2KoTwiL1R5Wg9YCydwH0x0B9grbzlg5HC7mMjCtUJjbQ/YnGEZIhI5tCgfTb4Hw==}
 
@@ -3247,6 +3283,10 @@ packages:
     resolution: {integrity: sha512-JxooxLFMkdwqTo4XLer+DCij6S3//Z/GuHSjqdhlj94Vtbh1Eayd7Lyq47qkIE86+xVJhqxIdYnq53lg4oPH9w==}
     peerDependencies:
       '@types/dom-mediacapture-record': ^1
+
+  livekit-server-sdk@2.17.0:
+    resolution: {integrity: sha512-GWNEQrUD13UwZNrmosyTVFPgeBvSU2lFKGxdA4DaUI5F4sMb1cGeep/PPEE9vvRNELJYpxWS0ImS4gQmovKUDA==}
+    engines: {node: '>=18'}
 
   loader-runner@4.3.2:
     resolution: {integrity: sha512-DFEqQ3ihfS9blba08cLfYf1NRAIEm+dDjic073DRDc3/JspI/8wYmtDsHwd3+4hwvdxSK7PGaElfTmm0awWJ4w==}
@@ -5473,6 +5513,16 @@ snapshots:
     optionalDependencies:
       typescript: 5.9.3
 
+  '@forge/api@8.0.2(typescript@5.9.3)':
+    dependencies:
+      '@forge/auth': 1.0.0(typescript@5.9.3)
+      '@forge/egress': 3.0.0(typescript@5.9.3)
+      '@forge/i18n': 1.0.0(typescript@5.9.3)
+      '@forge/manifest': 13.2.0(typescript@5.9.3)
+      headers-utils: 3.0.2
+    optionalDependencies:
+      typescript: 5.9.3
+
   '@forge/auth@1.0.0(typescript@5.9.3)':
     dependencies:
       tslib: 2.8.1
@@ -5679,6 +5729,12 @@ snapshots:
     optionalDependencies:
       typescript: 5.9.3
 
+  '@forge/kvs@2.0.2(typescript@5.9.3)':
+    dependencies:
+      '@forge/api': 8.0.2(typescript@5.9.3)
+    optionalDependencies:
+      typescript: 5.9.3
+
   '@forge/lint@6.0.1(@types/node@22.20.1)(cheerio@1.2.0)(typescript@5.9.3)':
     dependencies:
       '@atlassian/atlassian-openapi': 1.0.6
@@ -5713,6 +5769,20 @@ snapshots:
       typescript: 5.9.3
 
   '@forge/manifest@13.1.0-next.6(typescript@5.9.3)':
+    dependencies:
+      '@forge/i18n': 1.0.0(typescript@5.9.3)
+      '@sentry/node': 7.106.0
+      ajv: 8.20.0
+      ajv-formats: 2.1.1(ajv@8.20.0)
+      cheerio: 1.2.0
+      glob: 13.0.6
+      lodash: 4.18.1
+      mime-types: 2.1.35
+      yaml: 2.9.0
+    optionalDependencies:
+      typescript: 5.9.3
+
+  '@forge/manifest@13.2.0(typescript@5.9.3)':
     dependencies:
       '@forge/i18n': 1.0.0(typescript@5.9.3)
       '@sentry/node': 7.106.0
@@ -6099,6 +6169,10 @@ snapshots:
   '@livekit/mutex@1.1.1': {}
 
   '@livekit/protocol@1.46.6':
+    dependencies:
+      '@bufbuild/protobuf': 1.10.1
+
+  '@livekit/protocol@1.50.4':
     dependencies:
       '@bufbuild/protobuf': 1.10.1
 
@@ -8440,6 +8514,8 @@ snapshots:
 
   jiti@2.7.0: {}
 
+  jose@5.10.0: {}
+
   jose@6.2.3: {}
 
   js-tokens@4.0.0: {}
@@ -8591,6 +8667,12 @@ snapshots:
       tslib: 2.8.1
       typed-emitter: 2.1.0
       webrtc-adapter: 9.0.6
+
+  livekit-server-sdk@2.17.0:
+    dependencies:
+      '@bufbuild/protobuf': 1.10.1
+      '@livekit/protocol': 1.50.4
+      jose: 5.10.0
 
   loader-runner@4.3.2: {}
 

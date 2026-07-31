@@ -4,8 +4,8 @@
  * (confirm before starting a second concurrent meeting).
  */
 import { useQuery } from '@tanstack/react-query';
+import { findRunningMeetingHostedByUser } from '../api/meetings';
 import { useCurrentUser } from '../context/CurrentUserContext';
-import { findRunningMeetingHostedByUser } from '../mocks/db';
 import { queryKeys } from './queryKeys';
 
 export function useHostConflict(excludingIssueKey?: string) {
