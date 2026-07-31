@@ -1,11 +1,4 @@
-# host-join-decision Specification
-
-## Purpose
-
-TBD - created by archiving change add-host-join-decision. Update Purpose after
-archive.
-
-## Requirements
+## MODIFIED Requirements
 
 ### Requirement: Host accepts pending join requests
 
@@ -56,39 +49,6 @@ publish a `JoinRequestApprovedEvent`.
 - **THEN** the system returns `403` `application/problem+json` with code
   `NOT_OWNER` and no join requests are processed
 
-### Requirement: Accept processing is best-effort per item
-
-The accept operation SHALL process each submitted request id independently and
-return a per-item result rather than failing the whole batch when some items
-cannot be accepted. Each result entry SHALL carry the `requestId` and a `status`
-of `APPROVED`, `DENIED`, or `FAILED`. `APPROVED` entries SHALL carry the LiveKit
-`token` and `roomName`. `FAILED` entries SHALL carry a machine-readable `reason`
-and SHALL NOT carry a token. An id that is unknown, already terminal, expired,
-or belongs to a different meeting SHALL become a `FAILED` item with the
-corresponding reason. When the meeting reaches `maxParticipants` during the
-batch, further approvals SHALL become `FAILED` items with a meeting-full reason
-so that the number of admitted participants never exceeds `maxParticipants`.
-
-#### Scenario: Partial batch admits available seats only
-
-- **WHEN** the host accepts more pending requests than the meeting's remaining
-  capacity
-- **THEN** the response is `200`, exactly the number of requests that fit are
-  `APPROVED` with tokens, and the remainder are `FAILED` with a meeting-full
-  reason, and the active participant count never exceeds `maxParticipants`
-
-#### Scenario: Unknown or terminal id fails only that item
-
-- **WHEN** the host accepts a batch containing a pending id and an unknown or
-  already-decided id
-- **THEN** the pending id is `APPROVED` and the unknown or already-decided id is
-  `FAILED` with a reason, and the response status is still `200`
-
-#### Scenario: Expired request fails that item
-
-- **WHEN** the host accepts a request whose pending TTL has elapsed
-- **THEN** that result entry is `FAILED` with a join-request-expired reason
-
 ### Requirement: Host declines pending join requests
 
 The meet service SHALL expose `POST /meetings/{id}/join-requests:decline`
@@ -132,23 +92,3 @@ pending queue, and publish a `JoinRequestDeniedEvent`.
   with `edit-meeting` permission
 - **THEN** the system returns `403` `application/problem+json` with code
   `NOT_OWNER` and no join requests are processed
-
-### Requirement: Terminal join request outcome persistence
-
-The meet service SHALL persist the terminal outcome of every accepted or
-declined join request in a store keyed by request id with a time-to-live aligned
-to the requester notification window, so a requester that learns its outcome
-after the fact can still retrieve it. An approved outcome SHALL retain the
-LiveKit token and room name; a denied outcome SHALL retain no token.
-
-#### Scenario: Approved outcome retains the token
-
-- **WHEN** a join request is accepted
-- **THEN** its persisted outcome has status `APPROVED` and retains the LiveKit
-  token and room name until the outcome's TTL elapses
-
-#### Scenario: Denied outcome retains no token
-
-- **WHEN** a join request is declined
-- **THEN** its persisted outcome has status `DENIED` and carries no LiveKit
-  token

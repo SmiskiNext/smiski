@@ -9,13 +9,17 @@ TBD - created by archiving change cancel-meeting. Update Purpose after archive.
 ### Requirement: Host-only manual meeting cancellation endpoint
 
 The system SHALL expose `POST /api/1/meetings/{id}:cancel` to cancel a single
-SCHEDULED meeting. The acting account SHALL be resolved from the configured
-account header and the tenant SHALL be resolved from the tenant context. Only
-the meeting host SHALL be authorized to cancel. A successful cancellation SHALL
-transition the meeting status from `SCHEDULED` to `CANCELED`, record the reason
-as `HOST_CANCELED`, load all active invitees, publish a `MeetingCanceledEvent`
-with the invitee list through the transactional outbox, and return `200 OK` with
-the full snapshot of the canceled meeting including the reason.
+SCHEDULED meeting. The endpoint SHALL require the `edit-meeting` project
+permission — if the caller's permission context does not contain `edit-meeting`,
+the endpoint SHALL reject the request with `403 application/problem+json` and
+code `NOT_AUTHORIZED` before executing the use case. The acting account SHALL be
+resolved from the configured account header and the tenant SHALL be resolved
+from the tenant context. Only the meeting host SHALL be authorized to cancel. A
+successful cancellation SHALL transition the meeting status from `SCHEDULED` to
+`CANCELED`, record the reason as `HOST_CANCELED`, load all active invitees,
+publish a `MeetingCanceledEvent` with the invitee list through the transactional
+outbox, and return `200 OK` with the full snapshot of the canceled meeting
+including the reason.
 
 No request body is required; the cancel reason is always `HOST_CANCELED` for
 this endpoint.
@@ -23,30 +27,25 @@ this endpoint.
 #### Scenario: Host cancels a SCHEDULED meeting
 
 - **WHEN** the host sends `POST /api/1/meetings/{id}:cancel` with the account
-  header for a meeting whose status is `SCHEDULED`
+  header for a meeting whose status is `SCHEDULED` and has `edit-meeting`
+  permission
 - **THEN** the system transitions the meeting to `CANCELED` with reason
   `HOST_CANCELED`, publishes one `MeetingCanceledEvent` carrying the active
   invitee list, and returns `200 OK` with the full canceled meeting snapshot
 
+#### Scenario: Missing edit-meeting permission is rejected
+
+- **WHEN** a caller without `edit-meeting` sends
+  `POST /api/1/meetings/{id}:cancel`
+- **THEN** the response is `403 application/problem+json` with code
+  `NOT_AUTHORIZED` and the meeting is not canceled
+
 #### Scenario: Non-host cancellation is rejected
 
-- **WHEN** an authenticated account that is not the meeting host sends a cancel
-  request
-- **THEN** the system returns `403` Problem Details with code `NOT_AUTHORIZED`,
-  the meeting remains unchanged, and no event is published
-
-#### Scenario: Missing account header is rejected
-
-- **WHEN** the cancel request does not carry the configured account header
-- **THEN** the system returns `400` Problem Details with code `VALIDATION_ERROR`
-  and does not change any meeting
-
-#### Scenario: Unknown or soft-deleted meeting is rejected
-
-- **WHEN** the cancel request references an ID that does not exist or has been
-  soft-deleted in the tenant
-- **THEN** the system returns `404` Problem Details with code
-  `MEETING_NOT_FOUND` and publishes no event
+- **WHEN** an account that is not the meeting host sends a cancel request even
+  with `edit-meeting` permission
+- **THEN** the system returns an RFC 9457 Problem Details response with the
+  authorization error code and the meeting is not canceled
 
 ### Requirement: Only SCHEDULED meetings can be manually canceled
 
