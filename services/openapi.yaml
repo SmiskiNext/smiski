@@ -2624,6 +2624,141 @@ paths:
           type: integer
           format: int32
         example: 1
+  /api/{version}/meetings/{id}/join-requests:
+    get:
+      tags:
+        - meeting-controller
+      summary: List pending join requests
+      description: Returns a paginated list of PENDING join requests for a meeting with MANUAL_APPROVAL admission policy. Only the meeting host may call this endpoint. Use offset and pageSize query parameters for pagination.
+      operationId: listPendingJoinRequests
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: offset
+          in: query
+          required: false
+          schema:
+            type: integer
+            format: int32
+            default: 0
+        - name: pageSize
+          in: query
+          required: false
+          schema:
+            type: integer
+            format: int32
+            default: 20
+      responses:
+        '200':
+          description: Paginated list of pending join requests
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Meet_ListPendingJoinRequestsResponse'
+              examples:
+                list:
+                  description: list
+                  value:
+                    results:
+                      - requestId: 0195e0c2-8f3a-7c21-b9d4-2f1a6e7c8d90
+                        accountId: account-456
+                        displayName: Alice Nguyen
+                        status: PENDING
+                        requestedAt: '2025-02-01T14:00:00Z'
+                        expiresAt: '2025-02-01T14:05:00Z'
+                    meta:
+                      total: 1
+                      offset: 0
+                      pageSize: 20
+        '400':
+          description: Missing account header or pageSize out of range
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Meet_ProblemDetail'
+              examples:
+                missingAccount:
+                  summary: Missing X-Account-Id header
+                  description: missingAccount
+                  value:
+                    type: about:blank
+                    title: Bad Request
+                    status: 400
+                    detail: X-Account-Id header is required
+                    code: VALIDATION_ERROR
+                    traceId: 6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a
+                pageSizeOutOfRange:
+                  summary: pageSize is 0 or greater than 100
+                  description: pageSizeOutOfRange
+                  value:
+                    type: about:blank
+                    title: Bad Request
+                    status: 400
+                    detail: pageSize must be between 1 and 100
+                    code: VALIDATION_ERROR
+                    traceId: 6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a
+        '403':
+          description: Only the host may list pending join requests
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Meet_ProblemDetail'
+              examples:
+                notOwner:
+                  description: notOwner
+                  value:
+                    type: about:blank
+                    title: Not authorized
+                    status: 403
+                    detail: You do not own the requested user scope.
+                    code: NOT_OWNER
+                    traceId: 6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a
+        '404':
+          description: Meeting not found for the current tenant
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Meet_ProblemDetail'
+              examples:
+                notFound:
+                  description: notFound
+                  value:
+                    type: about:blank
+                    title: Meeting not found
+                    status: 404
+                    detail: No meeting matches the given identifier.
+                    code: MEETING_NOT_FOUND
+                    traceId: 6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a
+        '405':
+          description: Method Not Allowed
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Meet_ProblemDetail'
+        '415':
+          description: Unsupported Media Type
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Meet_ProblemDetail'
+        '500':
+          description: Internal Server Error
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Meet_ProblemDetail'
+    parameters:
+      - name: version
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int32
+        example: 1
 components:
   schemas:
     Tenant_App:
@@ -3707,7 +3842,7 @@ components:
           minItems: 1
       required:
         - requestIds
-    Meet_Item:
+    Meet_DecisionItem:
       type: object
       description: Outcome of a single submitted join request
       properties:
@@ -3741,7 +3876,7 @@ components:
           type: array
           description: One result per submitted request id, in submission order
           items:
-            $ref: '#/components/schemas/Meet_Item'
+            $ref: '#/components/schemas/Meet_DecisionItem'
     Meet_AddMeetingInviteesRequest:
       type: object
       description: Request body for adding new invitees to a meeting
@@ -3966,6 +4101,59 @@ components:
         createdAt:
           type: string
           format: date-time
+    Meet_Item:
+      type: object
+      description: Summary of a single pending join request
+      properties:
+        requestId:
+          type: string
+          description: Unique identifier of the join request
+        accountId:
+          type: string
+          description: Account identifier of the waiting participant
+        displayName:
+          type: string
+          description: Display name submitted by the waiting participant
+        status:
+          type: string
+          description: Request status; always PENDING in this list
+          example: PENDING
+        requestedAt:
+          type: string
+          format: date-time
+          description: ISO-8601 instant when the request was created
+        expiresAt:
+          type: string
+          format: date-time
+          description: ISO-8601 instant when the request expires
+    Meet_ListPendingJoinRequestsResponse:
+      type: object
+      description: Paginated list of PENDING join requests for the meeting host
+      properties:
+        results:
+          type: array
+          description: Pending join request summaries for the current page
+          items:
+            $ref: '#/components/schemas/Meet_Item'
+        meta:
+          $ref: '#/components/schemas/Meet_Meta'
+          description: Pagination metadata
+    Meet_Meta:
+      type: object
+      description: Pagination metadata for the current page
+      properties:
+        total:
+          type: integer
+          format: int32
+          description: Total number of PENDING requests across all pages
+        offset:
+          type: integer
+          format: int32
+          description: Zero-based start index used for this page
+        pageSize:
+          type: integer
+          format: int32
+          description: Maximum items requested per page
     Meet_DeleteMeetingResponse:
       type: object
       description: Snapshot of a soft-deleted meeting

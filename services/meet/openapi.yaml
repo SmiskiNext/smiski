@@ -3402,31 +3402,32 @@ components:
           minItems: 1
       required:
       - requestIds
-    Item:
+    DecisionItem:
       type: object
-      description: Summary of a single pending join request
+      description: Outcome of a single submitted join request
       properties:
         requestId:
           type: string
-          description: Unique identifier of the join request
-        accountId:
-          type: string
-          description: Account identifier of the waiting participant
-        displayName:
-          type: string
-          description: Display name submitted by the waiting participant
+          description: Identifier of the submitted join request
         status:
           type: string
-          description: Request status; always PENDING in this list
-          example: PENDING
-        requestedAt:
-          type: string
-          format: date-time
-          description: ISO-8601 instant when the request was created
-        expiresAt:
-          type: string
-          format: date-time
-          description: ISO-8601 instant when the request expires
+          description: Outcome of the request
+          example: APPROVED
+        token:
+          type:
+          - string
+          - "null"
+          description: LiveKit access token; present only when APPROVED
+        roomName:
+          type:
+          - string
+          - "null"
+          description: LiveKit room name; present only when APPROVED
+        reason:
+          type:
+          - string
+          - "null"
+          description: Machine-readable reason; present only when FAILED
     JoinDecisionResponse:
       type: object
       description: Per-item outcome of a host accept/decline decision
@@ -3435,7 +3436,7 @@ components:
           type: array
           description: "One result per submitted request id, in submission order"
           items:
-            $ref: "#/components/schemas/Item"
+            $ref: "#/components/schemas/DecisionItem"
     AddMeetingInviteesRequest:
       type: object
       description: Request body for adding new invitees to a meeting
@@ -3660,6 +3661,31 @@ components:
         createdAt:
           type: string
           format: date-time
+    Item:
+      type: object
+      description: Summary of a single pending join request
+      properties:
+        requestId:
+          type: string
+          description: Unique identifier of the join request
+        accountId:
+          type: string
+          description: Account identifier of the waiting participant
+        displayName:
+          type: string
+          description: Display name submitted by the waiting participant
+        status:
+          type: string
+          description: Request status; always PENDING in this list
+          example: PENDING
+        requestedAt:
+          type: string
+          format: date-time
+          description: ISO-8601 instant when the request was created
+        expiresAt:
+          type: string
+          format: date-time
+          description: ISO-8601 instant when the request expires
     ListPendingJoinRequestsResponse:
       type: object
       description: Paginated list of PENDING join requests for the meeting host
