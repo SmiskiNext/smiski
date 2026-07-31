@@ -50,6 +50,7 @@ class AddMeetingInviteesControllerIntegrationTest {
         UUID meetingId = createScheduledMeeting();
 
         mockMvc.perform(post("/api/1/meetings/{id}/invitees", meetingId)
+                        .header("X-Project-Permissions", "view-meeting,edit-meeting")
                         .header("X-Account-Id", HOST_ID)
                         .header("X-Tenant-ID", TENANT_ID)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -74,6 +75,7 @@ class AddMeetingInviteesControllerIntegrationTest {
         UUID meetingId = createScheduledMeeting();
 
         mockMvc.perform(post("/api/1/meetings/{id}/invitees", meetingId)
+                        .header("X-Project-Permissions", "view-meeting,edit-meeting")
                         .header("X-Tenant-ID", TENANT_ID)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
@@ -90,6 +92,7 @@ class AddMeetingInviteesControllerIntegrationTest {
     @Test
     void unknownMeetingReturns404() throws Exception {
         mockMvc.perform(post("/api/1/meetings/{id}/invitees", UUID.randomUUID())
+                        .header("X-Project-Permissions", "view-meeting,edit-meeting")
                         .header("X-Account-Id", HOST_ID)
                         .header("X-Tenant-ID", TENANT_ID)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -107,6 +110,7 @@ class AddMeetingInviteesControllerIntegrationTest {
         UUID meetingId = createScheduledMeeting();
 
         mockMvc.perform(post("/api/1/meetings/{id}/invitees", meetingId)
+                        .header("X-Project-Permissions", "view-meeting,edit-meeting")
                         .header("X-Account-Id", HOST_ID)
                         .header("X-Tenant-ID", TENANT_ID)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -126,6 +130,7 @@ class AddMeetingInviteesControllerIntegrationTest {
         UUID meetingId = createScheduledMeeting();
 
         mockMvc.perform(post("/api/1/meetings/{id}/invitees", meetingId)
+                        .header("X-Project-Permissions", "view-meeting,edit-meeting")
                         .header("X-Account-Id", HOST_ID)
                         .header("X-Tenant-ID", TENANT_ID)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -141,6 +146,7 @@ class AddMeetingInviteesControllerIntegrationTest {
         UUID meetingId = createScheduledMeeting();
 
         mockMvc.perform(post("/api/1/meetings/{id}/invitees", meetingId)
+                        .header("X-Project-Permissions", "view-meeting,edit-meeting")
                         .header("X-Account-Id", HOST_ID)
                         .header("X-Tenant-ID", TENANT_ID)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -162,6 +168,7 @@ class AddMeetingInviteesControllerIntegrationTest {
         addInvitee(meetingId, "alice", "alice@test.com", "Alice");
 
         mockMvc.perform(post("/api/1/meetings/{id}/invitees", meetingId)
+                        .header("X-Project-Permissions", "view-meeting,edit-meeting")
                         .header("X-Account-Id", HOST_ID)
                         .header("X-Tenant-ID", TENANT_ID)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -187,6 +194,7 @@ class AddMeetingInviteesControllerIntegrationTest {
                 "alice");
 
         mockMvc.perform(post("/api/1/meetings/{id}/invitees", meetingId)
+                        .header("X-Project-Permissions", "view-meeting,edit-meeting")
                         .header("X-Account-Id", HOST_ID)
                         .header("X-Tenant-ID", TENANT_ID)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -208,6 +216,7 @@ class AddMeetingInviteesControllerIntegrationTest {
         UUID meetingId = createScheduledMeeting();
 
         mockMvc.perform(post("/api/1/meetings/{id}/invitees", meetingId)
+                        .header("X-Project-Permissions", "view-meeting,edit-meeting")
                         .header("X-Account-Id", "not-the-host")
                         .header("X-Tenant-ID", TENANT_ID)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -232,6 +241,7 @@ class AddMeetingInviteesControllerIntegrationTest {
                 meetingId);
 
         mockMvc.perform(post("/api/1/meetings/{id}/invitees", meetingId)
+                        .header("X-Project-Permissions", "view-meeting,edit-meeting")
                         .header("X-Account-Id", HOST_ID)
                         .header("X-Tenant-ID", TENANT_ID)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -258,6 +268,7 @@ class AddMeetingInviteesControllerIntegrationTest {
                 "organizerEmail":"host@example.com","organizerDisplayName":"Host User"}
                 """.formatted(start, start.plus(1, ChronoUnit.HOURS));
         MvcResult result = mockMvc.perform(post("/api/1/meetings:schedule")
+                        .header("X-Project-Permissions", "view-meeting,edit-meeting")
                         .header("X-Account-Id", HOST_ID)
                         .header("X-Tenant-ID", TENANT_ID)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -271,6 +282,7 @@ class AddMeetingInviteesControllerIntegrationTest {
     private void addInvitee(UUID meetingId, String accountId, String email, String displayName)
             throws Exception {
         mockMvc.perform(post("/api/1/meetings/{id}/invitees", meetingId)
+                        .header("X-Project-Permissions", "view-meeting,edit-meeting")
                         .header("X-Account-Id", HOST_ID)
                         .header("X-Tenant-ID", TENANT_ID)
                         .contentType(MediaType.APPLICATION_JSON)

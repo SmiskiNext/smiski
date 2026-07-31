@@ -91,6 +91,7 @@ import java.net.URI;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -243,6 +244,7 @@ public class MeetingController {
                                 }))
     })
     @PostMapping("/meetings")
+    @PreAuthorize("hasAuthority('view-meeting')")
     public ResponseEntity<Object> list(
             @Valid @RequestBody(required = false) ListMeetingsRequest request) {
         String accountId = AccountContext.getCurrentAccount().orElse(null);
@@ -370,6 +372,7 @@ public class MeetingController {
                         }""")))
     })
     @GetMapping("/meetings/{id}")
+    @PreAuthorize("hasAuthority('view-meeting')")
     public ResponseEntity<Object> get(@PathVariable UUID id) {
         String accountId = AccountContext.getCurrentAccount().orElse(null);
         if (accountId == null) {
@@ -493,6 +496,7 @@ public class MeetingController {
                         }""")))
     })
     @PutMapping("/meetings/{id}")
+    @PreAuthorize("hasAuthority('edit-meeting')")
     public ResponseEntity<Object> update(
             @PathVariable UUID id, @Valid @RequestBody UpdateMeetingRequest request) {
         String accountId = AccountContext.getCurrentAccount().orElse(null);
@@ -607,6 +611,7 @@ public class MeetingController {
                         }""")))
     })
     @PutMapping("/meetings/{id}/settings")
+    @PreAuthorize("hasAuthority('edit-meeting')")
     public ResponseEntity<Object> updateSettings(
             @PathVariable UUID id, @Valid @RequestBody UpdateMeetingSettingsRequest request) {
         String accountId = AccountContext.getCurrentAccount().orElse(null);
@@ -738,6 +743,7 @@ public class MeetingController {
                         }""")))
     })
     @PostMapping("/meetings/{id}/invitees")
+    @PreAuthorize("hasAuthority('edit-meeting')")
     public ResponseEntity<Object> addInvitees(
             @PathVariable UUID id, @Valid @RequestBody AddMeetingInviteesRequest request) {
         String accountId = AccountContext.getCurrentAccount().orElse(null);
@@ -866,6 +872,7 @@ public class MeetingController {
                                 }))
     })
     @PostMapping("/meetings/{id}/invitees:batchDelete")
+    @PreAuthorize("hasAuthority('edit-meeting')")
     public ResponseEntity<Object> batchDeleteInvitees(
             @PathVariable UUID id, @Valid @RequestBody RemoveMeetingInviteesRequest request) {
         String accountId = AccountContext.getCurrentAccount().orElse(null);
@@ -971,6 +978,7 @@ public class MeetingController {
                                 }))
     })
     @PostMapping("/meetings:instant")
+    @PreAuthorize("hasAuthority('edit-meeting')")
     public ResponseEntity<Object> createInstant(
             @Valid @RequestBody CreateInstantMeetingRequest request) {
 
@@ -1080,6 +1088,7 @@ public class MeetingController {
                                 }))
     })
     @PostMapping("/meetings:schedule")
+    @PreAuthorize("hasAuthority('edit-meeting')")
     public ResponseEntity<Object> schedule(@Valid @RequestBody ScheduleMeetingRequest request) {
 
         String accountId = AccountContext.getCurrentAccount().orElse(null);
@@ -1219,6 +1228,7 @@ public class MeetingController {
                         }""")))
     })
     @DeleteMapping("/meetings/{id}")
+    @PreAuthorize("hasAuthority('edit-meeting')")
     public ResponseEntity<Object> delete(@PathVariable UUID id) {
         String accountId = AccountContext.getCurrentAccount().orElse(null);
         if (accountId == null) {
@@ -1371,6 +1381,7 @@ public class MeetingController {
                         }""")))
     })
     @PostMapping("/meetings:batchDelete")
+    @PreAuthorize("hasAuthority('edit-meeting')")
     public ResponseEntity<Object> batchDelete(
             @Valid @RequestBody BatchDeleteMeetingsRequest request) {
         String accountId = AccountContext.getCurrentAccount().orElse(null);
@@ -1486,6 +1497,7 @@ public class MeetingController {
                         }""")))
     })
     @PostMapping("/meetings/{id}:join")
+    @PreAuthorize("hasAuthority('view-meeting')")
     public ResponseEntity<Object> join(
             @PathVariable UUID id, @Valid @RequestBody JoinMeetingRequest request) {
         String accountId = AccountContext.getCurrentAccount().orElse(null);
@@ -1607,6 +1619,7 @@ public class MeetingController {
                         }""")))
     })
     @PostMapping("/meetings/{id}/join-requests:accept")
+    @PreAuthorize("hasAuthority('edit-meeting')")
     public ResponseEntity<Object> acceptJoinRequests(
             @PathVariable UUID id, @Valid @RequestBody HandleJoinRequestsRequest request) {
         String accountId = AccountContext.getCurrentAccount().orElse(null);
@@ -1726,6 +1739,7 @@ public class MeetingController {
                         }""")))
     })
     @PostMapping("/meetings/{id}/join-requests:decline")
+    @PreAuthorize("hasAuthority('edit-meeting')")
     public ResponseEntity<Object> declineJoinRequests(
             @PathVariable UUID id, @Valid @RequestBody HandleJoinRequestsRequest request) {
         String accountId = AccountContext.getCurrentAccount().orElse(null);
@@ -2166,6 +2180,7 @@ public class MeetingController {
         @ApiResponse(responseCode = "500", description = "Internal server error")
     })
     @PostMapping("/meetings/{id}:cancel")
+    @PreAuthorize("hasAuthority('edit-meeting')")
     public ResponseEntity<Object> cancel(@PathVariable UUID id) {
         String accountId = AccountContext.getCurrentAccount().orElse(null);
         if (accountId == null) {
@@ -2293,6 +2308,7 @@ public class MeetingController {
         @ApiResponse(responseCode = "500", description = "Internal server error")
     })
     @PostMapping("/meetings/{id}:end")
+    @PreAuthorize("hasAuthority('edit-meeting')")
     public ResponseEntity<Object> end(@PathVariable UUID id) {
         String accountId = AccountContext.getCurrentAccount().orElse(null);
         if (accountId == null) {

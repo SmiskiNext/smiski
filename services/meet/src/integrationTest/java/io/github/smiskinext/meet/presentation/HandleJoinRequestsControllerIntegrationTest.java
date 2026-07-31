@@ -50,6 +50,7 @@ class HandleJoinRequestsControllerIntegrationTest {
         UUID requestId = createPendingRequest(meetingId, "device-1");
 
         mockMvc.perform(post("/api/1/meetings/{id}/join-requests:accept", meetingId)
+                        .header("X-Project-Permissions", "view-meeting,edit-meeting")
                         .header("X-Account-Id", HOST_ID)
                         .header("X-Tenant-ID", TENANT_ID)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -67,6 +68,7 @@ class HandleJoinRequestsControllerIntegrationTest {
         UUID requestId = createPendingRequest(meetingId, "device-1");
 
         mockMvc.perform(post("/api/1/meetings/{id}/join-requests:decline", meetingId)
+                        .header("X-Project-Permissions", "view-meeting,edit-meeting")
                         .header("X-Account-Id", HOST_ID)
                         .header("X-Tenant-ID", TENANT_ID)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -81,6 +83,7 @@ class HandleJoinRequestsControllerIntegrationTest {
         UUID meetingId = insertMeeting(50);
 
         mockMvc.perform(post("/api/1/meetings/{id}/join-requests:accept", meetingId)
+                        .header("X-Project-Permissions", "view-meeting,edit-meeting")
                         .header("X-Account-Id", HOST_ID)
                         .header("X-Tenant-ID", TENANT_ID)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -96,6 +99,7 @@ class HandleJoinRequestsControllerIntegrationTest {
         UUID requestId = createPendingRequest(meetingId, "device-1");
 
         mockMvc.perform(post("/api/1/meetings/{id}/join-requests:accept", meetingId)
+                        .header("X-Project-Permissions", "view-meeting,edit-meeting")
                         .header("X-Account-Id", "not-the-host")
                         .header("X-Tenant-ID", TENANT_ID)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -110,6 +114,7 @@ class HandleJoinRequestsControllerIntegrationTest {
         UUID unknownMeeting = UUID.randomUUID();
 
         mockMvc.perform(post("/api/1/meetings/{id}/join-requests:accept", unknownMeeting)
+                        .header("X-Project-Permissions", "view-meeting,edit-meeting")
                         .header("X-Account-Id", HOST_ID)
                         .header("X-Tenant-ID", TENANT_ID)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -121,6 +126,7 @@ class HandleJoinRequestsControllerIntegrationTest {
 
     private UUID createPendingRequest(UUID meetingId, String deviceId) throws Exception {
         MvcResult result = mockMvc.perform(post("/api/1/meetings/{id}:join", meetingId)
+                        .header("X-Project-Permissions", "view-meeting,edit-meeting")
                         .header("X-Account-Id", "participant-1")
                         .header("X-Tenant-ID", TENANT_ID)
                         .contentType(MediaType.APPLICATION_JSON)

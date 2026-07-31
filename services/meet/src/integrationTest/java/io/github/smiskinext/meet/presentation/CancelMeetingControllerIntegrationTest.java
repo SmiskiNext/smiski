@@ -62,7 +62,8 @@ class CancelMeetingControllerIntegrationTest {
 
         mockMvc.perform(post("/api/1/meetings/{id}:cancel", meetingId)
                         .header("X-Account-Id", HOST_ID)
-                        .header("X-Tenant-ID", TENANT_ID))
+                        .header("X-Tenant-ID", TENANT_ID)
+                        .header("X-Project-Permissions", "edit-meeting"))
                 .andExpect(status().isOk())
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$.meeting.id").value(meetingId.toString()))
@@ -83,7 +84,8 @@ class CancelMeetingControllerIntegrationTest {
 
         mockMvc.perform(post("/api/1/meetings/{id}:cancel", meetingId)
                         .header("X-Account-Id", "other-account")
-                        .header("X-Tenant-ID", TENANT_ID))
+                        .header("X-Tenant-ID", TENANT_ID)
+                        .header("X-Project-Permissions", "edit-meeting"))
                 .andExpect(status().isForbidden())
                 .andExpect(content().contentTypeCompatibleWith("application/problem+json"))
                 .andExpect(jsonPath("$.code").value("NOT_AUTHORIZED"));
@@ -95,7 +97,8 @@ class CancelMeetingControllerIntegrationTest {
     void unknownMeetingReturnsNotFound() throws Exception {
         mockMvc.perform(post("/api/1/meetings/{id}:cancel", UUID.randomUUID())
                         .header("X-Account-Id", HOST_ID)
-                        .header("X-Tenant-ID", TENANT_ID))
+                        .header("X-Tenant-ID", TENANT_ID)
+                        .header("X-Project-Permissions", "edit-meeting"))
                 .andExpect(status().isNotFound())
                 .andExpect(content().contentTypeCompatibleWith("application/problem+json"))
                 .andExpect(jsonPath("$.code").value("MEETING_NOT_FOUND"));
@@ -107,7 +110,8 @@ class CancelMeetingControllerIntegrationTest {
 
         mockMvc.perform(post("/api/1/meetings/{id}:cancel", meetingId)
                         .header("X-Account-Id", HOST_ID)
-                        .header("X-Tenant-ID", TENANT_ID))
+                        .header("X-Tenant-ID", TENANT_ID)
+                        .header("X-Project-Permissions", "edit-meeting"))
                 .andExpect(status().isConflict())
                 .andExpect(content().contentTypeCompatibleWith("application/problem+json"))
                 .andExpect(jsonPath("$.code").value("INVALID_STATUS_TRANSITION"));
@@ -120,7 +124,8 @@ class CancelMeetingControllerIntegrationTest {
         UUID meetingId = insert("SCHEDULED");
 
         mockMvc.perform(post("/api/1/meetings/{id}:cancel", meetingId)
-                        .header("X-Tenant-ID", TENANT_ID))
+                        .header("X-Tenant-ID", TENANT_ID)
+                        .header("X-Project-Permissions", "edit-meeting"))
                 .andExpect(status().isBadRequest())
                 .andExpect(content().contentTypeCompatibleWith("application/problem+json"))
                 .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"));

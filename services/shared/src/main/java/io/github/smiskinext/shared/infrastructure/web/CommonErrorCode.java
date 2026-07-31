@@ -31,7 +31,10 @@ public enum CommonErrorCode implements ErrorCode {
     RESOURCE_NOT_FOUND(ErrorCategory.NOT_FOUND),
 
     /** An unexpected, unclassified technical failure occurred. */
-    INTERNAL_ERROR(ErrorCategory.INTERNAL);
+    INTERNAL_ERROR(ErrorCategory.INTERNAL),
+
+    /** The caller lacks the required project permission for the operation. */
+    NOT_AUTHORIZED(ErrorCategory.FORBIDDEN);
 
     private final ErrorCategory category;
 

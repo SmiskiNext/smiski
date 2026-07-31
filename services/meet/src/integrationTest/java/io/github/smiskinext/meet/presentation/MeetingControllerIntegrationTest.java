@@ -78,6 +78,7 @@ class MeetingControllerIntegrationTest {
                 """;
 
         MvcResult result = mockMvc.perform(post("/api/1/meetings:instant")
+                        .header("X-Project-Permissions", "view-meeting,edit-meeting")
                         .header("X-Account-Id", "host-account")
                         .header("X-Tenant-ID", "tenant-test")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -173,6 +174,7 @@ class MeetingControllerIntegrationTest {
                     """;
 
             mockMvc.perform(post("/api/1/meetings:instant")
+                            .header("X-Project-Permissions", "view-meeting,edit-meeting")
                             .header("X-Account-Id", "host-account")
                             .header("X-Tenant-ID", "tenant-test")
                             .contentType(MediaType.APPLICATION_JSON)
@@ -212,6 +214,7 @@ class MeetingControllerIntegrationTest {
                     """;
 
             mockMvc.perform(post("/api/1/meetings:instant")
+                            .header("X-Project-Permissions", "view-meeting,edit-meeting")
                             .header("X-Account-Id", "host-account")
                             .header("X-Tenant-ID", "tenant-test")
                             .contentType(MediaType.APPLICATION_JSON)
@@ -258,6 +261,7 @@ class MeetingControllerIntegrationTest {
                     """;
 
             mockMvc.perform(post("/api/1/meetings:instant")
+                            .header("X-Project-Permissions", "view-meeting,edit-meeting")
                             .header("X-Account-Id", "host-account")
                             .header("X-Tenant-ID", "tenant-test")
                             .contentType(MediaType.APPLICATION_JSON)
@@ -304,6 +308,7 @@ class MeetingControllerIntegrationTest {
                     """;
 
             mockMvc.perform(post("/api/1/meetings:instant")
+                            .header("X-Project-Permissions", "view-meeting,edit-meeting")
                             .header("X-Account-Id", "host-account")
                             .header("X-Tenant-ID", "tenant-test")
                             .contentType(MediaType.APPLICATION_JSON)
@@ -343,6 +348,7 @@ class MeetingControllerIntegrationTest {
                     """;
 
             mockMvc.perform(post("/api/1/meetings:instant")
+                            .header("X-Project-Permissions", "view-meeting,edit-meeting")
                             .header("X-Account-Id", "host-account")
                             .header("X-Tenant-ID", "tenant-test")
                             .contentType(MediaType.APPLICATION_JSON)
@@ -383,6 +389,7 @@ class MeetingControllerIntegrationTest {
                     """;
 
             mockMvc.perform(post("/api/1/meetings:instant")
+                            .header("X-Project-Permissions", "view-meeting,edit-meeting")
                             .header("X-Account-Id", "host-account")
                             .header("X-Tenant-ID", "tenant-test")
                             .contentType(MediaType.APPLICATION_JSON)
@@ -417,6 +424,7 @@ class MeetingControllerIntegrationTest {
                     """;
 
             mockMvc.perform(post("/api/1/meetings:instant")
+                            .header("X-Project-Permissions", "view-meeting,edit-meeting")
                             .header("X-Account-Id", "host-account")
                             .header("X-Tenant-ID", "tenant-test")
                             .contentType(MediaType.APPLICATION_JSON)
@@ -456,6 +464,7 @@ class MeetingControllerIntegrationTest {
                     """;
 
             mockMvc.perform(post("/api/1/meetings:instant")
+                            .header("X-Project-Permissions", "view-meeting,edit-meeting")
                             .header("X-Account-Id", "host-account")
                             .header("X-Tenant-ID", "tenant-test")
                             .contentType(MediaType.APPLICATION_JSON)
@@ -499,6 +508,7 @@ class MeetingControllerIntegrationTest {
                     """;
 
             mockMvc.perform(post("/api/1/meetings:instant")
+                            .header("X-Project-Permissions", "view-meeting,edit-meeting")
                             .header("X-Account-Id", "host-account")
                             .header("X-Tenant-ID", TENANT_ID)
                             .contentType(MediaType.APPLICATION_JSON)
@@ -541,6 +551,7 @@ class MeetingControllerIntegrationTest {
                     """;
 
             mockMvc.perform(post("/api/1/meetings:instant")
+                            .header("X-Project-Permissions", "view-meeting,edit-meeting")
                             .header("X-Account-Id", "host-account")
                             .header("X-Tenant-ID", TENANT_ID)
                             .contentType(MediaType.APPLICATION_JSON)
@@ -577,6 +588,7 @@ class MeetingControllerIntegrationTest {
                     """;
 
             mockMvc.perform(post("/api/1/meetings:instant")
+                            .header("X-Project-Permissions", "view-meeting,edit-meeting")
                             .header("X-Account-Id", "host-account")
                             .header("X-Tenant-ID", TENANT_ID)
                             .contentType(MediaType.APPLICATION_JSON)
@@ -618,6 +630,7 @@ class MeetingControllerIntegrationTest {
                     """;
 
             MvcResult result = mockMvc.perform(post("/api/1/meetings:instant")
+                            .header("X-Project-Permissions", "view-meeting,edit-meeting")
                             .header("X-Account-Id", "host-account")
                             .header("X-Tenant-ID", TENANT_ID)
                             .contentType(MediaType.APPLICATION_JSON)
@@ -665,6 +678,7 @@ class MeetingControllerIntegrationTest {
                     """;
 
             MvcResult result = mockMvc.perform(post("/api/1/meetings:instant")
+                            .header("X-Project-Permissions", "view-meeting,edit-meeting")
                             .header("X-Account-Id", "host-account")
                             .header("X-Tenant-ID", TENANT_ID)
                             .contentType(MediaType.APPLICATION_JSON)
@@ -727,6 +741,7 @@ class MeetingControllerIntegrationTest {
                     """;
 
             MvcResult result = mockMvc.perform(post("/api/1/meetings:instant")
+                            .header("X-Project-Permissions", "view-meeting,edit-meeting")
                             .header("X-Account-Id", "host-account")
                             .header("X-Tenant-ID", TENANT_ID)
                             .contentType(MediaType.APPLICATION_JSON)
@@ -784,6 +799,7 @@ class MeetingControllerIntegrationTest {
                     """;
 
             MvcResult result = mockMvc.perform(post("/api/1/meetings:instant")
+                            .header("X-Project-Permissions", "view-meeting,edit-meeting")
                             .header("X-Account-Id", "lifecycle-host")
                             .header("X-Tenant-ID", TENANT_ID)
                             .contentType(MediaType.APPLICATION_JSON)
@@ -852,6 +868,7 @@ class MeetingControllerIntegrationTest {
                     """;
 
             MvcResult result = mockMvc.perform(post("/api/1/meetings:instant")
+                            .header("X-Project-Permissions", "view-meeting,edit-meeting")
                             .header("X-Account-Id", "invitee-host")
                             .header("X-Tenant-ID", TENANT_ID)
                             .contentType(MediaType.APPLICATION_JSON)

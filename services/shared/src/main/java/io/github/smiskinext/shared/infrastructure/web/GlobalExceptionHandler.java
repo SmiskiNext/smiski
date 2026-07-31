@@ -106,6 +106,12 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         return problemResponse(body);
     }
 
+    @ExceptionHandler(org.springframework.security.access.AccessDeniedException.class)
+    public ResponseEntity<Object> handleAccessDenied(
+            org.springframework.security.access.AccessDeniedException ex) {
+        return problemResponse(problemDetailMapper.forErrorCode(CommonErrorCode.NOT_AUTHORIZED));
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Object> handleUnexpected(Exception ex) {
         log.error("Unhandled exception", ex);

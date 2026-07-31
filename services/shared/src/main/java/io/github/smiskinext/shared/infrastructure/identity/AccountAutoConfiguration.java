@@ -9,14 +9,15 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.core.Ordered;
 
 /**
- * Auto-configuration that wires the account identity infrastructure: the request-scoped
- * {@link AccountFilter}. Activated automatically via Spring Boot SPI.
+ * Auto-configuration that wires the account and permission identity infrastructure: the
+ * request-scoped {@link AccountFilter} and {@link PermissionFilter}. Activated automatically
+ * via Spring Boot SPI.
  *
  * <p>Only active when running in a SERVLET container (not Netty/WebFlux).
  */
 @AutoConfiguration
 @ConditionalOnWebApplication(type = Type.SERVLET)
-@EnableConfigurationProperties(AccountProperties.class)
+@EnableConfigurationProperties({AccountProperties.class, PermissionProperties.class})
 public class AccountAutoConfiguration {
 
     @Bean

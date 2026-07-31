@@ -95,6 +95,7 @@ class MeetingCreationRollbackIntegrationTest {
                 """;
 
         mockMvc.perform(post("/api/1/meetings:instant")
+                        .header("X-Project-Permissions", "view-meeting,edit-meeting")
                         .header("X-Account-Id", "rollback-host-account")
                         .header("X-Tenant-ID", TENANT_ID)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -145,6 +146,7 @@ class MeetingCreationRollbackIntegrationTest {
                 """;
 
         mockMvc.perform(post("/api/1/meetings:instant")
+                        .header("X-Project-Permissions", "view-meeting,edit-meeting")
                         .header("X-Account-Id", "no-inv-host")
                         .header("X-Tenant-ID", TENANT_ID)
                         .contentType(MediaType.APPLICATION_JSON)
