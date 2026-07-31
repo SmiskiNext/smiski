@@ -228,28 +228,18 @@ export type MeetIssueLink = {
     projectKey?: string;
 };
 
-export type MeetSettings = {
-    admissionPolicy?: string;
-    maxParticipants?: number;
-    allowScreenShare?: boolean;
-    chatEnabled?: boolean;
-    allowMicrophone?: boolean;
-    allowVideo?: boolean;
-};
-
 export type MeetTimeRange = {
     startTime: string;
     endTime: string;
 };
 
 /**
- * Full meeting update request
+ * Meeting information update request
  */
 export type MeetUpdateMeetingRequest = {
     title: string;
     description: string;
     issueLink: MeetIssueLink;
-    settings: MeetSettings;
     zoneId: string;
     timeRange?: MeetTimeRange;
     timeRangeValid?: boolean;
@@ -274,7 +264,6 @@ export type MeetUpdatedMeetingSnapshot = {
     title?: string;
     description?: string;
     issueLink?: MeetIssueLink;
-    settings?: MeetSettings;
     startTime?: string;
     endTime?: string;
     zoneId?: string;
@@ -335,6 +324,31 @@ export type MeetProblemDetail = {
      * Field-level validation errors (present when code is VALIDATION_ERROR)
      */
     errors?: Array<MeetViolation>;
+};
+
+/**
+ * Full settings replacement request
+ */
+export type MeetUpdateMeetingSettingsRequest = {
+    admissionPolicy: string;
+    maxParticipants?: number;
+    allowScreenShare?: boolean;
+    chatEnabled?: boolean;
+    allowMicrophone?: boolean;
+    allowVideo?: boolean;
+};
+
+/**
+ * Updated meeting settings snapshot
+ */
+export type MeetUpdateMeetingSettingsResponse = {
+    meetingId?: string;
+    admissionPolicy?: string;
+    maxParticipants?: number;
+    allowScreenShare?: boolean;
+    chatEnabled?: boolean;
+    allowMicrophone?: boolean;
+    allowVideo?: boolean;
 };
 
 /**
@@ -449,6 +463,15 @@ export type MeetScheduleMeetingRequest = {
      */
     zoneId: string;
     invitees?: Array<MeetInvitee> | null;
+};
+
+export type MeetSettings = {
+    admissionPolicy?: string;
+    maxParticipants?: number;
+    allowScreenShare?: boolean;
+    chatEnabled?: boolean;
+    allowMicrophone?: boolean;
+    allowVideo?: boolean;
 };
 
 /**
@@ -638,6 +661,68 @@ export type MeetJoinMeetingResponse = {
      * LiveKit room name; present only when APPROVED
      */
     roomName?: string | null;
+};
+
+/**
+ * Completed meeting snapshot
+ */
+export type MeetCompletedMeetingSnapshot = {
+    id?: string;
+    hostId?: string;
+    shortCode?: string;
+    type?: string;
+    status?: string;
+    cancelReason?: string;
+    title?: string;
+    description?: string;
+    issueLink?: MeetIssueLink;
+    settings?: MeetSettings;
+    startTime?: string;
+    endTime?: string;
+    zoneId?: string;
+    organizerEmail?: string;
+    organizerDisplayName?: string;
+    calendarUid?: string;
+    calendarSequence?: number;
+    createdAt?: string;
+};
+
+/**
+ * Snapshot of a completed meeting
+ */
+export type MeetEndMeetingResponse = {
+    meeting?: MeetCompletedMeetingSnapshot;
+};
+
+/**
+ * Snapshot of a canceled meeting
+ */
+export type MeetCancelMeetingResponse = {
+    meeting?: MeetCanceledMeetingSnapshot;
+};
+
+/**
+ * Canceled meeting snapshot
+ */
+export type MeetCanceledMeetingSnapshot = {
+    id?: string;
+    hostId?: string;
+    shortCode?: string;
+    type?: string;
+    status?: string;
+    cancelReason?: string;
+    title?: string;
+    description?: string;
+    issueLink?: MeetIssueLink;
+    settings?: MeetSettings;
+    startTime?: string;
+    endTime?: string;
+    zoneId?: string;
+    organizerEmail?: string;
+    organizerDisplayName?: string;
+    calendarUid?: string;
+    calendarSequence?: number;
+    createdAt?: string;
 };
 
 /**
@@ -1071,12 +1156,60 @@ export type UpdateError = UpdateErrors[keyof UpdateErrors];
 
 export type UpdateResponses = {
     /**
-     * Meeting updated
+     * Meeting information updated
      */
     200: MeetUpdateMeetingResponse;
 };
 
 export type UpdateResponse = UpdateResponses[keyof UpdateResponses];
+
+export type UpdateSettingsData = {
+    body: MeetUpdateMeetingSettingsRequest;
+    path: {
+        version: number;
+        id: string;
+    };
+    query?: never;
+    url: '/api/{version}/meetings/{id}/settings';
+};
+
+export type UpdateSettingsErrors = {
+    /**
+     * Validation error or missing account
+     */
+    400: MeetProblemDetail;
+    /**
+     * Only the host may replace the settings
+     */
+    403: MeetProblemDetail;
+    /**
+     * Meeting not found
+     */
+    404: MeetProblemDetail;
+    /**
+     * Method Not Allowed
+     */
+    405: MeetProblemDetail;
+    /**
+     * Unsupported Media Type
+     */
+    415: MeetProblemDetail;
+    /**
+     * Internal Server Error
+     */
+    500: MeetProblemDetail;
+};
+
+export type UpdateSettingsError = UpdateSettingsErrors[keyof UpdateSettingsErrors];
+
+export type UpdateSettingsResponses = {
+    /**
+     * Settings updated
+     */
+    200: MeetUpdateMeetingSettingsResponse;
+};
+
+export type UpdateSettingsResponse = UpdateSettingsResponses[keyof UpdateSettingsResponses];
 
 export type ReceiveData = {
     body: string;
@@ -1337,6 +1470,114 @@ export type JoinResponses = {
 };
 
 export type JoinResponse = JoinResponses[keyof JoinResponses];
+
+export type EndData = {
+    body?: never;
+    path: {
+        version: number;
+        id: string;
+    };
+    query?: never;
+    url: '/api/{version}/meetings/{id}:end';
+};
+
+export type EndErrors = {
+    /**
+     * Missing account header
+     */
+    400: MeetProblemDetail;
+    /**
+     * Only the host may end the meeting
+     */
+    403: MeetProblemDetail;
+    /**
+     * Meeting not found or soft-deleted
+     */
+    404: MeetProblemDetail;
+    /**
+     * Method Not Allowed
+     */
+    405: MeetProblemDetail;
+    /**
+     * Meeting status does not allow completion
+     */
+    409: MeetProblemDetail;
+    /**
+     * Unsupported Media Type
+     */
+    415: MeetProblemDetail;
+    /**
+     * Internal server error
+     */
+    500: {
+        [key: string]: unknown;
+    };
+};
+
+export type EndError = EndErrors[keyof EndErrors];
+
+export type EndResponses = {
+    /**
+     * Meeting ended; returns the completed meeting snapshot
+     */
+    200: MeetEndMeetingResponse;
+};
+
+export type EndResponse = EndResponses[keyof EndResponses];
+
+export type CancelData = {
+    body?: never;
+    path: {
+        version: number;
+        id: string;
+    };
+    query?: never;
+    url: '/api/{version}/meetings/{id}:cancel';
+};
+
+export type CancelErrors = {
+    /**
+     * Missing account header
+     */
+    400: MeetProblemDetail;
+    /**
+     * Only the host may cancel the meeting
+     */
+    403: MeetProblemDetail;
+    /**
+     * Meeting not found or soft-deleted
+     */
+    404: MeetProblemDetail;
+    /**
+     * Method Not Allowed
+     */
+    405: MeetProblemDetail;
+    /**
+     * Meeting status does not allow cancellation
+     */
+    409: MeetProblemDetail;
+    /**
+     * Unsupported Media Type
+     */
+    415: MeetProblemDetail;
+    /**
+     * Internal server error
+     */
+    500: {
+        [key: string]: unknown;
+    };
+};
+
+export type CancelError = CancelErrors[keyof CancelErrors];
+
+export type CancelResponses = {
+    /**
+     * Meeting canceled; returns the canceled meeting snapshot
+     */
+    200: MeetCancelMeetingResponse;
+};
+
+export type CancelResponse = CancelResponses[keyof CancelResponses];
 
 export type DeclineJoinRequestsData = {
     body: MeetHandleJoinRequestsRequest;
