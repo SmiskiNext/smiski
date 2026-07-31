@@ -5,7 +5,8 @@
         "includes": [
             "src/**/*.{ts,tsx,js,jsx,json}",
             "static/smiski-ui/src/**/*.{ts,tsx,js,jsx,json,css}",
-            "static/smiski-ui/*.{ts,js}"
+            "static/smiski-ui/*.{ts,js}",
+            "scripts/**/*.{ts,js,mjs}"
         ]
     },
     "linter": {
