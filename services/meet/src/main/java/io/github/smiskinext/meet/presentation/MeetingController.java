@@ -20,6 +20,7 @@ import io.github.smiskinext.meet.application.result.DeleteMeetingResult;
 import io.github.smiskinext.meet.application.result.EndMeetingResult;
 import io.github.smiskinext.meet.application.result.GetMeetingResult;
 import io.github.smiskinext.meet.application.result.ListMeetingsResult;
+import io.github.smiskinext.meet.application.result.ListPendingJoinRequestsResult;
 import io.github.smiskinext.meet.application.result.RemoveMeetingInviteesResult;
 import io.github.smiskinext.meet.application.result.RequestJoinResult;
 import io.github.smiskinext.meet.application.result.ScheduleMeetingResult;
@@ -38,6 +39,7 @@ import io.github.smiskinext.meet.application.usecase.DeleteMeetingUseCase;
 import io.github.smiskinext.meet.application.usecase.EndMeetingUseCase;
 import io.github.smiskinext.meet.application.usecase.GetMeetingUseCase;
 import io.github.smiskinext.meet.application.usecase.ListMeetingsUseCase;
+import io.github.smiskinext.meet.application.usecase.ListPendingJoinRequestsUseCase;
 import io.github.smiskinext.meet.application.usecase.RemoveMeetingInviteesUseCase;
 import io.github.smiskinext.meet.application.usecase.RequestJoinUseCase;
 import io.github.smiskinext.meet.application.usecase.ScheduleMeetingUseCase;
@@ -65,6 +67,7 @@ import io.github.smiskinext.meet.presentation.response.EndMeetingResponse;
 import io.github.smiskinext.meet.presentation.response.GetMeetingResponse;
 import io.github.smiskinext.meet.presentation.response.JoinDecisionResponse;
 import io.github.smiskinext.meet.presentation.response.JoinMeetingResponse;
+import io.github.smiskinext.meet.presentation.response.ListPendingJoinRequestsResponse;
 import io.github.smiskinext.meet.presentation.response.MeetingInviteeResponse;
 import io.github.smiskinext.meet.presentation.response.MeetingListPageResponse;
 import io.github.smiskinext.meet.presentation.response.MeetingSummaryResponse;
@@ -98,6 +101,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
@@ -121,6 +125,7 @@ public class MeetingController {
     private final CancelMeetingUseCase cancelMeetingUseCase;
     private final EndMeetingUseCase endMeetingUseCase;
     private final RequestJoinUseCase requestJoinUseCase;
+    private final ListPendingJoinRequestsUseCase listPendingJoinRequestsUseCase;
     private final AcceptJoinRequestsUseCase acceptJoinRequestsUseCase;
     private final DeclineJoinRequestsUseCase declineJoinRequestsUseCase;
     private final AcceptMeetingInviteeUseCase acceptMeetingInviteeUseCase;
@@ -142,6 +147,7 @@ public class MeetingController {
             CancelMeetingUseCase cancelMeetingUseCase,
             EndMeetingUseCase endMeetingUseCase,
             RequestJoinUseCase requestJoinUseCase,
+            ListPendingJoinRequestsUseCase listPendingJoinRequestsUseCase,
             AcceptJoinRequestsUseCase acceptJoinRequestsUseCase,
             DeclineJoinRequestsUseCase declineJoinRequestsUseCase,
             AcceptMeetingInviteeUseCase acceptMeetingInviteeUseCase,
@@ -161,6 +167,7 @@ public class MeetingController {
         this.cancelMeetingUseCase = cancelMeetingUseCase;
         this.endMeetingUseCase = endMeetingUseCase;
         this.requestJoinUseCase = requestJoinUseCase;
+        this.listPendingJoinRequestsUseCase = listPendingJoinRequestsUseCase;
         this.acceptJoinRequestsUseCase = acceptJoinRequestsUseCase;
         this.declineJoinRequestsUseCase = declineJoinRequestsUseCase;
         this.acceptMeetingInviteeUseCase = acceptMeetingInviteeUseCase;
@@ -1511,6 +1518,134 @@ public class MeetingController {
         Result<RequestJoinResult, MeetingError> result = requestJoinUseCase.execute(
                 request.toCommand(id.toString(), accountId, TenantContext.getCurrentTenant()));
         return responder.ok(result.map(JoinMeetingResponse::from));
+    }
+
+    @Operation(
+            summary = "List pending join requests",
+            description = "Returns a paginated list of PENDING join requests for a meeting with "
+                    + "MANUAL_APPROVAL admission policy. Only the meeting host may call this "
+                    + "endpoint. Use offset and pageSize query parameters for pagination.")
+    @ApiResponses({
+        @ApiResponse(
+                responseCode = "200",
+                description = "Paginated list of pending join requests",
+                content =
+                        @Content(
+                                mediaType = "application/json",
+                                schema =
+                                        @Schema(
+                                                implementation =
+                                                        ListPendingJoinRequestsResponse.class),
+                                examples = @ExampleObject(name = "list", value = """
+                        {
+                          "results": [
+                            {
+                              "requestId": "0195e0c2-8f3a-7c21-b9d4-2f1a6e7c8d90",
+                              "accountId": "account-456",
+                              "displayName": "Alice Nguyen",
+                              "status": "PENDING",
+                              "requestedAt": "2025-02-01T14:00:00Z",
+                              "expiresAt": "2025-02-01T14:05:00Z"
+                            }
+                          ],
+                          "meta": {
+                            "total": 1,
+                            "offset": 0,
+                            "pageSize": 20
+                          }
+                        }"""))),
+        @ApiResponse(
+                responseCode = "400",
+                description = "Missing account header or pageSize out of range",
+                content =
+                        @Content(
+                                mediaType = "application/problem+json",
+                                schema = @Schema(implementation = ProblemDetailSchema.class),
+                                examples = {
+                                    @ExampleObject(
+                                            name = "missingAccount",
+                                            summary = "Missing X-Account-Id header",
+                                            value = """
+                            {
+                              "type": "about:blank",
+                              "title": "Bad Request",
+                              "status": 400,
+                              "detail": "X-Account-Id header is required",
+                              "code": "VALIDATION_ERROR",
+                              "traceId": "6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a"
+                            }"""),
+                                    @ExampleObject(
+                                            name = "pageSizeOutOfRange",
+                                            summary = "pageSize is 0 or greater than 100",
+                                            value = """
+                            {
+                              "type": "about:blank",
+                              "title": "Bad Request",
+                              "status": 400,
+                              "detail": "pageSize must be between 1 and 100",
+                              "code": "VALIDATION_ERROR",
+                              "traceId": "6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a"
+                            }""")
+                                })),
+        @ApiResponse(
+                responseCode = "403",
+                description = "Only the host may list pending join requests",
+                content =
+                        @Content(
+                                mediaType = "application/problem+json",
+                                schema = @Schema(implementation = ProblemDetailSchema.class),
+                                examples = @ExampleObject(name = "notOwner", value = """
+                        {
+                          "type": "about:blank",
+                          "title": "Not authorized",
+                          "status": 403,
+                          "detail": "You do not own the requested user scope.",
+                          "code": "NOT_OWNER",
+                          "traceId": "6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a"
+                        }"""))),
+        @ApiResponse(
+                responseCode = "404",
+                description = "Meeting not found for the current tenant",
+                content =
+                        @Content(
+                                mediaType = "application/problem+json",
+                                schema = @Schema(implementation = ProblemDetailSchema.class),
+                                examples = @ExampleObject(name = "notFound", value = """
+                        {
+                          "type": "about:blank",
+                          "title": "Meeting not found",
+                          "status": 404,
+                          "detail": "No meeting matches the given identifier.",
+                          "code": "MEETING_NOT_FOUND",
+                          "traceId": "6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a"
+                        }""")))
+    })
+    @GetMapping("/meetings/{id}/join-requests")
+    @PreAuthorize("hasAuthority('edit-meeting')")
+    public ResponseEntity<Object> listPendingJoinRequests(
+            @PathVariable UUID id,
+            @RequestParam(defaultValue = "0") int offset,
+            @RequestParam(defaultValue = "20") int pageSize) {
+        String accountId = AccountContext.getCurrentAccount().orElse(null);
+        if (accountId == null) {
+            return missingAccount();
+        }
+        if (pageSize < 1 || pageSize > 100) {
+            org.springframework.http.ProblemDetail problem =
+                    org.springframework.http.ProblemDetail.forStatusAndDetail(
+                            org.springframework.http.HttpStatus.BAD_REQUEST,
+                            "pageSize must be between 1 and 100");
+            problem.setProperty("code", "VALIDATION_ERROR");
+            return ResponseEntity.badRequest()
+                    .contentType(org.springframework.http.MediaType.APPLICATION_PROBLEM_JSON)
+                    .body(problem);
+        }
+        Result<ListPendingJoinRequestsResult, MeetingError> result =
+                listPendingJoinRequestsUseCase.execute(
+                        new io.github.smiskinext.meet.application.query
+                                .ListPendingJoinRequestsQuery(
+                                id, TenantContext.getCurrentTenant(), accountId, offset, pageSize));
+        return responder.ok(result.map(ListPendingJoinRequestsResponse::from));
     }
 
     @Operation(

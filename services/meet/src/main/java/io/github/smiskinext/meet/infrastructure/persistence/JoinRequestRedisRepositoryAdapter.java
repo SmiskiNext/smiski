@@ -222,6 +222,15 @@ public class JoinRequestRedisRepositoryAdapter implements JoinRequestRepository 
     }
 
     @Override
+    public long countPendingByMeetingId(UUID meetingId) {
+        return loadQueue(meetingId).stream()
+                .filter(Objects::nonNull)
+                .filter(data ->
+                        JoinRequestStatus.valueOf(data.status()) == JoinRequestStatus.PENDING)
+                .count();
+    }
+
+    @Override
     public void updateStatus(UUID requestId, JoinRequestStatus status) {
         String metaKey = metaKey(requestId.toString());
         stringRedisTemplate.execute(updateStatusScript, List.of(metaKey), status.name());
