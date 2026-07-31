@@ -34,6 +34,21 @@ export interface LiveMeetingParticipant {
     audioTrack: LocalAudioTrack | RemoteAudioTrack | null;
 }
 
+/**
+ * The one screen-share track currently being presented in the room, if any.
+ *
+ * LiveKit publishes a screen share as a separate `Track.Source.ScreenShare`
+ * track rather than replacing the sharer's camera, so it needs its own slot —
+ * reading only `Camera`/`Microphone` (as `toParticipant` does) makes a shared
+ * screen invisible even though it is being published. Only the first sharer
+ * found is surfaced: the UI presents one screen at a time, like Google Meet.
+ */
+export interface ScreenShareFeed {
+    track: LocalVideoTrack | RemoteVideoTrack;
+    participantName: string;
+    isLocal: boolean;
+}
+
 export type LiveKitConnectionState =
     | 'idle'
     | 'connecting'
@@ -52,6 +67,8 @@ export interface UseLiveKitRoomResult {
     error: Error | null;
     localAccountId: string | null;
     participants: LiveMeetingParticipant[];
+    /** Non-null while someone (possibly the local user) is presenting. */
+    screenShare: ScreenShareFeed | null;
     isMicOn: boolean;
     isCameraOn: boolean;
     isScreenSharing: boolean;
@@ -95,6 +112,13 @@ export function useLiveKitRoom({
     const [participants, setParticipants] = useState<LiveMeetingParticipant[]>(
         [],
     );
+    const [screenShare, setScreenShare] = useState<ScreenShareFeed | null>(
+        null,
+    );
+    // Mirrored into state rather than read off `roomRef` during render: a ref
+    // mutation doesn't re-render, so a render-time read leaves the "Share
+    // screen" button stuck on its previous state.
+    const [isScreenSharing, setIsScreenSharing] = useState(false);
 
     const snapshot = useCallback(() => {
         const room = roomRef.current;
@@ -104,6 +128,34 @@ export function useLiveKitRoom({
             toParticipant(p, false),
         );
         setParticipants([local, ...remotes]);
+
+        // Local participant first, so the presenter sees their own screen
+        // immediately rather than waiting on a round trip through the server.
+        const candidates: [LKParticipant, boolean][] = [
+            [room.localParticipant, true],
+            ...Array.from(room.remoteParticipants.values()).map(
+                (p): [LKParticipant, boolean] => [p, false],
+            ),
+        ];
+        const feed = candidates.reduce<ScreenShareFeed | null>(
+            (found, [participant, isLocal]) => {
+                if (found) return found;
+                const track = participant.getTrackPublication(
+                    Track.Source.ScreenShare,
+                )?.track as LocalVideoTrack | RemoteVideoTrack | undefined;
+                return track
+                    ? {
+                          track,
+                          participantName:
+                              participant.name || participant.identity,
+                          isLocal,
+                      }
+                    : null;
+            },
+            null,
+        );
+        setScreenShare(feed);
+        setIsScreenSharing(room.localParticipant.isScreenShareEnabled);
     }, []);
 
     useEffect(() => {
@@ -199,10 +251,10 @@ export function useLiveKitRoom({
         error,
         localAccountId: local?.accountId ?? null,
         participants,
+        screenShare,
         isMicOn: local?.isMicOn ?? false,
         isCameraOn: local?.isCameraOn ?? false,
-        isScreenSharing:
-            roomRef.current?.localParticipant.isScreenShareEnabled ?? false,
+        isScreenSharing,
         toggleMic,
         toggleCamera,
         toggleScreenShare,
