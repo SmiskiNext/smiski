@@ -15,7 +15,10 @@ import type { Meeting, MeetingSettings, Participant } from './domain/meeting';
 import { mintLiveKitToken } from './liveKitToken';
 
 const MEETING_KEY_PREFIX = 'meeting:';
-const QUERY_PAGE_SIZE = 200;
+// Forge KVS rejects a list query with `limit >= 100`
+// (`LIST_QUERY_LIMIT_EXCEEDED`), so this must stay under it. `fetchAllMeetings`
+// pages with a cursor, so the value only affects round-trips, not results.
+const QUERY_PAGE_SIZE = 90;
 
 type StoredMeeting = Meeting & { participants: Participant[] };
 
@@ -100,6 +103,31 @@ async function saveMeeting(stored: StoredMeeting): Promise<void> {
     await kvs.set(meetingKey(stored.id), stored);
 }
 
+/**
+ * Fills in fields a stored document may be missing, so every read path can
+ * treat them as present.
+ *
+ * KVS documents are schemaless and long-lived: a meeting written by an earlier
+ * revision of this file keeps whatever shape it had then, and this code still
+ * has to read it. Without this, `joinMeeting`/`endMeeting` crash with
+ * "Cannot read properties of undefined (reading 'find')" on any meeting saved
+ * before `participants` existed, and the `listProjectMeetings` filters throw on
+ * a missing `issueKey`/`title`. Normalizing once on read keeps that concern out
+ * of every caller.
+ */
+function normalizeStoredMeeting(stored: StoredMeeting): StoredMeeting {
+    const participants = Array.isArray(stored.participants)
+        ? stored.participants
+        : [];
+    return {
+        ...stored,
+        participants,
+        title: stored.title ?? '',
+        issueKey: stored.issueKey ?? '',
+        participantCount: stored.participantCount ?? participants.length,
+    };
+}
+
 async function fetchAllMeetings(): Promise<StoredMeeting[]> {
     const meetings: StoredMeeting[] = [];
     let cursor: string | undefined;
@@ -110,7 +138,11 @@ async function fetchAllMeetings(): Promise<StoredMeeting[]> {
             .limit(QUERY_PAGE_SIZE);
         if (cursor) query = query.cursor(cursor);
         const page = await query.getMany<StoredMeeting>();
-        meetings.push(...page.results.map((result) => result.value));
+        meetings.push(
+            ...page.results.map((result) =>
+                normalizeStoredMeeting(result.value),
+            ),
+        );
         cursor = page.nextCursor;
     } while (cursor);
     return meetings;
@@ -119,7 +151,7 @@ async function fetchAllMeetings(): Promise<StoredMeeting[]> {
 async function getStoredMeeting(meetingId: string): Promise<StoredMeeting> {
     const stored = await kvs.get<StoredMeeting>(meetingKey(meetingId));
     if (!stored) throw new Error(`Meeting not found: ${meetingId}`);
-    return stored;
+    return normalizeStoredMeeting(stored);
 }
 
 export async function listIssueMeetings(issueKey: string): Promise<Meeting[]> {
