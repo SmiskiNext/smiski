@@ -1,4 +1,4 @@
-# AGENTS.md — Smiski Forge app
+    # AGENTS.md — Smiski Forge app
 
 Guidance for agents working in `app/`. Keep it verifiable against config and
 code, not prose. Root repo rules live in `../AGENTS.md`; this file owns the
@@ -45,9 +45,20 @@ pnpm lint      # biome check (whole app)
 pnpm format    # biome format --write
 pnpm typecheck # tsc --noEmit at root, then in smiski-ui
 
-pnpm deploy       # = forge deploy (needs forge CLI + login)
-pnpm install:site # = forge install
+pnpm run deploy       # = pnpm build && forge deploy
+pnpm run install:site # = forge install
+pnpm run forge <args> # = forge <args>, e.g. pnpm run forge logs --since 15m
 ```
+
+Use `pnpm run deploy`, not `pnpm deploy` — `deploy` is a built-in pnpm 10
+command and would shadow the script. All three go through
+`scripts/with-env.mjs`, which loads `app/.env` first (real shell variables win,
+so CI is unaffected). That matters twice: the Forge CLI reads
+`FORGE_EMAIL`/`FORGE_API_TOKEN` from the environment when `forge login` can't
+write the local keychain, and it interpolates `manifest.yml`'s `${...}` from
+`process.env` at deploy time, falling back to each variable's `default:`.
+`deploy` rebuilds the UI first because `forge deploy` uploads
+`static/smiski-ui/dist` as-is and never builds it.
 
 Single test / watch (from `static/smiski-ui`):
 
@@ -116,31 +127,37 @@ identity itself. The `meet-backend` remote and its `baseUrl`
 - `hooks/` — TanStack Query hooks. `hooks/queryKeys.ts` centralizes every cache
   key; always add new keys there so mutation invalidation stays in sync.
 - `context/`, `components/shared/`, `components/ui/` (local Tailwind design
-  system), `features/`, `theme/`, `utils/`, `mocks/` (in-memory backend
-  stand-in; `mocks/db.ts` is the store).
+  system), `features/`, `theme/`, `utils/`, `mocks/` (Jira identity/issue
+  fixtures for `vite dev` only — see "Mock vs backend" below).
 
 ## Mock vs backend (gotcha)
 
-Data source is **hardwired per hook**, not a global switch. The
-`shouldUseBackendApi()` / `VITE_SMISKI_DATA_SOURCE` switch described in
-`api/README.md` no longer exists — treat that README as aspirational.
+`mocks/db.ts` is **gone** — every meeting read and write now goes through the
+resolver to Forge KVS (`app/src/meetingStore.ts`), with no mock fallback:
+`useMeeting`, `useMeetingParticipants` (derived from the same `getMeeting`
+query), `useIssueMeetings`, `useProjectMeetings`, `useCreateInstantMeeting`,
+`useScheduleMeeting`, `useUpdateMeeting`, `useCancelMeeting`, `useEndMeeting`,
+`useStartMeeting` (joins as host), and `useRoomToken`. Standalone `vite dev`
+therefore cannot list/create/update/cancel/start meetings or enter a room —
+there is no Forge bridge to reach the resolver through.
 
-- `useMeeting`, `useMeetingParticipants` (derived from the same `get` query),
-  `useIssueMeetings`, `useCreateInstantMeeting`, `useScheduleMeeting`,
-  `useUpdateMeeting`, `useCancelMeeting`, `useStartMeeting` (joins as host),
-  and room-entry (`useRoomToken`) → **real backend**, over the generated SDK
-  + Forge Remote, with **no mock fallback**. Standalone `vite dev` therefore
-  cannot create/update/cancel/start meetings or enter a room.
-- `useProjectMeetings` → still `mocks/db.ts` — the backend `list` operation
-  has no project-wide filter (only exact `issueKey`), so this can't be
-  wired without a backend change.
-- `useEndMeeting` → still `mocks/db.ts` — no backend "end meeting" endpoint
-  exists (RUNNING→COMPLETED only happens via an async LiveKit webhook).
-- `useMeetingPermission` → **real** in a Forge context (resolver →
-  `getMeetingPermission`, see above); mocked (always full access) only in
-  standalone `vite dev`, which has no Forge bridge.
-- `currentUser`/`projectMembers`/`issues` call Jira directly from the browser;
-  `searchWorkspaceUsers`/`getMeetingPermission` go through the resolver.
+The `shouldUseBackendApi()` / `VITE_SMISKI_DATA_SOURCE` switch described in
+`api/README.md` never existed in code — treat that README as aspirational.
+
+What remains in `mocks/` is Jira **identity/issue** data only, and every one of
+its consumers is gated on `import.meta.env.DEV`, so a Forge build never reaches
+it:
+
+- `useProjectIssues`, `useProjectMembers` → real Jira via `requestJira` from the
+  browser; mock only under `vite dev`.
+- `useWorkspaceUsers` → resolver `searchWorkspaceUsers`; mock only under
+  `vite dev`.
+- `useMeetingPermission` → resolver `getMeetingPermission`; mocked (always full
+  access) only under `vite dev`.
+- `CurrentUserContext` → Jira `/myself`; `mocks/users.ts`'s `CURRENT_USER` is
+  the context default and the `vite dev` value. `CurrentUserProvider` wraps the
+  whole app including modal roots (`App.tsx`), so the default never leaks into
+  a Forge render.
 
 ## Backend permission enforcement (not yet built)
 
