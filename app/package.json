@@ -19,8 +19,9 @@
         "format": "biome format --write",
         "format:check": "biome format .",
         "typecheck": "tsc --noEmit && pnpm --filter smiski-ui typecheck",
-        "deploy": "pnpm build && forge deploy",
-        "install:site": "forge install"
+        "deploy": "pnpm build && node scripts/with-env.mjs forge deploy",
+        "install:site": "node scripts/with-env.mjs forge install",
+        "forge": "node scripts/with-env.mjs forge"
     },
     "dependencies": {
         "@forge/api": "8.0.1-next.0",
