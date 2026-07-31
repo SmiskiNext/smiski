@@ -17,13 +17,18 @@ import { useElementSize } from '../../../hooks/useElementSize';
 import type { LiveMeetingParticipant } from '../../../hooks/useLiveKitRoom';
 import { ParticipantVideoTile } from './ParticipantVideoTile';
 
-type GridParticipant = Participant | LiveMeetingParticipant;
+export type GridParticipant = Participant | LiveMeetingParticipant;
 
 type GridCell =
     | { kind: 'participant'; participant: GridParticipant }
     | { kind: 'overflow'; count: number };
 
-function isLiveParticipant(
+/**
+ * Only a LiveKit-sourced participant carries media tracks; a roster entry from
+ * the meeting store has none. Exported so `ParticipantFilmstrip` narrows the
+ * same union the same way instead of re-deriving the rule.
+ */
+export function isLiveParticipant(
     participant: GridParticipant,
 ): participant is LiveMeetingParticipant {
     return 'videoTrack' in participant;

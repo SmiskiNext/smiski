@@ -4,8 +4,11 @@ import type { Meeting, Participant } from '../../../domain';
 import type {
     LiveKitConnectionState,
     LiveMeetingParticipant,
+    ScreenShareFeed,
 } from '../../../hooks/useLiveKitRoom';
+import { ParticipantFilmstrip } from './ParticipantFilmstrip';
 import { ParticipantVideoGrid } from './ParticipantVideoGrid';
+import { ScreenShareStage } from './ScreenShareStage';
 
 export interface MeetingRoomShellProps {
     meeting: Meeting | null;
@@ -23,6 +26,11 @@ export interface MeetingRoomShellProps {
     isMicOn?: boolean;
     isCameraOn?: boolean;
     isScreenSharing?: boolean;
+    /**
+     * Set while anyone in the room is presenting. Switches the video area from
+     * the equal-sized grid to a stage + filmstrip layout.
+     */
+    screenShare?: ScreenShareFeed | null;
     onToggleMic?: () => void;
     onToggleCamera?: () => void;
     onToggleScreenShare?: () => void;
@@ -115,6 +123,7 @@ export function MeetingRoomShell({
     isMicOn: isMicOnProp,
     isCameraOn: isCameraOnProp,
     isScreenSharing: isScreenSharingProp,
+    screenShare,
     onToggleMic,
     onToggleCamera,
     onToggleScreenShare,
@@ -173,11 +182,24 @@ export function MeetingRoomShell({
                     </span>
                 </div>
             </header>
-            <ParticipantVideoGrid
-                participants={participants}
-                selfAccountId={selfAccountId}
-                isSelfMicOn={isMicOn}
-            />
+            {screenShare ? (
+                <div className='flex h-80 flex-col gap-3 bg-slate-900 p-3 sm:p-4 lg:h-120 lg:flex-row'>
+                    <div className='min-h-0 min-w-0 flex-1'>
+                        <ScreenShareStage feed={screenShare} />
+                    </div>
+                    <ParticipantFilmstrip
+                        participants={participants}
+                        selfAccountId={selfAccountId}
+                        isSelfMicOn={isMicOn}
+                    />
+                </div>
+            ) : (
+                <ParticipantVideoGrid
+                    participants={participants}
+                    selfAccountId={selfAccountId}
+                    isSelfMicOn={isMicOn}
+                />
+            )}
             <footer className='flex items-center justify-center gap-3 border-t border-white/8 bg-slate-950 px-3 py-4 sm:gap-5'>
                 <ControlButton
                     label={isMicOn ? 'Mute' : 'Unmute'}
