@@ -106,7 +106,11 @@ async function resolveMeetingPermissionKeys(): Promise<{
 }> {
     const result = await getAllPermissions({ ...jiraCallOptions });
     if (result.error) {
-        throw new Error('Jira permission lookup failed while listing permissions.');
+        throw new Error(
+            `Jira permission lookup failed while listing permissions${
+                result.response ? ` (status ${result.response.status})` : ''
+            }.`,
+        );
     }
 
     const entries = Object.entries(result.data?.permissions ?? {});
@@ -142,7 +146,11 @@ export async function getMeetingPermission(
         query: { projectKey, permissions: `${viewKey},${editKey}` },
     });
     if (result.error) {
-        throw new Error('Jira permission check failed.');
+        throw new Error(
+            `Jira permission check failed${
+                result.response ? ` (status ${result.response.status})` : ''
+            }.`,
+        );
     }
 
     const permissions = result.data?.permissions ?? {};
