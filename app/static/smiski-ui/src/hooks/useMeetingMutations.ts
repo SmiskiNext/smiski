@@ -1,10 +1,10 @@
 /**
  * Meeting write operations (create/schedule/update/cancel/start/end). Each
  * invalidates the query caches a change could affect, so lists refresh
- * immediately. Only `useEndMeeting` still runs against the in-memory mock —
- * the backend has no host-initiated "end meeting" endpoint (RUNNING→COMPLETED
- * only happens via an async LiveKit webhook), so there is nothing real to
- * call yet.
+ * immediately. Demo branch: `useEndMeeting` now calls the real
+ * `endMeeting` resolver function (Forge KVS-backed) — the real `meet`
+ * backend still has no host-initiated "end meeting" endpoint, but this
+ * branch bypasses that backend entirely (see app/src/meetingStore.ts).
  */
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiConfig } from '../api/config';
@@ -17,12 +17,12 @@ import type {
 import {
     cancelMeeting,
     createInstantMeeting,
+    endMeeting,
     joinMeeting,
     scheduleMeeting,
     updateMeeting,
 } from '../api/meetings';
 import { useCurrentUser } from '../context/CurrentUserContext';
-import { endMeeting as mockEndMeeting } from '../mocks/db';
 import { queryKeys } from './queryKeys';
 
 function useInvalidateMeetings() {
@@ -123,14 +123,15 @@ export function useStartMeeting() {
 }
 
 /**
- * No backend "end meeting" endpoint exists yet (RUNNING→COMPLETED only
- * happens via an async LiveKit webhook when the room actually closes) — stays
- * on the in-memory mock until one does.
+ * Ends a RUNNING meeting (host/Edit-Meeting action). The real `meet`
+ * backend has no equivalent endpoint (RUNNING→COMPLETED only happens there
+ * via an async LiveKit webhook) — this demo branch implements it directly
+ * in the resolver instead, since there is no backend to defer to.
  */
 export function useEndMeeting() {
     const invalidate = useInvalidateMeetings();
     return useMutation({
-        mutationFn: (meetingId: string) => mockEndMeeting(meetingId),
+        mutationFn: (meetingId: string) => endMeeting(meetingId),
         onSuccess: invalidate,
     });
 }

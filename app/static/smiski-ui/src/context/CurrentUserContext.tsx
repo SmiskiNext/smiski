@@ -7,7 +7,7 @@
  * keeps the deterministic mock identity because no Forge bridge exists there.
  */
 
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import {
     createContext,
     type ReactNode,
@@ -18,7 +18,6 @@ import {
 import { getCurrentJiraUser } from '../api/currentUser';
 import type { ProjectMember } from '../domain';
 import { queryKeys } from '../hooks/queryKeys';
-import { migrateLegacyMockCurrentUser } from '../mocks/db';
 import { CURRENT_USER } from '../mocks/users';
 
 const CurrentUserContext = createContext<ProjectMember>(CURRENT_USER);
@@ -33,7 +32,6 @@ export function CurrentUserProvider({
     user,
     children,
 }: CurrentUserProviderProps) {
-    const queryClient = useQueryClient();
     const [identityReady, setIdentityReady] = useState(
         import.meta.env.DEV || Boolean(user),
     );
@@ -50,19 +48,8 @@ export function CurrentUserProvider({
 
     useEffect(() => {
         if (!currentUser) return;
-
-        // Older locally-created meetings were written as Jordan Avery. Migrate
-        // only runtime-generated mock records (never the named demo fixtures), then
-        // refresh caches before mounting feature screens with the real Jira user.
-        const migrated =
-            !import.meta.env.DEV && migrateLegacyMockCurrentUser(currentUser);
-        if (migrated) {
-            void queryClient.invalidateQueries({ queryKey: ['meetings'] });
-            void queryClient.invalidateQueries({ queryKey: ['meeting'] });
-            void queryClient.invalidateQueries({ queryKey: ['participants'] });
-        }
         setIdentityReady(true);
-    }, [currentUser, queryClient]);
+    }, [currentUser]);
 
     if (!currentUser || !identityReady) {
         if (query.error) {

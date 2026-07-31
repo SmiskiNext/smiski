@@ -14,6 +14,7 @@ import {
     findUsers,
     getAllPermissions,
     getAllUsers,
+    getCurrentUser,
     getMyPermissions,
     type Options,
     type User,
@@ -83,6 +84,28 @@ export async function searchUsers(query?: string): Promise<WorkspaceUser[]> {
     }
 
     return toWorkspaceUsers((result.data ?? []) as User[]);
+}
+
+/**
+ * Resolves the invoking user's own Jira identity via `GET /rest/api/3/myself`
+ * as the user. Used to set trustworthy `hostId`/`creatorId`/participant
+ * identity on meetings — never taken from anything the Custom UI itself
+ * asserts, the same "identity from Forge/Jira, never the browser" rule
+ * `searchUsers` follows above.
+ */
+export async function getCurrentJiraUser(): Promise<WorkspaceUser> {
+    const result = await getCurrentUser({ ...jiraCallOptions });
+    if (result.error) {
+        throw new Error(
+            `Jira current-user lookup failed${
+                result.response ? ` (status ${result.response.status})` : ''
+            }.`,
+        );
+    }
+
+    const [user] = toWorkspaceUsers(result.data ? [result.data as User] : []);
+    if (!user) throw new Error('Jira current-user lookup returned no user.');
+    return user;
 }
 
 const VIEW_MEETING_PERMISSION_NAME = 'View Meeting';

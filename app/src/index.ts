@@ -1,24 +1,165 @@
 /**
- * Forge resolver — backend entry point (STUB).
+ * Forge resolver — backend entry point.
  *
- * Responsibility (future): thin bridge between the Custom UI frontend and the
- * Kong Gateway. Each resolver reads the invoking Jira user's context, forwards
- * the request to the backend (tenant/meet/record services) with the user's
- * identity, and returns the result. It holds NO business logic itself — the
- * "business brain" lives in the backend `meeting-management` service.
- *
- * NOTE: Every definition below is an unimplemented placeholder. No fetch, no
- * auth bridging, no data shaping is wired up yet. Do not add business logic
- * here — see architecture_vi.md (Forge Remote / JWT-JWKS auth bridge).
+ * Demo branch: meeting reads/mutations are served from Forge KVS
+ * (`meetingStore.ts`) instead of the real `meet` backend, so this resolver is
+ * no longer a thin pass-through for those — it is the permission-enforcement
+ * + identity-resolution layer the real backend doesn't have yet (see
+ * app/AGENTS.md's "Backend permission enforcement (not yet built)").
+ * `searchWorkspaceUsers`/`getMeetingPermission` are unchanged from before.
  */
 import Resolver from '@forge/resolver';
-import { getMeetingPermission, searchUsers } from './jiraSdkClient';
+import {
+    getCurrentJiraUser,
+    getMeetingPermission,
+    searchUsers,
+} from './jiraSdkClient';
+import * as meetingStore from './meetingStore';
 
 const resolver = new Resolver();
 
-// TODO(UC02/UC07): list meetings for the current Issue.
-resolver.define('getIssueMeetings', async (_req) => {
-    throw new Error('Not implemented: getIssueMeetings');
+type PermissionLevel = 'VIEW' | 'EDIT';
+
+/**
+ * Enforces the invoking user's custom `View Meeting`/`Edit Meeting` Jira
+ * project permission before a KVS read/write proceeds. `EDIT` implies `VIEW`
+ * at the policy layer (mirrors `domain/meetingPolicy.ts`'s
+ * `resolveMeetingPermissions` on the frontend) — the real authorization
+ * boundary the UI-only check in the pre-KVS version of this resolver lacked.
+ */
+async function requireMeetingPermission(
+    projectKey: string,
+    level: PermissionLevel,
+): Promise<void> {
+    const permission = await getMeetingPermission(projectKey);
+    const allowed =
+        level === 'EDIT'
+            ? permission.hasEditMeeting
+            : permission.hasViewMeeting || permission.hasEditMeeting;
+    if (!allowed) {
+        const label = level === 'EDIT' ? 'Edit Meeting' : 'View Meeting';
+        throw new Error(
+            `${label} permission required for project ${projectKey}.`,
+        );
+    }
+}
+
+function projectKeyOfIssue(issueKey: string): string {
+    return issueKey.split('-')[0];
+}
+
+resolver.define('getIssueMeetings', async (req) => {
+    const issueKey = req.payload?.issueKey as string | undefined;
+    if (!issueKey) throw new Error('getIssueMeetings: issueKey is required');
+    await requireMeetingPermission(projectKeyOfIssue(issueKey), 'VIEW');
+    return meetingStore.listIssueMeetings(issueKey);
+});
+
+resolver.define('getProjectMeetings', async (req) => {
+    const filters = req.payload as
+        | meetingStore.ProjectMeetingFilters
+        | undefined;
+    if (!filters?.projectKey)
+        throw new Error('getProjectMeetings: projectKey is required');
+    await requireMeetingPermission(filters.projectKey, 'VIEW');
+    return meetingStore.listProjectMeetings(filters);
+});
+
+resolver.define('getMeeting', async (req) => {
+    const meetingId = req.payload?.meetingId as string | undefined;
+    if (!meetingId) throw new Error('getMeeting: meetingId is required');
+    const detail = await meetingStore.getMeeting(meetingId);
+    await requireMeetingPermission(detail.meeting.projectKey, 'VIEW');
+    return detail;
+});
+
+resolver.define('createInstantMeeting', async (req) => {
+    const input = req.payload as
+        | meetingStore.CreateInstantMeetingInput
+        | undefined;
+    if (!input?.issueLink?.issueKey)
+        throw new Error('createInstantMeeting: issueLink.issueKey is required');
+    await requireMeetingPermission(
+        input.issueLink.projectKey ?? projectKeyOfIssue(input.issueLink.issueKey),
+        'EDIT',
+    );
+    const actor = await getCurrentJiraUser();
+    return meetingStore.createInstantMeeting(input, actor);
+});
+
+resolver.define('scheduleMeeting', async (req) => {
+    const input = req.payload as meetingStore.ScheduleMeetingInput | undefined;
+    if (!input?.issueLink?.issueKey)
+        throw new Error('scheduleMeeting: issueLink.issueKey is required');
+    await requireMeetingPermission(
+        input.issueLink.projectKey ?? projectKeyOfIssue(input.issueLink.issueKey),
+        'EDIT',
+    );
+    const actor = await getCurrentJiraUser();
+    return meetingStore.scheduleMeeting(input, actor);
+});
+
+resolver.define('updateMeeting', async (req) => {
+    const meetingId = req.payload?.meetingId as string | undefined;
+    const input = req.payload?.input as
+        | meetingStore.UpdateMeetingInput
+        | undefined;
+    if (!meetingId || !input)
+        throw new Error('updateMeeting: meetingId and input are required');
+    const existing = await meetingStore.getMeeting(meetingId);
+    await requireMeetingPermission(existing.meeting.projectKey, 'EDIT');
+    return meetingStore.updateMeeting(meetingId, input);
+});
+
+resolver.define('cancelMeeting', async (req) => {
+    const meetingId = req.payload?.meetingId as string | undefined;
+    if (!meetingId) throw new Error('cancelMeeting: meetingId is required');
+    const existing = await meetingStore.getMeeting(meetingId);
+    await requireMeetingPermission(existing.meeting.projectKey, 'EDIT');
+    return meetingStore.cancelMeeting(meetingId);
+});
+
+// No separate "start" operation — joining a SCHEDULED meeting (below)
+// transitions it to RUNNING, mirroring the real backend's `join` contract.
+
+resolver.define('endMeeting', async (req) => {
+    const meetingId = req.payload?.meetingId as string | undefined;
+    if (!meetingId) throw new Error('endMeeting: meetingId is required');
+    const existing = await meetingStore.getMeeting(meetingId);
+    await requireMeetingPermission(existing.meeting.projectKey, 'EDIT');
+    return meetingStore.endMeeting(meetingId);
+});
+
+/**
+ * Joins a meeting and mints its LiveKit token. Identity is resolved from
+ * Jira (`getCurrentJiraUser`), never trusted from the client payload — the
+ * Custom UI's `displayName`/`avatarUrl` arguments to `joinMeeting`/
+ * `getRoomToken` are for the old backend's contract shape and are ignored
+ * here.
+ */
+resolver.define('joinMeeting', async (req) => {
+    const meetingId = req.payload?.meetingId as string | undefined;
+    if (!meetingId) throw new Error('joinMeeting: meetingId is required');
+    const existing = await meetingStore.getMeeting(meetingId);
+    await requireMeetingPermission(existing.meeting.projectKey, 'VIEW');
+    const actor = await getCurrentJiraUser();
+    return meetingStore.joinMeeting(meetingId, actor);
+});
+
+/**
+ * Is the invoking user already hosting a RUNNING meeting on a different
+ * issue? Backs the Issue Panel's "confirm before starting a second
+ * concurrent meeting" prompt (UC-01 alt flow).
+ */
+resolver.define('getHostConflict', async (req) => {
+    const excludingIssueKey = req.payload?.excludingIssueKey as
+        | string
+        | undefined;
+    const actor = await getCurrentJiraUser();
+    return meetingStore.findRunningMeetingHostedByUser(
+        actor.accountId,
+        excludingIssueKey,
+    );
 });
 
 /**
@@ -32,30 +173,10 @@ resolver.define('searchWorkspaceUsers', async (req) => {
     return searchUsers(query);
 });
 
-// NOTE(UC01): instant meetings are created by the Custom UI calling the `meet`
-// backend directly via Forge Remote (`requestRemote`), so Forge attaches the
-// signed FIT and the app asserts no tenant/account identity. There is no
-// resolver for it here — see static/smiski-ui/src/api/meetings.ts.
-
-// TODO(UC03): create a scheduled meeting bound to the current Issue.
-resolver.define('scheduleMeeting', async (_req) => {
-    throw new Error('Not implemented: scheduleMeeting');
-});
-
-// TODO: list/search meetings across a project (project page dashboard).
-resolver.define('getProjectMeetings', async (_req) => {
-    throw new Error('Not implemented: getProjectMeetings');
-});
-
 /**
  * Resolves the invoking user's `View Meeting`/`Edit Meeting` custom Jira
  * permission (declared in `manifest.yml` under `jira:projectPermission`) for
  * a project, via `asUser().requestJira` — see `jiraSdkClient.ts`.
- *
- * NOTE: this is UI gating only. The `meet` backend does not yet re-check
- * this permission itself (it only checks meeting-host ownership on
- * update/delete) — see app/AGENTS.md for the researched follow-up mechanism
- * (`appUserToken` + a direct Jira REST call from the backend).
  */
 resolver.define('getMeetingPermission', async (req) => {
     const projectKey = req.payload?.projectKey as string | undefined;
@@ -63,12 +184,5 @@ resolver.define('getMeetingPermission', async (req) => {
         throw new Error('getMeetingPermission: projectKey is required');
     return getMeetingPermission(projectKey);
 });
-
-// NOTE: room-token minting no longer lives here. The Custom UI calls the
-// real `meet` backend's `join` operation directly via Forge Remote
-// (`static/smiski-ui/src/api/meetings.ts`'s `getRoomToken`/`joinMeeting`),
-// which authorizes the request against the actual meeting/participant
-// roster — replacing the insecure local-JWT-minting shim this resolver used
-// to provide.
 
 export const handler = resolver.getDefinitions();

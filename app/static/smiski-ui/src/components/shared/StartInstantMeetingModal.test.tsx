@@ -108,7 +108,6 @@ describe('StartInstantMeetingModal result handling', () => {
                 status: 'RUNNING',
                 participantCount: 1,
             },
-            livekit: { token: 'tok', roomName: 'room-1' },
         });
         const user = userEvent.setup();
         const { onStarted, onClose } = renderModal();

@@ -9,7 +9,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { getMeeting } from '../api/meetings';
 import { useCurrentUser } from '../context/CurrentUserContext';
-import { resolveParticipantDisplayNames } from '../mocks/participants';
+import { resolveParticipantDisplayNames } from '../domain';
 import { queryKeys } from './queryKeys';
 import { useProjectMembers } from './useProjectMembers';
 
