@@ -3,12 +3,13 @@
  * actions, search/filter, and one unified list covering every meeting status
  * for this issue (replaces the old split Current/Upcoming/History sections).
  *
- * Data comes from `useIssueMeetings` → the `getIssueMeetings` resolver, backed
- * by Forge KVS (`app/src/meetingStore.ts`). There is no mock db anymore —
- * `mocks/db.ts` was deleted with the KVS migration. Join/Start navigate to the
- * Project Page's meeting room (`useNavigateToMeetingRoom`) — Issue Panel and
- * Project Page are separate Forge modules/iframes, so this narrow panel never
- * has room to render the meeting itself.
+ * Data comes from `useIssueMeetings` → the real `meet` backend's `list`
+ * operation (SDK over Forge Remote, see `api/meetings.ts`'s
+ * `listIssueMeetings`). There is no mock db — meeting persistence is never
+ * mocked. Join/Start navigate to the Project Page's meeting room
+ * (`useNavigateToMeetingRoom`) — Issue Panel and Project Page are separate
+ * Forge modules/iframes, so this narrow panel never has room to render the
+ * meeting itself.
  */
 import { useState } from 'react';
 import {

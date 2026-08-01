@@ -9,8 +9,11 @@
 # branches on the Forge module context (moduleKey) to mount the correct root
 # component. See static/smiski-ui/src/App.tsx.
 #
-# NOTE: All resolver/function handlers are STUB placeholders — no business logic
-# is wired up yet. See src/index.ts.
+# NOTE: Meeting reads/mutations go straight from the Custom UI to the real
+# `meet` backend via Forge Remote + a generated SDK — the resolver
+# (src/index.ts) only handles Jira-native operations (workspace user search,
+# the View/Edit Meeting permission check) plus two operations the backend
+# doesn't support yet (project-wide listing, explicit "end meeting").
 
 modules:
     jira:issuePanel:
@@ -79,7 +82,6 @@ remotes:
       baseUrl: '${SMISKI_API_BASE_URL}'
       operations:
           - compute
-          - storage
       storage:
           inScopeEUD: false
 
@@ -94,7 +96,6 @@ permissions:
         - read:jira-work
         - read:jira-user # current user (/myself) + assignable project member lookup
         - read:permission:jira # list/check custom View Meeting / Edit Meeting permissions
-        - storage:app # Forge KVS — demo meeting store (app/src/meetingStore.ts)
         # - read:me            # TODO: enable if we need the invoking user's identity/profile
         # - offline_access     # TODO: enable if the identity bridge needs refresh tokens
 
@@ -126,15 +127,6 @@ environment:
           default: 'https://TODO-caddy-gateway.smiski.example'
         - key: LIVEKIT_URL
           default: 'wss://smiski-meeting-2rcpqikr.livekit.cloud'
-        # LiveKit Cloud API key/secret for the project behind LIVEKIT_URL
-        # above. No default — set per environment with:
-        #   forge variables set --encrypt LIVEKIT_API_KEY <value> -e <env>
-        #   forge variables set --encrypt LIVEKIT_API_SECRET <value> -e <env>
-        # Used only by app/src/liveKitToken.ts to mint room tokens directly
-        # from the resolver (demo: bypasses the `meet` backend's own
-        # LiveKit token minting).
-        - LIVEKIT_API_KEY
-        - LIVEKIT_API_SECRET
 
 app:
     runtime:

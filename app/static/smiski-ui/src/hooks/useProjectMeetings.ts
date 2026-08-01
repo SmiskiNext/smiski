@@ -1,10 +1,10 @@
 /**
  * useProjectMeetings — meetings across a project for the dashboard table.
  *
- * Demo branch: backed by the Forge-KVS meeting store (`getProjectMeetings`
- * resolver, see `app/src/meetingStore.ts`), which supports a project-wide
- * filter directly — unlike the real `meet` backend's `list` operation, which
- * only supports an exact `issueKey` filter.
+ * Backed by the `getProjectMeetings` resolver function, which is an
+ * unimplemented stub — the real `meet` backend's `list` operation has no
+ * project-wide filter yet (only an exact `issueKey` filter), see
+ * `app/src/index.ts`.
  */
 import { useQuery } from '@tanstack/react-query';
 import type { MeetingListFilters } from '../api/meetings';

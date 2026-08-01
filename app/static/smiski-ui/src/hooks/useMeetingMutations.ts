@@ -1,10 +1,9 @@
 /**
  * Meeting write operations (create/schedule/update/cancel/start/end). Each
  * invalidates the query caches a change could affect, so lists refresh
- * immediately. Demo branch: `useEndMeeting` now calls the real
- * `endMeeting` resolver function (Forge KVS-backed) — the real `meet`
- * backend still has no host-initiated "end meeting" endpoint, but this
- * branch bypasses that backend entirely (see app/src/meetingStore.ts).
+ * immediately. `useEndMeeting` calls the `endMeeting` resolver function,
+ * which is an unimplemented stub — the real `meet` backend has no
+ * host-initiated "end meeting" endpoint yet (see app/src/index.ts).
  */
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiConfig } from '../api/config';
