@@ -14,3 +14,5 @@ app:
         email:
             api-key: test-resend-key
             sender: calendar@test.local
+        webhook:
+            signing-secret: whsec_dGVzdC1zZWNyZXQtZm9yLWludGVncmF0aW9uLXRlc3Q=

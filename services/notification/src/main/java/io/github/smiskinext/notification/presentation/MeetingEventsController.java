@@ -1,6 +1,7 @@
 package io.github.smiskinext.notification.presentation;
 
-import io.github.smiskinext.notification.application.sse.SseConnectionManager;
+import io.github.smiskinext.notification.application.command.SubscribeMeetingEventsCommand;
+import io.github.smiskinext.notification.application.usecase.SubscribeMeetingEventsUseCase;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import java.util.UUID;
@@ -23,10 +24,10 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
         description = "Real-time meeting join notifications over Server-Sent Events")
 public class MeetingEventsController {
 
-    private final SseConnectionManager sseConnectionManager;
+    private final SubscribeMeetingEventsUseCase subscribeMeetingEventsUseCase;
 
-    public MeetingEventsController(SseConnectionManager sseConnectionManager) {
-        this.sseConnectionManager = sseConnectionManager;
+    public MeetingEventsController(SubscribeMeetingEventsUseCase subscribeMeetingEventsUseCase) {
+        this.subscribeMeetingEventsUseCase = subscribeMeetingEventsUseCase;
     }
 
     @Operation(
@@ -36,7 +37,12 @@ public class MeetingEventsController {
                     + "sends periodic heartbeat comments until the configured timeout.")
     @GetMapping(value = "/meetings/{id}/events", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public SseEmitter subscribe(@PathVariable UUID id) {
-        return sseConnectionManager.subscribe(id);
+        return subscribeMeetingEventsUseCase
+                .execute(new SubscribeMeetingEventsCommand(id, false, null))
+                .fold(result -> result.emitter(), error -> {
+                    throw new IllegalStateException(
+                            "Unexpected failure subscribing to meeting events: " + error);
+                });
     }
 
     @Operation(
@@ -50,6 +56,11 @@ public class MeetingEventsController {
             value = "/meetings/{id}/join-requests/{requestId}/events",
             produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public SseEmitter subscribeRequest(@PathVariable UUID id, @PathVariable UUID requestId) {
-        return sseConnectionManager.subscribeRequest(requestId);
+        return subscribeMeetingEventsUseCase
+                .execute(new SubscribeMeetingEventsCommand(id, true, requestId))
+                .fold(result -> result.emitter(), error -> {
+                    throw new IllegalStateException(
+                            "Unexpected failure subscribing to join request events: " + error);
+                });
     }
 }

@@ -1,6 +1,6 @@
 package io.github.smiskinext.notification;
 
-import io.github.smiskinext.notification.application.sse.SseProperties;
+import io.github.smiskinext.notification.infrastructure.config.SseProperties;
 import io.github.smiskinext.notification.infrastructure.email.EmailProperties;
 
 import org.springframework.boot.SpringApplication;
