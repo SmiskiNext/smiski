@@ -1,13 +1,15 @@
 import { invoke } from '@forge/bridge';
 import {
+    cancel,
     createInstant,
-    delete_ as deleteMeetingBackend,
+    end,
     get,
     join,
     list,
+    type MeetCancelMeetingResponse,
     type MeetCreateInstantMeetingRequest,
     type MeetCreateInstantMeetingResponse,
-    type MeetDeleteMeetingResponse,
+    type MeetEndMeetingResponse,
     type MeetGetMeetingResponse,
     type MeetJoinMeetingResponse,
     type MeetMeetingListPage,
@@ -16,8 +18,11 @@ import {
     type MeetScheduleMeetingResponse,
     type MeetUpdateMeetingRequest,
     type MeetUpdateMeetingResponse,
+    type MeetUpdateMeetingSettingsRequest,
+    type MeetUpdateMeetingSettingsResponse,
     schedule,
     update,
+    updateSettings,
 } from '@smiskinext/smiski-ts';
 import type { Meeting, MeetingStatus, Participant } from '../domain';
 import { getLocalTimeZone } from '../utils/datetime';
@@ -437,10 +442,34 @@ export async function updateMeeting(
     return meetingFromBackend(response);
 }
 
-/** Cancels (soft-deletes) a meeting (backend `delete`; 409 if it's RUNNING). */
+/**
+ * Replaces a meeting's settings (backend `updateSettings`, host-only — 403
+ * otherwise). Separate from `updateMeeting`, which no longer carries
+ * settings. Not yet wired to any UI — the edit form doesn't expose settings.
+ */
+export async function updateMeetingSettings(
+    meetingId: string,
+    settings: MeetUpdateMeetingSettingsRequest,
+): Promise<Meeting> {
+    const response = await unwrap<MeetUpdateMeetingSettingsResponse>(() =>
+        updateSettings({
+            client: forgeRemoteClient,
+            path: { version: apiConfig.apiVersion, id: meetingId },
+            body: settings,
+        }),
+    );
+    return meetingFromBackend(response);
+}
+
+/**
+ * Cancels a SCHEDULED meeting (backend `cancel`; SCHEDULED-only — 409
+ * otherwise). Sets `status: CANCELED`/`cancelReason: HOST_CANCELED` and
+ * publishes `MeetingCanceledEvent`, which triggers a cancellation email to
+ * invitees.
+ */
 export async function cancelMeeting(meetingId: string): Promise<Meeting> {
-    const response = await unwrap<MeetDeleteMeetingResponse>(() =>
-        deleteMeetingBackend({
+    const response = await unwrap<MeetCancelMeetingResponse>(() =>
+        cancel({
             client: forgeRemoteClient,
             path: { version: apiConfig.apiVersion, id: meetingId },
         }),
@@ -449,14 +478,18 @@ export async function cancelMeeting(meetingId: string): Promise<Meeting> {
 }
 
 /**
- * Ends a RUNNING meeting (host/Edit-Meeting action). Routed through the
- * `endMeeting` resolver function: the real backend has no explicit `end`
- * operation yet — RUNNING→COMPLETED is expected to be driven by its LiveKit
- * webhook handling instead — so this stays an `Not implemented` stub (see
- * `app/src/index.ts`) until the backend adds one.
+ * Ends a RUNNING meeting (host/Edit-Meeting action; backend `end`).
+ * Transitions the meeting to COMPLETED, closes participation logs, and
+ * requests best-effort LiveKit room deletion.
  */
 export async function endMeeting(meetingId: string): Promise<Meeting> {
-    return invokeResolver<Meeting>('endMeeting', { meetingId });
+    const response = await unwrap<MeetEndMeetingResponse>(() =>
+        end({
+            client: forgeRemoteClient,
+            path: { version: apiConfig.apiVersion, id: meetingId },
+        }),
+    );
+    return meetingFromBackend(response);
 }
 
 /** The joining participant's identity, required by the backend `join` operation. */

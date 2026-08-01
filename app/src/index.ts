@@ -6,10 +6,8 @@
  * (see `static/smiski-ui/src/api/meetings.ts`), so this resolver holds no
  * meeting business logic. `searchWorkspaceUsers` and `getMeetingPermission`
  * are the two operations that must run resolver-side (they call Jira REST as
- * the invoking user). `getProjectMeetings`/`endMeeting` stay unimplemented
- * stubs — the real `meet` backend has no project-wide listing filter or an
- * explicit `end` operation yet (RUNNING→COMPLETED is expected to come from
- * its LiveKit webhook handling instead).
+ * the invoking user). `getProjectMeetings` stays an unimplemented stub — the
+ * real `meet` backend has no project-wide listing filter yet.
  */
 import Resolver from '@forge/resolver';
 import { getMeetingPermission, searchUsers } from './jiraSdkClient';
@@ -20,13 +18,6 @@ const resolver = new Resolver();
 // the backend `list` operation has no projectKey filter yet.
 resolver.define('getProjectMeetings', async (_req) => {
     throw new Error('Not implemented: getProjectMeetings');
-});
-
-// TODO: explicit host "end meeting" action — the backend has no `end`
-// operation yet; RUNNING→COMPLETED is expected to be driven by its LiveKit
-// webhook handling instead.
-resolver.define('endMeeting', async (_req) => {
-    throw new Error('Not implemented: endMeeting');
 });
 
 /**

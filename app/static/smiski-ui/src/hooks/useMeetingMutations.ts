@@ -1,10 +1,10 @@
 /**
- * Meeting write operations (create/schedule/update/cancel/start/end). Each
- * invalidates the query caches a change could affect, so lists refresh
- * immediately. `useEndMeeting` calls the `endMeeting` resolver function,
- * which is an unimplemented stub — the real `meet` backend has no
- * host-initiated "end meeting" endpoint yet (see app/src/index.ts).
+ * Meeting write operations (create/schedule/update/cancel/start/end/
+ * settings). Each invalidates the query caches a change could affect, so
+ * lists refresh immediately.
  */
+
+import type { MeetUpdateMeetingSettingsRequest } from '@smiskinext/smiski-ts';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiConfig } from '../api/config';
 import { getDeviceId } from '../api/mappers';
@@ -20,6 +20,7 @@ import {
     joinMeeting,
     scheduleMeeting,
     updateMeeting,
+    updateMeetingSettings,
 } from '../api/meetings';
 import { useCurrentUser } from '../context/CurrentUserContext';
 import { queryKeys } from './queryKeys';
@@ -93,6 +94,21 @@ export function useCancelMeeting() {
     });
 }
 
+/** Not yet wired to any UI — the edit form doesn't expose settings. */
+export function useUpdateMeetingSettings() {
+    const invalidate = useInvalidateMeetings();
+    return useMutation({
+        mutationFn: ({
+            meetingId,
+            settings,
+        }: {
+            meetingId: string;
+            settings: MeetUpdateMeetingSettingsRequest;
+        }) => updateMeetingSettings(meetingId, settings),
+        onSuccess: invalidate,
+    });
+}
+
 /**
  * "Start" a scheduled meeting by joining it as the host (backend `join`;
  * there is no separate start endpoint — joining is what transitions a
@@ -121,12 +137,7 @@ export function useStartMeeting() {
     });
 }
 
-/**
- * Ends a RUNNING meeting (host/Edit-Meeting action). The real `meet`
- * backend has no equivalent endpoint (RUNNING→COMPLETED only happens there
- * via an async LiveKit webhook) — this demo branch implements it directly
- * in the resolver instead, since there is no backend to defer to.
- */
+/** Ends a RUNNING meeting (host/Edit-Meeting action; backend `end`). */
 export function useEndMeeting() {
     const invalidate = useInvalidateMeetings();
     return useMutation({

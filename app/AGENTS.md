@@ -18,11 +18,12 @@ that is generic Forge boilerplate and is wrong for this repo. The UI is plain
 React 18 + JSX (`<div>` etc.) + Tailwind v4 + Ant Design.
 
 **Status:** meeting reads/mutations go straight from the Custom UI to the real
-`meet` backend over Forge Remote + a generated SDK. Two resolver functions
-(`getProjectMeetings`, `endMeeting`) still throw `Not implemented: ...` because
-the backend has no matching operation yet — see "Resolver is a thin bridge"
-below. Do not assume a code path is wired to the backend — check the specific
-hook/resolver first.
+`meet` backend over Forge Remote + a generated SDK. One resolver function
+(`getProjectMeetings`) still throws `Not implemented: ...` because the backend
+has no matching operation yet — see "Resolver is a thin bridge" below. Meeting
+settings can be replaced via `updateMeetingSettings`/`useUpdateMeetingSettings`
+(backend `updateSettings`), but no UI exposes it yet. Do not assume a code
+path is wired to the backend — check the specific hook/resolver first.
 
 ## Layout
 
@@ -99,13 +100,11 @@ when `context.extension.modal.kind` is set. Module keys are centralized in
   has no project-wide filter (only an exact `issueKey`, `creatorId`, `statuses`,
   or `search` filter), so the project-page dashboard listing has no backend to
   call yet.
-- `endMeeting` — stub that throws. The backend has no explicit host-initiated
-  "end meeting" operation yet; RUNNING→COMPLETED is expected to be driven by its
-  LiveKit webhook handling instead of an explicit client call.
 - There is **no** `getRoomToken`, `getIssueMeetings`, `scheduleMeeting`,
   `createInstantMeeting`, `getMeeting`, `updateMeeting`, `cancelMeeting`,
-  `joinMeeting`, or `getHostConflict` resolver. All of those go straight from
-  the Custom UI to the real `meet` backend via Forge Remote + the generated SDK
+  `endMeeting`, `updateMeetingSettings`, `joinMeeting`, or `getHostConflict`
+  resolver. All of those go straight from the Custom UI to the real `meet`
+  backend via Forge Remote + the generated SDK
   (see below) — do not add resolver-side business logic for them; the brain is
   the backend `meet` service.
 
@@ -134,17 +133,17 @@ identity itself. The `meet-backend` remote and its `baseUrl`
 
 ## Mock vs backend (gotcha)
 
-`mocks/db.ts` is **gone** — meeting persistence is never mocked. Most meeting
-hooks call the real `meet` backend directly via the generated SDK over Forge
-Remote (`api/meetings.ts`): `useMeeting`, `useMeetingParticipants` (derived from
-the same `getMeeting` query), `useIssueMeetings`, `useCreateInstantMeeting`,
-`useScheduleMeeting`, `useUpdateMeeting`, `useCancelMeeting`, `useStartMeeting`
-(joins as host), and `useRoomToken`. Two exceptions still go through resolver
-stubs that throw (`getProjectMeetings`, `endMeeting` — see "Resolver is a thin
-bridge" above): `useProjectMeetings` and `useEndMeeting`. Standalone `vite dev`
-therefore cannot list/create/update/cancel/start meetings or enter a room —
-there is no Forge bridge and no Forge Remote binding to reach the backend
-through.
+`mocks/db.ts` is **gone** — meeting persistence is never mocked. Meeting hooks
+call the real `meet` backend directly via the generated SDK over Forge Remote
+(`api/meetings.ts`): `useMeeting`, `useMeetingParticipants` (derived from the
+same `getMeeting` query), `useIssueMeetings`, `useCreateInstantMeeting`,
+`useScheduleMeeting`, `useUpdateMeeting`, `useCancelMeeting`, `useEndMeeting`,
+`useUpdateMeetingSettings` (not wired to any UI yet), `useStartMeeting` (joins
+as host), and `useRoomToken`. The one exception is `useProjectMeetings`, which
+goes through the `getProjectMeetings` resolver stub that throws (see
+"Resolver is a thin bridge" above). Standalone `vite dev` therefore cannot
+list/create/update/cancel/start meetings or enter a room — there is no Forge
+bridge and no Forge Remote binding to reach the backend through.
 
 The `shouldUseBackendApi()` / `VITE_SMISKI_DATA_SOURCE` switch described in
 `api/README.md` never existed in code — treat that README as aspirational.
