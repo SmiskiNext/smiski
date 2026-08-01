@@ -15,6 +15,7 @@ export * from './MeetingCard';
 export * from './MeetingDetailDialog';
 export * from './meetingActionRules';
 export * from './meetingStatusOptions';
+export * from './NoPermissionState';
 export * from './ParticipantAvatarGroup';
 export * from './ScheduleMeetingModal';
 export * from './SectionHeading';

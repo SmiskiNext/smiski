@@ -1,20 +1,25 @@
 /**
- * StartInstantMeetingModal — the shared "start instant meeting" form, built
- * entirely with Ant Design (`Modal`, `Form`, `Input`, `Select`). Used by both
- * the project-page dashboard (overlay chrome) and the Issue Panel (embedded in
- * a Forge platform modal).
+ * StartInstantMeetingModal — the shared "start instant meeting" form. Chrome
+ * (backdrop, card, header, footer) comes from the local `ui/Modal`; fields
+ * are still Ant Design (`Form`, `Input`). Used by both the project-page
+ * dashboard (overlay chrome) and the Issue Panel (embedded in a Forge
+ * platform modal) — see `ui/Modal`'s `chrome` doc comment for why a bare
+ * antd `Modal` isn't used: its own mask/backdrop rendered a stray dim layer
+ * when embedded inside a Forge platform modal, since that modal already
+ * supplies the backdrop.
  *
  * Invitees are sourced from Jira site users through `WorkspaceUserPicker` and
  * kept as full identity objects (`accountId`, `displayName`, `email`) so the
  * create request satisfies the backend contract. Backend/resolver failures are
  * shown inline and keep the modal open for correction.
  */
-import { Alert, Form, Input, Modal } from 'antd';
+import { Alert, Form, Input } from 'antd';
 import { useState } from 'react';
 import type { WorkspaceUser } from '../../api/workspaceUsers';
 import { useCurrentUser } from '../../context/CurrentUserContext';
 import { useCreateInstantMeeting } from '../../hooks/useMeetingMutations';
 import { resolveUserTimeZone } from '../../utils/datetime';
+import { Button, Modal } from '../ui';
 import { IssuePicker } from './IssuePicker';
 import { WorkspaceUserPicker } from './WorkspaceUserPicker';
 
@@ -171,16 +176,27 @@ export function StartInstantMeetingModal({
         </Form>
     );
 
+    if (!isOpen) return null;
+
     return (
         <Modal
             title='Start instant meeting'
-            open={isOpen}
-            onCancel={resetAndClose}
-            onOk={() => form.submit()}
-            okText='Start meeting'
-            confirmLoading={createMeeting.isPending}
-            destroyOnClose
-            getContainer={chrome === 'embedded' ? false : undefined}
+            chrome={chrome}
+            onClose={resetAndClose}
+            footer={
+                <>
+                    <Button variant='secondary' onClick={resetAndClose}>
+                        Cancel
+                    </Button>
+                    <Button
+                        variant='primary'
+                        isLoading={createMeeting.isPending}
+                        onClick={() => form.submit()}
+                    >
+                        Start meeting
+                    </Button>
+                </>
+            }
         >
             {body}
         </Modal>
