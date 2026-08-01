@@ -17,6 +17,7 @@ dependencies {
     implementation(libs.cloudevents.core)
     implementation(libs.spring.kafka)
     implementation(libs.protobuf.java.util)
+    implementation(libs.spring.boot.starter.security)
     testFixturesImplementation(libs.archunit.junit5)
     testFixturesImplementation(platform("org.springframework.boot:spring-boot-dependencies:${libs.versions.springBoot.get()}"))
     testFixturesImplementation(libs.spring.boot.starter.test)

@@ -62,6 +62,7 @@ class ListMeetingsControllerIntegrationTest {
         insert("Older", "SMISKI-1", base);
 
         mockMvc.perform(post("/api/1/meetings")
+                        .header("X-Project-Permissions", "view-meeting,edit-meeting")
                         .header("X-Account-Id", "account-1")
                         .header("X-Tenant-ID", TENANT)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -79,6 +80,7 @@ class ListMeetingsControllerIntegrationTest {
     @Test
     void missingAccountHeaderIsRejected() throws Exception {
         mockMvc.perform(post("/api/1/meetings")
+                        .header("X-Project-Permissions", "view-meeting,edit-meeting")
                         .header("X-Tenant-ID", TENANT)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{}"))
@@ -89,6 +91,7 @@ class ListMeetingsControllerIntegrationTest {
     @Test
     void pageSizeOverMaxIsRejected() throws Exception {
         mockMvc.perform(post("/api/1/meetings")
+                        .header("X-Project-Permissions", "view-meeting,edit-meeting")
                         .header("X-Account-Id", "account-1")
                         .header("X-Tenant-ID", TENANT)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -105,6 +108,7 @@ class ListMeetingsControllerIntegrationTest {
         UUID c = insert("C", "PROJ-1", base.plusSeconds(10));
 
         MvcResult first = mockMvc.perform(post("/api/1/meetings")
+                        .header("X-Project-Permissions", "view-meeting,edit-meeting")
                         .header("X-Account-Id", "account-1")
                         .header("X-Tenant-ID", TENANT)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -121,6 +125,7 @@ class ListMeetingsControllerIntegrationTest {
                 JsonPath.read(first.getResponse().getContentAsString(), "$.meta.nextPageToken");
 
         mockMvc.perform(post("/api/1/meetings")
+                        .header("X-Project-Permissions", "view-meeting,edit-meeting")
                         .header("X-Account-Id", "account-1")
                         .header("X-Tenant-ID", TENANT)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -138,6 +143,7 @@ class ListMeetingsControllerIntegrationTest {
         insert("C", "PROJ-1", base.plusSeconds(10));
 
         MvcResult first = mockMvc.perform(post("/api/1/meetings")
+                        .header("X-Project-Permissions", "view-meeting,edit-meeting")
                         .header("X-Account-Id", "account-1")
                         .header("X-Tenant-ID", TENANT)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -149,6 +155,7 @@ class ListMeetingsControllerIntegrationTest {
                 JsonPath.read(first.getResponse().getContentAsString(), "$.meta.nextPageToken");
 
         mockMvc.perform(post("/api/1/meetings")
+                        .header("X-Project-Permissions", "view-meeting,edit-meeting")
                         .header("X-Account-Id", "account-1")
                         .header("X-Tenant-ID", TENANT)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -162,6 +169,7 @@ class ListMeetingsControllerIntegrationTest {
     @Test
     void tamperedTokenIsRejected() throws Exception {
         mockMvc.perform(post("/api/1/meetings")
+                        .header("X-Project-Permissions", "view-meeting,edit-meeting")
                         .header("X-Account-Id", "account-1")
                         .header("X-Tenant-ID", TENANT)
                         .contentType(MediaType.APPLICATION_JSON)

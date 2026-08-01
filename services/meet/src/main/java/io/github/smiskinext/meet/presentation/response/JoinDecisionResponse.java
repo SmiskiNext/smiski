@@ -11,22 +11,22 @@ import org.jspecify.annotations.Nullable;
 @Schema(description = "Per-item outcome of a host accept/decline decision")
 public record JoinDecisionResponse(
         @Schema(description = "One result per submitted request id, in submission order")
-        List<Item> results) {
+        List<DecisionItem> results) {
 
     public static JoinDecisionResponse from(
             io.github.smiskinext.meet.application.result.AcceptJoinRequestsResult result) {
         return new JoinDecisionResponse(
-                result.results().stream().map(Item::from).toList());
+                result.results().stream().map(DecisionItem::from).toList());
     }
 
     public static JoinDecisionResponse from(
             io.github.smiskinext.meet.application.result.DeclineJoinRequestsResult result) {
         return new JoinDecisionResponse(
-                result.results().stream().map(Item::from).toList());
+                result.results().stream().map(DecisionItem::from).toList());
     }
 
     @Schema(description = "Outcome of a single submitted join request")
-    public record Item(
+    public record DecisionItem(
             @Schema(description = "Identifier of the submitted join request")
             String requestId,
 
@@ -46,8 +46,8 @@ public record JoinDecisionResponse(
                     nullable = true)
             @Nullable String reason) {
 
-        public static Item from(JoinDecisionItemResult item) {
-            return new Item(
+        public static DecisionItem from(JoinDecisionItemResult item) {
+            return new DecisionItem(
                     item.requestId().toString(),
                     item.status().name(),
                     item.token(),

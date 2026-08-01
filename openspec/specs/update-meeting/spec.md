@@ -1,56 +1,64 @@
-## ADDED Requirements
+# update-meeting Specification
+
+## Purpose
+
+TBD - created by archiving change add-update-meeting. Update Purpose after
+archive.
+
+## Requirements
 
 ### Requirement: Host-only meeting update endpoint
 
 The system SHALL expose `PUT /api/1/meetings/{id}` for updating a meeting. The
-acting account SHALL be resolved from the configured account header, the tenant
-SHALL be resolved from the tenant context, and only the meeting host SHALL be
-authorized to update the meeting. A successful update SHALL return `200 OK` with
-the complete meeting snapshot excluding the tenant identifier.
+endpoint SHALL require the `edit-meeting` project permission — if the caller's
+permission context does not contain `edit-meeting`, the endpoint SHALL reject
+the request with `403 application/problem+json` and code `NOT_AUTHORIZED` before
+executing the use case. The acting account SHALL be resolved from the configured
+account header, the tenant SHALL be resolved from the tenant context, and only
+the meeting host SHALL be authorized to update the meeting. A successful update
+SHALL return `200 OK` with the complete meeting snapshot excluding the tenant
+identifier.
 
 #### Scenario: Host updates a meeting
 
 - **WHEN** the host sends a valid `PUT /api/1/meetings/{id}` request with the
-  account header
+  account header and has `edit-meeting` permission
 - **THEN** the system persists the permitted changes and returns `200 OK` with
   the full meeting snapshot
 
+#### Scenario: Missing edit-meeting permission is rejected
+
+- **WHEN** a caller without `edit-meeting` sends `PUT /api/1/meetings/{id}`
+- **THEN** the response is `403 application/problem+json` with code
+  `NOT_AUTHORIZED` and the meeting is not updated
+
 #### Scenario: Non-host update is rejected
 
-- **WHEN** an account that is not the meeting host sends an update request
+- **WHEN** an account that is not the meeting host sends an update request even
+  with `edit-meeting` permission
 - **THEN** the system returns an RFC 9457 Problem Details response with the
   authorization error code and does not change the meeting
 
-#### Scenario: Missing account identity is rejected
-
-- **WHEN** the update request does not contain the configured account header
-- **THEN** the system returns `400` Problem Details and does not change the
-  meeting
-
-#### Scenario: Unknown meeting is rejected
-
-- **WHEN** the update request references an ID that does not exist in the tenant
-- **THEN** the system returns a meeting-not-found Problem Details response and
-  does not publish an event
-
 ### Requirement: Status-aware mutable fields
 
-The system SHALL allow the host to update `title`, `description`, `issueLink`,
-and `settings` when the meeting status is `SCHEDULED` or `RUNNING`. The system
+The system SHALL allow the host to update `title`, `description`, and
+`issueLink` when the meeting status is `SCHEDULED` or `RUNNING`. The system
 SHALL allow `zoneId` and `timeRange` updates only when the meeting status is
 `SCHEDULED`. The system SHALL reject every update to a meeting with status
-`COMPLETED` or `CANCELED`.
+`COMPLETED` or `CANCELED`. Settings are no longer part of this endpoint; they
+are replaced through `PUT /api/1/meetings/{id}/settings` (see the
+`update-meeting-settings` capability).
 
-#### Scenario: Scheduled meeting accepts all mutable fields
+#### Scenario: Scheduled meeting accepts all mutable information fields
 
 - **WHEN** the host updates any supported combination of title, description,
-  issue link, settings, zone ID, and time range on a `SCHEDULED` meeting
+  issue link, zone ID, and time range on a `SCHEDULED` meeting
 - **THEN** all supplied valid changes are persisted atomically
 
-#### Scenario: Running meeting accepts information and settings
+#### Scenario: Running meeting accepts information
 
-- **WHEN** the host updates title, description, issue link, or settings on a
-  `RUNNING` meeting
+- **WHEN** the host updates title, description, or issue link on a `RUNNING`
+  meeting
 - **THEN** those changes are persisted and the meeting remains `RUNNING`
 
 #### Scenario: Running meeting rejects scheduled fields
@@ -73,18 +81,11 @@ SHALL allow `zoneId` and `timeRange` updates only when the meeting status is
 ### Requirement: Input validation for updated values
 
 The system SHALL validate update values using the same constraints as meeting
-creation: non-blank title and description, a complete issue link, valid settings
-including `maxParticipants` in `[2..100]`, a valid IANA `zoneId`, and a time
-range whose start precedes its end and satisfies the scheduled start-time rule.
-Invalid requests SHALL return `400` Problem Details with `VALIDATION_ERROR` and
-SHALL not change the meeting.
-
-#### Scenario: Invalid settings are rejected
-
-- **WHEN** the request contains a settings object with an invalid admission
-  policy or a participant limit outside `[2..100]`
-- **THEN** the system returns `400` validation Problem Details and persists no
-  part of the update
+creation for the information fields it accepts: non-blank title and description,
+a complete issue link, a valid IANA `zoneId`, and a time range whose start
+precedes its end and satisfies the scheduled start-time rule. Invalid requests
+SHALL return `400` Problem Details with `VALIDATION_ERROR` and SHALL NOT change
+the meeting. The endpoint SHALL NOT accept a settings object.
 
 #### Scenario: Invalid zone ID is rejected
 
@@ -99,32 +100,38 @@ SHALL not change the meeting.
 - **THEN** the system returns `400` validation Problem Details and leaves the
   meeting unchanged
 
+#### Scenario: Blank information field is rejected
+
+- **WHEN** the request contains a blank title or description
+- **THEN** the system returns `400` validation Problem Details and persists no
+  part of the update
+
 ### Requirement: Change-sensitive update events
 
-The system SHALL publish `meeting.info.update` when at least one of `title`,
-`description`, `issueLink`, `zoneId`, or `timeRange` changes, and SHALL publish
-`meeting.settings.update` when settings change. Each event SHALL include the
-meeting identity, host, acting account, status, old snapshot, new snapshot, and
-update timestamp. A successful update with no effective value changes SHALL
-publish no event.
+The system SHALL publish the meeting info-update event on the
+`meet.meeting.info.updated` topic with the CloudEvent type
+`io.github.smiskinext.meet.meeting.info.updated.v1` when at least one of
+`title`, `description`, `issueLink`, `zoneId`, or `timeRange` changes. The event
+SHALL include the meeting identity, host, acting account, status, old snapshot,
+new snapshot, the meeting's current invitee list (each carrying account id,
+email, display name, and participation status), and the update timestamp. A
+successful update with no effective value changes SHALL publish no event. This
+endpoint SHALL NOT publish `meeting.settings.update`; settings events are
+produced only by `PUT /api/1/meetings/{id}/settings`.
 
 #### Scenario: Information change publishes information event
 
 - **WHEN** an authorized update changes one or more information fields
-- **THEN** exactly one `meeting.info.update` event is persisted atomically with
-  the meeting change
+- **THEN** exactly one info-update event is persisted atomically with the
+  meeting change on the `meet.meeting.info.updated` topic
 
-#### Scenario: Settings change publishes settings event
+#### Scenario: Info-update event carries the current invitee list
 
-- **WHEN** an authorized update changes settings
-- **THEN** exactly one `meeting.settings.update` event is persisted atomically
-  with the meeting change
-
-#### Scenario: Both groups change
-
-- **WHEN** an authorized update changes information and settings in one request
-- **THEN** one information event and one settings event are persisted in the
-  same transaction
+- **WHEN** an authorized update changes one or more information fields on a
+  meeting that has invitees
+- **THEN** the published info-update event carries an entry for each current
+  invitee with that invitee's email, display name, account id, and participation
+  status
 
 #### Scenario: No-op update publishes no event
 
@@ -136,3 +143,8 @@ publish no event.
 
 - **WHEN** authorization, status, or validation checks reject an update
 - **THEN** no meeting update and no update event is persisted
+
+#### Scenario: Information update does not publish a settings event
+
+- **WHEN** an authorized information update succeeds
+- **THEN** no `meeting.settings.update` event is published by this endpoint

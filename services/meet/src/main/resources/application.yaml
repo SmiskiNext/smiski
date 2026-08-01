@@ -48,6 +48,13 @@ spring:
             enabled: true
 
 app:
+    tenant:
+        kafka:
+            installed-consumer-group: ${TENANT_INSTALLED_CONSUMER_GROUP:meet-tenant-installed}
+            uninstalled-consumer-group: ${TENANT_UNINSTALLED_CONSUMER_GROUP:meet-tenant-uninstalled}
+            retry-attempts: ${TENANT_KAFKA_RETRY_ATTEMPTS:3}
+            retry-backoff-ms: ${TENANT_KAFKA_RETRY_BACKOFF_MS:1000}
+            dead-letter-suffix: ${TENANT_KAFKA_DLT_SUFFIX:.dlt}
     tenancy:
         header: X-Tenant-ID
         default-tenant: system
@@ -91,6 +98,10 @@ smiski:
             batch-size: 50
         cloudevent:
             source: meet-service
+    meet:
+        no-show-canceler:
+            fixed-delay: PT5M
+            batch-size: 100
 
 logging:
     aspect:

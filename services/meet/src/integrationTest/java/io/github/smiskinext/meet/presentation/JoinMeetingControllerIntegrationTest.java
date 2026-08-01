@@ -53,6 +53,7 @@ class JoinMeetingControllerIntegrationTest {
                 """;
 
         mockMvc.perform(post("/api/1/meetings/{id}:join", meetingId)
+                        .header("X-Project-Permissions", "view-meeting,edit-meeting")
                         .header("X-Account-Id", "participant-1")
                         .header("X-Tenant-ID", TENANT_ID)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -74,6 +75,7 @@ class JoinMeetingControllerIntegrationTest {
                 """;
 
         mockMvc.perform(post("/api/1/meetings/{id}:join", meetingId)
+                        .header("X-Project-Permissions", "view-meeting,edit-meeting")
                         .header("X-Account-Id", "participant-1")
                         .header("X-Tenant-ID", TENANT_ID)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -102,6 +104,7 @@ class JoinMeetingControllerIntegrationTest {
                 """;
 
         mockMvc.perform(post("/api/1/meetings/{id}:join", meetingId)
+                        .header("X-Project-Permissions", "view-meeting,edit-meeting")
                         .header("X-Account-Id", "participant-1")
                         .header("X-Tenant-ID", TENANT_ID)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -126,6 +129,7 @@ class JoinMeetingControllerIntegrationTest {
                 """;
 
         mockMvc.perform(post("/api/1/meetings/{id}:join", meetingId)
+                        .header("X-Project-Permissions", "view-meeting,edit-meeting")
                         .header("X-Account-Id", "participant-1")
                         .header("X-Tenant-ID", TENANT_ID)
                         .contentType(MediaType.APPLICATION_JSON)

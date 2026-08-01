@@ -4,13 +4,16 @@ import io.github.smiskinext.meet.application.command.UpdateMeetingCommand;
 import io.github.smiskinext.meet.application.result.UpdateMeetingResult;
 import io.github.smiskinext.meet.application.usecase.UpdateMeetingUseCase;
 import io.github.smiskinext.meet.domain.MeetingError;
-import io.github.smiskinext.meet.domain.model.AdmissionPolicy;
+import io.github.smiskinext.meet.domain.event.MeetingInfoUpdatedEvent;
 import io.github.smiskinext.meet.domain.model.Meeting;
+import io.github.smiskinext.meet.domain.model.MeetingInvitee;
 import io.github.smiskinext.meet.domain.model.valueobject.*;
+import io.github.smiskinext.meet.domain.port.MeetingInviteeRepository;
 import io.github.smiskinext.meet.domain.port.MeetingRepository;
 import io.github.smiskinext.shared.domain.EventPublisher;
 import io.github.smiskinext.shared.domain.Result;
-
+import java.util.ArrayList;
+import java.util.List;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -18,11 +21,15 @@ import org.springframework.transaction.annotation.Transactional;
 public class UpdateMeetingApplicationService implements UpdateMeetingUseCase {
 
     private final MeetingRepository meetingRepository;
+    private final MeetingInviteeRepository meetingInviteeRepository;
     private final EventPublisher eventPublisher;
 
     public UpdateMeetingApplicationService(
-            MeetingRepository meetingRepository, EventPublisher eventPublisher) {
+            MeetingRepository meetingRepository,
+            MeetingInviteeRepository meetingInviteeRepository,
+            EventPublisher eventPublisher) {
         this.meetingRepository = meetingRepository;
+        this.meetingInviteeRepository = meetingInviteeRepository;
         this.eventPublisher = eventPublisher;
     }
 
@@ -36,18 +43,15 @@ public class UpdateMeetingApplicationService implements UpdateMeetingUseCase {
         }
 
         try {
-            MeetingSettings settings = new MeetingSettings(
-                    AdmissionPolicy.valueOf(command.settings().admissionPolicy()),
-                    command.settings().maxParticipants(),
-                    command.settings().allowScreenShare(),
-                    command.settings().chatEnabled(),
-                    command.settings().allowMicrophone(),
-                    command.settings().allowVideo());
             MeetingTimeRange timeRange = command.timeRange() == null
                     ? null
                     : MeetingTimeRange.of(
                             command.timeRange().startTime(), command.timeRange().endTime());
-            Result<Void, MeetingError> update = meeting.update(
+
+            List<MeetingInfoUpdatedEvent.InviteeInfo> invitees =
+                    toInviteeInfos(meetingInviteeRepository.findByMeetingId(command.meetingId()));
+
+            Result<Void, MeetingError> update = meeting.updateInfo(
                     AccountId.of(command.accountId()),
                     MeetingTitle.of(command.title()),
                     command.description(),
@@ -55,9 +59,9 @@ public class UpdateMeetingApplicationService implements UpdateMeetingUseCase {
                             command.issueLink().issueId(),
                             command.issueLink().issueKey(),
                             command.issueLink().projectKey()),
-                    settings,
                     MeetingTimeZone.of(command.zoneId()),
-                    timeRange);
+                    timeRange,
+                    invitees);
             if (update.isFailure()) {
                 return Result.failure(((Result.Failure<Void, MeetingError>) update).error());
             }
@@ -71,9 +75,22 @@ public class UpdateMeetingApplicationService implements UpdateMeetingUseCase {
         }
     }
 
+    private List<MeetingInfoUpdatedEvent.InviteeInfo> toInviteeInfos(
+            List<MeetingInvitee> invitees) {
+        List<MeetingInfoUpdatedEvent.InviteeInfo> infos = new ArrayList<>(invitees.size());
+        for (MeetingInvitee invitee : invitees) {
+            infos.add(new MeetingInfoUpdatedEvent.InviteeInfo(
+                    invitee.getId().value(),
+                    invitee.getAccountId().value(),
+                    invitee.getEmail().value(),
+                    invitee.getDisplayName().value(),
+                    invitee.getStatus().name()));
+        }
+        return infos;
+    }
+
     private UpdateMeetingResult toResult(Meeting meeting) {
         JiraIssueLink link = meeting.getIssueLink();
-        MeetingSettings settings = meeting.getSettings();
         return new UpdateMeetingResult(
                 meeting.getId().value(),
                 meeting.getHostId().value(),
@@ -84,13 +101,6 @@ public class UpdateMeetingApplicationService implements UpdateMeetingUseCase {
                 meeting.getDescription(),
                 new UpdateMeetingResult.IssueLink(
                         link.issueId(), link.issueKey(), link.projectKey()),
-                new UpdateMeetingResult.Settings(
-                        settings.admissionPolicy().name(),
-                        settings.maxParticipants(),
-                        settings.allowScreenShare(),
-                        settings.chatEnabled(),
-                        settings.allowMicrophone(),
-                        settings.allowVideo()),
                 meeting.getTimeRange().map(MeetingTimeRange::start).orElse(null),
                 meeting.getTimeRange().map(MeetingTimeRange::end).orElse(null),
                 meeting.getTimeZone().value(),

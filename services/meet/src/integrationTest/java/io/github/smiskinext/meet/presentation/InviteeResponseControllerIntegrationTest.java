@@ -52,6 +52,7 @@ class InviteeResponseControllerIntegrationTest {
                                 "/api/1/meetings/{id}/invitees/{inviteeId}:accept",
                                 seed.meetingId(),
                                 seed.inviteeId())
+                        .header("X-Project-Permissions", "view-meeting,edit-meeting")
                         .header("X-Account-Id", INVITEE_ACCOUNT)
                         .header("X-Tenant-ID", TENANT_ID))
                 .andExpect(status().isOk())
@@ -68,6 +69,7 @@ class InviteeResponseControllerIntegrationTest {
                                 "/api/1/meetings/{id}/invitees/{inviteeId}:tentative",
                                 seed.meetingId(),
                                 seed.inviteeId())
+                        .header("X-Project-Permissions", "view-meeting,edit-meeting")
                         .header("X-Account-Id", INVITEE_ACCOUNT)
                         .header("X-Tenant-ID", TENANT_ID))
                 .andExpect(status().isOk())
@@ -95,6 +97,7 @@ class InviteeResponseControllerIntegrationTest {
                                 "/api/1/meetings/{id}/invitees/{inviteeId}:accept",
                                 seed.meetingId(),
                                 seed.inviteeId())
+                        .header("X-Project-Permissions", "view-meeting,edit-meeting")
                         .header("X-Account-Id", "intruder-account")
                         .header("X-Tenant-ID", TENANT_ID))
                 .andExpect(status().isForbidden());
@@ -109,6 +112,7 @@ class InviteeResponseControllerIntegrationTest {
                                 "/api/1/meetings/{id}/invitees/{inviteeId}:accept",
                                 seed.meetingId(),
                                 UUID.randomUUID())
+                        .header("X-Project-Permissions", "view-meeting,edit-meeting")
                         .header("X-Account-Id", INVITEE_ACCOUNT)
                         .header("X-Tenant-ID", TENANT_ID))
                 .andExpect(status().isNotFound());
@@ -122,6 +126,7 @@ class InviteeResponseControllerIntegrationTest {
                                 "/api/1/meetings/{id}/invitees/{inviteeId}:decline",
                                 seed.meetingId(),
                                 seed.inviteeId())
+                        .header("X-Project-Permissions", "view-meeting,edit-meeting")
                         .header("X-Account-Id", INVITEE_ACCOUNT)
                         .header("X-Tenant-ID", TENANT_ID))
                 .andExpect(status().isOk())
@@ -131,6 +136,7 @@ class InviteeResponseControllerIntegrationTest {
                                 "/api/1/meetings/{id}/invitees/{inviteeId}:accept",
                                 seed.meetingId(),
                                 seed.inviteeId())
+                        .header("X-Project-Permissions", "view-meeting,edit-meeting")
                         .header("X-Account-Id", INVITEE_ACCOUNT)
                         .header("X-Tenant-ID", TENANT_ID))
                 .andExpect(status().isConflict());
@@ -162,6 +168,7 @@ class InviteeResponseControllerIntegrationTest {
                 """;
 
         MvcResult result = mockMvc.perform(post("/api/1/meetings:instant")
+                        .header("X-Project-Permissions", "view-meeting,edit-meeting")
                         .header("X-Account-Id", "host-account")
                         .header("X-Tenant-ID", TENANT_ID)
                         .contentType(MediaType.APPLICATION_JSON)

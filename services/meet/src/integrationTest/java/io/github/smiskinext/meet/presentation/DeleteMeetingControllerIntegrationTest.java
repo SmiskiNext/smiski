@@ -61,7 +61,8 @@ class DeleteMeetingControllerIntegrationTest {
 
         mockMvc.perform(delete("/api/1/meetings/{id}", meetingId)
                         .header("X-Account-Id", HOST_ID)
-                        .header("X-Tenant-ID", TENANT_ID))
+                        .header("X-Tenant-ID", TENANT_ID)
+                        .header("X-Project-Permissions", "edit-meeting"))
                 .andExpect(status().isOk())
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$.meeting.id").value(meetingId.toString()))
@@ -79,6 +80,7 @@ class DeleteMeetingControllerIntegrationTest {
         mockMvc.perform(post("/api/1/meetings")
                         .header("X-Account-Id", HOST_ID)
                         .header("X-Tenant-ID", TENANT_ID)
+                        .header("X-Project-Permissions", "view-meeting")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{}"))
                 .andExpect(status().isOk())
@@ -91,12 +93,15 @@ class DeleteMeetingControllerIntegrationTest {
 
         mockMvc.perform(delete("/api/1/meetings/{id}", meetingId)
                         .header("X-Account-Id", "other-account")
-                        .header("X-Tenant-ID", TENANT_ID))
+                        .header("X-Tenant-ID", TENANT_ID)
+                        .header("X-Project-Permissions", "edit-meeting"))
                 .andExpect(status().isForbidden())
                 .andExpect(content().contentTypeCompatibleWith("application/problem+json"))
                 .andExpect(jsonPath("$.code").value("NOT_AUTHORIZED"));
 
-        mockMvc.perform(delete("/api/1/meetings/{id}", meetingId).header("X-Tenant-ID", TENANT_ID))
+        mockMvc.perform(delete("/api/1/meetings/{id}", meetingId)
+                        .header("X-Tenant-ID", TENANT_ID)
+                        .header("X-Project-Permissions", "edit-meeting"))
                 .andExpect(status().isBadRequest())
                 .andExpect(content().contentTypeCompatibleWith("application/problem+json"));
 
@@ -107,18 +112,21 @@ class DeleteMeetingControllerIntegrationTest {
     void unknownAndAlreadyDeletedMeetingsReturnNotFound() throws Exception {
         mockMvc.perform(delete("/api/1/meetings/{id}", UUID.randomUUID())
                         .header("X-Account-Id", HOST_ID)
-                        .header("X-Tenant-ID", TENANT_ID))
+                        .header("X-Tenant-ID", TENANT_ID)
+                        .header("X-Project-Permissions", "edit-meeting"))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.code").value("MEETING_NOT_FOUND"));
 
         UUID meetingId = insert("SCHEDULED");
         mockMvc.perform(delete("/api/1/meetings/{id}", meetingId)
                         .header("X-Account-Id", HOST_ID)
-                        .header("X-Tenant-ID", TENANT_ID))
+                        .header("X-Tenant-ID", TENANT_ID)
+                        .header("X-Project-Permissions", "edit-meeting"))
                 .andExpect(status().isOk());
         mockMvc.perform(delete("/api/1/meetings/{id}", meetingId)
                         .header("X-Account-Id", HOST_ID)
-                        .header("X-Tenant-ID", TENANT_ID))
+                        .header("X-Tenant-ID", TENANT_ID)
+                        .header("X-Project-Permissions", "edit-meeting"))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.code").value("MEETING_NOT_FOUND"));
     }
@@ -129,7 +137,8 @@ class DeleteMeetingControllerIntegrationTest {
 
         mockMvc.perform(delete("/api/1/meetings/{id}", meetingId)
                         .header("X-Account-Id", HOST_ID)
-                        .header("X-Tenant-ID", TENANT_ID))
+                        .header("X-Tenant-ID", TENANT_ID)
+                        .header("X-Project-Permissions", "edit-meeting"))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.code").value("CANNOT_DELETE_RUNNING_MEETING"));
 
@@ -149,6 +158,7 @@ class DeleteMeetingControllerIntegrationTest {
         mockMvc.perform(post("/api/1/meetings:batchDelete")
                         .header("X-Account-Id", HOST_ID)
                         .header("X-Tenant-ID", TENANT_ID)
+                        .header("X-Project-Permissions", "edit-meeting")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"meetingIds\":[\"" + first + "\",\"" + second + "\"]}"))
                 .andExpect(status().isOk())
@@ -165,6 +175,7 @@ class DeleteMeetingControllerIntegrationTest {
         mockMvc.perform(post("/api/1/meetings:batchDelete")
                         .header("X-Account-Id", HOST_ID)
                         .header("X-Tenant-ID", TENANT_ID)
+                        .header("X-Project-Permissions", "edit-meeting")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"meetingIds\":[]}"))
                 .andExpect(status().isBadRequest())
@@ -179,6 +190,7 @@ class DeleteMeetingControllerIntegrationTest {
         mockMvc.perform(post("/api/1/meetings:batchDelete")
                         .header("X-Account-Id", HOST_ID)
                         .header("X-Tenant-ID", TENANT_ID)
+                        .header("X-Project-Permissions", "edit-meeting")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"meetingIds\":[\"" + eligible + "\",\"" + running + "\"]}"))
                 .andExpect(status().isConflict())

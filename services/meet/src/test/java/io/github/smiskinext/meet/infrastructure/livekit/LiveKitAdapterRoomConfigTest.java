@@ -1,6 +1,7 @@
 package io.github.smiskinext.meet.infrastructure.livekit;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -13,6 +14,7 @@ import io.github.smiskinext.meet.domain.model.valueobject.MeetingId;
 import io.github.smiskinext.meet.domain.model.valueobject.MeetingSettings;
 import io.github.smiskinext.meet.domain.model.valueobject.ParticipantAttributes;
 import io.github.smiskinext.shared.domain.Result;
+import io.livekit.server.RoomServiceClient;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.UUID;
@@ -24,13 +26,15 @@ class LiveKitAdapterRoomConfigTest {
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
-    private final LiveKitAdapter adapter = new LiveKitAdapter(new LiveKitProperties(
-            "http://localhost:7880",
-            "ws://localhost:7880",
-            "test-key",
-            "test-secret-must-be-at-least-32-characters",
-            "livekit-webhook-events",
-            1800));
+    private final LiveKitAdapter adapter = new LiveKitAdapter(
+            new LiveKitProperties(
+                    "http://localhost:7880",
+                    "ws://localhost:7880",
+                    "test-key",
+                    "test-secret-must-be-at-least-32-characters",
+                    "livekit-webhook-events",
+                    1800),
+            mock(RoomServiceClient.class));
 
     @Test
     void hostTokenCarriesRoomConfigurationMetadataEqualToTenant() {

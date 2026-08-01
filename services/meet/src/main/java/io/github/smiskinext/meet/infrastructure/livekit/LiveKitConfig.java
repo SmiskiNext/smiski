@@ -1,5 +1,6 @@
 package io.github.smiskinext.meet.infrastructure.livekit;
 
+import io.livekit.server.RoomServiceClient;
 import io.livekit.server.WebhookReceiver;
 
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -13,5 +14,11 @@ public class LiveKitConfig {
     @Bean
     public WebhookReceiver liveKitWebhookReceiver(LiveKitProperties properties) {
         return new WebhookReceiver(properties.apiKey(), properties.apiSecret());
+    }
+
+    @Bean
+    public RoomServiceClient liveKitRoomServiceClient(LiveKitProperties properties) {
+        return RoomServiceClient.createClient(
+                properties.url(), properties.apiKey(), properties.apiSecret());
     }
 }

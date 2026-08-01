@@ -54,6 +54,7 @@ class RemoveMeetingInviteesControllerIntegrationTest {
         UUID aliceId = firstInviteeId(meetingId, "alice");
 
         mockMvc.perform(post("/api/1/meetings/{id}/invitees:batchDelete", meetingId)
+                        .header("X-Project-Permissions", "view-meeting,edit-meeting")
                         .header("X-Account-Id", HOST_ID)
                         .header("X-Tenant-ID", TENANT_ID)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -74,6 +75,7 @@ class RemoveMeetingInviteesControllerIntegrationTest {
         UUID aliceId = firstInviteeId(meetingId, "alice");
 
         mockMvc.perform(post("/api/1/meetings/{id}/invitees:batchDelete", meetingId)
+                        .header("X-Project-Permissions", "view-meeting,edit-meeting")
                         .header("X-Tenant-ID", TENANT_ID)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"inviteeIds\":[\"%s\"]}".formatted(aliceId)))
@@ -86,6 +88,7 @@ class RemoveMeetingInviteesControllerIntegrationTest {
     @Test
     void unknownMeetingReturns404() throws Exception {
         mockMvc.perform(post("/api/1/meetings/{id}/invitees:batchDelete", UUID.randomUUID())
+                        .header("X-Project-Permissions", "view-meeting,edit-meeting")
                         .header("X-Account-Id", HOST_ID)
                         .header("X-Tenant-ID", TENANT_ID)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -100,6 +103,7 @@ class RemoveMeetingInviteesControllerIntegrationTest {
         addInvitees(meetingId);
 
         mockMvc.perform(post("/api/1/meetings/{id}/invitees:batchDelete", meetingId)
+                        .header("X-Project-Permissions", "view-meeting,edit-meeting")
                         .header("X-Account-Id", HOST_ID)
                         .header("X-Tenant-ID", TENANT_ID)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -117,6 +121,7 @@ class RemoveMeetingInviteesControllerIntegrationTest {
         UUID aliceId = firstInviteeId(meetingId, "alice");
 
         mockMvc.perform(post("/api/1/meetings/{id}/invitees:batchDelete", meetingId)
+                        .header("X-Project-Permissions", "view-meeting,edit-meeting")
                         .header("X-Account-Id", HOST_ID)
                         .header("X-Tenant-ID", TENANT_ID)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -136,6 +141,7 @@ class RemoveMeetingInviteesControllerIntegrationTest {
         UUID bobId = firstInviteeId(meetingId, "bob");
 
         mockMvc.perform(post("/api/1/meetings/{id}/invitees:batchDelete", meetingId)
+                        .header("X-Project-Permissions", "view-meeting,edit-meeting")
                         .header("X-Account-Id", HOST_ID)
                         .header("X-Tenant-ID", TENANT_ID)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -144,6 +150,7 @@ class RemoveMeetingInviteesControllerIntegrationTest {
         assertThat(activeInviteeCount(meetingId)).isEqualTo(1);
 
         mockMvc.perform(post("/api/1/meetings/{id}/invitees:batchDelete", meetingId)
+                        .header("X-Project-Permissions", "view-meeting,edit-meeting")
                         .header("X-Account-Id", HOST_ID)
                         .header("X-Tenant-ID", TENANT_ID)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -161,6 +168,7 @@ class RemoveMeetingInviteesControllerIntegrationTest {
         UUID aliceId = firstInviteeId(meetingId, "alice");
 
         mockMvc.perform(post("/api/1/meetings/{id}/invitees:batchDelete", meetingId)
+                        .header("X-Project-Permissions", "view-meeting,edit-meeting")
                         .header("X-Account-Id", "not-the-host")
                         .header("X-Tenant-ID", TENANT_ID)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -183,6 +191,7 @@ class RemoveMeetingInviteesControllerIntegrationTest {
                 meetingId);
 
         mockMvc.perform(post("/api/1/meetings/{id}/invitees:batchDelete", meetingId)
+                        .header("X-Project-Permissions", "view-meeting,edit-meeting")
                         .header("X-Account-Id", HOST_ID)
                         .header("X-Tenant-ID", TENANT_ID)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -205,6 +214,7 @@ class RemoveMeetingInviteesControllerIntegrationTest {
                 "organizerEmail":"host@example.com","organizerDisplayName":"Host User"}
                 """.formatted(start, start.plus(1, ChronoUnit.HOURS));
         MvcResult result = mockMvc.perform(post("/api/1/meetings:schedule")
+                        .header("X-Project-Permissions", "view-meeting,edit-meeting")
                         .header("X-Account-Id", HOST_ID)
                         .header("X-Tenant-ID", TENANT_ID)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -217,6 +227,7 @@ class RemoveMeetingInviteesControllerIntegrationTest {
 
     private void addInvitees(UUID meetingId) throws Exception {
         mockMvc.perform(post("/api/1/meetings/{id}/invitees", meetingId)
+                        .header("X-Project-Permissions", "view-meeting,edit-meeting")
                         .header("X-Account-Id", HOST_ID)
                         .header("X-Tenant-ID", TENANT_ID)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -231,6 +242,7 @@ class RemoveMeetingInviteesControllerIntegrationTest {
 
     private UUID firstInviteeId(UUID meetingId, String accountId) throws Exception {
         MvcResult result = mockMvc.perform(get("/api/1/meetings/{id}", meetingId)
+                        .header("X-Project-Permissions", "view-meeting,edit-meeting")
                         .header("X-Account-Id", HOST_ID)
                         .header("X-Tenant-ID", TENANT_ID))
                 .andExpect(status().isOk())

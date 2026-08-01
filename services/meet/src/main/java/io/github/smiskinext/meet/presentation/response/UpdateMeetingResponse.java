@@ -18,7 +18,6 @@ public record UpdateMeetingResponse(Meeting meeting) {
             String title,
             String description,
             IssueLink issueLink,
-            Settings settings,
             Instant startTime,
             Instant endTime,
             String zoneId,
@@ -29,14 +28,6 @@ public record UpdateMeetingResponse(Meeting meeting) {
             Instant createdAt) {}
 
     public record IssueLink(String issueId, String issueKey, String projectKey) {}
-
-    public record Settings(
-            String admissionPolicy,
-            int maxParticipants,
-            boolean allowScreenShare,
-            boolean chatEnabled,
-            boolean allowMicrophone,
-            boolean allowVideo) {}
 
     public static UpdateMeetingResponse from(UpdateMeetingResult result) {
         return new UpdateMeetingResponse(new Meeting(
@@ -51,13 +42,6 @@ public record UpdateMeetingResponse(Meeting meeting) {
                         result.issueLink().issueId(),
                         result.issueLink().issueKey(),
                         result.issueLink().projectKey()),
-                new Settings(
-                        result.settings().admissionPolicy(),
-                        result.settings().maxParticipants(),
-                        result.settings().allowScreenShare(),
-                        result.settings().chatEnabled(),
-                        result.settings().allowMicrophone(),
-                        result.settings().allowVideo()),
                 result.startTime(),
                 result.endTime(),
                 result.zoneId(),

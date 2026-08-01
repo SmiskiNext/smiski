@@ -35,6 +35,7 @@ app:
             invitation-consumer-group: ${INVITATION_CONSUMER_GROUP:notification-meeting-invitations}
             invite-invalidated-consumer-group: ${INVITE_INVALIDATED_CONSUMER_GROUP:notification-meeting-invite-invalidated}
             invitee-responded-consumer-group: ${INVITEE_RESPONDED_CONSUMER_GROUP:notification-invitee-responded}
+            meeting-info-updated-consumer-group: ${MEETING_INFO_UPDATED_CONSUMER_GROUP:notification-meeting-info-updated}
             email-retry-attempts: ${EMAIL_RETRY_ATTEMPTS:3}
             email-retry-backoff-ms: ${EMAIL_RETRY_BACKOFF_MS:1000}
             email-dead-letter-suffix: ${EMAIL_DEAD_LETTER_SUFFIX:.dlt}

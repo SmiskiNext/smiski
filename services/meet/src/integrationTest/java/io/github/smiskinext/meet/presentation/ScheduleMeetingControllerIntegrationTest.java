@@ -82,6 +82,7 @@ class ScheduleMeetingControllerIntegrationTest {
                 """.formatted(start, end);
 
         MvcResult result = mockMvc.perform(post("/api/1/meetings:schedule")
+                        .header("X-Project-Permissions", "view-meeting,edit-meeting")
                         .header("X-Account-Id", "host-account")
                         .header("X-Tenant-ID", TENANT_ID)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -134,6 +135,7 @@ class ScheduleMeetingControllerIntegrationTest {
         String requestBody = scheduleRequestBody(start, end);
 
         mockMvc.perform(post("/api/1/meetings:schedule")
+                        .header("X-Project-Permissions", "view-meeting,edit-meeting")
                         .header("X-Tenant-ID", TENANT_ID)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(requestBody))
@@ -172,6 +174,7 @@ class ScheduleMeetingControllerIntegrationTest {
                     """;
 
             mockMvc.perform(post("/api/1/meetings:schedule")
+                            .header("X-Project-Permissions", "view-meeting,edit-meeting")
                             .header("X-Account-Id", "host-account")
                             .header("X-Tenant-ID", TENANT_ID)
                             .contentType(MediaType.APPLICATION_JSON)
@@ -206,6 +209,7 @@ class ScheduleMeetingControllerIntegrationTest {
                     """.formatted(start, end);
 
             mockMvc.perform(post("/api/1/meetings:schedule")
+                            .header("X-Project-Permissions", "view-meeting,edit-meeting")
                             .header("X-Account-Id", "host-account")
                             .header("X-Tenant-ID", TENANT_ID)
                             .contentType(MediaType.APPLICATION_JSON)
@@ -247,6 +251,7 @@ class ScheduleMeetingControllerIntegrationTest {
                     """.formatted(start, end);
 
             mockMvc.perform(post("/api/1/meetings:schedule")
+                            .header("X-Project-Permissions", "view-meeting,edit-meeting")
                             .header("X-Account-Id", "host-account")
                             .header("X-Tenant-ID", TENANT_ID)
                             .contentType(MediaType.APPLICATION_JSON)
@@ -284,6 +289,7 @@ class ScheduleMeetingControllerIntegrationTest {
                     """.formatted(start, end);
 
             mockMvc.perform(post("/api/1/meetings:schedule")
+                            .header("X-Project-Permissions", "view-meeting,edit-meeting")
                             .header("X-Account-Id", "host-account")
                             .header("X-Tenant-ID", TENANT_ID)
                             .contentType(MediaType.APPLICATION_JSON)
@@ -326,6 +332,7 @@ class ScheduleMeetingControllerIntegrationTest {
                     """.formatted(start, end);
 
             mockMvc.perform(post("/api/1/meetings:schedule")
+                            .header("X-Project-Permissions", "view-meeting,edit-meeting")
                             .header("X-Account-Id", "host-account")
                             .header("X-Tenant-ID", TENANT_ID)
                             .contentType(MediaType.APPLICATION_JSON)
@@ -349,6 +356,7 @@ class ScheduleMeetingControllerIntegrationTest {
         String requestBody = scheduleRequestBody(start, end);
 
         mockMvc.perform(post("/api/1/meetings:schedule")
+                        .header("X-Project-Permissions", "view-meeting,edit-meeting")
                         .header("X-Account-Id", "host-account")
                         .header("X-Tenant-ID", TENANT_ID)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -397,6 +405,7 @@ class ScheduleMeetingControllerIntegrationTest {
                     """.formatted(start, end);
 
             mockMvc.perform(post("/api/1/meetings:schedule")
+                            .header("X-Project-Permissions", "view-meeting,edit-meeting")
                             .header("X-Account-Id", "host-account")
                             .header("X-Tenant-ID", TENANT_ID)
                             .contentType(MediaType.APPLICATION_JSON)
@@ -443,6 +452,7 @@ class ScheduleMeetingControllerIntegrationTest {
                     """.formatted(start, end);
 
             mockMvc.perform(post("/api/1/meetings:schedule")
+                            .header("X-Project-Permissions", "view-meeting,edit-meeting")
                             .header("X-Account-Id", "host-account")
                             .header("X-Tenant-ID", TENANT_ID)
                             .contentType(MediaType.APPLICATION_JSON)
@@ -480,6 +490,7 @@ class ScheduleMeetingControllerIntegrationTest {
                     """.formatted(start, end);
 
             mockMvc.perform(post("/api/1/meetings:schedule")
+                            .header("X-Project-Permissions", "view-meeting,edit-meeting")
                             .header("X-Account-Id", "host-account")
                             .header("X-Tenant-ID", TENANT_ID)
                             .contentType(MediaType.APPLICATION_JSON)
@@ -523,6 +534,7 @@ class ScheduleMeetingControllerIntegrationTest {
                     """.formatted(start, end);
 
             MvcResult result = mockMvc.perform(post("/api/1/meetings:schedule")
+                            .header("X-Project-Permissions", "view-meeting,edit-meeting")
                             .header("X-Account-Id", "host-account")
                             .header("X-Tenant-ID", TENANT_ID)
                             .contentType(MediaType.APPLICATION_JSON)
@@ -572,6 +584,7 @@ class ScheduleMeetingControllerIntegrationTest {
                     """.formatted(start, end);
 
             MvcResult result = mockMvc.perform(post("/api/1/meetings:schedule")
+                            .header("X-Project-Permissions", "view-meeting,edit-meeting")
                             .header("X-Account-Id", "host-account")
                             .header("X-Tenant-ID", TENANT_ID)
                             .contentType(MediaType.APPLICATION_JSON)
@@ -637,6 +650,7 @@ class ScheduleMeetingControllerIntegrationTest {
                     """.formatted(start, end);
 
             MvcResult result = mockMvc.perform(post("/api/1/meetings:schedule")
+                            .header("X-Project-Permissions", "view-meeting,edit-meeting")
                             .header("X-Account-Id", "host-account")
                             .header("X-Tenant-ID", TENANT_ID)
                             .contentType(MediaType.APPLICATION_JSON)
@@ -703,6 +717,7 @@ class ScheduleMeetingControllerIntegrationTest {
                     """.formatted(start, end);
 
             mockMvc.perform(post("/api/1/meetings:schedule")
+                            .header("X-Project-Permissions", "view-meeting,edit-meeting")
                             .header("X-Account-Id", "host-account")
                             .header("X-Tenant-ID", TENANT_ID)
                             .contentType(MediaType.APPLICATION_JSON)
@@ -752,6 +767,7 @@ class ScheduleMeetingControllerIntegrationTest {
                     """.formatted(start, end);
 
             mockMvc.perform(post("/api/1/meetings:schedule")
+                            .header("X-Project-Permissions", "view-meeting,edit-meeting")
                             .header("X-Account-Id", "host-account")
                             .header("X-Tenant-ID", TENANT_ID)
                             .contentType(MediaType.APPLICATION_JSON)
@@ -791,6 +807,7 @@ class ScheduleMeetingControllerIntegrationTest {
                     """.formatted(start, end);
 
             mockMvc.perform(post("/api/1/meetings:schedule")
+                            .header("X-Project-Permissions", "view-meeting,edit-meeting")
                             .header("X-Account-Id", "host-account")
                             .header("X-Tenant-ID", TENANT_ID)
                             .contentType(MediaType.APPLICATION_JSON)

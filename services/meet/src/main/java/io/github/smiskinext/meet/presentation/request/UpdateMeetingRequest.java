@@ -9,12 +9,11 @@ import java.time.Instant;
 import java.util.UUID;
 import org.jspecify.annotations.Nullable;
 
-@Schema(description = "Full meeting update request")
+@Schema(description = "Meeting information update request")
 public record UpdateMeetingRequest(
         @NotBlank @Size(max = 255) String title,
         @NotBlank String description,
         @NotNull @Valid IssueLink issueLink,
-        @NotNull @Valid Settings settings,
         @NotBlank @IanaZoneId String zoneId,
         @Nullable @Valid TimeRange timeRange) {
 
@@ -22,15 +21,6 @@ public record UpdateMeetingRequest(
             @NotBlank @Size(max = 64) String issueId,
             @NotBlank @Size(max = 64) String issueKey,
             @NotBlank @Size(max = 64) String projectKey) {}
-
-    public record Settings(
-            @NotBlank @Pattern(regexp = "ALLOW_ALL|MANUAL_APPROVAL") String admissionPolicy,
-
-            @Min(2) @Max(100) int maxParticipants,
-            boolean allowScreenShare,
-            boolean chatEnabled,
-            boolean allowMicrophone,
-            boolean allowVideo) {}
 
     public record TimeRange(
             @NotNull Instant startTime, @NotNull Instant endTime) {}
@@ -51,13 +41,6 @@ public record UpdateMeetingRequest(
                 description,
                 new UpdateMeetingCommand.IssueLink(
                         issueLink.issueId(), issueLink.issueKey(), issueLink.projectKey()),
-                new UpdateMeetingCommand.Settings(
-                        settings.admissionPolicy(),
-                        settings.maxParticipants(),
-                        settings.allowScreenShare(),
-                        settings.chatEnabled(),
-                        settings.allowMicrophone(),
-                        settings.allowVideo()),
                 zoneId,
                 timeRange == null
                         ? null

@@ -10,6 +10,8 @@ import io.github.smiskinext.meet.domain.projection.MeetingSearchCriteria;
 import io.github.smiskinext.meet.domain.projection.MeetingSummary;
 import io.github.smiskinext.meet.domain.projection.ParticipatedMeetingSummary;
 import io.github.smiskinext.shared.domain.CursorPageResponse;
+import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -68,4 +70,18 @@ public interface MeetingRepository {
             Set<MeetingStatus> statuses,
             @Nullable ParticipatedMeetingCursor cursor,
             int pageSize);
+
+    /**
+     * Finds SCHEDULED meetings whose end time is before {@code cutoff}, across all tenants,
+     * bypassing the tenant context. Uses {@code FOR UPDATE SKIP LOCKED} to prevent double
+     * processing by concurrent job instances.
+     *
+     * @param batchSize maximum number of results to return
+     * @param cutoff    only meetings whose end_time is strictly before this instant are returned
+     * @return list of (meeting id, tenant id) pairs for eligible meetings
+     */
+    List<MeetingIdAndTenant> findScheduledExpiredAcrossTenants(int batchSize, Instant cutoff);
+
+    /** Lightweight pair returned by the cross-tenant expired-meetings query. */
+    record MeetingIdAndTenant(UUID id, String tenantId) {}
 }
