@@ -53,12 +53,9 @@ pnpm run forge <args> # = forge <args>, e.g. pnpm run forge logs --since 15m
 ```
 
 Use `pnpm run deploy`, not `pnpm deploy` — `deploy` is a built-in pnpm 10
-command and would shadow the script. All three go through
-`scripts/with-env.mjs`, which loads `app/.env` first (real shell variables win,
-so CI is unaffected). That matters twice: the Forge CLI reads
-`FORGE_EMAIL`/`FORGE_API_TOKEN` from the environment when `forge login` can't
-write the local keychain, and it interpolates `manifest.yml`'s `${...}` from
-`process.env` at deploy time, falling back to each variable's `default:`.
+command and would shadow the script. The scripts call the Forge CLI directly,
+so credentials and manifest interpolation variables must already be available
+in the shell environment (or through Forge's normal login/configuration).
 `deploy` rebuilds the UI first because `forge deploy` uploads
 `static/smiski-ui/dist` as-is and never builds it.
 
