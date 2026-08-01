@@ -62,6 +62,14 @@ public interface JoinRequestRepository {
             UUID meetingId, int offset, int pageSize);
 
     /**
+     * Returns the total number of {@code PENDING} join requests for a meeting across all pages.
+     *
+     * @param meetingId the meeting ID
+     * @return count of PENDING requests (0 if none)
+     */
+    long countPendingByMeetingId(UUID meetingId);
+
+    /**
      * Updates the status of a join request.
      *
      * @param requestId the join request ID

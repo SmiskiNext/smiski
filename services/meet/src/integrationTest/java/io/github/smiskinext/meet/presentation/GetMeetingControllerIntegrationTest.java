@@ -56,6 +56,7 @@ class GetMeetingControllerIntegrationTest {
         insertParticipationSession(meetingId, "alice", "PARTICIPANT", joinedAt, null);
 
         mockMvc.perform(get("/api/1/meetings/{id}", meetingId)
+                        .header("X-Project-Permissions", "view-meeting,edit-meeting")
                         .header("X-Account-Id", MEMBER_ID)
                         .header("X-Tenant-ID", TENANT_ID))
                 .andExpect(status().isOk())
@@ -76,7 +77,9 @@ class GetMeetingControllerIntegrationTest {
     void missingAccountHeaderReturns400ProblemJson() throws Exception {
         UUID meetingId = createScheduledMeeting();
 
-        mockMvc.perform(get("/api/1/meetings/{id}", meetingId).header("X-Tenant-ID", TENANT_ID))
+        mockMvc.perform(get("/api/1/meetings/{id}", meetingId)
+                        .header("X-Tenant-ID", TENANT_ID)
+                        .header("X-Project-Permissions", "view-meeting,edit-meeting"))
                 .andExpect(status().isBadRequest())
                 .andExpect(content().contentTypeCompatibleWith("application/problem+json"));
     }
@@ -84,6 +87,7 @@ class GetMeetingControllerIntegrationTest {
     @Test
     void unknownMeetingReturns404MeetingNotFound() throws Exception {
         mockMvc.perform(get("/api/1/meetings/{id}", UUID.randomUUID())
+                        .header("X-Project-Permissions", "view-meeting,edit-meeting")
                         .header("X-Account-Id", MEMBER_ID)
                         .header("X-Tenant-ID", TENANT_ID))
                 .andExpect(status().isNotFound())
@@ -101,6 +105,7 @@ class GetMeetingControllerIntegrationTest {
                 meetingId);
 
         mockMvc.perform(get("/api/1/meetings/{id}", meetingId)
+                        .header("X-Project-Permissions", "view-meeting,edit-meeting")
                         .header("X-Account-Id", MEMBER_ID)
                         .header("X-Tenant-ID", TENANT_ID))
                 .andExpect(status().isNotFound())
@@ -118,6 +123,7 @@ class GetMeetingControllerIntegrationTest {
                 "organizerEmail":"host@example.com","organizerDisplayName":"Host User"}
                 """.formatted(start, start.plus(1, ChronoUnit.HOURS));
         MvcResult result = mockMvc.perform(post("/api/1/meetings:schedule")
+                        .header("X-Project-Permissions", "view-meeting,edit-meeting")
                         .header("X-Account-Id", HOST_ID)
                         .header("X-Tenant-ID", TENANT_ID)
                         .contentType(MediaType.APPLICATION_JSON)

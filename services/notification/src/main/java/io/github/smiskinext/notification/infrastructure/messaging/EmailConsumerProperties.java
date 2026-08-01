@@ -17,6 +17,9 @@ public class EmailConsumerProperties {
     /** Fixed group for the invitee-response reply emails. */
     private String inviteeRespondedConsumerGroup = "notification-invitee-responded";
 
+    /** Fixed group for the meeting-info-updated reschedule emails. */
+    private String meetingInfoUpdatedConsumerGroup = "notification-meeting-info-updated";
+
     /** Total delivery attempts before a message is routed to the dead-letter topic. */
     private int emailRetryAttempts = 3;
 
@@ -40,6 +43,14 @@ public class EmailConsumerProperties {
 
     public void setInviteeRespondedConsumerGroup(String inviteeRespondedConsumerGroup) {
         this.inviteeRespondedConsumerGroup = inviteeRespondedConsumerGroup;
+    }
+
+    public String getMeetingInfoUpdatedConsumerGroup() {
+        return meetingInfoUpdatedConsumerGroup;
+    }
+
+    public void setMeetingInfoUpdatedConsumerGroup(String meetingInfoUpdatedConsumerGroup) {
+        this.meetingInfoUpdatedConsumerGroup = meetingInfoUpdatedConsumerGroup;
     }
 
     public int getEmailRetryAttempts() {

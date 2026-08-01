@@ -1,0 +1,26 @@
+syntax = "proto3";
+
+package io.github.smiskinext.event.meet.v1;
+
+option java_multiple_files = true;
+option java_package = "io.github.smiskinext.event.meet.v1";
+
+message MeetingCanceled {
+  string meeting_id = 1;
+  string tenant_id = 2;
+  string host_id = 3;
+  string cancel_reason = 4;
+  string meeting_title = 5;
+  string meeting_short_code = 6;
+  string start_time = 7;
+  repeated InviteeInfo invitees = 8;
+  string canceled_at = 9;
+
+  message InviteeInfo {
+    string account_id = 1;
+    string email = 2;
+    string display_name = 3;
+    string status = 4;
+    string invited_at = 5;
+  }
+}

@@ -10,13 +10,17 @@ after archive.
 ### Requirement: Join a meeting endpoint
 
 The meet service SHALL expose `POST /meetings/{id}:join` allowing an
-authenticated account to join a meeting. The request body SHALL carry a
-non-blank `displayName` (max 100 characters) and a non-blank `deviceId`, and MAY
-carry an optional `avatarUrl`. The account identifier SHALL be taken from the
-request account context and the tenant from the tenant context; neither SHALL be
-accepted in the body. A successful response SHALL be `200 OK` with a body
-carrying a `status` field that distinguishes the outcome. Failures SHALL be
-returned as RFC 9457 `application/problem+json`.
+authenticated account to join a meeting. The endpoint SHALL require the
+`view-meeting` project permission — if the caller's permission context does not
+contain `view-meeting`, the endpoint SHALL reject the request with
+`403 application/problem+json` and code `NOT_AUTHORIZED` before executing the
+use case. The request body SHALL carry a non-blank `displayName` (max 100
+characters) and a non-blank `deviceId`, and MAY carry an optional `avatarUrl`.
+The account identifier SHALL be taken from the request account context and the
+tenant from the tenant context; neither SHALL be accepted in the body. A
+successful response SHALL be `200 OK` with a body carrying a `status` field that
+distinguishes the outcome. Failures SHALL be returned as RFC 9457
+`application/problem+json`.
 
 #### Scenario: Missing required field is a validation error
 
@@ -24,6 +28,12 @@ returned as RFC 9457 `application/problem+json`.
   or blank `deviceId`
 - **THEN** the response is `400` `application/problem+json` with code
   `VALIDATION_ERROR` and a `REQUIRED` entry for the offending field
+
+#### Scenario: Missing view-meeting permission is rejected
+
+- **WHEN** a caller without `view-meeting` sends `POST /meetings/{id}:join`
+- **THEN** the response is `403 application/problem+json` with code
+  `NOT_AUTHORIZED` and no join operation is executed
 
 #### Scenario: Unknown meeting
 
@@ -79,13 +89,13 @@ enforced so that the number of active participants never exceeds the meeting's
 
 ### Requirement: Pending join request under MANUAL_APPROVAL admission
 
-When the target meeting's admission policy is `MANUAL_APPROVAL`, the join
-operation SHALL create a pending join request stored in Redis with a
-time-to-live, SHALL publish a join-created event for host notification, and
-SHALL return `200 OK` with `status` `PENDING` and the generated `requestId`,
-without issuing a LiveKit token. A repeated join from the same device for the
-same meeting while a pending request exists SHALL be idempotent and return the
-existing request rather than creating a duplicate.
+The join operation SHALL, when the target meeting's admission policy is
+`MANUAL_APPROVAL`, create a pending join request stored in Redis with a
+time-to-live, publish a join-created event for host notification, and return
+`200 OK` with `status` `PENDING` and the generated `requestId`, without issuing
+a LiveKit token. A repeated join from the same device for the same meeting while
+a pending request exists SHALL be idempotent and return the existing request
+rather than creating a duplicate.
 
 #### Scenario: Manual-approval meeting creates a pending request
 
@@ -135,3 +145,34 @@ Redis version.
 - **WHEN** a join request is removed from the queue
 - **THEN** its queue entry, metadata, and device index entry are all deleted
   together, leaving no orphaned key
+
+### Requirement: Per-source media publish restriction on participant tokens
+
+The participant join token SHALL restrict publishing per track source using an
+explicit allowed-sources grant derived from the meeting's settings (`microphone`
+when `allowMicrophone`, `camera` when `allowVideo`, `screen_share` and
+`screen_share_audio` when `allowScreenShare`), instead of a single
+undifferentiated publish flag. When no media source is allowed by settings, the
+token SHALL grant no publish permission rather than an unrestricted one. This
+requirement applies to `PARTICIPANT` tokens; the `HOST` token SHALL retain full,
+unrestricted publish permission regardless of settings.
+
+#### Scenario: Screen share disabled excludes the source from the token
+
+- **WHEN** a participant is issued a join token for a meeting whose settings
+  have `allowScreenShare=false` and at least one other media source enabled
+- **THEN** the issued token's allowed publish sources exclude screen share and
+  screen-share audio
+
+#### Scenario: All media sources disabled grants no publish permission
+
+- **WHEN** a participant is issued a join token for a meeting whose settings
+  have `allowMicrophone`, `allowVideo`, and `allowScreenShare` all disabled
+- **THEN** the issued token grants no publish permission for any media source
+
+#### Scenario: Host token is unrestricted regardless of settings
+
+- **WHEN** a host is issued a join token for a meeting whose settings disable
+  one or more media sources
+- **THEN** the issued host token retains full publish permission unaffected by
+  those settings

@@ -251,4 +251,14 @@ public class MeetingRepositoryAdapter implements MeetingRepository {
             int pageSize) {
         throw new UnsupportedOperationException("Not implemented in create-instant-meeting slice");
     }
+
+    @Override
+    public List<MeetingRepository.MeetingIdAndTenant> findScheduledExpiredAcrossTenants(
+            int batchSize, Instant cutoff) {
+        List<Object[]> rows = jpaRepository.findScheduledExpiredIdsAcrossTenants(batchSize, cutoff);
+        return rows.stream()
+                .map(row ->
+                        new MeetingRepository.MeetingIdAndTenant((UUID) row[0], (String) row[1]))
+                .toList();
+    }
 }

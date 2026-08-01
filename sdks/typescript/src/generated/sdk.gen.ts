@@ -2,8 +2,8 @@
 
 import { client } from './client.gen.js';
 import type { Client, Options as Options2, TDataShape } from './client/index.js';
-import type { AcceptInvitationData, AcceptInvitationErrors, AcceptInvitationResponses, AcceptJoinRequestsData, AcceptJoinRequestsErrors, AcceptJoinRequestsResponses, AddInviteesData, AddInviteesErrors, AddInviteesResponses, BatchDeleteData, BatchDeleteErrors, BatchDeleteInviteesData, BatchDeleteInviteesErrors, BatchDeleteInviteesResponses, BatchDeleteResponses, CreateInstantData, CreateInstantErrors, CreateInstantResponses, DeclineInvitationData, DeclineInvitationErrors, DeclineInvitationResponses, DeclineJoinRequestsData, DeclineJoinRequestsErrors, DeclineJoinRequestsResponses, DeleteData, DeleteErrors, DeleteResponses, GetData, GetErrors, GetResponses, JoinData, JoinErrors, JoinResponses, ListData, ListErrors, ListResponses, ReceiveData, ReceiveErrors, ReceiveResponses, RegisterData, RegisterErrors, RegisterResponses, ScheduleData, ScheduleErrors, ScheduleResponses, TentativeInvitationData, TentativeInvitationErrors, TentativeInvitationResponses, UninstallData, UninstallErrors, UninstallResponses, UpdateData, UpdateErrors, UpdateResponses } from './types.gen.js';
-import { zAcceptInvitationData, zAcceptInvitationResponse, zAcceptJoinRequestsData, zAcceptJoinRequestsResponse, zAddInviteesData, zAddInviteesResponse, zBatchDeleteData, zBatchDeleteInviteesData, zBatchDeleteInviteesResponse, zBatchDeleteResponse, zCreateInstantData, zCreateInstantResponse, zDeclineInvitationData, zDeclineInvitationResponse, zDeclineJoinRequestsData, zDeclineJoinRequestsResponse, zDeleteData, zDeleteResponse, zGetData, zGetResponse, zJoinData, zJoinResponse, zListData, zListResponse, zReceiveData, zRegisterData, zRegisterResponse, zScheduleData, zScheduleResponse, zTentativeInvitationData, zTentativeInvitationResponse, zUninstallData, zUninstallResponse, zUpdateData, zUpdateResponse } from './zod.gen.js';
+import type { AcceptInvitationData, AcceptInvitationErrors, AcceptInvitationResponses, AcceptJoinRequestsData, AcceptJoinRequestsErrors, AcceptJoinRequestsResponses, AddInviteesData, AddInviteesErrors, AddInviteesResponses, BatchDeleteData, BatchDeleteErrors, BatchDeleteInviteesData, BatchDeleteInviteesErrors, BatchDeleteInviteesResponses, BatchDeleteResponses, CancelData, CancelErrors, CancelResponses, CreateInstantData, CreateInstantErrors, CreateInstantResponses, DeclineInvitationData, DeclineInvitationErrors, DeclineInvitationResponses, DeclineJoinRequestsData, DeclineJoinRequestsErrors, DeclineJoinRequestsResponses, DeleteData, DeleteErrors, DeleteResponses, EndData, EndErrors, EndResponses, GetData, GetErrors, GetResponses, JoinData, JoinErrors, JoinResponses, ListData, ListErrors, ListPendingJoinRequestsData, ListPendingJoinRequestsErrors, ListPendingJoinRequestsResponses, ListResponses, ReceiveData, ReceiveErrors, ReceiveResponses, RegisterData, RegisterErrors, RegisterResponses, ScheduleData, ScheduleErrors, ScheduleResponses, TentativeInvitationData, TentativeInvitationErrors, TentativeInvitationResponses, UninstallData, UninstallErrors, UninstallResponses, UpdateData, UpdateErrors, UpdateResponses, UpdateSettingsData, UpdateSettingsErrors, UpdateSettingsResponses } from './types.gen.js';
+import { zAcceptInvitationData, zAcceptInvitationResponse, zAcceptJoinRequestsData, zAcceptJoinRequestsResponse, zAddInviteesData, zAddInviteesResponse, zBatchDeleteData, zBatchDeleteInviteesData, zBatchDeleteInviteesResponse, zBatchDeleteResponse, zCancelData, zCancelResponse, zCreateInstantData, zCreateInstantResponse, zDeclineInvitationData, zDeclineInvitationResponse, zDeclineJoinRequestsData, zDeclineJoinRequestsResponse, zDeleteData, zDeleteResponse, zEndData, zEndResponse, zGetData, zGetResponse, zJoinData, zJoinResponse, zListData, zListPendingJoinRequestsData, zListPendingJoinRequestsResponse, zListResponse, zReceiveData, zRegisterData, zRegisterResponse, zScheduleData, zScheduleResponse, zTentativeInvitationData, zTentativeInvitationResponse, zUninstallData, zUninstallResponse, zUpdateData, zUpdateResponse, zUpdateSettingsData, zUpdateSettingsResponse } from './zod.gen.js';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean> = Options2<TData, ThrowOnError> & {
     /**
@@ -76,14 +76,30 @@ export const get = <ThrowOnError extends boolean = false>(options: Options<GetDa
 });
 
 /**
- * Update a meeting
+ * Update meeting information
  *
- * Updates a meeting as its host. Information and settings are mutable while scheduled or running; scheduled details are mutable only while scheduled.
+ * Updates a meeting's information as its host: title, description, issue link, zone ID, and time range. Mutable while scheduled or running; zone ID and time range are mutable only while scheduled. To replace the settings block, use PUT /meetings/{id}/settings instead.
  */
 export const update = <ThrowOnError extends boolean = false>(options: Options<UpdateData, ThrowOnError>) => (options.client ?? client).put<UpdateResponses, UpdateErrors, ThrowOnError>({
     requestValidator: async (data) => await zUpdateData.parseAsync(data),
     responseValidator: async (data) => await zUpdateResponse.parseAsync(data),
     url: '/api/{version}/meetings/{id}',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Replace meeting settings
+ *
+ * Replaces the entire meeting settings block as its host: admission policy, participant limit, and media/chat permissions. Permitted while the meeting is SCHEDULED or RUNNING. When the change affects media permissions, every connected non-host participant's LiveKit publish permission is updated in real time on a best-effort basis; the host is never affected.
+ */
+export const updateSettings = <ThrowOnError extends boolean = false>(options: Options<UpdateSettingsData, ThrowOnError>) => (options.client ?? client).put<UpdateSettingsResponses, UpdateSettingsErrors, ThrowOnError>({
+    requestValidator: async (data) => await zUpdateSettingsData.parseAsync(data),
+    responseValidator: async (data) => await zUpdateSettingsResponse.parseAsync(data),
+    url: '/api/{version}/meetings/{id}/settings',
     ...options,
     headers: {
         'Content-Type': 'application/json',
@@ -187,6 +203,30 @@ export const join = <ThrowOnError extends boolean = false>(options: Options<Join
 });
 
 /**
+ * End a running meeting
+ *
+ * Ends a RUNNING meeting as its host. Transitions the meeting to COMPLETED, closes all active participation logs, publishes a MeetingCompletedEvent through the transactional outbox, and requests best-effort deletion of the LiveKit room.
+ */
+export const end = <ThrowOnError extends boolean = false>(options: Options<EndData, ThrowOnError>) => (options.client ?? client).post<EndResponses, EndErrors, ThrowOnError>({
+    requestValidator: async (data) => await zEndData.parseAsync(data),
+    responseValidator: async (data) => await zEndResponse.parseAsync(data),
+    url: '/api/{version}/meetings/{id}:end',
+    ...options
+});
+
+/**
+ * Cancel a meeting
+ *
+ * Cancels a SCHEDULED meeting as its host. The reason is always HOST_CANCELED. A MeetingCanceledEvent is published through the transactional outbox, carrying the active invitee list. Only SCHEDULED meetings can be canceled via this endpoint.
+ */
+export const cancel = <ThrowOnError extends boolean = false>(options: Options<CancelData, ThrowOnError>) => (options.client ?? client).post<CancelResponses, CancelErrors, ThrowOnError>({
+    requestValidator: async (data) => await zCancelData.parseAsync(data),
+    responseValidator: async (data) => await zCancelResponse.parseAsync(data),
+    url: '/api/{version}/meetings/{id}:cancel',
+    ...options
+});
+
+/**
  * Decline pending join requests
  *
  * Declines one or more pending join requests as the meeting host. Processing is best-effort per item: each submitted requestId yields a result entry with status DENIED (no token), or FAILED (carrying a machine-readable reason). Only the host may decline.
@@ -283,5 +323,17 @@ export const acceptInvitation = <ThrowOnError extends boolean = false>(options: 
     requestValidator: async (data) => await zAcceptInvitationData.parseAsync(data),
     responseValidator: async (data) => await zAcceptInvitationResponse.parseAsync(data),
     url: '/api/{version}/meetings/{id}/invitees/{inviteeId}:accept',
+    ...options
+});
+
+/**
+ * List pending join requests
+ *
+ * Returns a paginated list of PENDING join requests for a meeting with MANUAL_APPROVAL admission policy. Only the meeting host may call this endpoint. Use offset and pageSize query parameters for pagination.
+ */
+export const listPendingJoinRequests = <ThrowOnError extends boolean = false>(options: Options<ListPendingJoinRequestsData, ThrowOnError>) => (options.client ?? client).get<ListPendingJoinRequestsResponses, ListPendingJoinRequestsErrors, ThrowOnError>({
+    requestValidator: async (data) => await zListPendingJoinRequestsData.parseAsync(data),
+    responseValidator: async (data) => await zListPendingJoinRequestsResponse.parseAsync(data),
+    url: '/api/{version}/meetings/{id}/join-requests',
     ...options
 });

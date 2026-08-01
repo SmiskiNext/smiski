@@ -11,16 +11,19 @@ archive.
 
 The meet service SHALL expose `POST /meetings/{id}/join-requests:accept`
 allowing the meeting host to accept one or more pending join requests. The
-request body SHALL carry a non-empty `requestIds` array of UUIDs. The account
-identifier SHALL be taken from the request account context and the tenant from
-the tenant context; neither SHALL be accepted in the body. Only the account that
-hosts the meeting SHALL be permitted to accept; a non-host caller SHALL receive
-`403` `application/problem+json` with code `NOT_OWNER`. A missing account header
-or an empty/malformed body SHALL yield `400` `application/problem+json` with
-code `VALIDATION_ERROR`. A meeting that does not exist for the current tenant
-SHALL yield `404` with a meeting-not-found code. On an authorized, well-formed
-request the response SHALL be `200 OK` carrying a `results` array with one entry
-per submitted `requestId`.
+endpoint SHALL require the `edit-meeting` project permission — if the caller's
+permission context does not contain `edit-meeting`, the endpoint SHALL reject
+the request with `403 application/problem+json` and code `NOT_AUTHORIZED` before
+executing the use case. The request body SHALL carry a non-empty `requestIds`
+array of UUIDs. The account identifier SHALL be taken from the request account
+context and the tenant from the tenant context; neither SHALL be accepted in the
+body. Only the account that hosts the meeting SHALL be permitted to accept; a
+non-host caller SHALL receive `403` `application/problem+json` with code
+`NOT_OWNER`. A missing account header or an empty/malformed body SHALL yield
+`400` `application/problem+json` with code `VALIDATION_ERROR`. A meeting that
+does not exist for the current tenant SHALL yield `404` with a meeting-not-found
+code. On an authorized, well-formed request the response SHALL be `200 OK`
+carrying a `results` array with one entry per submitted `requestId`.
 
 For each accepted request the meet service SHALL, while holding a pessimistic
 lock on the meeting row, enforce the meeting's `maxParticipants` capacity,
@@ -28,36 +31,30 @@ generate a LiveKit `PARTICIPANT` access token whose room is
 `meeting-<meetingId>` and whose room metadata carries the owning tenant,
 transition the request to `APPROVED`, persist the terminal outcome including the
 token and room name, remove the request from the meeting's pending queue, and
-publish an approved event. The accept operation SHALL NOT record a participation
-log; recording is deferred to the `participant_joined` webhook.
+publish a `JoinRequestApprovedEvent`.
 
-#### Scenario: Host accepts a single pending request
+#### Scenario: Host accepts pending requests
 
-- **WHEN** the host calls accept with one pending request id for a meeting that
-  has capacity
-- **THEN** the response is `200` and the matching result entry has `status`
-  `APPROVED` with a non-empty LiveKit token and the room name, the request is
-  removed from the pending queue, and its terminal outcome is persisted
+- **WHEN** the host sends a valid `POST /meetings/{id}/join-requests:accept`
+  request with the account header and one or more valid pending request ids and
+  has `edit-meeting` permission
+- **THEN** each request is approved, a LiveKit token is issued for each, and the
+  response is `200 OK` with a `results` array containing one entry per submitted
+  request id
 
-#### Scenario: Non-host caller is rejected
+#### Scenario: Missing edit-meeting permission is rejected
 
-- **WHEN** an account that is not the meeting host calls accept
-- **THEN** the response is `403` `application/problem+json` with code
-  `NOT_OWNER` and no request is modified
+- **WHEN** a caller without `edit-meeting` sends
+  `POST /meetings/{id}/join-requests:accept`
+- **THEN** the response is `403 application/problem+json` with code
+  `NOT_AUTHORIZED` and no join requests are processed
 
-#### Scenario: Empty request id list is a validation error
+#### Scenario: Non-host acceptance is rejected
 
-- **WHEN** the host calls accept with an empty `requestIds` array or a missing
-  body
-- **THEN** the response is `400` `application/problem+json` with code
-  `VALIDATION_ERROR`
-
-#### Scenario: Unknown meeting
-
-- **WHEN** the host calls accept for a meeting id that does not exist for the
-  current tenant
-- **THEN** the response is `404` `application/problem+json` with a
-  meeting-not-found code
+- **WHEN** an account that is not the meeting host sends an accept request even
+  with `edit-meeting` permission
+- **THEN** the system returns `403` `application/problem+json` with code
+  `NOT_OWNER` and no join requests are processed
 
 ### Requirement: Accept processing is best-effort per item
 
@@ -95,32 +92,46 @@ so that the number of admitted participants never exceeds `maxParticipants`.
 ### Requirement: Host declines pending join requests
 
 The meet service SHALL expose `POST /meetings/{id}/join-requests:decline`
-allowing the meeting host to decline one or more pending join requests, with the
-same body shape, context-derived identity, host-only authorization, and
-request-level error semantics as accept. For each declined request the meet
-service SHALL transition it to `DENIED`, persist the terminal outcome, remove it
-from the pending queue, and publish a denied event. Decline SHALL be best-effort
-per item, returning a `results` array whose entries are `DENIED` or `FAILED`
-with a reason.
+allowing the meeting host to decline one or more pending join requests. The
+endpoint SHALL require the `edit-meeting` project permission — if the caller's
+permission context does not contain `edit-meeting`, the endpoint SHALL reject
+the request with `403 application/problem+json` and code `NOT_AUTHORIZED` before
+executing the use case. The request body SHALL carry a non-empty `requestIds`
+array of UUIDs. The account identifier SHALL be taken from the request account
+context and the tenant from the tenant context; neither SHALL be accepted in the
+body. Only the account that hosts the meeting SHALL be permitted to decline; a
+non-host caller SHALL receive `403` `application/problem+json` with code
+`NOT_OWNER`. A missing account header or an empty/malformed body SHALL yield
+`400` `application/problem+json` with code `VALIDATION_ERROR`. A meeting that
+does not exist for the current tenant SHALL yield `404` with a meeting-not-found
+code. On an authorized, well-formed request the response SHALL be `200 OK`
+carrying a `results` array with one entry per submitted `requestId`.
 
-#### Scenario: Host declines a pending request
+For each declined request the meet service SHALL transition the request to
+`DENIED`, persist the terminal outcome, remove the request from the meeting's
+pending queue, and publish a `JoinRequestDeniedEvent`.
 
-- **WHEN** the host calls decline with one pending request id
-- **THEN** the response is `200`, the result entry has `status` `DENIED` with no
-  token, the request is removed from the pending queue, and its terminal outcome
-  is persisted
+#### Scenario: Host declines pending requests
 
-#### Scenario: Decline is best-effort per item
+- **WHEN** the host sends a valid `POST /meetings/{id}/join-requests:decline`
+  request with the account header and one or more valid pending request ids and
+  has `edit-meeting` permission
+- **THEN** each request is denied and the response is `200 OK` with a `results`
+  array containing one entry per submitted request id
 
-- **WHEN** the host declines a batch containing a pending id and an unknown id
-- **THEN** the pending id is `DENIED` and the unknown id is `FAILED` with a
-  reason, and the response status is `200`
+#### Scenario: Missing edit-meeting permission is rejected
 
-#### Scenario: Non-host caller is rejected
+- **WHEN** a caller without `edit-meeting` sends
+  `POST /meetings/{id}/join-requests:decline`
+- **THEN** the response is `403 application/problem+json` with code
+  `NOT_AUTHORIZED` and no join requests are processed
 
-- **WHEN** an account that is not the meeting host calls decline
-- **THEN** the response is `403` `application/problem+json` with code
-  `NOT_OWNER` and no request is modified
+#### Scenario: Non-host decline is rejected
+
+- **WHEN** an account that is not the meeting host sends a decline request even
+  with `edit-meeting` permission
+- **THEN** the system returns `403` `application/problem+json` with code
+  `NOT_OWNER` and no join requests are processed
 
 ### Requirement: Terminal join request outcome persistence
 

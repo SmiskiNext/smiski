@@ -131,9 +131,11 @@ paths:
     put:
       tags:
       - meeting-controller
-      summary: Update a meeting
-      description: Updates a meeting as its host. Information and settings are mutable
-        while scheduled or running; scheduled details are mutable only while scheduled.
+      summary: Update meeting information
+      description: "Updates a meeting's information as its host: title, description,\
+        \ issue link, zone ID, and time range. Mutable while scheduled or running;\
+        \ zone ID and time range are mutable only while scheduled. To replace the\
+        \ settings block, use PUT /meetings/{id}/settings instead."
       operationId: update
       parameters:
       - name: id
@@ -150,7 +152,7 @@ paths:
         required: true
       responses:
         "200":
-          description: Meeting updated
+          description: Meeting information updated
           content:
             application/json:
               schema:
@@ -171,13 +173,6 @@ paths:
                         issueId: "10001"
                         issueKey: PROJ-1
                         projectKey: PROJ
-                      settings:
-                        admissionPolicy: ALLOW_ALL
-                        maxParticipants: 50
-                        allowScreenShare: true
-                        chatEnabled: true
-                        allowMicrophone: true
-                        allowVideo: true
                       startTime: 2025-02-01T14:00:00Z
                       endTime: 2025-02-01T15:00:00Z
                       zoneId: Asia/Ho_Chi_Minh
@@ -288,6 +283,39 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/DeleteMeetingResponse"
+              examples:
+                deleted:
+                  description: deleted
+                  value:
+                    meeting:
+                      id: 0195e0c2-8f3a-7c21-b9d4-2f1a6e7c8d90
+                      hostId: account-123
+                      shortCode: abc-defg-hij
+                      type: SCHEDULED
+                      status: DELETED
+                      title: Sprint planning
+                      description: Plan the next sprint
+                      issueLink:
+                        issueId: "10001"
+                        issueKey: PROJ-1
+                        projectKey: PROJ
+                      settings:
+                        admissionPolicy: OPEN
+                        maxParticipants: 50
+                        allowScreenShare: true
+                        chatEnabled: true
+                        allowMicrophone: true
+                        allowVideo: true
+                      startTime: 2025-02-01T14:00:00Z
+                      endTime: 2025-02-01T15:00:00Z
+                      zoneId: Asia/Ho_Chi_Minh
+                      organizerEmail: host@example.com
+                      organizerDisplayName: Host User
+                      calendarUid: meeting-0195e0c2@smiski.app
+                      calendarSequence: 0
+                      createdAt: 2025-01-15T10:30:00Z
+                      deletedAt: 2025-01-20T09:00:00Z
+                      deletedBy: account-123
         "400":
           description: Missing account header
           content:
@@ -351,6 +379,137 @@ paths:
                     status: 409
                     detail: The meeting is running and must be ended before deletion.
                     code: CANNOT_DELETE_RUNNING_MEETING
+                    traceId: 6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a
+        "405":
+          description: Method Not Allowed
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "415":
+          description: Unsupported Media Type
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "500":
+          description: Internal Server Error
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+    parameters:
+    - name: version
+      in: path
+      required: true
+      schema:
+        type: integer
+        format: int32
+      example: 1
+  /api/{version}/meetings/{id}/settings:
+    put:
+      tags:
+      - meeting-controller
+      summary: Replace meeting settings
+      description: "Replaces the entire meeting settings block as its host: admission\
+        \ policy, participant limit, and media/chat permissions. Permitted while the\
+        \ meeting is SCHEDULED or RUNNING. When the change affects media permissions,\
+        \ every connected non-host participant's LiveKit publish permission is updated\
+        \ in real time on a best-effort basis; the host is never affected."
+      operationId: updateSettings
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateMeetingSettingsRequest"
+        required: true
+      responses:
+        "200":
+          description: Settings updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UpdateMeetingSettingsResponse"
+              examples:
+                updated:
+                  description: updated
+                  value:
+                    meetingId: 0195e0c2-8f3a-7c21-b9d4-2f1a6e7c8d90
+                    admissionPolicy: ALLOW_ALL
+                    maxParticipants: 50
+                    allowScreenShare: true
+                    chatEnabled: true
+                    allowMicrophone: true
+                    allowVideo: true
+        "400":
+          description: Validation error or missing account
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+              examples:
+                validationError:
+                  summary: Validation failure
+                  description: validationError
+                  value:
+                    type: about:blank
+                    title: Bad Request
+                    status: 400
+                    detail: The request body failed validation
+                    code: VALIDATION_ERROR
+                    traceId: 6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a
+                    errors:
+                    - field: maxParticipants
+                      code: RANGE
+                      message: must be between 2 and 100
+                missingAccount:
+                  summary: Missing X-Account-Id header
+                  description: missingAccount
+                  value:
+                    type: about:blank
+                    title: Bad Request
+                    status: 400
+                    detail: X-Account-Id header is required
+                    code: VALIDATION_ERROR
+                    traceId: 6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a
+        "403":
+          description: Only the host may replace the settings
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+              examples:
+                notAuthorized:
+                  description: notAuthorized
+                  value:
+                    type: about:blank
+                    title: Forbidden
+                    status: 403
+                    detail: Only the host may change the meeting settings
+                    code: NOT_AUTHORIZED
+                    traceId: 6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a
+        "404":
+          description: Meeting not found
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+              examples:
+                notFound:
+                  description: notFound
+                  value:
+                    type: about:blank
+                    title: Not Found
+                    status: 404
+                    detail: Meeting not found
+                    code: MEETING_NOT_FOUND
                     traceId: 6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a
         "405":
           description: Method Not Allowed
@@ -779,6 +938,39 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/BatchDeleteMeetingsResponse"
+              examples:
+                batchDeleted:
+                  description: batchDeleted
+                  value:
+                    meetings:
+                    - id: 0195e0c2-8f3a-7c21-b9d4-2f1a6e7c8d90
+                      hostId: account-123
+                      shortCode: abc-defg-hij
+                      type: SCHEDULED
+                      status: DELETED
+                      title: Sprint planning
+                      description: Plan the next sprint
+                      issueLink:
+                        issueId: "10001"
+                        issueKey: PROJ-1
+                        projectKey: PROJ
+                      settings:
+                        admissionPolicy: OPEN
+                        maxParticipants: 50
+                        allowScreenShare: true
+                        chatEnabled: true
+                        allowMicrophone: true
+                        allowVideo: true
+                      startTime: 2025-02-01T14:00:00Z
+                      endTime: 2025-02-01T15:00:00Z
+                      zoneId: Asia/Ho_Chi_Minh
+                      organizerEmail: host@example.com
+                      organizerDisplayName: Host User
+                      calendarUid: meeting-0195e0c2@smiski.app
+                      calendarSequence: 0
+                      createdAt: 2025-01-15T10:30:00Z
+                      deletedAt: 2025-01-20T09:00:00Z
+                      deletedBy: account-123
         "400":
           description: Validation error or missing account header
           content:
@@ -1006,6 +1198,298 @@ paths:
                 $ref: "#/components/schemas/ProblemDetail"
         "500":
           description: Internal Server Error
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+    parameters:
+    - name: version
+      in: path
+      required: true
+      schema:
+        type: integer
+        format: int32
+      example: 1
+  /api/{version}/meetings/{id}:end:
+    post:
+      tags:
+      - meeting-controller
+      summary: End a running meeting
+      description: "Ends a RUNNING meeting as its host. Transitions the meeting to\
+        \ COMPLETED, closes all active participation logs, publishes a MeetingCompletedEvent\
+        \ through the transactional outbox, and requests best-effort deletion of the\
+        \ LiveKit room."
+      operationId: end
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: Meeting ended; returns the completed meeting snapshot
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EndMeetingResponse"
+              examples:
+                completed:
+                  description: completed
+                  value:
+                    meeting:
+                      id: 0195e0c2-8f3a-7c21-b9d4-2f1a6e7c8d90
+                      hostId: account-123
+                      shortCode: abc-defg-hij
+                      type: SCHEDULED
+                      status: COMPLETED
+                      cancelReason: null
+                      title: Sprint planning
+                      description: Plan the next sprint
+                      issueLink:
+                        issueId: "10001"
+                        issueKey: PROJ-1
+                        projectKey: PROJ
+                      settings:
+                        admissionPolicy: MANUAL_APPROVAL
+                        maxParticipants: 50
+                        allowScreenShare: true
+                        chatEnabled: true
+                        allowMicrophone: true
+                        allowVideo: true
+                      startTime: 2025-02-01T14:00:00Z
+                      endTime: 2025-02-01T15:00:00Z
+                      zoneId: Asia/Ho_Chi_Minh
+                      organizerEmail: host@example.com
+                      organizerDisplayName: Host User
+                      calendarUid: meeting-0195e0c2@smiski.app
+                      calendarSequence: 0
+                      createdAt: 2025-01-15T10:30:00Z
+        "400":
+          description: Missing account header
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+              examples:
+                missingAccount:
+                  description: missingAccount
+                  value:
+                    type: about:blank
+                    title: Bad Request
+                    status: 400
+                    detail: X-Account-Id header is required
+                    code: VALIDATION_ERROR
+                    traceId: 6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a
+        "403":
+          description: Only the host may end the meeting
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+              examples:
+                notAuthorized:
+                  description: notAuthorized
+                  value:
+                    type: about:blank
+                    title: Not authorized
+                    status: 403
+                    detail: You are not the host of this meeting.
+                    code: NOT_AUTHORIZED
+                    traceId: 6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a
+        "404":
+          description: Meeting not found or soft-deleted
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+              examples:
+                notFound:
+                  description: notFound
+                  value:
+                    type: about:blank
+                    title: Meeting not found
+                    status: 404
+                    detail: No meeting matches the given identifier.
+                    code: MEETING_NOT_FOUND
+                    traceId: 6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a
+        "409":
+          description: Meeting status does not allow completion
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+              examples:
+                invalidTransition:
+                  description: invalidTransition
+                  value:
+                    type: about:blank
+                    title: Invalid status transition
+                    status: 409
+                    detail: Cannot transition from SCHEDULED to COMPLETED.
+                    code: INVALID_STATUS_TRANSITION
+                    traceId: 6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a
+        "500":
+          description: Internal server error
+          content:
+            '*/*':
+              schema:
+                type: object
+        "405":
+          description: Method Not Allowed
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "415":
+          description: Unsupported Media Type
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+    parameters:
+    - name: version
+      in: path
+      required: true
+      schema:
+        type: integer
+        format: int32
+      example: 1
+  /api/{version}/meetings/{id}:cancel:
+    post:
+      tags:
+      - meeting-controller
+      summary: Cancel a meeting
+      description: "Cancels a SCHEDULED meeting as its host. The reason is always\
+        \ HOST_CANCELED. A MeetingCanceledEvent is published through the transactional\
+        \ outbox, carrying the active invitee list. Only SCHEDULED meetings can be\
+        \ canceled via this endpoint."
+      operationId: cancel
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: Meeting canceled; returns the canceled meeting snapshot
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CancelMeetingResponse"
+              examples:
+                canceled:
+                  description: canceled
+                  value:
+                    meeting:
+                      id: 0195e0c2-8f3a-7c21-b9d4-2f1a6e7c8d90
+                      hostId: account-123
+                      shortCode: abc-defg-hij
+                      type: SCHEDULED
+                      status: CANCELED
+                      cancelReason: HOST_CANCELED
+                      title: Sprint planning
+                      description: Plan the next sprint
+                      issueLink:
+                        issueId: "10001"
+                        issueKey: PROJ-1
+                        projectKey: PROJ
+                      settings:
+                        admissionPolicy: MANUAL_APPROVAL
+                        maxParticipants: 50
+                        allowScreenShare: true
+                        chatEnabled: true
+                        allowMicrophone: true
+                        allowVideo: true
+                      startTime: 2025-02-01T14:00:00Z
+                      endTime: 2025-02-01T15:00:00Z
+                      zoneId: Asia/Ho_Chi_Minh
+                      organizerEmail: host@example.com
+                      organizerDisplayName: Host User
+                      calendarUid: meeting-0195e0c2@smiski.app
+                      calendarSequence: 0
+                      createdAt: 2025-01-15T10:30:00Z
+        "400":
+          description: Missing account header
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+              examples:
+                missingAccount:
+                  description: missingAccount
+                  value:
+                    type: about:blank
+                    title: Bad Request
+                    status: 400
+                    detail: X-Account-Id header is required
+                    code: VALIDATION_ERROR
+                    traceId: 6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a
+        "403":
+          description: Only the host may cancel the meeting
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+              examples:
+                notAuthorized:
+                  description: notAuthorized
+                  value:
+                    type: about:blank
+                    title: Not authorized
+                    status: 403
+                    detail: You are not the host of this meeting.
+                    code: NOT_AUTHORIZED
+                    traceId: 6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a
+        "404":
+          description: Meeting not found or soft-deleted
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+              examples:
+                notFound:
+                  description: notFound
+                  value:
+                    type: about:blank
+                    title: Meeting not found
+                    status: 404
+                    detail: No meeting matches the given identifier.
+                    code: MEETING_NOT_FOUND
+                    traceId: 6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a
+        "409":
+          description: Meeting status does not allow cancellation
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+              examples:
+                invalidTransition:
+                  description: invalidTransition
+                  value:
+                    type: about:blank
+                    title: Invalid status transition
+                    status: 409
+                    detail: Cannot transition from RUNNING to CANCELED.
+                    code: INVALID_STATUS_TRANSITION
+                    traceId: 6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a
+        "500":
+          description: Internal server error
+          content:
+            '*/*':
+              schema:
+                type: object
+        "405":
+          description: Method Not Allowed
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "415":
+          description: Unsupported Media Type
           content:
             application/problem+json:
               schema:
@@ -1607,30 +2091,82 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/MeetingInviteeResponse"
+              examples:
+                tentative:
+                  description: tentative
+                  value:
+                    id: 0195e0c2-8f3a-7c21-b9d4-3a2b1c4d5e60
+                    accountId: account-456
+                    email: alice@example.com
+                    displayName: Alice Nguyen
+                    role: REQ_PARTICIPANT
+                    status: TENTATIVE
+                    invitedAt: 2025-01-15T10:35:00Z
+                    respondedAt: 2025-01-16T08:00:00Z
         "400":
           description: Missing account header
           content:
             application/problem+json:
               schema:
                 $ref: "#/components/schemas/ProblemDetail"
+              examples:
+                missingAccount:
+                  description: missingAccount
+                  value:
+                    type: about:blank
+                    title: Bad Request
+                    status: 400
+                    detail: X-Account-Id header is required
+                    code: VALIDATION_ERROR
+                    traceId: 6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a
         "403":
           description: The acting account does not own the target invitation
           content:
             application/problem+json:
               schema:
                 $ref: "#/components/schemas/ProblemDetail"
+              examples:
+                notOwner:
+                  description: notOwner
+                  value:
+                    type: about:blank
+                    title: Not authorized
+                    status: 403
+                    detail: You do not own the requested user scope.
+                    code: NOT_OWNER
+                    traceId: 6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a
         "404":
           description: Meeting or invitee not found for the current tenant
           content:
             application/problem+json:
               schema:
                 $ref: "#/components/schemas/ProblemDetail"
+              examples:
+                notFound:
+                  description: notFound
+                  value:
+                    type: about:blank
+                    title: Invitee not found
+                    status: 404
+                    detail: No invitee matches the given identifier.
+                    code: INVITEE_NOT_FOUND
+                    traceId: 6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a
         "409":
           description: The current status does not permit a tentative response
           content:
             application/problem+json:
               schema:
                 $ref: "#/components/schemas/ProblemDetail"
+              examples:
+                invalidTransition:
+                  description: invalidTransition
+                  value:
+                    type: about:blank
+                    title: Invalid invitee transition
+                    status: 409
+                    detail: Cannot transition from TENTATIVE to TENTATIVE.
+                    code: INVALID_INVITEE_TRANSITION
+                    traceId: 6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a
         "405":
           description: Method Not Allowed
           content:
@@ -1686,30 +2222,82 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/MeetingInviteeResponse"
+              examples:
+                declined:
+                  description: declined
+                  value:
+                    id: 0195e0c2-8f3a-7c21-b9d4-3a2b1c4d5e60
+                    accountId: account-456
+                    email: alice@example.com
+                    displayName: Alice Nguyen
+                    role: REQ_PARTICIPANT
+                    status: DECLINED
+                    invitedAt: 2025-01-15T10:35:00Z
+                    respondedAt: 2025-01-16T08:00:00Z
         "400":
           description: Missing account header
           content:
             application/problem+json:
               schema:
                 $ref: "#/components/schemas/ProblemDetail"
+              examples:
+                missingAccount:
+                  description: missingAccount
+                  value:
+                    type: about:blank
+                    title: Bad Request
+                    status: 400
+                    detail: X-Account-Id header is required
+                    code: VALIDATION_ERROR
+                    traceId: 6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a
         "403":
           description: The acting account does not own the target invitation
           content:
             application/problem+json:
               schema:
                 $ref: "#/components/schemas/ProblemDetail"
+              examples:
+                notOwner:
+                  description: notOwner
+                  value:
+                    type: about:blank
+                    title: Not authorized
+                    status: 403
+                    detail: You do not own the requested user scope.
+                    code: NOT_OWNER
+                    traceId: 6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a
         "404":
           description: Meeting or invitee not found for the current tenant
           content:
             application/problem+json:
               schema:
                 $ref: "#/components/schemas/ProblemDetail"
+              examples:
+                notFound:
+                  description: notFound
+                  value:
+                    type: about:blank
+                    title: Invitee not found
+                    status: 404
+                    detail: No invitee matches the given identifier.
+                    code: INVITEE_NOT_FOUND
+                    traceId: 6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a
         "409":
           description: The current status does not permit declining
           content:
             application/problem+json:
               schema:
                 $ref: "#/components/schemas/ProblemDetail"
+              examples:
+                invalidTransition:
+                  description: invalidTransition
+                  value:
+                    type: about:blank
+                    title: Invalid invitee transition
+                    status: 409
+                    detail: Cannot transition from DECLINED to DECLINED.
+                    code: INVALID_INVITEE_TRANSITION
+                    traceId: 6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a
         "405":
           description: Method Not Allowed
           content:
@@ -1765,30 +2353,219 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/MeetingInviteeResponse"
+              examples:
+                accepted:
+                  description: accepted
+                  value:
+                    id: 0195e0c2-8f3a-7c21-b9d4-3a2b1c4d5e60
+                    accountId: account-456
+                    email: alice@example.com
+                    displayName: Alice Nguyen
+                    role: REQ_PARTICIPANT
+                    status: ACCEPTED
+                    invitedAt: 2025-01-15T10:35:00Z
+                    respondedAt: 2025-01-16T08:00:00Z
         "400":
           description: Missing account header
           content:
             application/problem+json:
               schema:
                 $ref: "#/components/schemas/ProblemDetail"
+              examples:
+                missingAccount:
+                  description: missingAccount
+                  value:
+                    type: about:blank
+                    title: Bad Request
+                    status: 400
+                    detail: X-Account-Id header is required
+                    code: VALIDATION_ERROR
+                    traceId: 6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a
         "403":
           description: The acting account does not own the target invitation
           content:
             application/problem+json:
               schema:
                 $ref: "#/components/schemas/ProblemDetail"
+              examples:
+                notOwner:
+                  description: notOwner
+                  value:
+                    type: about:blank
+                    title: Not authorized
+                    status: 403
+                    detail: You do not own the requested user scope.
+                    code: NOT_OWNER
+                    traceId: 6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a
         "404":
           description: Meeting or invitee not found for the current tenant
           content:
             application/problem+json:
               schema:
                 $ref: "#/components/schemas/ProblemDetail"
+              examples:
+                notFound:
+                  description: notFound
+                  value:
+                    type: about:blank
+                    title: Invitee not found
+                    status: 404
+                    detail: No invitee matches the given identifier.
+                    code: INVITEE_NOT_FOUND
+                    traceId: 6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a
         "409":
           description: The current status does not permit accepting
           content:
             application/problem+json:
               schema:
                 $ref: "#/components/schemas/ProblemDetail"
+              examples:
+                invalidTransition:
+                  description: invalidTransition
+                  value:
+                    type: about:blank
+                    title: Invalid invitee transition
+                    status: 409
+                    detail: Cannot transition from ACCEPTED to ACCEPTED.
+                    code: INVALID_INVITEE_TRANSITION
+                    traceId: 6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a
+        "405":
+          description: Method Not Allowed
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "415":
+          description: Unsupported Media Type
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "500":
+          description: Internal Server Error
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+    parameters:
+    - name: version
+      in: path
+      required: true
+      schema:
+        type: integer
+        format: int32
+      example: 1
+  /api/{version}/meetings/{id}/join-requests:
+    get:
+      tags:
+      - meeting-controller
+      summary: List pending join requests
+      description: Returns a paginated list of PENDING join requests for a meeting
+        with MANUAL_APPROVAL admission policy. Only the meeting host may call this
+        endpoint. Use offset and pageSize query parameters for pagination.
+      operationId: listPendingJoinRequests
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: offset
+        in: query
+        required: false
+        schema:
+          type: integer
+          format: int32
+          default: 0
+      - name: pageSize
+        in: query
+        required: false
+        schema:
+          type: integer
+          format: int32
+          default: 20
+      responses:
+        "200":
+          description: Paginated list of pending join requests
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ListPendingJoinRequestsResponse"
+              examples:
+                list:
+                  description: list
+                  value:
+                    results:
+                    - requestId: 0195e0c2-8f3a-7c21-b9d4-2f1a6e7c8d90
+                      accountId: account-456
+                      displayName: Alice Nguyen
+                      status: PENDING
+                      requestedAt: 2025-02-01T14:00:00Z
+                      expiresAt: 2025-02-01T14:05:00Z
+                    meta:
+                      total: 1
+                      offset: 0
+                      pageSize: 20
+        "400":
+          description: Missing account header or pageSize out of range
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+              examples:
+                missingAccount:
+                  summary: Missing X-Account-Id header
+                  description: missingAccount
+                  value:
+                    type: about:blank
+                    title: Bad Request
+                    status: 400
+                    detail: X-Account-Id header is required
+                    code: VALIDATION_ERROR
+                    traceId: 6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a
+                pageSizeOutOfRange:
+                  summary: pageSize is 0 or greater than 100
+                  description: pageSizeOutOfRange
+                  value:
+                    type: about:blank
+                    title: Bad Request
+                    status: 400
+                    detail: pageSize must be between 1 and 100
+                    code: VALIDATION_ERROR
+                    traceId: 6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a
+        "403":
+          description: Only the host may list pending join requests
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+              examples:
+                notOwner:
+                  description: notOwner
+                  value:
+                    type: about:blank
+                    title: Not authorized
+                    status: 403
+                    detail: You do not own the requested user scope.
+                    code: NOT_OWNER
+                    traceId: 6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a
+        "404":
+          description: Meeting not found for the current tenant
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+              examples:
+                notFound:
+                  description: notFound
+                  value:
+                    type: about:blank
+                    title: Meeting not found
+                    status: 404
+                    detail: No meeting matches the given identifier.
+                    code: MEETING_NOT_FOUND
+                    traceId: 6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a
         "405":
           description: Method Not Allowed
           content:
@@ -1826,22 +2603,6 @@ components:
           type: string
         projectKey:
           type: string
-    Settings:
-      type: object
-      properties:
-        admissionPolicy:
-          type: string
-        maxParticipants:
-          type: integer
-          format: int32
-        allowScreenShare:
-          type: boolean
-        chatEnabled:
-          type: boolean
-        allowMicrophone:
-          type: boolean
-        allowVideo:
-          type: boolean
     TimeRange:
       type: object
       properties:
@@ -1856,7 +2617,7 @@ components:
       - startTime
     UpdateMeetingRequest:
       type: object
-      description: Full meeting update request
+      description: Meeting information update request
       properties:
         title:
           type: string
@@ -1867,8 +2628,6 @@ components:
           minLength: 1
         issueLink:
           $ref: "#/components/schemas/IssueLink"
-        settings:
-          $ref: "#/components/schemas/Settings"
         zoneId:
           type: string
           minLength: 1
@@ -1879,7 +2638,6 @@ components:
       required:
       - description
       - issueLink
-      - settings
       - title
       - zoneId
     UpdateMeetingResponse:
@@ -1909,8 +2667,6 @@ components:
           type: string
         issueLink:
           $ref: "#/components/schemas/IssueLink"
-        settings:
-          $ref: "#/components/schemas/Settings"
         startTime:
           type: string
           format: date-time
@@ -1989,6 +2745,49 @@ components:
           description: Field-level validation errors (present when code is VALIDATION_ERROR)
           items:
             $ref: "#/components/schemas/Violation"
+    UpdateMeetingSettingsRequest:
+      type: object
+      description: Full settings replacement request
+      properties:
+        admissionPolicy:
+          type: string
+          minLength: 1
+          pattern: ALLOW_ALL|MANUAL_APPROVAL
+        maxParticipants:
+          type: integer
+          format: int32
+          maximum: 100
+          minimum: 2
+        allowScreenShare:
+          type: boolean
+        chatEnabled:
+          type: boolean
+        allowMicrophone:
+          type: boolean
+        allowVideo:
+          type: boolean
+      required:
+      - admissionPolicy
+    UpdateMeetingSettingsResponse:
+      type: object
+      description: Updated meeting settings snapshot
+      properties:
+        meetingId:
+          type: string
+          format: uuid
+        admissionPolicy:
+          type: string
+        maxParticipants:
+          type: integer
+          format: int32
+        allowScreenShare:
+          type: boolean
+        chatEnabled:
+          type: boolean
+        allowMicrophone:
+          type: boolean
+        allowVideo:
+          type: boolean
     ListMeetingsRequest:
       type: object
       description: Filters and pagination for listing tenant meetings
@@ -2190,6 +2989,22 @@ components:
       - timeRange
       - title
       - zoneId
+    Settings:
+      type: object
+      properties:
+        admissionPolicy:
+          type: string
+        maxParticipants:
+          type: integer
+          format: int32
+        allowScreenShare:
+          type: boolean
+        chatEnabled:
+          type: boolean
+        allowMicrophone:
+          type: boolean
+        allowVideo:
+          type: boolean
     ScheduleMeetingResponse:
       type: object
       description: Response for a successfully created scheduled meeting
@@ -2472,6 +3287,108 @@ components:
           - string
           - "null"
           description: LiveKit room name; present only when APPROVED
+    CompletedMeetingSnapshot:
+      type: object
+      description: Completed meeting snapshot
+      properties:
+        id:
+          type: string
+          format: uuid
+        hostId:
+          type: string
+        shortCode:
+          type: string
+        type:
+          type: string
+        status:
+          type: string
+        cancelReason:
+          type: string
+        title:
+          type: string
+        description:
+          type: string
+        issueLink:
+          $ref: "#/components/schemas/IssueLink"
+        settings:
+          $ref: "#/components/schemas/Settings"
+        startTime:
+          type: string
+          format: date-time
+        endTime:
+          type: string
+          format: date-time
+        zoneId:
+          type: string
+        organizerEmail:
+          type: string
+        organizerDisplayName:
+          type: string
+        calendarUid:
+          type: string
+        calendarSequence:
+          type: integer
+          format: int32
+        createdAt:
+          type: string
+          format: date-time
+    EndMeetingResponse:
+      type: object
+      description: Snapshot of a completed meeting
+      properties:
+        meeting:
+          $ref: "#/components/schemas/CompletedMeetingSnapshot"
+    CancelMeetingResponse:
+      type: object
+      description: Snapshot of a canceled meeting
+      properties:
+        meeting:
+          $ref: "#/components/schemas/CanceledMeetingSnapshot"
+    CanceledMeetingSnapshot:
+      type: object
+      description: Canceled meeting snapshot
+      properties:
+        id:
+          type: string
+          format: uuid
+        hostId:
+          type: string
+        shortCode:
+          type: string
+        type:
+          type: string
+        status:
+          type: string
+        cancelReason:
+          type: string
+        title:
+          type: string
+        description:
+          type: string
+        issueLink:
+          $ref: "#/components/schemas/IssueLink"
+        settings:
+          $ref: "#/components/schemas/Settings"
+        startTime:
+          type: string
+          format: date-time
+        endTime:
+          type: string
+          format: date-time
+        zoneId:
+          type: string
+        organizerEmail:
+          type: string
+        organizerDisplayName:
+          type: string
+        calendarUid:
+          type: string
+        calendarSequence:
+          type: integer
+          format: int32
+        createdAt:
+          type: string
+          format: date-time
     HandleJoinRequestsRequest:
       type: object
       description: Host decision over pending join requests
@@ -2485,7 +3402,7 @@ components:
           minItems: 1
       required:
       - requestIds
-    Item:
+    DecisionItem:
       type: object
       description: Outcome of a single submitted join request
       properties:
@@ -2519,7 +3436,7 @@ components:
           type: array
           description: "One result per submitted request id, in submission order"
           items:
-            $ref: "#/components/schemas/Item"
+            $ref: "#/components/schemas/DecisionItem"
     AddMeetingInviteesRequest:
       type: object
       description: Request body for adding new invitees to a meeting
@@ -2744,6 +3661,59 @@ components:
         createdAt:
           type: string
           format: date-time
+    Item:
+      type: object
+      description: Summary of a single pending join request
+      properties:
+        requestId:
+          type: string
+          description: Unique identifier of the join request
+        accountId:
+          type: string
+          description: Account identifier of the waiting participant
+        displayName:
+          type: string
+          description: Display name submitted by the waiting participant
+        status:
+          type: string
+          description: Request status; always PENDING in this list
+          example: PENDING
+        requestedAt:
+          type: string
+          format: date-time
+          description: ISO-8601 instant when the request was created
+        expiresAt:
+          type: string
+          format: date-time
+          description: ISO-8601 instant when the request expires
+    ListPendingJoinRequestsResponse:
+      type: object
+      description: Paginated list of PENDING join requests for the meeting host
+      properties:
+        results:
+          type: array
+          description: Pending join request summaries for the current page
+          items:
+            $ref: "#/components/schemas/Item"
+        meta:
+          $ref: "#/components/schemas/Meta"
+          description: Pagination metadata
+    Meta:
+      type: object
+      description: Pagination metadata for the current page
+      properties:
+        total:
+          type: integer
+          format: int32
+          description: Total number of PENDING requests across all pages
+        offset:
+          type: integer
+          format: int32
+          description: Zero-based start index used for this page
+        pageSize:
+          type: integer
+          format: int32
+          description: Maximum items requested per page
     DeleteMeetingResponse:
       type: object
       description: Snapshot of a soft-deleted meeting

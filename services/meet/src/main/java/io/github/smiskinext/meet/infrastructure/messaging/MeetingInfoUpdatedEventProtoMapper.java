@@ -26,7 +26,7 @@ public class MeetingInfoUpdatedEventProtoMapper
 
     @Override
     public Message toProto(MeetingInfoUpdatedEvent event) {
-        return MeetingInfoUpdated.newBuilder()
+        MeetingInfoUpdated.Builder builder = MeetingInfoUpdated.newBuilder()
                 .setMeetingId(event.meetingId().toString())
                 .setTenantId(event.tenantId())
                 .setHostId(event.hostId())
@@ -34,8 +34,19 @@ public class MeetingInfoUpdatedEventProtoMapper
                 .setStatus(event.meetingStatus().name())
                 .setOldInfo(toProto(event.oldInfo()))
                 .setNewInfo(toProto(event.newInfo()))
-                .setUpdatedAt(event.updatedAt().toString())
-                .build();
+                .setUpdatedAt(event.updatedAt().toString());
+
+        for (MeetingInfoUpdatedEvent.InviteeInfo invitee : event.invitees()) {
+            builder.addInvitees(MeetingInfoUpdated.InviteeInfo.newBuilder()
+                    .setAccountId(invitee.accountId())
+                    .setEmail(invitee.email())
+                    .setDisplayName(invitee.displayName())
+                    .setInviteeId(invitee.inviteeId().toString())
+                    .setStatus(invitee.status())
+                    .build());
+        }
+
+        return builder.build();
     }
 
     private MeetingInfoSnapshot toProto(
