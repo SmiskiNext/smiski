@@ -628,7 +628,7 @@ export const zMeetHandleJoinRequestsRequest = z.object({
 /**
  * Outcome of a single submitted join request
  */
-export const zMeetItem = z.object({
+export const zMeetDecisionItem = z.object({
     requestId: z.optional(z.string()),
     status: z.optional(z.string()),
     token: z.optional(z.union([
@@ -649,7 +649,7 @@ export const zMeetItem = z.object({
  * Per-item outcome of a host accept/decline decision
  */
 export const zMeetJoinDecisionResponse = z.object({
-    results: z.optional(z.array(zMeetItem))
+    results: z.optional(z.array(zMeetDecisionItem))
 });
 
 /**
@@ -796,6 +796,35 @@ export const zMeetGetMeetingResponse = z.object({
     meeting: z.optional(zMeetMeetingDetailSnapshot),
     invitees: z.optional(z.array(zMeetMeetingDetailInvitee)),
     participants: z.optional(z.array(zMeetMeetingDetailParticipant))
+});
+
+/**
+ * Summary of a single pending join request
+ */
+export const zMeetItem = z.object({
+    requestId: z.optional(z.string()),
+    accountId: z.optional(z.string()),
+    displayName: z.optional(z.string()),
+    status: z.optional(z.string()),
+    requestedAt: z.optional(z.iso.datetime()),
+    expiresAt: z.optional(z.iso.datetime())
+});
+
+/**
+ * Pagination metadata for the current page
+ */
+export const zMeetMeta = z.object({
+    total: z.optional(z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' })),
+    offset: z.optional(z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' })),
+    pageSize: z.optional(z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }))
+});
+
+/**
+ * Paginated list of PENDING join requests for the meeting host
+ */
+export const zMeetListPendingJoinRequestsResponse = z.object({
+    results: z.optional(z.array(zMeetItem)),
+    meta: z.optional(zMeetMeta)
 });
 
 /**
@@ -1092,3 +1121,20 @@ export const zAcceptInvitationData = z.object({
  * Invitation accepted
  */
 export const zAcceptInvitationResponse = zMeetMeetingInviteeResponse;
+
+export const zListPendingJoinRequestsData = z.object({
+    body: z.optional(z.never()),
+    path: z.object({
+        version: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }),
+        id: z.uuid()
+    }),
+    query: z.optional(z.object({
+        offset: z.optional(z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' })).default(0),
+        pageSize: z.optional(z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' })).default(20)
+    }))
+});
+
+/**
+ * Paginated list of pending join requests
+ */
+export const zListPendingJoinRequestsResponse = zMeetListPendingJoinRequestsResponse;

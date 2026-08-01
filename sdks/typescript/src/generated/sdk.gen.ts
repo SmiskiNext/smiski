@@ -2,8 +2,8 @@
 
 import { client } from './client.gen.js';
 import type { Client, Options as Options2, TDataShape } from './client/index.js';
-import type { AcceptInvitationData, AcceptInvitationErrors, AcceptInvitationResponses, AcceptJoinRequestsData, AcceptJoinRequestsErrors, AcceptJoinRequestsResponses, AddInviteesData, AddInviteesErrors, AddInviteesResponses, BatchDeleteData, BatchDeleteErrors, BatchDeleteInviteesData, BatchDeleteInviteesErrors, BatchDeleteInviteesResponses, BatchDeleteResponses, CancelData, CancelErrors, CancelResponses, CreateInstantData, CreateInstantErrors, CreateInstantResponses, DeclineInvitationData, DeclineInvitationErrors, DeclineInvitationResponses, DeclineJoinRequestsData, DeclineJoinRequestsErrors, DeclineJoinRequestsResponses, DeleteData, DeleteErrors, DeleteResponses, EndData, EndErrors, EndResponses, GetData, GetErrors, GetResponses, JoinData, JoinErrors, JoinResponses, ListData, ListErrors, ListResponses, ReceiveData, ReceiveErrors, ReceiveResponses, RegisterData, RegisterErrors, RegisterResponses, ScheduleData, ScheduleErrors, ScheduleResponses, TentativeInvitationData, TentativeInvitationErrors, TentativeInvitationResponses, UninstallData, UninstallErrors, UninstallResponses, UpdateData, UpdateErrors, UpdateResponses, UpdateSettingsData, UpdateSettingsErrors, UpdateSettingsResponses } from './types.gen.js';
-import { zAcceptInvitationData, zAcceptInvitationResponse, zAcceptJoinRequestsData, zAcceptJoinRequestsResponse, zAddInviteesData, zAddInviteesResponse, zBatchDeleteData, zBatchDeleteInviteesData, zBatchDeleteInviteesResponse, zBatchDeleteResponse, zCancelData, zCancelResponse, zCreateInstantData, zCreateInstantResponse, zDeclineInvitationData, zDeclineInvitationResponse, zDeclineJoinRequestsData, zDeclineJoinRequestsResponse, zDeleteData, zDeleteResponse, zEndData, zEndResponse, zGetData, zGetResponse, zJoinData, zJoinResponse, zListData, zListResponse, zReceiveData, zRegisterData, zRegisterResponse, zScheduleData, zScheduleResponse, zTentativeInvitationData, zTentativeInvitationResponse, zUninstallData, zUninstallResponse, zUpdateData, zUpdateResponse, zUpdateSettingsData, zUpdateSettingsResponse } from './zod.gen.js';
+import type { AcceptInvitationData, AcceptInvitationErrors, AcceptInvitationResponses, AcceptJoinRequestsData, AcceptJoinRequestsErrors, AcceptJoinRequestsResponses, AddInviteesData, AddInviteesErrors, AddInviteesResponses, BatchDeleteData, BatchDeleteErrors, BatchDeleteInviteesData, BatchDeleteInviteesErrors, BatchDeleteInviteesResponses, BatchDeleteResponses, CancelData, CancelErrors, CancelResponses, CreateInstantData, CreateInstantErrors, CreateInstantResponses, DeclineInvitationData, DeclineInvitationErrors, DeclineInvitationResponses, DeclineJoinRequestsData, DeclineJoinRequestsErrors, DeclineJoinRequestsResponses, DeleteData, DeleteErrors, DeleteResponses, EndData, EndErrors, EndResponses, GetData, GetErrors, GetResponses, JoinData, JoinErrors, JoinResponses, ListData, ListErrors, ListPendingJoinRequestsData, ListPendingJoinRequestsErrors, ListPendingJoinRequestsResponses, ListResponses, ReceiveData, ReceiveErrors, ReceiveResponses, RegisterData, RegisterErrors, RegisterResponses, ScheduleData, ScheduleErrors, ScheduleResponses, TentativeInvitationData, TentativeInvitationErrors, TentativeInvitationResponses, UninstallData, UninstallErrors, UninstallResponses, UpdateData, UpdateErrors, UpdateResponses, UpdateSettingsData, UpdateSettingsErrors, UpdateSettingsResponses } from './types.gen.js';
+import { zAcceptInvitationData, zAcceptInvitationResponse, zAcceptJoinRequestsData, zAcceptJoinRequestsResponse, zAddInviteesData, zAddInviteesResponse, zBatchDeleteData, zBatchDeleteInviteesData, zBatchDeleteInviteesResponse, zBatchDeleteResponse, zCancelData, zCancelResponse, zCreateInstantData, zCreateInstantResponse, zDeclineInvitationData, zDeclineInvitationResponse, zDeclineJoinRequestsData, zDeclineJoinRequestsResponse, zDeleteData, zDeleteResponse, zEndData, zEndResponse, zGetData, zGetResponse, zJoinData, zJoinResponse, zListData, zListPendingJoinRequestsData, zListPendingJoinRequestsResponse, zListResponse, zReceiveData, zRegisterData, zRegisterResponse, zScheduleData, zScheduleResponse, zTentativeInvitationData, zTentativeInvitationResponse, zUninstallData, zUninstallResponse, zUpdateData, zUpdateResponse, zUpdateSettingsData, zUpdateSettingsResponse } from './zod.gen.js';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean> = Options2<TData, ThrowOnError> & {
     /**
@@ -323,5 +323,17 @@ export const acceptInvitation = <ThrowOnError extends boolean = false>(options: 
     requestValidator: async (data) => await zAcceptInvitationData.parseAsync(data),
     responseValidator: async (data) => await zAcceptInvitationResponse.parseAsync(data),
     url: '/api/{version}/meetings/{id}/invitees/{inviteeId}:accept',
+    ...options
+});
+
+/**
+ * List pending join requests
+ *
+ * Returns a paginated list of PENDING join requests for a meeting with MANUAL_APPROVAL admission policy. Only the meeting host may call this endpoint. Use offset and pageSize query parameters for pagination.
+ */
+export const listPendingJoinRequests = <ThrowOnError extends boolean = false>(options: Options<ListPendingJoinRequestsData, ThrowOnError>) => (options.client ?? client).get<ListPendingJoinRequestsResponses, ListPendingJoinRequestsErrors, ThrowOnError>({
+    requestValidator: async (data) => await zListPendingJoinRequestsData.parseAsync(data),
+    responseValidator: async (data) => await zListPendingJoinRequestsResponse.parseAsync(data),
+    url: '/api/{version}/meetings/{id}/join-requests',
     ...options
 });

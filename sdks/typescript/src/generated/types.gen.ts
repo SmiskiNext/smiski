@@ -738,7 +738,7 @@ export type MeetHandleJoinRequestsRequest = {
 /**
  * Outcome of a single submitted join request
  */
-export type MeetItem = {
+export type MeetDecisionItem = {
     /**
      * Identifier of the submitted join request
      */
@@ -768,7 +768,7 @@ export type MeetJoinDecisionResponse = {
     /**
      * One result per submitted request id, in submission order
      */
-    results?: Array<MeetItem>;
+    results?: Array<MeetDecisionItem>;
 };
 
 /**
@@ -924,6 +924,68 @@ export type MeetMeetingDetailSnapshot = {
     calendarUid?: string;
     calendarSequence?: number;
     createdAt?: string;
+};
+
+/**
+ * Summary of a single pending join request
+ */
+export type MeetItem = {
+    /**
+     * Unique identifier of the join request
+     */
+    requestId?: string;
+    /**
+     * Account identifier of the waiting participant
+     */
+    accountId?: string;
+    /**
+     * Display name submitted by the waiting participant
+     */
+    displayName?: string;
+    /**
+     * Request status; always PENDING in this list
+     */
+    status?: string;
+    /**
+     * ISO-8601 instant when the request was created
+     */
+    requestedAt?: string;
+    /**
+     * ISO-8601 instant when the request expires
+     */
+    expiresAt?: string;
+};
+
+/**
+ * Paginated list of PENDING join requests for the meeting host
+ */
+export type MeetListPendingJoinRequestsResponse = {
+    /**
+     * Pending join request summaries for the current page
+     */
+    results?: Array<MeetItem>;
+    /**
+     * Pagination metadata
+     */
+    meta?: MeetMeta;
+};
+
+/**
+ * Pagination metadata for the current page
+ */
+export type MeetMeta = {
+    /**
+     * Total number of PENDING requests across all pages
+     */
+    total?: number;
+    /**
+     * Zero-based start index used for this page
+     */
+    offset?: number;
+    /**
+     * Maximum items requested per page
+     */
+    pageSize?: number;
 };
 
 /**
@@ -1933,3 +1995,54 @@ export type AcceptInvitationResponses = {
 };
 
 export type AcceptInvitationResponse = AcceptInvitationResponses[keyof AcceptInvitationResponses];
+
+export type ListPendingJoinRequestsData = {
+    body?: never;
+    path: {
+        version: number;
+        id: string;
+    };
+    query?: {
+        offset?: number;
+        pageSize?: number;
+    };
+    url: '/api/{version}/meetings/{id}/join-requests';
+};
+
+export type ListPendingJoinRequestsErrors = {
+    /**
+     * Missing account header or pageSize out of range
+     */
+    400: MeetProblemDetail;
+    /**
+     * Only the host may list pending join requests
+     */
+    403: MeetProblemDetail;
+    /**
+     * Meeting not found for the current tenant
+     */
+    404: MeetProblemDetail;
+    /**
+     * Method Not Allowed
+     */
+    405: MeetProblemDetail;
+    /**
+     * Unsupported Media Type
+     */
+    415: MeetProblemDetail;
+    /**
+     * Internal Server Error
+     */
+    500: MeetProblemDetail;
+};
+
+export type ListPendingJoinRequestsError = ListPendingJoinRequestsErrors[keyof ListPendingJoinRequestsErrors];
+
+export type ListPendingJoinRequestsResponses = {
+    /**
+     * Paginated list of pending join requests
+     */
+    200: MeetListPendingJoinRequestsResponse;
+};
+
+export type ListPendingJoinRequestsResponse = ListPendingJoinRequestsResponses[keyof ListPendingJoinRequestsResponses];
