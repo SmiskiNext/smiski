@@ -275,9 +275,9 @@ function toMeetingProblem(source: unknown): MeetingProblem {
     if (isProblemDetail(source)) {
         return {
             message:
-                source.detail ??
-                source.title ??
-                'The meeting backend rejected the request.',
+                source.detail
+                ?? source.title
+                ?? 'The meeting backend rejected the request.',
             code: source.code,
             traceId: source.traceId,
             status: source.status,
@@ -294,13 +294,13 @@ function toMeetingProblem(source: unknown): MeetingProblem {
 
 function isProblemDetail(value: unknown): value is MeetProblemDetail {
     return Boolean(
-        value &&
-        typeof value === 'object' &&
-        !(value instanceof Error) &&
-        ('detail' in value ||
-            'title' in value ||
-            'code' in value ||
-            'status' in value),
+        value
+            && typeof value === 'object'
+            && !(value instanceof Error)
+            && ('detail' in value
+                || 'title' in value
+                || 'code' in value
+                || 'status' in value),
     );
 }
 
@@ -537,8 +537,8 @@ export async function findRunningMeetingHostedByUser(
     );
     const running = meetingsFromBackend(response);
     return (
-        running.find((meeting) => meeting.issueKey !== excludingIssueKey) ??
-        null
+        running.find((meeting) => meeting.issueKey !== excludingIssueKey)
+        ?? null
     );
 }
 
