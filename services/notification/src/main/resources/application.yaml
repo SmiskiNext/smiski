@@ -42,3 +42,5 @@ app:
         email:
             api-key: ${RESEND_API_KEY:}
             sender: ${RESEND_SENDER:calendar@smiskinext.io}
+        webhook:
+            signing-secret: ${RESEND_WEBHOOK_SECRET:}

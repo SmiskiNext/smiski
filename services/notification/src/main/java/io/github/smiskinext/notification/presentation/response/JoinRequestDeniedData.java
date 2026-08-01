@@ -1,4 +1,4 @@
-package io.github.smiskinext.notification.application.sse;
+package io.github.smiskinext.notification.presentation.response;
 
 import org.jspecify.annotations.Nullable;
 

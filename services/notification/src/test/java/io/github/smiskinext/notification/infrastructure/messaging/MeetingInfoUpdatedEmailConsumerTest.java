@@ -6,8 +6,8 @@ import static org.mockito.Mockito.*;
 import io.cloudevents.CloudEvent;
 import io.cloudevents.core.builder.CloudEventBuilder;
 import io.cloudevents.core.data.BytesCloudEventData;
-import io.github.smiskinext.notification.domain.model.CalendarEmail;
-import io.github.smiskinext.notification.domain.port.EmailSender;
+import io.github.smiskinext.notification.application.command.SendMeetingInfoUpdatedEmailCommand;
+import io.github.smiskinext.notification.application.usecase.SendMeetingInfoUpdatedEmailUseCase;
 import io.github.smiskinext.notification.infrastructure.email.IcsGenerator;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
@@ -21,10 +21,11 @@ class MeetingInfoUpdatedEmailConsumerTest {
     private static final String TYPE = "io.github.smiskinext.meet.meeting.info.updated.v1";
 
     private final IcsGenerator icsGenerator = mock(IcsGenerator.class);
-    private final EmailSender emailSender = mock(EmailSender.class);
+    private final SendMeetingInfoUpdatedEmailUseCase sendMeetingInfoUpdatedEmailUseCase =
+            mock(SendMeetingInfoUpdatedEmailUseCase.class);
 
     private final MeetingInfoUpdatedEmailConsumer consumer =
-            new MeetingInfoUpdatedEmailConsumer(icsGenerator, emailSender);
+            new MeetingInfoUpdatedEmailConsumer(icsGenerator, sendMeetingInfoUpdatedEmailUseCase);
 
     @Test
     void timeChangeWithInviteesSendsOneEmailPerInvitee() {
@@ -32,13 +33,14 @@ class MeetingInfoUpdatedEmailConsumerTest {
 
         consumer.onMessage(event(timeChangeWithInviteesJson()));
 
-        ArgumentCaptor<CalendarEmail> captor = ArgumentCaptor.forClass(CalendarEmail.class);
-        verify(emailSender, times(2)).send(captor.capture());
+        ArgumentCaptor<SendMeetingInfoUpdatedEmailCommand> captor =
+                ArgumentCaptor.forClass(SendMeetingInfoUpdatedEmailCommand.class);
+        verify(sendMeetingInfoUpdatedEmailUseCase, times(2)).execute(captor.capture());
         var emails = captor.getAllValues();
-        assert emails.stream().anyMatch(e -> e.recipient().equals("bob@test.com"));
-        assert emails.stream().anyMatch(e -> e.recipient().equals("carol@test.com"));
-        assert emails.stream().allMatch(e -> e.calendarMethod().equals("REQUEST"));
-        assert emails.stream().allMatch(e -> e.attachmentName().equals("invite.ics"));
+        assert emails.stream().anyMatch(c -> c.email().recipient().equals("bob@test.com"));
+        assert emails.stream().anyMatch(c -> c.email().recipient().equals("carol@test.com"));
+        assert emails.stream().allMatch(c -> c.email().calendarMethod().equals("REQUEST"));
+        assert emails.stream().allMatch(c -> c.email().attachmentName().equals("invite.ics"));
     }
 
     @Test
@@ -46,7 +48,7 @@ class MeetingInfoUpdatedEmailConsumerTest {
         consumer.onMessage(event(nonTimeChangeJson()));
 
         verifyNoInteractions(icsGenerator);
-        verifyNoInteractions(emailSender);
+        verifyNoInteractions(sendMeetingInfoUpdatedEmailUseCase);
     }
 
     @Test
@@ -54,7 +56,7 @@ class MeetingInfoUpdatedEmailConsumerTest {
         consumer.onMessage(event(timeChangeNoInviteesJson()));
 
         verifyNoInteractions(icsGenerator);
-        verifyNoInteractions(emailSender);
+        verifyNoInteractions(sendMeetingInfoUpdatedEmailUseCase);
     }
 
     @Test
@@ -62,7 +64,7 @@ class MeetingInfoUpdatedEmailConsumerTest {
         consumer.onMessage(event("{this is not valid json}"));
 
         verifyNoInteractions(icsGenerator);
-        verifyNoInteractions(emailSender);
+        verifyNoInteractions(sendMeetingInfoUpdatedEmailUseCase);
     }
 
     @Test
@@ -77,7 +79,7 @@ class MeetingInfoUpdatedEmailConsumerTest {
         consumer.onMessage(event);
 
         verifyNoInteractions(icsGenerator);
-        verifyNoInteractions(emailSender);
+        verifyNoInteractions(sendMeetingInfoUpdatedEmailUseCase);
     }
 
     private static String timeChangeWithInviteesJson() {
