@@ -100,6 +100,18 @@ jobs:
               run: pnpm exec tsc --noEmit
               working-directory: app
 
+            - name: DEBUG resolved smiski-ts type
+              run: |
+                  echo "--- ls -la node_modules/@smiskinext ---"
+                  ls -la node_modules/@smiskinext
+                  echo "--- readlink smiski-ts ---"
+                  readlink -f node_modules/@smiskinext/smiski-ts || true
+                  echo "--- MeetUpdateMeetingRequest in resolved dist ---"
+                  grep -A 10 "type MeetUpdateMeetingRequest" node_modules/@smiskinext/smiski-ts/dist/generated/types.gen.d.ts || echo "NOT FOUND"
+                  echo "--- find all types.gen.d.ts on disk ---"
+                  find / -path /proc -prune -o -name "types.gen.d.ts" -print 2>/dev/null
+              working-directory: app/static/smiski-ui
+
             - name: Build static/smiski-ui
               run: pnpm run build
               working-directory: app
