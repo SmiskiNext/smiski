@@ -5,8 +5,9 @@ import com.google.protobuf.util.JsonFormat;
 import io.cloudevents.CloudEvent;
 import io.cloudevents.CloudEventData;
 import io.github.smiskinext.event.meet.v1.MeetingInvitationsCreated;
+import io.github.smiskinext.notification.application.command.SendMeetingInvitationEmailCommand;
+import io.github.smiskinext.notification.application.usecase.SendMeetingInvitationEmailUseCase;
 import io.github.smiskinext.notification.domain.model.CalendarEmail;
-import io.github.smiskinext.notification.domain.port.EmailSender;
 import io.github.smiskinext.notification.infrastructure.email.IcsGenerator;
 import io.github.smiskinext.notification.infrastructure.email.InvitationCalendar;
 import java.nio.charset.StandardCharsets;
@@ -35,12 +36,13 @@ public class MeetingInvitationsCreatedEmailConsumer {
             LoggerFactory.getLogger(MeetingInvitationsCreatedEmailConsumer.class);
 
     private final IcsGenerator icsGenerator;
-    private final EmailSender emailSender;
+    private final SendMeetingInvitationEmailUseCase sendMeetingInvitationEmailUseCase;
 
     public MeetingInvitationsCreatedEmailConsumer(
-            IcsGenerator icsGenerator, EmailSender emailSender) {
+            IcsGenerator icsGenerator,
+            SendMeetingInvitationEmailUseCase sendMeetingInvitationEmailUseCase) {
         this.icsGenerator = icsGenerator;
-        this.emailSender = emailSender;
+        this.sendMeetingInvitationEmailUseCase = sendMeetingInvitationEmailUseCase;
     }
 
     @KafkaListener(
@@ -64,13 +66,14 @@ public class MeetingInvitationsCreatedEmailConsumer {
 
         for (InvitationCalendar.Attendee invitee : attendees) {
             String ics = icsGenerator.buildRequest(calendar);
-            emailSender.send(new CalendarEmail(
-                    invitee.email(),
-                    invitationSubject(calendar.title()),
-                    invitationBody(calendar.title()),
-                    ics,
-                    "REQUEST",
-                    "invite.ics"));
+            sendMeetingInvitationEmailUseCase.execute(
+                    new SendMeetingInvitationEmailCommand(new CalendarEmail(
+                            invitee.email(),
+                            invitationSubject(calendar.title()),
+                            invitationBody(calendar.title()),
+                            ics,
+                            "REQUEST",
+                            "invite.ics")));
         }
     }
 

@@ -6,8 +6,9 @@ import io.cloudevents.CloudEvent;
 import io.cloudevents.CloudEventData;
 import io.github.smiskinext.event.meet.v1.MeetingInfoSnapshot;
 import io.github.smiskinext.event.meet.v1.MeetingInfoUpdated;
+import io.github.smiskinext.notification.application.command.SendMeetingInfoUpdatedEmailCommand;
+import io.github.smiskinext.notification.application.usecase.SendMeetingInfoUpdatedEmailUseCase;
 import io.github.smiskinext.notification.domain.model.CalendarEmail;
-import io.github.smiskinext.notification.domain.port.EmailSender;
 import io.github.smiskinext.notification.infrastructure.email.IcsGenerator;
 import io.github.smiskinext.notification.infrastructure.email.InvitationCalendar;
 import java.nio.charset.StandardCharsets;
@@ -41,11 +42,13 @@ public class MeetingInfoUpdatedEmailConsumer {
             LoggerFactory.getLogger(MeetingInfoUpdatedEmailConsumer.class);
 
     private final IcsGenerator icsGenerator;
-    private final EmailSender emailSender;
+    private final SendMeetingInfoUpdatedEmailUseCase sendMeetingInfoUpdatedEmailUseCase;
 
-    public MeetingInfoUpdatedEmailConsumer(IcsGenerator icsGenerator, EmailSender emailSender) {
+    public MeetingInfoUpdatedEmailConsumer(
+            IcsGenerator icsGenerator,
+            SendMeetingInfoUpdatedEmailUseCase sendMeetingInfoUpdatedEmailUseCase) {
         this.icsGenerator = icsGenerator;
-        this.emailSender = emailSender;
+        this.sendMeetingInfoUpdatedEmailUseCase = sendMeetingInfoUpdatedEmailUseCase;
     }
 
     @KafkaListener(
@@ -77,13 +80,14 @@ public class MeetingInfoUpdatedEmailConsumer {
 
         for (InvitationCalendar.Attendee invitee : attendees) {
             String ics = icsGenerator.buildRequest(calendar);
-            emailSender.send(new CalendarEmail(
-                    invitee.email(),
-                    updateSubject(calendar.title()),
-                    updateBody(calendar.title()),
-                    ics,
-                    "REQUEST",
-                    "invite.ics"));
+            sendMeetingInfoUpdatedEmailUseCase.execute(
+                    new SendMeetingInfoUpdatedEmailCommand(new CalendarEmail(
+                            invitee.email(),
+                            updateSubject(calendar.title()),
+                            updateBody(calendar.title()),
+                            ics,
+                            "REQUEST",
+                            "invite.ics")));
         }
     }
 

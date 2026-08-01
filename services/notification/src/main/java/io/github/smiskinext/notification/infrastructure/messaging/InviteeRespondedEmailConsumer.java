@@ -8,8 +8,9 @@ import io.cloudevents.CloudEventData;
 import io.github.smiskinext.event.meet.v1.InviteeAccepted;
 import io.github.smiskinext.event.meet.v1.InviteeDeclined;
 import io.github.smiskinext.event.meet.v1.InviteeTentative;
+import io.github.smiskinext.notification.application.command.SendInviteeRespondedEmailCommand;
+import io.github.smiskinext.notification.application.usecase.SendInviteeRespondedEmailUseCase;
 import io.github.smiskinext.notification.domain.model.CalendarEmail;
-import io.github.smiskinext.notification.domain.port.EmailSender;
 import io.github.smiskinext.notification.infrastructure.email.IcsGenerator;
 import io.github.smiskinext.notification.infrastructure.email.ReplyCalendar;
 import java.nio.charset.StandardCharsets;
@@ -40,11 +41,13 @@ public class InviteeRespondedEmailConsumer {
     private static final String TYPE_TENTATIVE = "io.github.smiskinext.meet.invitee.tentative.v1";
 
     private final IcsGenerator icsGenerator;
-    private final EmailSender emailSender;
+    private final SendInviteeRespondedEmailUseCase sendInviteeRespondedEmailUseCase;
 
-    public InviteeRespondedEmailConsumer(IcsGenerator icsGenerator, EmailSender emailSender) {
+    public InviteeRespondedEmailConsumer(
+            IcsGenerator icsGenerator,
+            SendInviteeRespondedEmailUseCase sendInviteeRespondedEmailUseCase) {
         this.icsGenerator = icsGenerator;
-        this.emailSender = emailSender;
+        this.sendInviteeRespondedEmailUseCase = sendInviteeRespondedEmailUseCase;
     }
 
     @KafkaListener(
@@ -65,13 +68,14 @@ public class InviteeRespondedEmailConsumer {
         }
 
         String ics = icsGenerator.buildReply(calendar);
-        emailSender.send(new CalendarEmail(
-                calendar.organizerEmail(),
-                replySubject(calendar),
-                replyBody(calendar),
-                ics,
-                "REPLY",
-                "reply.ics"));
+        sendInviteeRespondedEmailUseCase.execute(
+                new SendInviteeRespondedEmailCommand(new CalendarEmail(
+                        calendar.organizerEmail(),
+                        replySubject(calendar),
+                        replyBody(calendar),
+                        ics,
+                        "REPLY",
+                        "reply.ics")));
     }
 
     private ReplyCalendar decode(CloudEvent event) {
