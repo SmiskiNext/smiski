@@ -16,6 +16,7 @@ import io.github.smiskinext.meet.domain.port.*;
 import io.github.smiskinext.shared.domain.AggregateRoot;
 import io.github.smiskinext.shared.domain.EventPublisher;
 import io.github.smiskinext.shared.domain.Result;
+import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Function;
@@ -54,7 +55,8 @@ class CreateInstantMeetingApplicationServiceTest {
                 meetingInviteeRepository,
                 eventPublisher,
                 liveKitPort,
-                shortCodeAllocator);
+                shortCodeAllocator,
+                () -> Duration.ofHours(1));
     }
 
     @Test
@@ -99,6 +101,10 @@ class CreateInstantMeetingApplicationServiceTest {
                 .isEqualTo("alice@example.com");
         assertThat(meetingCaptor.getValue().getOrganizerDisplayName().value())
                 .isEqualTo("Alice Nguyen");
+        assertThat(meetingCaptor.getValue().getStartTime()).isPresent();
+        assertThat(meetingCaptor.getValue().getEndTime()).isPresent();
+        assertThat(meetingCaptor.getValue().getStartTime().get())
+                .isBefore(meetingCaptor.getValue().getEndTime().get());
         verify(meetingInviteeRepository).saveAll(argThat(list -> list.size() == 2));
 
         ArgumentCaptor<LiveKitTokenRequest> tokenRequestCaptor =
@@ -163,5 +169,74 @@ class CreateInstantMeetingApplicationServiceTest {
         verify(meetingRepository, never()).save(any(Meeting.class));
         verify(meetingInviteeRepository, never()).saveAll(anyList());
         verify(eventPublisher, never()).publishEventsOf(any(AggregateRoot.class));
+    }
+
+    @Test
+    void configuredDurationIsApplied() {
+        Duration configuredDuration = Duration.ofMinutes(30);
+        CreateInstantMeetingApplicationService customService =
+                new CreateInstantMeetingApplicationService(
+                        meetingRepository,
+                        meetingInviteeRepository,
+                        eventPublisher,
+                        liveKitPort,
+                        shortCodeAllocator,
+                        () -> configuredDuration);
+
+        CreateInstantMeetingCommand command = new CreateInstantMeetingCommand(
+                "tenant-1",
+                "Quick Sync",
+                "30-min meeting",
+                new CreateInstantMeetingCommand.IssueLink("ISS-1", "PROJ-1", "PROJ"),
+                new CreateInstantMeetingCommand.Settings("ALLOW_ALL", 50, true, true, true, true),
+                new CreateInstantMeetingCommand.Host("host-account", "Alice", "device-1", null),
+                "alice@example.com",
+                "Alice Nguyen",
+                "UTC",
+                List.of());
+
+        Result<CreateInstantMeetingResult, MeetingError> result = customService.execute(command);
+
+        assertThat(result.isSuccess()).isTrue();
+        ArgumentCaptor<Meeting> captor = ArgumentCaptor.forClass(Meeting.class);
+        verify(meetingRepository).save(captor.capture());
+        Meeting savedMeeting = captor.getValue();
+        assertThat(savedMeeting.getTimeRange()).isPresent();
+        assertThat(savedMeeting.getTimeRange().get().duration()).isEqualTo(configuredDuration);
+    }
+
+    @Test
+    void defaultDurationIsAppliedWhenNotConfigured() {
+        CreateInstantMeetingApplicationService defaultService =
+                new CreateInstantMeetingApplicationService(
+                        meetingRepository,
+                        meetingInviteeRepository,
+                        eventPublisher,
+                        liveKitPort,
+                        shortCodeAllocator,
+                        () -> Duration.ofHours(1));
+
+        CreateInstantMeetingCommand command = new CreateInstantMeetingCommand(
+                "tenant-1",
+                "Standup",
+                "Daily",
+                new CreateInstantMeetingCommand.IssueLink("ISS-1", "PROJ-1", "PROJ"),
+                new CreateInstantMeetingCommand.Settings("ALLOW_ALL", 50, true, true, true, true),
+                new CreateInstantMeetingCommand.Host("host-account", "Alice", "device-1", null),
+                "alice@example.com",
+                "Alice Nguyen",
+                "UTC",
+                List.of());
+
+        Result<CreateInstantMeetingResult, MeetingError> result = defaultService.execute(command);
+
+        assertThat(result.isSuccess()).isTrue();
+        ArgumentCaptor<Meeting> captor = ArgumentCaptor.forClass(Meeting.class);
+        verify(meetingRepository, atLeastOnce()).save(captor.capture());
+        Meeting savedMeeting = captor.getValue();
+        assertThat(savedMeeting.getTimeRange()).isPresent();
+        assertThat(savedMeeting.getStartTime().get())
+                .isBefore(savedMeeting.getEndTime().get());
+        assertThat(savedMeeting.getTimeRange().get().duration()).isEqualTo(Duration.ofHours(1));
     }
 }

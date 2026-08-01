@@ -16,6 +16,12 @@ public interface MeetingJpaRepository
 
     Optional<MeetingJpaEntity> findByShortCode(String shortCode);
 
+    @Query(
+            value =
+                    "SELECT * FROM meetings WHERE calendar_uid = :calendarUid AND deleted_at IS NULL",
+            nativeQuery = true)
+    Optional<MeetingJpaEntity> findByCalendarUid(@Param("calendarUid") String calendarUid);
+
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select meeting from MeetingJpaEntity meeting where meeting.id = :id")
     Optional<MeetingJpaEntity> findByIdWithLock(@Param("id") UUID id);

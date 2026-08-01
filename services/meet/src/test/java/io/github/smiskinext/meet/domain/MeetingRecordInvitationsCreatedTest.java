@@ -7,6 +7,7 @@ import io.github.smiskinext.meet.domain.model.Meeting;
 import io.github.smiskinext.meet.domain.model.valueobject.*;
 import io.github.smiskinext.shared.domain.DomainEvent;
 import io.github.smiskinext.shared.domain.valueobject.TenantId;
+import java.time.Duration;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 
@@ -24,7 +25,8 @@ class MeetingRecordInvitationsCreatedTest {
                 MeetingTimeZone.of("UTC"),
                 Email.of("host@test.com"),
                 InviteeDisplayName.of("Host"),
-                ShortCode.of("ABC123DEF0"));
+                ShortCode.of("ABC123DEF0"),
+                Duration.ofHours(1));
         meeting.start();
         meeting.clearDomainEvents();
 
@@ -47,6 +49,8 @@ class MeetingRecordInvitationsCreatedTest {
         MeetingInvitationsCreatedEvent event = (MeetingInvitationsCreatedEvent) events.getFirst();
         assertThat(event.meetingId()).isEqualTo(meeting.getId().value());
         assertThat(event.tenantId()).isEqualTo("tenant-1");
+        assertThat(event.startTime()).isNotNull();
+        assertThat(event.endTime()).isNotNull();
         assertThat(event.invitees()).hasSize(2);
         assertThat(event.invitees().get(0).accountId()).isEqualTo("acc-1");
         assertThat(event.invitees().get(1).accountId()).isEqualTo("acc-2");
@@ -64,7 +68,8 @@ class MeetingRecordInvitationsCreatedTest {
                 MeetingTimeZone.of("UTC"),
                 Email.of("host@test.com"),
                 InviteeDisplayName.of("Host"),
-                ShortCode.of("ABC123DEF0"));
+                ShortCode.of("ABC123DEF0"),
+                Duration.ofHours(1));
         meeting.start();
         meeting.clearDomainEvents();
 

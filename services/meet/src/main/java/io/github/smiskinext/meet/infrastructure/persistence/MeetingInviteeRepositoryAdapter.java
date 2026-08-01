@@ -3,6 +3,7 @@ package io.github.smiskinext.meet.infrastructure.persistence;
 import io.github.smiskinext.meet.domain.model.InviteeStatus;
 import io.github.smiskinext.meet.domain.model.MeetingInvitee;
 import io.github.smiskinext.meet.domain.model.valueobject.AccountId;
+import io.github.smiskinext.meet.domain.model.valueobject.Email;
 import io.github.smiskinext.meet.domain.model.valueobject.InviteeId;
 import io.github.smiskinext.meet.domain.port.MeetingInviteeRepository;
 import io.github.smiskinext.meet.domain.projection.InviteeSummary;
@@ -52,6 +53,13 @@ public class MeetingInviteeRepositoryAdapter implements MeetingInviteeRepository
             UUID meetingId, AccountId accountId) {
         return jpaRepository
                 .findByMeetingIdAndAccountIdAndRemovedAtIsNull(meetingId, accountId.value())
+                .map(MeetingInviteePersistenceMapper::toDomain);
+    }
+
+    @Override
+    public Optional<MeetingInvitee> findByMeetingIdAndEmail(UUID meetingId, Email email) {
+        return jpaRepository
+                .findByMeetingIdAndEmailAndRemovedAtIsNull(meetingId, email.value())
                 .map(MeetingInviteePersistenceMapper::toDomain);
     }
 

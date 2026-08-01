@@ -15,7 +15,9 @@ dependencies {
     implementation(libs.protobuf.java.util)
     implementation(libs.biweekly)
     implementation(libs.resend.java)
+    implementation(libs.svix)
     testImplementation(libs.testcontainers.kafka)
+    testImplementation(libs.spring.boot.webmvc.test)
     testImplementation(testFixtures(libs.shared))
 }
 

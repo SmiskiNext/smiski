@@ -8,12 +8,14 @@ import io.github.smiskinext.meet.domain.MeetingError;
 import io.github.smiskinext.meet.domain.event.MeetingInvitationsCreatedEvent;
 import io.github.smiskinext.meet.domain.model.*;
 import io.github.smiskinext.meet.domain.model.valueobject.*;
+import io.github.smiskinext.meet.domain.port.InstantMeetingSettings;
 import io.github.smiskinext.meet.domain.port.LiveKitPort;
 import io.github.smiskinext.meet.domain.port.MeetingInviteeRepository;
 import io.github.smiskinext.meet.domain.port.MeetingRepository;
 import io.github.smiskinext.shared.domain.EventPublisher;
 import io.github.smiskinext.shared.domain.Result;
 import io.github.smiskinext.shared.domain.valueobject.TenantId;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import org.springframework.stereotype.Service;
@@ -26,18 +28,21 @@ public class CreateInstantMeetingApplicationService implements CreateInstantMeet
     private final EventPublisher eventPublisher;
     private final LiveKitPort liveKitPort;
     private final ShortCodeAllocator shortCodeAllocator;
+    private final Duration defaultDuration;
 
     public CreateInstantMeetingApplicationService(
             MeetingRepository meetingRepository,
             MeetingInviteeRepository meetingInviteeRepository,
             EventPublisher eventPublisher,
             LiveKitPort liveKitPort,
-            ShortCodeAllocator shortCodeAllocator) {
+            ShortCodeAllocator shortCodeAllocator,
+            InstantMeetingSettings instantMeetingSettings) {
         this.meetingRepository = meetingRepository;
         this.meetingInviteeRepository = meetingInviteeRepository;
         this.eventPublisher = eventPublisher;
         this.liveKitPort = liveKitPort;
         this.shortCodeAllocator = shortCodeAllocator;
+        this.defaultDuration = instantMeetingSettings.defaultDuration();
     }
 
     @Override
@@ -81,7 +86,8 @@ public class CreateInstantMeetingApplicationService implements CreateInstantMeet
                 timeZone,
                 Email.of(command.organizerEmail()),
                 InviteeDisplayName.of(command.organizerDisplayName()),
-                shortCode);
+                shortCode,
+                defaultDuration);
 
         Result<Void, MeetingError> startResult = meeting.start();
         if (startResult instanceof Result.Failure<Void, MeetingError>(MeetingError error)) {

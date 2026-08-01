@@ -127,8 +127,12 @@ snapshot SHALL NOT include the tenant identifier.
 Creating an instant meeting SHALL produce a `Meeting` of type `INSTANT` with a
 unique join `shortCode`, SHALL immediately transition it to `LIVE`, and SHALL
 persist meeting state and any invitees within a single database transaction.
-Host participation logging is deferred to the `participant_joined` LiveKit
-webhook (out of scope for this capability).
+Creation SHALL assign the meeting a scheduled time range whose `startTime` is
+the creation instant and whose `endTime` is the creation instant plus a
+configurable default instant-meeting duration, so the meeting always carries a
+valid, `startTime`-before-`endTime` range. Host participation logging is
+deferred to the `participant_joined` LiveKit webhook (out of scope for this
+capability).
 
 #### Scenario: Meeting is created live
 
@@ -136,6 +140,14 @@ webhook (out of scope for this capability).
 - **THEN** the persisted meeting has type `INSTANT` and status `LIVE`, and no
   `ParticipationLog` is created at creation time (host participation is recorded
   later via the LiveKit webhook)
+
+#### Scenario: Instant meeting carries a start and end time
+
+- **WHEN** an instant meeting is created successfully
+- **THEN** the persisted meeting has a non-null `startTime` equal to the
+  creation instant and a non-null `endTime` equal to the creation instant plus
+  the configured default instant-meeting duration, with `startTime` strictly
+  before `endTime`
 
 #### Scenario: Short code uniqueness is enforced with retry
 
@@ -179,12 +191,13 @@ creation commits. The system SHALL enqueue a meeting-created event (carrying a
 full aggregate snapshot including the host `zoneId`) and a meeting-started event
 (also carrying a full aggregate snapshot including the host `zoneId` plus the
 LiveKit room name) for every instant meeting, and a meeting-invitations-sent
-event carrying the host `zoneId` and the invite token embedded in each invitee
-entry only when invitees are present. Because an instant meeting has no
-scheduled time range, its meeting-invitations-sent `startTime` and `endTime`
-SHALL be absent. Each event SHALL be published to Kafka as a CloudEvent by the
-shared outbox relay, and the domain SHALL remain free of protocol-buffer and
-messaging types.
+event carrying the host `zoneId` only when invitees are present. Because an
+instant meeting is assigned a scheduled time range at creation, its
+meeting-invitations-sent event SHALL carry the meeting's `startTime` (the
+creation instant) and `endTime` (the creation instant plus the configured
+default duration) rather than absent times. Each event SHALL be published to
+Kafka as a CloudEvent by the shared outbox relay, and the domain SHALL remain
+free of protocol-buffer and messaging types.
 
 #### Scenario: Base events enqueued atomically with zone
 
@@ -193,12 +206,12 @@ messaging types.
   for that meeting, each unpublished, with the meeting id as aggregate id and
   each snapshot carrying the host `zoneId`
 
-#### Scenario: Invitations event carries zone and tokens
+#### Scenario: Invitations event carries zone and times
 
 - **WHEN** an instant meeting is created with invitees
 - **THEN** the outbox additionally contains a meeting-invitations-sent row whose
-  payload carries the host `zoneId`, absent `startTime`/`endTime`, and each
-  invitee's raw invite token embedded in their entry
+  payload carries the host `zoneId` and a non-null `startTime` and `endTime`
+  reflecting the assigned instant time range
 
 #### Scenario: Rolled-back creation enqueues no events
 
@@ -266,8 +279,8 @@ The `zoneId` SHALL be a valid IANA time-zone id (region-based, e.g.
 stored representation. When the supplied `zoneId` is not a resolvable IANA zone
 id, the system SHALL fail with a `400` Problem Details validation error and
 SHALL NOT create the meeting. The resolved `zoneId` SHALL be persisted as a NOT
-NULL attribute of the meeting even though an instant meeting carries no
-scheduled `startTime`/`endTime`.
+NULL attribute of the meeting alongside the meeting's assigned `startTime` and
+`endTime`.
 
 #### Scenario: Valid IANA zone is persisted and echoed
 
@@ -282,6 +295,29 @@ scheduled `startTime`/`endTime`.
   (e.g. `Mars/Phobos` or a bare offset such as `+07:00`)
 - **THEN** the response is `400` Problem Details with code `VALIDATION_ERROR`
   and no meeting is created
+
+### Requirement: Configurable default instant-meeting duration
+
+The system SHALL read the default instant-meeting duration from externalized
+configuration and SHALL use it to derive an instant meeting's `endTime` from its
+creation instant. When the configuration is absent, the system SHALL apply a
+built-in default duration so that instant meetings always receive a valid time
+range. The configured or default duration SHALL be strictly positive so that the
+resulting `startTime` is always before the `endTime`.
+
+#### Scenario: Configured duration is applied
+
+- **WHEN** the default instant-meeting duration is configured to a specific
+  positive value and an instant meeting is created
+- **THEN** the meeting's `endTime` equals its `startTime` plus the configured
+  duration
+
+#### Scenario: Missing configuration falls back to the built-in default
+
+- **WHEN** no default instant-meeting duration is configured and an instant
+  meeting is created
+- **THEN** the meeting is still created with a valid time range using the
+  built-in default duration, with `startTime` strictly before `endTime`
 
 ### Requirement: App sources instant invitees from workspace users
 

@@ -1,4 +1,4 @@
-package io.github.smiskinext.notification.application.sse;
+package io.github.smiskinext.notification.infrastructure.sse;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
@@ -12,9 +12,12 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import io.github.smiskinext.notification.domain.model.JoinDecision;
+import io.github.smiskinext.notification.domain.model.PendingJoinRequest;
 import io.github.smiskinext.notification.domain.port.JoinDecisionStore;
 import io.github.smiskinext.notification.domain.port.PendingJoinRequestStore;
+import io.github.smiskinext.notification.infrastructure.config.SseProperties;
 import java.time.Duration;
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -38,9 +41,21 @@ class SseConnectionManagerTest {
         return new SseConnectionManager(properties(heartbeatSeconds), pendingStore, decisionStore);
     }
 
+    private static PendingJoinRequest pendingRequest(UUID meetingId, UUID requestId) {
+        return new PendingJoinRequest(
+                requestId,
+                meetingId,
+                "account-1",
+                "Alice",
+                "device-1",
+                "https://cdn.example.com/a.png",
+                Instant.now().plusSeconds(300));
+    }
+
     @Test
     void livePushReachesRegisteredEmitter() throws Exception {
         UUID meetingId = UUID.randomUUID();
+        UUID requestId = UUID.randomUUID();
         when(pendingStore.findPendingByMeetingId(meetingId)).thenReturn(List.of());
 
         try (MockedConstruction<SseEmitter> construction = mockConstruction(SseEmitter.class)) {
@@ -48,10 +63,7 @@ class SseConnectionManagerTest {
             manager.subscribe(meetingId);
             SseEmitter emitter = construction.constructed().getFirst();
 
-            manager.pushJoinRequestCreated(
-                    meetingId,
-                    new JoinRequestCreatedData(
-                            "req-1", "account-1", "Alice", "https://cdn.example.com/a.png"));
+            manager.pushJoinRequestCreated(meetingId, pendingRequest(meetingId, requestId));
 
             verify(emitter, atLeastOnce()).send(any(SseEmitter.SseEventBuilder.class));
         }
@@ -132,14 +144,12 @@ class SseConnectionManagerTest {
     @Test
     void pushToMeetingWithNoEmittersIsNoop() {
         UUID meetingId = UUID.randomUUID();
+        UUID requestId = UUID.randomUUID();
 
         try (MockedConstruction<SseEmitter> construction = mockConstruction(SseEmitter.class)) {
             SseConnectionManager manager = manager(3600L);
 
-            manager.pushJoinRequestCreated(
-                    meetingId,
-                    new JoinRequestCreatedData(
-                            "req-1", "account-1", "Alice", "https://cdn.example.com/a.png"));
+            manager.pushJoinRequestCreated(meetingId, pendingRequest(meetingId, requestId));
 
             assertThat(construction.constructed()).isEmpty();
         }
@@ -148,6 +158,7 @@ class SseConnectionManagerTest {
     @Test
     void timeoutRemovesEmitterAndCancelsHeartbeat() throws Exception {
         UUID meetingId = UUID.randomUUID();
+        UUID requestId = UUID.randomUUID();
         when(pendingStore.findPendingByMeetingId(meetingId)).thenReturn(List.of());
 
         try (MockedConstruction<SseEmitter> construction = mockConstruction(SseEmitter.class)) {
@@ -161,10 +172,7 @@ class SseConnectionManagerTest {
             timeoutCaptor.getValue().run();
 
             org.mockito.Mockito.clearInvocations(emitter);
-            manager.pushJoinRequestCreated(
-                    meetingId,
-                    new JoinRequestCreatedData(
-                            "req-1", "account-1", "Alice", "https://cdn.example.com/a.png"));
+            manager.pushJoinRequestCreated(meetingId, pendingRequest(meetingId, requestId));
 
             verify(emitter, never()).send(any(SseEmitter.SseEventBuilder.class));
         }

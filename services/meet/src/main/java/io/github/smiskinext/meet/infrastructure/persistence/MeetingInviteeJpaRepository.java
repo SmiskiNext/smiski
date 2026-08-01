@@ -21,6 +21,9 @@ public interface MeetingInviteeJpaRepository extends JpaRepository<MeetingInvite
     Optional<MeetingInviteeJpaEntity> findByMeetingIdAndAccountIdAndRemovedAtIsNull(
             UUID meetingId, String accountId);
 
+    Optional<MeetingInviteeJpaEntity> findByMeetingIdAndEmailAndRemovedAtIsNull(
+            UUID meetingId, String email);
+
     List<MeetingInviteeJpaEntity> findByAccountIdAndStatusAndRemovedAtIsNull(
             String accountId, String status);
 
