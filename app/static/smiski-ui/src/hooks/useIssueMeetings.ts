@@ -14,13 +14,16 @@ export interface UseIssueMeetingsResult {
     refresh: () => void;
 }
 
-export function useIssueMeetings(issueKey?: string): UseIssueMeetingsResult {
+export function useIssueMeetings(
+    issueKey?: string,
+    enabled = true,
+): UseIssueMeetingsResult {
     const query = useQuery({
         queryKey: issueKey
             ? queryKeys.issueMeetings(issueKey)
             : ['meetings', 'issue', 'none'],
         queryFn: () => listIssueMeetings(issueKey as string),
-        enabled: Boolean(issueKey),
+        enabled: Boolean(issueKey) && enabled,
     });
 
     return {

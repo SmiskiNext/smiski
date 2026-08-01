@@ -4,6 +4,7 @@
 
 export * from './useElementSize';
 export * from './useHostConflict';
+export * from './useHostConflictGuard';
 export * from './useIssueMeetings';
 export * from './useLiveKitRoom';
 export * from './useMeeting';

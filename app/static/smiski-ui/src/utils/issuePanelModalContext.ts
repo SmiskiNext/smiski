@@ -7,7 +7,6 @@ import type { Meeting } from '../domain';
 
 export const MEETING_DETAIL_MODAL_KIND = 'meeting-detail';
 export const ACTIVE_MEETING_WARNING_MODAL_KIND = 'active-meeting-warning';
-export const MEETING_ROOM_MODAL_KIND = 'meeting-room';
 
 export interface MeetingDetailModalContext {
     kind: typeof MEETING_DETAIL_MODAL_KIND;
@@ -19,19 +18,13 @@ export interface ActiveMeetingWarningModalContext {
     conflictingMeeting: Meeting;
 }
 
-export interface MeetingRoomModalContext {
-    kind: typeof MEETING_ROOM_MODAL_KIND;
-    meetingId: string;
-}
-
 export interface ActiveMeetingWarningModalResult {
     confirmed: boolean;
 }
 
 export type IssuePanelModalContext =
     | MeetingDetailModalContext
-    | ActiveMeetingWarningModalContext
-    | MeetingRoomModalContext;
+    | ActiveMeetingWarningModalContext;
 
 export function isIssuePanelModalContext(
     value: unknown,
@@ -41,6 +34,5 @@ export function isIssuePanelModalContext(
     return (
         kind === MEETING_DETAIL_MODAL_KIND
         || kind === ACTIVE_MEETING_WARNING_MODAL_KIND
-        || kind === MEETING_ROOM_MODAL_KIND
     );
 }
