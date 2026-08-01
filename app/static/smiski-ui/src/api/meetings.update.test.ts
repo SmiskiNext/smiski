@@ -35,7 +35,7 @@ const DETAIL: Meeting = {
 };
 
 describe('buildUpdateMeetingPayload (MeetUpdateMeetingRequest body)', () => {
-    it('carries issueLink/settings/zoneId forward from detail unchanged', () => {
+    it('carries issueLink and zoneId forward from detail unchanged', () => {
         const payload = buildUpdateMeetingPayload({
             title: 'New title',
             description: 'New description',
@@ -50,7 +50,6 @@ describe('buildUpdateMeetingPayload (MeetUpdateMeetingRequest body)', () => {
             issueKey: 'SMISKI-101',
             projectKey: 'SMISKI',
         });
-        expect(payload.settings).toEqual(DETAIL.settings);
         expect(payload.zoneId).toBe('Asia/Ho_Chi_Minh');
     });
 
@@ -79,7 +78,7 @@ describe('buildUpdateMeetingPayload (MeetUpdateMeetingRequest body)', () => {
         expect(payload.timeRange).toBeUndefined();
     });
 
-    it('falls back to default settings/local zone when detail lacks them', () => {
+    it('falls back to the local zone when detail lacks one', () => {
         const payload = buildUpdateMeetingPayload({
             title: 'New title',
             description: '',
@@ -87,7 +86,6 @@ describe('buildUpdateMeetingPayload (MeetUpdateMeetingRequest body)', () => {
             detail: { ...DETAIL, settings: undefined, zoneId: undefined },
         });
 
-        expect(payload.settings).toBeDefined();
         expect(payload.zoneId).toBeTruthy();
     });
 });

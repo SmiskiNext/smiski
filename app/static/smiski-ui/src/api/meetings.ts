@@ -79,10 +79,11 @@ export interface ScheduleMeetingInput {
 
 /**
  * Edit of an existing meeting. The backend `update` operation is a full
- * replace (`title`/`description`/`issueLink`/`settings`/`zoneId` all
- * required), but the edit form only lets a user change title, description,
- * and start time — so `detail` (the meeting's current full detail, from
- * `getMeeting`) supplies everything else unchanged.
+ * replace (`title`/`description`/`issueLink`/`zoneId` all required), but the
+ * edit form only lets a user change title, description, and start time — so
+ * `detail` (the meeting's current full detail, from `getMeeting`) supplies
+ * everything else unchanged. Settings are updated through the backend's
+ * dedicated settings endpoint and are not part of this request.
  */
 export interface UpdateMeetingInput {
     title: string;
@@ -274,9 +275,9 @@ function toMeetingProblem(source: unknown): MeetingProblem {
     if (isProblemDetail(source)) {
         return {
             message:
-                source.detail
-                ?? source.title
-                ?? 'The meeting backend rejected the request.',
+                source.detail ??
+                source.title ??
+                'The meeting backend rejected the request.',
             code: source.code,
             traceId: source.traceId,
             status: source.status,
@@ -293,13 +294,13 @@ function toMeetingProblem(source: unknown): MeetingProblem {
 
 function isProblemDetail(value: unknown): value is MeetProblemDetail {
     return Boolean(
-        value
-            && typeof value === 'object'
-            && !(value instanceof Error)
-            && ('detail' in value
-                || 'title' in value
-                || 'code' in value
-                || 'status' in value),
+        value &&
+        typeof value === 'object' &&
+        !(value instanceof Error) &&
+        ('detail' in value ||
+            'title' in value ||
+            'code' in value ||
+            'status' in value),
     );
 }
 
@@ -396,11 +397,12 @@ export async function listProjectMeetings(
 /**
  * Build the full-replace update request body from the edit form's input,
  * conforming to the OpenAPI `MeetUpdateMeetingRequest` contract. `title`/
- * `description`/`startTime` come from the edit form; `issueLink`/`settings`/
- * `zoneId`/`endTime` are carried forward unchanged from `input.detail` (the
- * meeting's full detail, fetched separately, since this form doesn't edit
- * them). Pure, so the contract is unit-testable like the instant/schedule
- * builders above.
+ * `description`/`startTime` come from the edit form; `issueLink`/`zoneId`/
+ * `endTime` are carried forward unchanged from `input.detail` (the meeting's
+ * full detail, fetched separately, since this form doesn't edit them).
+ * Settings are updated through the backend's dedicated settings endpoint and
+ * are not part of this request. Pure, so the contract is unit-testable like
+ * the instant/schedule builders above.
  */
 export function buildUpdateMeetingPayload(
     input: UpdateMeetingInput,
@@ -413,7 +415,6 @@ export function buildUpdateMeetingPayload(
             issueKey: input.detail.issueKey,
             projectKey: input.detail.projectKey,
         },
-        settings: input.detail.settings ?? DEFAULT_MEETING_SETTINGS,
         zoneId: input.detail.zoneId ?? getLocalTimeZone(),
         timeRange: input.detail.endTime
             ? { startTime: input.startTime, endTime: input.detail.endTime }
@@ -536,8 +537,8 @@ export async function findRunningMeetingHostedByUser(
     );
     const running = meetingsFromBackend(response);
     return (
-        running.find((meeting) => meeting.issueKey !== excludingIssueKey)
-        ?? null
+        running.find((meeting) => meeting.issueKey !== excludingIssueKey) ??
+        null
     );
 }
 

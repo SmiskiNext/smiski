@@ -100,23 +100,6 @@ jobs:
               run: pnpm exec tsc --noEmit
               working-directory: app
 
-            - name: DEBUG resolved smiski-ts type
-              run: |
-                  echo "--- git hash-object of committed source (expect 1c523b48f5c2c9c96cb7820c9b925a0603945c7a) ---"
-                  git hash-object /home/runner/work/smiski/smiski/sdks/typescript/src/generated/types.gen.ts
-                  echo "--- git status of that path ---"
-                  git -C /home/runner/work/smiski/smiski status --short -- sdks/typescript/src/generated/types.gen.ts
-                  echo "--- grep source .ts for MeetUpdateMeetingRequest ---"
-                  grep -A 8 "^export type MeetUpdateMeetingRequest" /home/runner/work/smiski/smiski/sdks/typescript/src/generated/types.gen.ts
-                  echo "--- tsc version used for SDK build ---"
-                  (cd /home/runner/work/smiski/smiski/sdks/typescript && pnpm exec tsc --version)
-                  echo "--- MeetUpdateMeetingRequest in resolved dist (post-build) ---"
-                  grep -A 10 "type MeetUpdateMeetingRequest" node_modules/@smiskinext/smiski-ts/dist/generated/types.gen.d.ts || echo "NOT FOUND"
-                  echo "--- rebuild SDK verbosely right here and recheck ---"
-                  (cd /home/runner/work/smiski/smiski/sdks/typescript && rm -rf dist && pnpm exec tsc -p tsconfig.build.json --listFiles | grep -i "generated/types.gen")
-                  grep -A 10 "type MeetUpdateMeetingRequest" /home/runner/work/smiski/smiski/sdks/typescript/dist/generated/types.gen.d.ts || echo "STILL NOT FOUND AFTER REBUILD"
-              working-directory: app/static/smiski-ui
-
             - name: Build static/smiski-ui
               run: pnpm run build
               working-directory: app
