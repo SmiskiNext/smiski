@@ -41,11 +41,15 @@ modules:
     jira:projectPermission:
         - key: view-meeting
           name: View Meeting
-          description: View meeting info and history, view meeting detail, join a Running meeting, view recording if available.
+          description:
+              View meeting info and history, view meeting detail, join a Running
+              meeting, view recording if available.
           category: projects
         - key: edit-meeting
           name: Edit Meeting
-          description: Create, schedule, start, edit, cancel, and end meetings; start/stop recording.
+          description:
+              Create, schedule, start, edit, cancel, and end meetings;
+              start/stop recording.
           category: projects
 
     function:

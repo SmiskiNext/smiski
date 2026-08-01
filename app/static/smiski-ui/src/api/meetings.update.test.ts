@@ -54,7 +54,7 @@ describe('buildUpdateMeetingPayload (MeetUpdateMeetingRequest body)', () => {
         expect(payload.zoneId).toBe('Asia/Ho_Chi_Minh');
     });
 
-    it('builds timeRange from the new start time and the detail\'s existing end time', () => {
+    it("builds timeRange from the new start time and the detail's existing end time", () => {
         const payload = buildUpdateMeetingPayload({
             title: 'New title',
             description: '',

@@ -535,7 +535,10 @@ export async function findRunningMeetingHostedByUser(
         }),
     );
     const running = meetingsFromBackend(response);
-    return running.find((meeting) => meeting.issueKey !== excludingIssueKey) ?? null;
+    return (
+        running.find((meeting) => meeting.issueKey !== excludingIssueKey)
+        ?? null
+    );
 }
 
 /** Calls a resolver function, wrapping any rejection as a `MeetingApiError`. */

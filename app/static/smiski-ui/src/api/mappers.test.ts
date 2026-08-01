@@ -36,7 +36,7 @@ describe('backend API mappers', () => {
         });
     });
 
-    it('keeps a SCHEDULED-type meeting\'s scheduledAt/startedAt once it has COMPLETED', () => {
+    it("keeps a SCHEDULED-type meeting's scheduledAt/startedAt once it has COMPLETED", () => {
         const meeting = meetingFromBackend({
             meeting: {
                 id: 'm-1',

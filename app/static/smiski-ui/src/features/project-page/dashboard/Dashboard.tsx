@@ -106,9 +106,7 @@ export function Dashboard({ projectKey, onOpenRoom }: DashboardProps) {
             <DashboardHeader
                 canEditMeeting={permissions.canEditMeeting}
                 onStartMeeting={() =>
-                    hostConflictGuard.guard(undefined, () =>
-                        setStartOpen(true),
-                    )
+                    hostConflictGuard.guard(undefined, () => setStartOpen(true))
                 }
                 onScheduleMeeting={() => setScheduleOpen(true)}
             />

@@ -269,8 +269,8 @@ scopes or egress permissions.
 
 ### LiveKit configuration
 
-Room access tokens are minted by the backend `meet` service's `join`
-operation (called from the Custom UI via Forge Remote), not by this app —
+Room access tokens are minted by the backend `meet` service's `join` operation
+(called from the Custom UI via Forge Remote), not by this app —
 `LIVEKIT_API_KEY`/`LIVEKIT_API_SECRET` are backend secrets, not Forge app
 variables. The app only needs `LIVEKIT_URL` (the LiveKit WebSocket origin),
 which must also be permitted under `permissions.external.fetch.client` in
@@ -304,9 +304,9 @@ pnpm build
 pnpm exec forge lint
 ```
 
-Current tests cover the permission/action matrix and issue-panel list
-filtering and ordering. Integration tests for Forge context, Jira REST calls,
-backend contracts, and LiveKit behavior remain to be added.
+Current tests cover the permission/action matrix and issue-panel list filtering
+and ordering. Integration tests for Forge context, Jira REST calls, backend
+contracts, and LiveKit behavior remain to be added.
 
 ## Production-readiness checklist
 

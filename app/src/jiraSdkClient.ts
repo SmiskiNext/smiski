@@ -123,9 +123,9 @@ async function resolveMeetingPermissionKeys(): Promise<{
 
     if (!viewKey || !editKey) {
         throw new Error(
-            'View Meeting / Edit Meeting permissions are not registered on this ' +
-                'Jira site yet — deploy the app and confirm the jira:projectPermission ' +
-                'module is installed.',
+            'View Meeting / Edit Meeting permissions are not registered on this '
+                + 'Jira site yet — deploy the app and confirm the jira:projectPermission '
+                + 'module is installed.',
         );
     }
 

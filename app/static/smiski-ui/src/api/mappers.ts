@@ -77,7 +77,7 @@ export function meetingFromBackend(payload: unknown): Meeting {
     const scheduledAt = !isInstant ? startTime : undefined;
     const startedAt =
         status === 'RUNNING' || status === 'COMPLETED'
-            ? (isInstant ? createdAt : startTime) ?? createdAt
+            ? ((isInstant ? createdAt : startTime) ?? createdAt)
             : undefined;
 
     return {
