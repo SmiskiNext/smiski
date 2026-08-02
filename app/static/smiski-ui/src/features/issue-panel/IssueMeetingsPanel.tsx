@@ -21,6 +21,7 @@ import {
     MeetingActionMenu,
     MeetingCard,
     MeetingDetailDialog,
+    MeetingSettingsModal,
     NoPermissionState,
     ScheduleMeetingModal,
     StartInstantMeetingModal,
@@ -32,6 +33,7 @@ import { useIssueMeetings } from '../../hooks/useIssueMeetings';
 import { useIssuePanelInstantModal } from '../../hooks/useIssuePanelInstantModal';
 import { useIssuePanelMeetingDetailModal } from '../../hooks/useIssuePanelMeetingDetailModal';
 import { useIssuePanelScheduleModal } from '../../hooks/useIssuePanelScheduleModal';
+import { useIssuePanelSettingsModal } from '../../hooks/useIssuePanelSettingsModal';
 import {
     useCancelMeeting,
     useEndMeeting,
@@ -79,6 +81,7 @@ export function IssueMeetingsPanel({
         openMeetingRoom(issue.projectKey, meetingId),
     );
     const detailModal = useIssuePanelMeetingDetailModal();
+    const settingsModal = useIssuePanelSettingsModal();
     const hostConflictGuard = useHostConflictGuard('platform-modal');
     const cancelMeeting = useCancelMeeting();
     const startMeeting = useStartMeeting();
@@ -122,6 +125,9 @@ export function IssueMeetingsPanel({
                 endMeeting.mutate(meeting.id, {
                     onSuccess: () => setFeedback('Meeting ended.'),
                 });
+                break;
+            case 'SETTINGS':
+                settingsModal.open(meeting.id);
                 break;
             case 'VIEW_DETAIL':
             case 'VIEW_HISTORY':
@@ -269,6 +275,18 @@ export function IssueMeetingsPanel({
                     participants={participants}
                     isLoading={participantsLoading}
                     onClose={detailModal.closeDev}
+                />
+            )}
+
+            {import.meta.env.DEV && settingsModal.devMeetingId && (
+                <MeetingSettingsModal
+                    isOpen
+                    meetingId={settingsModal.devMeetingId}
+                    onClose={settingsModal.closeDev}
+                    onSaved={() => {
+                        settingsModal.closeDev();
+                        setFeedback('Meeting settings saved.');
+                    }}
                 />
             )}
 

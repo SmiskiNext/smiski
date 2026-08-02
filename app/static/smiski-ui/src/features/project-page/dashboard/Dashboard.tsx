@@ -4,6 +4,7 @@ import {
     ErrorState,
     InlineFeedback,
     LoadingState,
+    MeetingSettingsModal,
     NoPermissionState,
     ScheduleMeetingModal,
     StartInstantMeetingModal,
@@ -37,6 +38,9 @@ export function Dashboard({ projectKey, onOpenRoom }: DashboardProps) {
         focus: 'details' | 'history';
     } | null>(null);
     const [editingMeeting, setEditingMeeting] = useState<Meeting | null>(null);
+    const [settingsMeetingId, setSettingsMeetingId] = useState<string | null>(
+        null,
+    );
     const [isScheduleOpen, setScheduleOpen] = useState(false);
     const [isStartOpen, setStartOpen] = useState(false);
     const [feedback, setFeedback] = useState<string | null>(null);
@@ -76,6 +80,9 @@ export function Dashboard({ projectKey, onOpenRoom }: DashboardProps) {
                 endMeeting.mutate(meeting.id, {
                     onSuccess: () => setFeedback('Meeting ended.'),
                 });
+                break;
+            case 'SETTINGS':
+                setSettingsMeetingId(meeting.id);
                 break;
             case 'VIEW_HISTORY':
                 setSelectedMeeting({ id: meeting.id, focus: 'history' });
@@ -162,6 +169,17 @@ export function Dashboard({ projectKey, onOpenRoom }: DashboardProps) {
                     issueKey={editingMeeting.issueKey}
                     onClose={() => setEditingMeeting(null)}
                     onSubmitted={() => setFeedback('Meeting updated.')}
+                />
+            )}
+            {settingsMeetingId && (
+                <MeetingSettingsModal
+                    isOpen
+                    meetingId={settingsMeetingId}
+                    onClose={() => setSettingsMeetingId(null)}
+                    onSaved={() => {
+                        setSettingsMeetingId(null);
+                        setFeedback('Meeting settings saved.');
+                    }}
                 />
             )}
             {hostConflictGuard.conflictingMeeting && (

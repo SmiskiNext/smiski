@@ -31,6 +31,7 @@ const ACTION_ICONS: Record<MeetingAction, IconName> = {
     JOIN: 'video',
     VIEW_DETAIL: 'info',
     VIEW_HISTORY: 'history',
+    SETTINGS: 'settings',
 };
 
 export function MeetingActionMenu({

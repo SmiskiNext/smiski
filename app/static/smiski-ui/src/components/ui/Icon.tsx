@@ -19,6 +19,7 @@ import {
     Plus,
     ScreenShare,
     Search,
+    Settings,
     Sparkle,
     Square,
     Trash2,
@@ -52,6 +53,7 @@ export type IconName =
     | 'record'
     | 'search'
     | 'screen'
+    | 'settings'
     | 'spark'
     | 'stop'
     | 'trash'
@@ -81,6 +83,7 @@ const icons: Record<IconName, LucideIcon> = {
     record: Circle,
     search: Search,
     screen: ScreenShare,
+    settings: Settings,
     spark: Sparkle,
     stop: Square,
     trash: Trash2,

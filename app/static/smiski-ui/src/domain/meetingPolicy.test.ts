@@ -61,7 +61,7 @@ describe('getAvailableMeetingActions', () => {
         ).toEqual(['VIEW_DETAIL']);
         expect(
             getAvailableMeetingActions(meeting('SCHEDULED'), edit, HOST),
-        ).toEqual(['VIEW_DETAIL', 'EDIT', 'START', 'CANCEL']);
+        ).toEqual(['VIEW_DETAIL', 'EDIT', 'START', 'CANCEL', 'SETTINGS']);
     });
 
     it('gates running meeting actions', () => {
@@ -70,7 +70,7 @@ describe('getAvailableMeetingActions', () => {
         ).toEqual(['JOIN', 'VIEW_DETAIL']);
         expect(
             getAvailableMeetingActions(meeting('RUNNING'), edit, HOST),
-        ).toEqual(['JOIN', 'VIEW_DETAIL', 'END']);
+        ).toEqual(['JOIN', 'VIEW_DETAIL', 'END', 'SETTINGS']);
     });
 
     it.each(['COMPLETED', 'CANCELED'] as const)(
@@ -85,18 +85,19 @@ describe('getAvailableMeetingActions', () => {
         },
     );
 
-    // The backend enforces EDIT/CANCEL/END as host-only
+    // The backend enforces EDIT/CANCEL/END/SETTINGS as host-only
     // (`hostId.equals(actor)` in CancelMeetingApplicationService /
-    // EndMeetingApplicationService / UpdateMeetingApplicationService), not
-    // "any Edit Meeting permission holder" — a non-host Edit-Meeting user
-    // must not see actions the backend will reject with 403.
-    it('hides EDIT/CANCEL from a non-host Edit Meeting user, keeps START', () => {
+    // EndMeetingApplicationService / UpdateMeetingApplicationService /
+    // Meeting.updateSettings), not "any Edit Meeting permission holder" — a
+    // non-host Edit-Meeting user must not see actions the backend will
+    // reject with 403.
+    it('hides EDIT/CANCEL/SETTINGS from a non-host Edit Meeting user, keeps START', () => {
         expect(
             getAvailableMeetingActions(meeting('SCHEDULED'), edit, NON_HOST),
         ).toEqual(['VIEW_DETAIL', 'START']);
     });
 
-    it('hides END from a non-host Edit Meeting user, keeps JOIN', () => {
+    it('hides END/SETTINGS from a non-host Edit Meeting user, keeps JOIN', () => {
         expect(
             getAvailableMeetingActions(meeting('RUNNING'), edit, NON_HOST),
         ).toEqual(['JOIN', 'VIEW_DETAIL']);
