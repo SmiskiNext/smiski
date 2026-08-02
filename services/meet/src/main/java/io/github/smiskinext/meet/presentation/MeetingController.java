@@ -941,13 +941,16 @@ public class MeetingController {
                               "projectKey": "PROJ"
                             },
                             "settings": {
-                              "admissionPolicy": "OPEN",
+                              "admissionPolicy": "MANUAL_APPROVAL",
                               "maxParticipants": 50,
                               "allowScreenShare": true,
                               "chatEnabled": true,
                               "allowMicrophone": true,
                               "allowVideo": true
                             },
+                            "zoneId": "Asia/Ho_Chi_Minh",
+                            "organizerEmail": "host@example.com",
+                            "organizerDisplayName": "Host User",
                             "createdAt": "2025-01-15T10:30:00Z"
                           },
                           "livekit": {
@@ -1053,7 +1056,7 @@ public class MeetingController {
                               "projectKey": "PROJ"
                             },
                             "settings": {
-                              "admissionPolicy": "OPEN",
+                              "admissionPolicy": "MANUAL_APPROVAL",
                               "maxParticipants": 50,
                               "allowScreenShare": true,
                               "chatEnabled": true,
@@ -1062,6 +1065,11 @@ public class MeetingController {
                             },
                             "startTime": "2025-02-01T14:00:00Z",
                             "endTime": "2025-02-01T15:00:00Z",
+                            "zoneId": "Asia/Ho_Chi_Minh",
+                            "organizerEmail": "host@example.com",
+                            "organizerDisplayName": "Host User",
+                            "calendarUid": "meeting-0195e0c2@smiski.app",
+                            "calendarSequence": 1,
                             "createdAt": "2025-01-15T10:30:00Z"
                           }
                         }"""))),
@@ -1096,8 +1104,20 @@ public class MeetingController {
                               "type": "about:blank",
                               "title": "Start time is in the past",
                               "status": 400,
-                              "detail": "The scheduled start time is in the past: {0}.",
+                              "detail": "The scheduled start time is in the past: 2025-01-10T08:00:00Z.",
                               "code": "MEETING_START_IN_PAST",
+                              "traceId": "6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a"
+                            }"""),
+                                    @ExampleObject(
+                                            name = "missingAccount",
+                                            summary = "Missing X-Account-Id header",
+                                            value = """
+                            {
+                              "type": "about:blank",
+                              "title": "Bad Request",
+                              "status": 400,
+                              "detail": "X-Account-Id header is required",
+                              "code": "VALIDATION_ERROR",
                               "traceId": "6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a"
                             }""")
                                 }))
@@ -1158,7 +1178,7 @@ public class MeetingController {
                               "projectKey": "PROJ"
                             },
                             "settings": {
-                              "admissionPolicy": "OPEN",
+                              "admissionPolicy": "MANUAL_APPROVAL",
                               "maxParticipants": 50,
                               "allowScreenShare": true,
                               "chatEnabled": true,
@@ -1290,7 +1310,7 @@ public class MeetingController {
                                 "projectKey": "PROJ"
                               },
                               "settings": {
-                                "admissionPolicy": "OPEN",
+                                "admissionPolicy": "MANUAL_APPROVAL",
                                 "maxParticipants": 50,
                                 "allowScreenShare": true,
                                 "chatEnabled": true,
