@@ -1,8 +1,6 @@
 /**
  * ActionButtonGroup — consistent horizontal row of buttons with the design
- * system's standard spacing. Reused by the Meeting Room control bar and the
- * Recording controls (both need a "row of buttons" layout, no hand-rolled
- * flex/gap repeated in each).
+ * system's standard spacing, avoiding hand-rolled flex/gap repeated per use.
  */
 import type { ReactNode } from 'react';
 import { cn } from '../ui';

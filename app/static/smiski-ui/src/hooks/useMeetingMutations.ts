@@ -1,20 +1,28 @@
 /**
- * Meeting write operations (create/schedule/update/cancel/start), as React
- * Query mutations over the mock in-memory db. Each invalidates the query
- * caches a change could affect, so lists refresh immediately.
- *
- * Swap point for real wiring: replace each `mutationFn` with the matching
- * `api/meetings.ts` function (same signature) once the Kong Gateway
- * integration exists.
+ * Meeting write operations (create/schedule/update/cancel/start/end). Each
+ * invalidates the query caches a change could affect, so lists refresh
+ * immediately. `useEndMeeting` calls the `endMeeting` resolver function,
+ * which is an unimplemented stub — the real `meet` backend has no
+ * host-initiated "end meeting" endpoint yet (see app/src/index.ts).
  */
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { apiConfig } from '../api/config';
+import { getDeviceId } from '../api/mappers';
 import type {
     CreateInstantMeetingInput,
     ScheduleMeetingInput,
     UpdateMeetingInput,
 } from '../api/meetings';
-import { createInstantMeeting, scheduleMeeting } from '../api/meetings';
-import * as mockDb from '../mocks/db';
+import {
+    cancelMeeting,
+    createInstantMeeting,
+    endMeeting,
+    joinMeeting,
+    scheduleMeeting,
+    updateMeeting,
+} from '../api/meetings';
+import { useCurrentUser } from '../context/CurrentUserContext';
+import { queryKeys } from './queryKeys';
 
 function useInvalidateMeetings() {
     const queryClient = useQueryClient();
@@ -72,7 +80,7 @@ export function useUpdateMeeting() {
         }: {
             meetingId: string;
             input: UpdateMeetingInput;
-        }) => mockDb.updateMeeting(meetingId, input),
+        }) => updateMeeting(meetingId, input),
         onSuccess: invalidate,
     });
 }
@@ -80,23 +88,49 @@ export function useUpdateMeeting() {
 export function useCancelMeeting() {
     const invalidate = useInvalidateMeetings();
     return useMutation({
-        mutationFn: (meetingId: string) => mockDb.cancelMeeting(meetingId),
+        mutationFn: (meetingId: string) => cancelMeeting(meetingId),
         onSuccess: invalidate,
     });
 }
 
+/**
+ * "Start" a scheduled meeting by joining it as the host (backend `join`;
+ * there is no separate start endpoint — joining is what transitions a
+ * meeting to RUNNING). Seeds `useRoomToken`'s cache with the token/roomName
+ * already returned here, so the meeting-room screen the caller navigates to
+ * next doesn't re-request one.
+ */
 export function useStartMeeting() {
     const invalidate = useInvalidateMeetings();
+    const queryClient = useQueryClient();
+    const currentUser = useCurrentUser();
     return useMutation({
-        mutationFn: (meetingId: string) => mockDb.startMeeting(meetingId),
-        onSuccess: invalidate,
+        mutationFn: (meetingId: string) =>
+            joinMeeting(meetingId, {
+                displayName: currentUser.displayName,
+                deviceId: getDeviceId(),
+                avatarUrl: currentUser.avatarUrl,
+            }),
+        onSuccess: (result, meetingId) => {
+            queryClient.setQueryData(queryKeys.roomToken(meetingId), {
+                token: result.token,
+                url: apiConfig.liveKitUrl,
+            });
+            invalidate();
+        },
     });
 }
 
+/**
+ * Ends a RUNNING meeting (host/Edit-Meeting action). The real `meet`
+ * backend has no equivalent endpoint (RUNNING→COMPLETED only happens there
+ * via an async LiveKit webhook) — this demo branch implements it directly
+ * in the resolver instead, since there is no backend to defer to.
+ */
 export function useEndMeeting() {
     const invalidate = useInvalidateMeetings();
     return useMutation({
-        mutationFn: (meetingId: string) => mockDb.endMeeting(meetingId),
+        mutationFn: (meetingId: string) => endMeeting(meetingId),
         onSuccess: invalidate,
     });
 }

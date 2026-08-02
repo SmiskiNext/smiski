@@ -16,8 +16,6 @@ export const queryKeys = {
         ['members', 'project', projectKey] as const,
     workspaceUsers: (query: string) => ['workspace-users', query] as const,
     meeting: (meetingId: string) => ['meeting', meetingId] as const,
-    participants: (meetingId: string) => ['participants', meetingId] as const,
-    recording: (meetingId: string) => ['recording', meetingId] as const,
     hostConflict: (accountId: string, excludingIssueKey?: string) =>
         ['host-conflict', accountId, excludingIssueKey] as const,
     roomToken: (meetingId: string) => ['room-token', meetingId] as const,

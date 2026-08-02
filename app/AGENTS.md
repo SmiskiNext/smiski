@@ -1,4 +1,4 @@
-# AGENTS.md — Smiski Forge app
+    # AGENTS.md — Smiski Forge app
 
 Guidance for agents working in `app/`. Keep it verifiable against config and
 code, not prose. Root repo rules live in `../AGENTS.md`; this file owns the
@@ -17,10 +17,12 @@ This is **Custom UI, not UI Kit.** Any instruction telling you to use
 that is generic Forge boilerplate and is wrong for this repo. The UI is plain
 React 18 + JSX (`<div>` etc.) + Tailwind v4 + Ant Design.
 
-**Status:** scaffold. Most resolvers (`src/index.ts`) throw
-`Not implemented: ...`, and most frontend reads run against in-memory mocks. Do
-not assume a code path is wired to the backend — check the specific hook/
-resolver first.
+**Status:** meeting reads/mutations go straight from the Custom UI to the real
+`meet` backend over Forge Remote + a generated SDK. Two resolver functions
+(`getProjectMeetings`, `endMeeting`) still throw `Not implemented: ...` because
+the backend has no matching operation yet — see "Resolver is a thin bridge"
+below. Do not assume a code path is wired to the backend — check the specific
+hook/resolver first.
 
 ## Layout
 
@@ -45,9 +47,17 @@ pnpm lint      # biome check (whole app)
 pnpm format    # biome format --write
 pnpm typecheck # tsc --noEmit at root, then in smiski-ui
 
-pnpm deploy       # = forge deploy (needs forge CLI + login)
-pnpm install:site # = forge install
+pnpm run deploy       # = pnpm build && forge deploy
+pnpm run install:site # = forge install
+pnpm run forge <args> # = forge <args>, e.g. pnpm run forge logs --since 15m
 ```
+
+Use `pnpm run deploy`, not `pnpm deploy` — `deploy` is a built-in pnpm 10
+command and would shadow the script. The scripts call the Forge CLI directly, so
+credentials and manifest interpolation variables must already be available in
+the shell environment (or through Forge's normal login/configuration). `deploy`
+rebuilds the UI first because `forge deploy` uploads `static/smiski-ui/dist`
+as-is and never builds it.
 
 Single test / watch (from `static/smiski-ui`):
 
@@ -63,8 +73,8 @@ the Forge `view.getContext()` call, and drives the surface via
 ## Architecture
 
 **Dual-surface single bundle.** `manifest.yml` declares two modules that both
-point at `resource: main` (`static/smiski-ui/dist`): `jira:issueContext` (key
-`smiski-issue-context`) and `jira:projectPage` (key `smiski-project-page`).
+point at `resource: main` (`static/smiski-ui/dist`): `jira:issuePanel` (key
+`smiski-issue-panel`) and `jira:projectPage` (key `smiski-project-page`).
 `App.tsx` reads `context.moduleKey` and mounts `features/issue-panel/` or
 `features/project-page/`; it also mounts modal roots from `features/shared/`
 when `context.extension.modal.kind` is set. Module keys are centralized in
@@ -77,16 +87,27 @@ when `context.extension.modal.kind` is set. Module keys are centralized in
   `@forge/api` `asUser().requestJira` through the `@smiskinext/sdks-jira` SDK
   (`src/jiraSdkClient.ts`), so Jira enforces the user's "Browse users"
   permission.
-- `getRoomToken` — **prototype shim only.** Mints a LiveKit JWT locally with
-  `livekit-server-sdk` from `LIVEKIT_API_KEY/SECRET/URL` Forge env vars. It does
-  **no** authorization check — any user can mint a token for any `meetingId`.
-  Replace with the backend `meet` token endpoint before production. Do not build
-  on this behavior.
-- `getIssueMeetings`, `scheduleMeeting`, `getProjectMeetings`,
-  `getMeetingPermission` — stubs that throw. Do not add business logic here; the
-  brain is the backend `meet` service.
-- There is **no** `createInstantMeeting` resolver. Instant/scheduled creation
-  goes straight from the Custom UI to the backend (see below).
+- `getMeetingPermission` — implemented; checks the invoking user's custom
+  `View Meeting`/`Edit Meeting` Jira project permission (declared in
+  `manifest.yml`'s `jira:projectPermission`, per `PERMISSION.md`) via
+  `jiraSdkClient.ts`'s `getMeetingPermission` (`GET /rest/api/3/mypermissions`
+  as the user, after resolving the real permission keys from
+  `GET /rest/api/3/permissions` — Jira may not echo back the bare manifest
+  `key`). **UI gating only** — the `meet` backend does not yet re-check this;
+  see "Backend permission enforcement (not yet built)" below.
+- `getProjectMeetings` — stub that throws. The real backend's `list` operation
+  has no project-wide filter (only an exact `issueKey`, `creatorId`, `statuses`,
+  or `search` filter), so the project-page dashboard listing has no backend to
+  call yet.
+- `endMeeting` — stub that throws. The backend has no explicit host-initiated
+  "end meeting" operation yet; RUNNING→COMPLETED is expected to be driven by its
+  LiveKit webhook handling instead of an explicit client call.
+- There is **no** `getRoomToken`, `getIssueMeetings`, `scheduleMeeting`,
+  `createInstantMeeting`, `getMeeting`, `updateMeeting`, `cancelMeeting`,
+  `joinMeeting`, or `getHostConflict` resolver. All of those go straight from
+  the Custom UI to the real `meet` backend via Forge Remote + the generated SDK
+  (see below) — do not add resolver-side business logic for them; the brain is
+  the backend `meet` service.
 
 **Backend calls go through Forge Remote + a generated SDK.**
 `api/forgeRemoteFetch.ts` injects a `fetch`-shaped adapter into the
@@ -100,30 +121,71 @@ identity itself. The `meet-backend` remote and its `baseUrl`
 
 - `domain/` — types, enums, and pure logic (e.g. `meetingPolicy.ts` with a
   colocated `.test.ts`). No side effects.
-- `api/` — backend/Jira adapters. `config.ts` reads Vite env; `meetings.ts` (SDK
-  instant/schedule + `getRoomToken`), `workspaceUsers.ts`/`getRoomToken`
-  (resolver `invoke`), `currentUser.ts`/`projectMembers.ts`/`issues.ts` (Jira
-  direct via `@forge/bridge` `requestJira`), `mappers.ts` (DTO↔domain).
+- `api/` — backend/Jira adapters. `config.ts` reads Vite env; `meetings.ts` (all
+  real `meet` backend calls: instant/schedule/get/list/update/cancel/ join, over
+  the generated SDK + Forge Remote), `workspaceUsers.ts` (resolver `invoke`),
+  `currentUser.ts`/`projectMembers.ts`/`issues.ts` (Jira direct via
+  `@forge/bridge` `requestJira`), `mappers.ts` (DTO↔domain).
 - `hooks/` — TanStack Query hooks. `hooks/queryKeys.ts` centralizes every cache
   key; always add new keys there so mutation invalidation stays in sync.
 - `context/`, `components/shared/`, `components/ui/` (local Tailwind design
-  system), `features/`, `theme/`, `utils/`, `mocks/` (in-memory backend
-  stand-in; `mocks/db.ts` is the store).
+  system), `features/`, `theme/`, `utils/`, `mocks/` (Jira identity/issue
+  fixtures for `vite dev` only — see "Mock vs backend" below).
 
 ## Mock vs backend (gotcha)
 
-Data source is **hardwired per hook**, not a global switch. The
-`shouldUseBackendApi()` / `VITE_SMISKI_DATA_SOURCE` switch described in
-`api/README.md` no longer exists — treat that README as aspirational.
+`mocks/db.ts` is **gone** — meeting persistence is never mocked. Most meeting
+hooks call the real `meet` backend directly via the generated SDK over Forge
+Remote (`api/meetings.ts`): `useMeeting`, `useMeetingParticipants` (derived from
+the same `getMeeting` query), `useIssueMeetings`, `useCreateInstantMeeting`,
+`useScheduleMeeting`, `useUpdateMeeting`, `useCancelMeeting`, `useStartMeeting`
+(joins as host), and `useRoomToken`. Two exceptions still go through resolver
+stubs that throw (`getProjectMeetings`, `endMeeting` — see "Resolver is a thin
+bridge" above): `useProjectMeetings` and `useEndMeeting`. Standalone `vite dev`
+therefore cannot list/create/update/cancel/start meetings or enter a room —
+there is no Forge bridge and no Forge Remote binding to reach the backend
+through.
 
-- Reads (`useIssueMeetings`, `useProjectMeetings`, `useMeeting`, …) and
-  `useUpdateMeeting`/`useCancelMeeting`/`useStartMeeting`/`useEndMeeting` →
-  always `mocks/db.ts`.
-- `useCreateInstantMeeting` / `useScheduleMeeting` → **real backend** via the
-  SDK over Forge Remote, with **no mock fallback**. Standalone `vite dev`
-  therefore cannot create meetings.
-- `currentUser`/`projectMembers`/`issues` call Jira directly from the browser;
-  `searchWorkspaceUsers`/`getRoomToken` go through the resolver.
+The `shouldUseBackendApi()` / `VITE_SMISKI_DATA_SOURCE` switch described in
+`api/README.md` never existed in code — treat that README as aspirational.
+
+What remains in `mocks/` is Jira **identity/issue** data only, and every one of
+its consumers is gated on `import.meta.env.DEV`, so a Forge build never reaches
+it:
+
+- `useProjectIssues`, `useProjectMembers` → real Jira via `requestJira` from the
+  browser; mock only under `vite dev`.
+- `useWorkspaceUsers` → resolver `searchWorkspaceUsers`; mock only under
+  `vite dev`.
+- `useMeetingPermission` → resolver `getMeetingPermission`; mocked (always full
+  access) only under `vite dev`.
+- `CurrentUserContext` → Jira `/myself`; `mocks/users.ts`'s `CURRENT_USER` is
+  the context default and the `vite dev` value. `CurrentUserProvider` wraps the
+  whole app including modal roots (`App.tsx`), so the default never leaks into a
+  Forge render.
+
+## Backend permission enforcement (not yet built)
+
+`meet` has **no** Jira-permission concept today — only a host-ownership check on
+`update`/`delete` (`hostId.equals(...)`), nothing on `list`/`get`/`join`. Until
+backend enforcement exists, `View Meeting`/`Edit Meeting` is **UI-only** —
+exactly the anti-pattern `PERMISSION.md` §7 warns against (frontend hiding is
+not a security layer). Researched mechanism for the follow-up, so it doesn't
+need re-discovering:
+
+- Forge Remote backends **can** call Jira REST APIs directly: enable
+  `appUserToken` (needs the `read:app-user-token` scope) on the relevant
+  `endpoint` entries in `manifest.yml` (currently only `meet-endpoint` /
+  `/api/1/meetings:instant` exists, and has both `appUserToken`/
+  `appSystemToken` disabled — each distinct backend path needs its own
+  `endpoint` entry with matching `route.path`, since auth attaches per declared
+  endpoint, not globally per remote).
+- The token arrives at `meet` in the `x-forge-oauth-user` header; use it as a
+  `Bearer` token against the FIT's `apiBaseUrl` claim (**not** the site URL) to
+  call `GET /rest/api/3/mypermissions` directly from Java
+  (`RestTemplate`/`WebClient`) — mirrors the same `getMeetingPermission` logic
+  already implemented in `jiraSdkClient.ts`, just from the backend instead of
+  the resolver.
 
 ## manifest.yml / egress
 
@@ -135,8 +197,10 @@ Data source is **hardwired per hook**, not a global switch. The
 - After changing scopes or egress you MUST `forge deploy` **and then**
   `forge install --upgrade` — a tunnel restart is not enough.
 - Runtime is `nodejs24.x`, arm64, 256 MB. Env vars `SMISKI_API_BASE_URL` and
-  `LIVEKIT_URL` have TODO placeholder defaults; `LIVEKIT_API_KEY/SECRET` are
-  secrets set via `forge variables set` (needed for the `getRoomToken` shim).
+  `LIVEKIT_URL` have TODO placeholder defaults. There is no
+  `LIVEKIT_API_KEY`/`LIVEKIT_API_SECRET` in this app — room tokens come from the
+  backend `meet` service's `join` endpoint, so only the backend needs the
+  LiveKit secret.
 
 ## Conventions
 
@@ -168,8 +232,11 @@ Data source is **hardwired per hook**, not a global switch. The
 
 ## Stale-doc warning
 
-`api/README.md`, `PERMISSION.md`, and the `.vi.md` design notes describe the
-intended end-state (a resolver `backendRequest` transport, a mock/backend
-switch, an `api/` file list with `client.ts`/`endpoints.ts`/`participants.ts`/
-`recordings.ts`) that the current code does not implement. When docs and code
-disagree, trust the code.
+`api/README.md` and the `.vi.md` design notes describe an intended end-state (a
+resolver `backendRequest` transport, a mock/backend switch, an `api/` file list
+with `client.ts`/`endpoints.ts`/`participants.ts`/`recordings.ts`) that the
+current code does not implement. When docs and code disagree, trust the code.
+`PERMISSION.md`'s permission _model_ (View/Edit Meeting, the state×permission
+matrix) is accurate and now partially implemented (frontend and resolver, per
+"Backend permission enforcement" above) — its §7 backend re-check requirement is
+the part still outstanding.

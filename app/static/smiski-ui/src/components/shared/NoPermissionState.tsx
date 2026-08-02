@@ -1,4 +1,4 @@
-import { Icon } from '../../../components/ui';
+import { Icon } from '../ui';
 
 export function NoPermissionState() {
     return (

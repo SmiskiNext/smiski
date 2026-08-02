@@ -1,20 +1,30 @@
 /**
- * ScheduleMeetingModal — the shared schedule-meeting form, built entirely with
- * Ant Design (`Modal`, `Form`, `Input`, `Select`, `Alert`). Used by the
- * project-page dashboard, the Issue Panel, and the embedded Forge modal root.
+ * ScheduleMeetingModal — the shared schedule-meeting form. Chrome (backdrop,
+ * card, header, footer) comes from the local `ui/Modal`; fields are still
+ * Ant Design (`Form`, `Input`, `Select`, `Alert`) — see that component's
+ * `chrome` doc comment for why a bare antd `Modal` isn't used here: its own
+ * mask/backdrop rendered a stray dim layer when embedded inside a Forge
+ * platform modal, since that modal already supplies the backdrop.
  *
  * The CREATE branch calls the real `meet` backend through Forge Remote
- * (`useScheduleMeeting`), capturing a start time, an end time, and a time zone
- * (seeded from the invoking user's Jira profile), plus invitees carrying full
- * identity from `WorkspaceUserPicker`. The EDIT branch stays on the in-memory
- * mock (`useUpdateMeeting`) and keeps its prior title/description/start-time
- * behavior. Backend failures are shown inline and keep the modal open.
+ * (`useScheduleMeeting`), capturing a start time and a time zone (seeded from
+ * the invoking user's Jira profile), plus invitees carrying full identity
+ * from `WorkspaceUserPicker`. The backend's `timeRange` still requires an end
+ * time, so one is derived as `start + DEFAULT_MEETING_DURATION_MS` — the form
+ * itself only asks for a start time. The EDIT branch also calls the real
+ * backend (`useUpdateMeeting`), but the backend `update` operation is a full
+ * replace, so it first fetches the meeting's full detail (`useMeeting`) to
+ * carry forward `issueLink`/`settings`/`zoneId`/`endTime` unchanged — this
+ * form only edits title/description/start-time. Backend failures are shown
+ * inline and keep the modal open.
  */
-import { Alert, Form, Input, Modal, Select } from 'antd';
+import { Alert, Form, Input, Select } from 'antd';
 import { useState } from 'react';
+import { listProjectMeetings } from '../../api/meetings';
 import type { WorkspaceUser } from '../../api/workspaceUsers';
 import { useCurrentUser } from '../../context/CurrentUserContext';
 import type { Meeting } from '../../domain';
+import { useMeeting } from '../../hooks/useMeeting';
 import {
     useScheduleMeeting,
     useUpdateMeeting,
@@ -26,6 +36,7 @@ import {
     resolveUserTimeZone,
     zonedWallTimeToIso,
 } from '../../utils/datetime';
+import { Button, Modal } from '../ui';
 import { IssuePicker } from './IssuePicker';
 import { WorkspaceUserPicker } from './WorkspaceUserPicker';
 
@@ -33,6 +44,9 @@ const TIME_ZONE_OPTIONS = listTimeZones().map((zone) => ({
     value: zone,
     label: formatTimeZoneOption(zone),
 }));
+
+/** New meetings default to a 1-hour slot; the backend still requires an end time. */
+const DEFAULT_MEETING_DURATION_MS = 60 * 60 * 1000;
 
 export interface ScheduleMeetingModalProps {
     isOpen: boolean;
@@ -50,8 +64,6 @@ interface ScheduleMeetingFormValues {
     title: string;
     startDate: string;
     startTime: string;
-    endDate: string;
-    endTime: string;
     description?: string;
 }
 
@@ -89,6 +101,35 @@ function wallTimeParts(iso?: string): { date: string; time: string } {
     };
 }
 
+/**
+ * Whether the invoking user already has another `SCHEDULED` meeting starting
+ * at the same instant, scoped to meetings *this user scheduled* (not every
+ * meeting in the project) — the business rule only guards against one person
+ * double-booking their own calendar.
+ */
+async function hasOwnScheduleConflict(
+    projectKey: string,
+    organizerAccountId: string,
+    startIso: string,
+    excludingMeetingId?: string,
+): Promise<boolean> {
+    if (!projectKey) return false;
+    // Standalone `vite dev` has no Forge bridge to reach the resolver
+    // through — fail open (no conflict) rather than blocking the form.
+    const ownMeetings = await listProjectMeetings({
+        projectKey,
+        createdByAccountId: organizerAccountId,
+    }).catch(() => []);
+    const startMs = new Date(startIso).getTime();
+    return ownMeetings.some(
+        (candidate) =>
+            candidate.id !== excludingMeetingId
+            && candidate.status === 'SCHEDULED'
+            && candidate.scheduledAt !== undefined
+            && new Date(candidate.scheduledAt).getTime() === startMs,
+    );
+}
+
 export function ScheduleMeetingModal({
     isOpen,
     issueKey,
@@ -103,6 +144,10 @@ export function ScheduleMeetingModal({
     const scheduleMeeting = useScheduleMeeting();
     const updateMeeting = useUpdateMeeting();
     const isEdit = Boolean(meeting);
+    // The backend `update` request is a full replace; fetch the current full
+    // detail (settings/zoneId/endTime) this form doesn't itself edit so it can
+    // be carried forward unchanged.
+    const editDetail = useMeeting(isEdit ? meeting?.id : undefined);
     // Issue-context modal payloads normally include the project key, but derive
     // it from the linked issue as a defensive fallback so the picker/invitees
     // are never disabled merely because the optional context field was absent.
@@ -146,12 +191,36 @@ export function ScheduleMeetingModal({
             setFormError('Choose a start date and time in the future.');
             return;
         }
+        if (
+            await hasOwnScheduleConflict(
+                effectiveProjectKey,
+                currentUser.accountId,
+                startIso,
+                meeting?.id,
+            )
+        ) {
+            setFormError(
+                'Vui lòng không chọn thời gian bắt đầu cuộc họp trùng với thời gian bắt đầu cuộc họp đã lên lịch trước đó!',
+            );
+            return;
+        }
 
         if (isEdit && meeting) {
+            if (!editDetail.meeting) {
+                setFormError(
+                    'Meeting details are still loading — try again in a moment.',
+                );
+                return;
+            }
             try {
                 const updated = await updateMeeting.mutateAsync({
                     meetingId: meeting.id,
-                    input: { title, description, startTime: startIso },
+                    input: {
+                        title,
+                        description,
+                        startTime: startIso,
+                        detail: editDetail.meeting,
+                    },
                 });
                 onSubmitted?.(updated.id);
                 resetAndClose();
@@ -165,19 +234,9 @@ export function ScheduleMeetingModal({
             return;
         }
 
-        const endIso = zonedWallTimeToIso(
-            values.endDate,
-            values.endTime,
-            timeZone,
-        );
-        if (!endIso) {
-            setFormError('Choose a valid end date and time.');
-            return;
-        }
-        if (new Date(endIso).getTime() <= new Date(startIso).getTime()) {
-            setFormError('The end time must be after the start time.');
-            return;
-        }
+        const endIso = new Date(
+            new Date(startIso).getTime() + DEFAULT_MEETING_DURATION_MS,
+        ).toISOString();
 
         const resolvedIssueKey = (issueKey ?? values.issueKey ?? '')
             .trim()
@@ -213,6 +272,8 @@ export function ScheduleMeetingModal({
         onSubmitted?.(result.data.id);
         resetAndClose();
     };
+
+    if (!isOpen) return null;
 
     const nowInZone = nowWallTimeInZone(timeZone);
 
@@ -278,28 +339,6 @@ export function ScheduleMeetingModal({
             >
                 <Input type='time' />
             </Form.Item>
-            {!isEdit && (
-                <>
-                    <Form.Item
-                        label='End date'
-                        name='endDate'
-                        rules={[
-                            { required: true, message: 'Choose an end date.' },
-                        ]}
-                    >
-                        <Input type='date' min={nowInZone.date} />
-                    </Form.Item>
-                    <Form.Item
-                        label='End time'
-                        name='endTime'
-                        rules={[
-                            { required: true, message: 'Choose an end time.' },
-                        ]}
-                    >
-                        <Input type='time' />
-                    </Form.Item>
-                </>
-            )}
             <Form.Item label='Time zone'>
                 <Select
                     showSearch
@@ -331,18 +370,30 @@ export function ScheduleMeetingModal({
         </Form>
     );
 
+    const isSaving =
+        scheduleMeeting.isPending
+        || updateMeeting.isPending
+        || (isEdit && editDetail.loading);
+
     return (
         <Modal
             title={isEdit ? 'Edit meeting' : 'Schedule a meeting'}
-            open={isOpen}
-            onCancel={resetAndClose}
-            onOk={() => form.submit()}
-            okText={isEdit ? 'Save changes' : 'Schedule meeting'}
-            confirmLoading={
-                scheduleMeeting.isPending || updateMeeting.isPending
+            chrome={chrome}
+            onClose={resetAndClose}
+            footer={
+                <>
+                    <Button variant='secondary' onClick={resetAndClose}>
+                        Cancel
+                    </Button>
+                    <Button
+                        variant='primary'
+                        isLoading={isSaving}
+                        onClick={() => form.submit()}
+                    >
+                        {isEdit ? 'Save changes' : 'Schedule meeting'}
+                    </Button>
+                </>
             }
-            destroyOnClose
-            getContainer={chrome === 'embedded' ? false : undefined}
         >
             {body}
         </Modal>

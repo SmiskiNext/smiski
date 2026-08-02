@@ -3,13 +3,17 @@
  * actions, search/filter, and one unified list covering every meeting status
  * for this issue (replaces the old split Current/Upcoming/History sections).
  *
- * Data comes from `useIssueMeetings` (the localStorage-backed mock db — see
- * `mocks/db.ts` — real per-issue data, no backend yet). In Forge, Join/Start
- * open a large platform modal so the meeting room is never constrained by
- * this narrow panel; standalone development falls back to the Project Page.
+ * Data comes from `useIssueMeetings` → the real `meet` backend's `list`
+ * operation (SDK over Forge Remote, see `api/meetings.ts`'s
+ * `listIssueMeetings`). There is no mock db — meeting persistence is never
+ * mocked. Join/Start navigate to the Project Page's meeting room
+ * (`useNavigateToMeetingRoom`) — Issue Panel and Project Page are separate
+ * Forge modules/iframes, so this narrow panel never has room to render the
+ * meeting itself.
  */
 import { useState } from 'react';
 import {
+    ActiveMeetingWarningDialog,
     EmptyState,
     ErrorState,
     InlineFeedback,
@@ -17,15 +21,16 @@ import {
     MeetingActionMenu,
     MeetingCard,
     MeetingDetailDialog,
+    NoPermissionState,
     ScheduleMeetingModal,
     StartInstantMeetingModal,
 } from '../../components/shared';
 import { Button, Icon } from '../../components/ui';
 import type { CurrentIssueContextValue, MeetingAction } from '../../domain';
+import { useHostConflictGuard } from '../../hooks/useHostConflictGuard';
 import { useIssueMeetings } from '../../hooks/useIssueMeetings';
 import { useIssuePanelInstantModal } from '../../hooks/useIssuePanelInstantModal';
 import { useIssuePanelMeetingDetailModal } from '../../hooks/useIssuePanelMeetingDetailModal';
-import { useIssuePanelMeetingRoomModal } from '../../hooks/useIssuePanelMeetingRoomModal';
 import { useIssuePanelScheduleModal } from '../../hooks/useIssuePanelScheduleModal';
 import {
     useCancelMeeting,
@@ -34,6 +39,7 @@ import {
 } from '../../hooks/useMeetingMutations';
 import { useMeetingParticipants } from '../../hooks/useMeetingParticipants';
 import { useMeetingPermissions } from '../../hooks/useMeetingPermission';
+import { useNavigateToMeetingRoom } from '../../hooks/useNavigateToMeetingRoom';
 import { IssueMeetingsFilterBar } from './IssueMeetingsFilterBar';
 import {
     filterAndSortIssueMeetings,
@@ -53,9 +59,12 @@ export function IssueMeetingsPanel({
     issue,
     onDevNavigateToProjectPage,
 }: IssueMeetingsPanelProps) {
-    const { meetings, loading, error } = useIssueMeetings(issue.issueKey);
     const permissions = useMeetingPermissions(issue.projectKey);
-    const openMeetingRoom = useIssuePanelMeetingRoomModal(
+    const { meetings, loading, error } = useIssueMeetings(
+        issue.issueKey,
+        permissions.canViewMeeting && !permissions.isLoading,
+    );
+    const openMeetingRoom = useNavigateToMeetingRoom(
         onDevNavigateToProjectPage,
     );
 
@@ -69,6 +78,7 @@ export function IssueMeetingsPanel({
         openMeetingRoom(issue.projectKey, meetingId),
     );
     const detailModal = useIssuePanelMeetingDetailModal();
+    const hostConflictGuard = useHostConflictGuard('platform-modal');
     const cancelMeeting = useCancelMeeting();
     const startMeeting = useStartMeeting();
     const endMeeting = useEndMeeting();
@@ -97,9 +107,11 @@ export function IssueMeetingsPanel({
                 });
                 break;
             case 'START':
-                startMeeting.mutate(meeting.id, {
-                    onSuccess: (started) =>
-                        openMeetingRoom(issue.projectKey, started.id),
+                hostConflictGuard.guard(meeting.issueKey, () => {
+                    startMeeting.mutate(meeting.id, {
+                        onSuccess: (_result, meetingId) =>
+                            openMeetingRoom(issue.projectKey, meetingId),
+                    });
                 });
                 break;
             case 'JOIN':
@@ -117,29 +129,53 @@ export function IssueMeetingsPanel({
         }
     };
 
+    if (permissions.isLoading) {
+        return (
+            <section aria-label='Meetings'>
+                <LoadingState label='Checking meeting permissions…' />
+            </section>
+        );
+    }
+    if (permissions.error) {
+        return (
+            <section aria-label='Meetings'>
+                <ErrorState message={permissions.error.message} />
+            </section>
+        );
+    }
+    if (!permissions.canViewMeeting) {
+        return (
+            <section aria-label='Meetings'>
+                <NoPermissionState />
+            </section>
+        );
+    }
+
     return (
         <section aria-label='Meetings'>
-            <div className='mb-3 grid grid-cols-2 gap-2'>
-                <StartInstantMeetingButton
-                    className='w-full'
-                    issueKey={issue.issueKey}
-                    projectKey={issue.projectKey}
-                    onOpenInstantModal={instantModal.open}
-                />
-                <Button
-                    size='sm'
-                    className='w-full'
-                    onClick={() =>
-                        scheduleModal.open({
-                            issueKey: issue.issueKey,
-                            projectKey: issue.projectKey,
-                        })
-                    }
-                    leadingIcon={<Icon name='calendar' size={15} />}
-                >
-                    Schedule meeting
-                </Button>
-            </div>
+            {permissions.canEditMeeting && (
+                <div className='mb-3 grid grid-cols-2 gap-2'>
+                    <StartInstantMeetingButton
+                        className='w-full'
+                        issueKey={issue.issueKey}
+                        projectKey={issue.projectKey}
+                        onOpenInstantModal={instantModal.open}
+                    />
+                    <Button
+                        size='sm'
+                        className='w-full'
+                        onClick={() =>
+                            scheduleModal.open({
+                                issueKey: issue.issueKey,
+                                projectKey: issue.projectKey,
+                            })
+                        }
+                        leadingIcon={<Icon name='calendar' size={15} />}
+                    >
+                        Schedule meeting
+                    </Button>
+                </div>
+            )}
 
             <IssueMeetingsFilterBar value={filter} onChange={setFilter} />
 
@@ -155,7 +191,9 @@ export function IssueMeetingsPanel({
                         }
                         description={
                             meetings.length === 0
-                                ? 'Start an instant meeting or schedule one for later.'
+                                ? permissions.canEditMeeting
+                                    ? 'Start an instant meeting or schedule one for later.'
+                                    : 'No meetings have been scheduled for this issue yet.'
                                 : 'Try a different search term or status filter.'
                         }
                     />
@@ -230,6 +268,14 @@ export function IssueMeetingsPanel({
                     participants={participants}
                     isLoading={participantsLoading}
                     onClose={detailModal.closeDev}
+                />
+            )}
+
+            {import.meta.env.DEV && hostConflictGuard.conflictingMeeting && (
+                <ActiveMeetingWarningDialog
+                    conflictingMeeting={hostConflictGuard.conflictingMeeting}
+                    onClose={hostConflictGuard.dismiss}
+                    onConfirm={hostConflictGuard.confirm}
                 />
             )}
         </section>

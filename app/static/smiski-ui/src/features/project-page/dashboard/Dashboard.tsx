@@ -1,12 +1,15 @@
 import { useState } from 'react';
 import {
+    ActiveMeetingWarningDialog,
     ErrorState,
     InlineFeedback,
     LoadingState,
+    NoPermissionState,
     ScheduleMeetingModal,
     StartInstantMeetingModal,
 } from '../../../components/shared';
 import type { Meeting, MeetingAction } from '../../../domain';
+import { useHostConflictGuard } from '../../../hooks/useHostConflictGuard';
 import {
     useCancelMeeting,
     useEndMeeting,
@@ -17,7 +20,6 @@ import { useProjectMeetings } from '../../../hooks/useProjectMeetings';
 import { DashboardHeader } from './DashboardHeader';
 import { MeetingDetailPanel } from './MeetingDetailPanel';
 import { MeetingListTable } from './MeetingListTable';
-import { NoPermissionState } from './NoPermissionState';
 import {
     type MeetingFilterValue,
     SearchAndFilterBar,
@@ -47,6 +49,7 @@ export function Dashboard({ projectKey, onOpenRoom }: DashboardProps) {
     const cancelMeeting = useCancelMeeting();
     const startMeeting = useStartMeeting();
     const endMeeting = useEndMeeting();
+    const hostConflictGuard = useHostConflictGuard('inline');
 
     const handleAction = (action: MeetingAction, meeting: Meeting) => {
         switch (action) {
@@ -59,8 +62,11 @@ export function Dashboard({ projectKey, onOpenRoom }: DashboardProps) {
                 });
                 break;
             case 'START':
-                startMeeting.mutate(meeting.id, {
-                    onSuccess: (started) => onOpenRoom(started.id),
+                hostConflictGuard.guard(meeting.issueKey, () => {
+                    startMeeting.mutate(meeting.id, {
+                        onSuccess: (_result, meetingId) =>
+                            onOpenRoom(meetingId),
+                    });
                 });
                 break;
             case 'JOIN':
@@ -99,7 +105,9 @@ export function Dashboard({ projectKey, onOpenRoom }: DashboardProps) {
         <div className='w-full bg-[var(--surface)]'>
             <DashboardHeader
                 canEditMeeting={permissions.canEditMeeting}
-                onStartMeeting={() => setStartOpen(true)}
+                onStartMeeting={() =>
+                    hostConflictGuard.guard(undefined, () => setStartOpen(true))
+                }
                 onScheduleMeeting={() => setScheduleOpen(true)}
             />
             <div className='border-b bg-[var(--surface)] px-4 py-2.5 sm:px-6'>
@@ -154,6 +162,13 @@ export function Dashboard({ projectKey, onOpenRoom }: DashboardProps) {
                     issueKey={editingMeeting.issueKey}
                     onClose={() => setEditingMeeting(null)}
                     onSubmitted={() => setFeedback('Meeting updated.')}
+                />
+            )}
+            {hostConflictGuard.conflictingMeeting && (
+                <ActiveMeetingWarningDialog
+                    conflictingMeeting={hostConflictGuard.conflictingMeeting}
+                    onClose={hostConflictGuard.dismiss}
+                    onConfirm={hostConflictGuard.confirm}
                 />
             )}
         </div>

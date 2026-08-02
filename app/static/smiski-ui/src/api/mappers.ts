@@ -1,10 +1,9 @@
 import type {
     Meeting,
+    MeetingSettings,
     MeetingStatus,
     Participant,
     ParticipantRole,
-    Recording,
-    RecordingStatus,
 } from '../domain';
 
 const DEVICE_STORAGE_KEY = 'smiski:device-id';
@@ -29,6 +28,7 @@ interface BackendMeetingSnapshot {
     hostId?: string;
     hostName?: string;
     organizerDisplayName?: string;
+    type?: string;
     startTime?: string | null;
     startedAt?: string | null;
     endTime?: string | null;
@@ -36,6 +36,8 @@ interface BackendMeetingSnapshot {
     createdAt?: string | null;
     status?: string;
     issueLink?: BackendIssueLink;
+    settings?: MeetingSettings;
+    zoneId?: string;
     participantCount?: number;
     inviteeCount?: number;
 }
@@ -46,20 +48,6 @@ interface BackendParticipantSnapshot {
     role?: string;
     joinedAt?: string | null;
     leftAt?: string | null;
-}
-
-interface BackendRecordingSnapshot {
-    id?: string;
-    meetingId?: string;
-    status?: string;
-    fileUrl?: string | null;
-    playbackUrl?: string | null;
-    thumbnailUrl?: string | null;
-    title?: string | null;
-    notes?: string | null;
-    durationSeconds?: number | null;
-    startedAt?: string | null;
-    endedAt?: string | null;
 }
 
 type BackendEnvelope = Record<string, unknown>;
@@ -74,6 +62,7 @@ export function meetingFromBackend(payload: unknown): Meeting {
         ?? issueKey.split('-')[0]
         ?? '';
     const status = normalizeMeetingStatus(snapshot.status);
+    const isInstant = snapshot.type === 'INSTANT';
     const hostId = snapshot.hostId ?? snapshot.creatorId ?? '';
     const hostName =
         snapshot.hostName
@@ -82,6 +71,14 @@ export function meetingFromBackend(payload: unknown): Meeting {
         ?? 'Unknown host';
     const startTime = snapshot.startTime ?? snapshot.startedAt ?? undefined;
     const createdAt = snapshot.createdAt ?? undefined;
+    // A SCHEDULED-type meeting keeps its originally-scheduled time regardless
+    // of current status (still worth showing in a completed/canceled meeting's
+    // history); startedAt is only meaningful once the meeting has actually run.
+    const scheduledAt = !isInstant ? startTime : undefined;
+    const startedAt =
+        status === 'RUNNING' || status === 'COMPLETED'
+            ? ((isInstant ? createdAt : startTime) ?? createdAt)
+            : undefined;
 
     return {
         id: snapshot.id ?? '',
@@ -96,13 +93,26 @@ export function meetingFromBackend(payload: unknown): Meeting {
         creatorName: snapshot.creatorName ?? hostName,
         hostId,
         hostName,
-        scheduledAt: status === 'SCHEDULED' ? startTime : undefined,
-        startedAt: status === 'RUNNING' ? (startTime ?? createdAt) : undefined,
-        endedAt: snapshot.endedAt ?? snapshot.endTime ?? undefined,
+        scheduledAt,
+        startedAt,
+        endedAt: snapshot.endedAt ?? undefined,
         status,
         participantCount:
             snapshot.participantCount ?? snapshot.inviteeCount ?? 1,
+        endTime: snapshot.endTime ?? undefined,
+        zoneId: snapshot.zoneId ?? undefined,
+        settings: snapshot.settings ?? undefined,
     };
+}
+
+/** Maps a `list` response's meeting-summary array to domain `Meeting[]`. */
+export function meetingsFromBackend(payload: unknown): Meeting[] {
+    return extractArray<BackendMeetingSnapshot>(payload, [
+        'data',
+        'meetings',
+        'items',
+        'content',
+    ]).map(meetingFromBackend);
 }
 
 export function participantsFromBackend(payload: unknown): Participant[] {
@@ -122,27 +132,6 @@ export function participantsFromBackend(payload: unknown): Participant[] {
         joinedAt: participant.joinedAt ?? undefined,
         leftAt: participant.leftAt ?? undefined,
     }));
-}
-
-export function recordingFromBackend(payload: unknown): Recording | null {
-    if (payload == null) return null;
-    const snapshot =
-        isEnvelope(payload) && payload.recording ? payload.recording : payload;
-    if (!isEnvelope(snapshot)) return null;
-    const recording = snapshot as BackendRecordingSnapshot;
-    if (!recording.id && !recording.meetingId) return null;
-    return {
-        id: recording.id ?? '',
-        meetingId: recording.meetingId ?? '',
-        status: normalizeRecordingStatus(recording.status),
-        fileUrl: recording.fileUrl ?? recording.playbackUrl ?? undefined,
-        thumbnailUrl: recording.thumbnailUrl ?? undefined,
-        title: recording.title ?? undefined,
-        notes: recording.notes ?? undefined,
-        durationSeconds: recording.durationSeconds ?? undefined,
-        startedAt: recording.startedAt ?? undefined,
-        endedAt: recording.endedAt ?? undefined,
-    };
 }
 
 export function permissionsFromBackend(payload: unknown): {
@@ -208,12 +197,6 @@ function normalizeMeetingStatus(value: string | undefined): MeetingStatus {
 
 function normalizeParticipantRole(value: string | undefined): ParticipantRole {
     return value === 'HOST' ? 'HOST' : 'PARTICIPANT';
-}
-
-function normalizeRecordingStatus(value: string | undefined): RecordingStatus {
-    if (value === 'RECORDING' || value === 'COMPLETED' || value === 'FAILED')
-        return value;
-    return 'PENDING';
 }
 
 function isEnvelope(value: unknown): value is BackendEnvelope {

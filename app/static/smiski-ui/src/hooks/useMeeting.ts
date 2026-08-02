@@ -1,9 +1,9 @@
 /**
- * useMeeting — a single meeting by id. Swap point: replace `queryFn` with
- * `api.getMeeting(meetingId)`.
+ * useMeeting — a single meeting's full detail, via the backend `get`
+ * operation (`api/meetings.ts`'s `getMeeting`).
  */
 import { useQuery } from '@tanstack/react-query';
-import { getMeeting } from '../mocks/db';
+import { getMeeting } from '../api/meetings';
 import { queryKeys } from './queryKeys';
 
 export function useMeeting(meetingId?: string) {
@@ -13,6 +13,7 @@ export function useMeeting(meetingId?: string) {
             : ['meeting', 'none'],
         queryFn: () => getMeeting(meetingId as string),
         enabled: Boolean(meetingId),
+        select: (data) => data.meeting,
     });
 
     return {

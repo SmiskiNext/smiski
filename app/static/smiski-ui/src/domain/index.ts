@@ -9,4 +9,3 @@ export * from './meeting';
 export * from './meetingPolicy';
 export * from './participant';
 export * from './projectMember';
-export * from './recording';

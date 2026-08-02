@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import type { Participant, ProjectMember } from '../domain';
-import { resolveParticipantDisplayNames } from './participants';
+import {
+    type Participant,
+    resolveParticipantDisplayNames,
+} from './participant';
+import type { ProjectMember } from './projectMember';
 
 describe('resolveParticipantDisplayNames', () => {
     const currentUser: ProjectMember = {

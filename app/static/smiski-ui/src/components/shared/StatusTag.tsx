@@ -1,7 +1,7 @@
 /**
  * StatusTag — compact dot + label treatment optimized for dense data tables.
  */
-import type { MeetingStatus, RecordingStatus } from '../../domain';
+import type { MeetingStatus } from '../../domain';
 import { cn } from '../ui';
 
 const MEETING_STATUS_CONFIG: Record<
@@ -30,41 +30,6 @@ const MEETING_STATUS_CONFIG: Record<
     },
 };
 
-const RECORDING_STATUS_CONFIG: Record<
-    RecordingStatus,
-    { className: string; text: string }
-> = {
-    PENDING: {
-        className:
-            'bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300',
-        text: 'Processing',
-    },
-    RECORDING: {
-        className:
-            'bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-300',
-        text: 'Recording',
-    },
-    COMPLETED: {
-        className:
-            'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300',
-        text: 'Recorded',
-    },
-    FAILED: {
-        className:
-            'bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-300',
-        text: 'Failed',
-    },
-};
-
-function LiveDot() {
-    return (
-        <span
-            aria-hidden='true'
-            className='mr-1.5 size-1.5 animate-pulse rounded-full bg-current'
-        />
-    );
-}
-
 export interface MeetingStatusTagProps {
     status: MeetingStatus;
 }
@@ -87,25 +52,6 @@ export function MeetingStatusTag({ status }: MeetingStatusTagProps) {
                 aria-hidden='true'
             />
             <span>{config.text}</span>
-        </span>
-    );
-}
-
-export interface RecordingStatusTagProps {
-    status: RecordingStatus;
-}
-
-export function RecordingStatusTag({ status }: RecordingStatusTagProps) {
-    const config = RECORDING_STATUS_CONFIG[status];
-    return (
-        <span
-            className={cn(
-                'inline-flex items-center rounded-full px-2 py-1 text-[10px] font-bold tracking-wide uppercase',
-                config.className,
-            )}
-        >
-            {status === 'RECORDING' && <LiveDot />}
-            {config.text}
         </span>
     );
 }

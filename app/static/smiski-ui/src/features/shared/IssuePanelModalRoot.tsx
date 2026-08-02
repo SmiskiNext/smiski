@@ -13,10 +13,8 @@ import {
     ACTIVE_MEETING_WARNING_MODAL_KIND,
     type ActiveMeetingWarningModalResult,
     type IssuePanelModalContext,
-    MEETING_ROOM_MODAL_KIND,
     type MeetingDetailModalContext,
 } from '../../utils/issuePanelModalContext';
-import { MeetingRoom } from '../project-page/meeting-room/MeetingRoom';
 
 export interface IssuePanelModalRootProps {
     payload: IssuePanelModalContext;
@@ -34,15 +32,6 @@ export function IssuePanelModalRoot({ payload }: IssuePanelModalRootProps) {
                 chrome='embedded'
                 onClose={() => close({ confirmed: false })}
                 onConfirm={() => close({ confirmed: true })}
-            />
-        );
-    }
-
-    if (payload.kind === MEETING_ROOM_MODAL_KIND) {
-        return (
-            <MeetingRoom
-                meetingId={payload.meetingId}
-                onLeave={() => void view.close()}
             />
         );
     }

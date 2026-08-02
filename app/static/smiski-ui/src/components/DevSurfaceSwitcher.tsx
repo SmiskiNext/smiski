@@ -1,6 +1,6 @@
 import { Button, Icon, SelectDropdown } from './ui';
 
-export type DemoSurface = 'issueContext' | 'projectPage';
+export type DemoSurface = 'issuePanel' | 'projectPage';
 
 const DEMO_ISSUES = [
     { label: 'SMISKI-101 — running meeting', value: 'SMISKI-101' },
@@ -29,10 +29,10 @@ export function DevSurfaceSwitcher({
             </span>
             <Button
                 size='sm'
-                variant={surface === 'issueContext' ? 'primary' : 'ghost'}
-                onClick={() => onSurfaceChange('issueContext')}
+                variant={surface === 'issuePanel' ? 'primary' : 'ghost'}
+                onClick={() => onSurfaceChange('issuePanel')}
             >
-                Issue context
+                Issue panel
             </Button>
             <Button
                 size='sm'
@@ -41,7 +41,7 @@ export function DevSurfaceSwitcher({
             >
                 Project page
             </Button>
-            {surface === 'issueContext' && (
+            {surface === 'issuePanel' && (
                 <SelectDropdown
                     className='ml-auto w-60'
                     ariaLabel='Demo issue'

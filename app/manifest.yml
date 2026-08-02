@@ -1,25 +1,27 @@
 # Smiski — Forge app manifest
 #
 # Declares the two Custom UI surfaces for the embedded-meeting module:
-#   1. jira:issueContext — per-Issue quick access in Jira's right sidebar
+#   1. jira:issuePanel — per-Issue quick access, rendered at the bottom of the
+#      Jira issue view (new issue view only)
 #   2. jira:projectPage — project-wide meeting management (dashboard + room)
 #
 # Both modules render the SAME Custom UI bundle (static/smiski-ui). The frontend
 # branches on the Forge module context (moduleKey) to mount the correct root
 # component. See static/smiski-ui/src/App.tsx.
 #
-# NOTE: All resolver/function handlers are STUB placeholders — no business logic
-# is wired up yet. See src/index.ts.
+# NOTE: Meeting reads/mutations go straight from the Custom UI to the real
+# `meet` backend via Forge Remote + a generated SDK — the resolver
+# (src/index.ts) only handles Jira-native operations (workspace user search,
+# the View/Edit Meeting permission check) plus two operations the backend
+# doesn't support yet (project-wide listing, explicit "end meeting").
 
 modules:
-    jira:issueContext:
-        - key: smiski-issue-context
+    jira:issuePanel:
+        - key: smiski-issue-panel
           resource: main
           resolver:
               function: resolver
           title: Smiski Meetings
-          label: Smiski Meetings
-          description: Meetings linked to this Jira issue
           icon: https://developer.atlassian.com/platform/forge/images/issue-panel-icon.svg
 
     jira:projectPage:
@@ -30,6 +32,25 @@ modules:
           title: Smiski Meetings
           layout: blank
           icon: https://developer.atlassian.com/platform/forge/images/issue-panel-icon.svg
+
+    # Custom Jira project permissions (per app/PERMISSION.md): a 2-level
+    # View/Edit model, Edit implying View. Once deployed, a Jira/Project Admin
+    # assigns these to roles/groups/users via the project's Permission
+    # Scheme UI — this app only declares them and reads them back
+    # (`getMeetingPermission` in src/index.ts, via `GET /rest/api/3/mypermissions`).
+    jira:projectPermission:
+        - key: view-meeting
+          name: View Meeting
+          description:
+              View meeting info and history, view meeting detail, join a Running
+              meeting, view recording if available.
+          category: projects
+        - key: edit-meeting
+          name: Edit Meeting
+          description:
+              Create, schedule, start, edit, cancel, and end meetings;
+              start/stop recording.
+          category: projects
 
     function:
         - key: resolver
@@ -78,6 +99,7 @@ permissions:
     scopes:
         - read:jira-work
         - read:jira-user # current user (/myself) + assignable project member lookup
+        - read:permission:jira # list/check custom View Meeting / Edit Meeting permissions
         # - read:me            # TODO: enable if we need the invoking user's identity/profile
         # - offline_access     # TODO: enable if the identity bridge needs refresh tokens
 

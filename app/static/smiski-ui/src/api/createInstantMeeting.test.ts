@@ -26,7 +26,7 @@ describe('createInstantMeeting (SDK createInstant over Forge Remote)', () => {
         requestRemoteMock.mockReset();
     });
 
-    it('issues the SDK createInstant call over the adapter and returns meeting + LiveKit on success', async () => {
+    it('issues the SDK createInstant call over the adapter and returns the meeting on success', async () => {
         requestRemoteMock.mockResolvedValue(
             jsonResponse(201, {
                 meeting: {
@@ -38,7 +38,6 @@ describe('createInstantMeeting (SDK createInstant over Forge Remote)', () => {
                     organizerDisplayName: 'Host User',
                     createdAt: '2026-01-01T00:00:00.000Z',
                 },
-                livekit: { token: 'tok', roomName: 'room-1' },
             }),
         );
 
@@ -69,7 +68,6 @@ describe('createInstantMeeting (SDK createInstant over Forge Remote)', () => {
             issueKey: 'SMISKI-101',
             status: 'RUNNING',
         });
-        expect(result.livekit).toEqual({ token: 'tok', roomName: 'room-1' });
         expect(result.error).toBeUndefined();
     });
 

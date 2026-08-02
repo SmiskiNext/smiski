@@ -1,19 +1,34 @@
 import { invoke } from '@forge/bridge';
 import {
     createInstant,
+    delete_ as deleteMeetingBackend,
+    get,
+    join,
+    list,
     type MeetCreateInstantMeetingRequest,
     type MeetCreateInstantMeetingResponse,
-    type MeetLiveKit,
+    type MeetDeleteMeetingResponse,
+    type MeetGetMeetingResponse,
+    type MeetJoinMeetingResponse,
+    type MeetMeetingListPage,
     type MeetProblemDetail,
     type MeetScheduleMeetingRequest,
     type MeetScheduleMeetingResponse,
+    type MeetUpdateMeetingRequest,
+    type MeetUpdateMeetingResponse,
     schedule,
+    update,
 } from '@smiskinext/smiski-ts';
-import type { Meeting, MeetingStatus } from '../domain';
+import type { Meeting, MeetingStatus, Participant } from '../domain';
 import { getLocalTimeZone } from '../utils/datetime';
 import { apiConfig } from './config';
 import { forgeRemoteClient } from './forgeRemoteFetch';
-import { getDeviceId, meetingFromBackend } from './mappers';
+import {
+    getDeviceId,
+    meetingFromBackend,
+    meetingsFromBackend,
+    participantsFromBackend,
+} from './mappers';
 
 /** A meeting invitee, carrying the identity the backend requires. */
 export interface MeetingInviteeInput {
@@ -62,18 +77,19 @@ export interface ScheduleMeetingInput {
     organizer?: InstantMeetingHostIdentity;
 }
 
-/** Partial edit of an existing scheduled meeting. */
+/**
+ * Edit of an existing meeting. The backend `update` operation is a full
+ * replace (`title`/`description`/`issueLink`/`zoneId` all required), but the
+ * edit form only lets a user change title, description, and start time — so
+ * `detail` (the meeting's current full detail, from `getMeeting`) supplies
+ * everything else unchanged. Settings are updated through the backend's
+ * dedicated settings endpoint and are not part of this request.
+ */
 export interface UpdateMeetingInput {
-    title?: string;
-    description?: string;
-    startTime?: string;
-    endTime?: string;
-    durationMinutes?: number;
-    zoneId?: string;
-    issueKey?: string;
-    issueId?: string;
-    projectKey?: string;
-    baseMeeting?: Meeting;
+    title: string;
+    description: string;
+    startTime: string;
+    detail: Meeting;
 }
 
 /** Filters for the project-page dashboard listing. */
@@ -97,10 +113,9 @@ export interface MeetingProblem {
     status?: number;
 }
 
-/** SDK-native result of instant creation: the meeting, its LiveKit access, or a problem. */
+/** SDK-native result of instant creation: the meeting, or a problem. */
 export interface CreateInstantMeetingResult {
     data?: Meeting;
-    livekit?: MeetLiveKit;
     error?: MeetingProblem;
 }
 
@@ -217,10 +232,7 @@ export async function createInstantMeeting(
             return { error: toMeetingProblem(result.error) };
         }
         const response = result.data as MeetCreateInstantMeetingResponse;
-        return {
-            data: meetingFromBackend(response),
-            livekit: response.livekit,
-        };
+        return { data: meetingFromBackend(response) };
     } catch (error) {
         return { error: toMeetingProblem(error) };
     }
@@ -292,12 +304,252 @@ function isProblemDetail(value: unknown): value is MeetProblemDetail {
     );
 }
 
-/** Mint a LiveKit room access token for the current user + meeting. */
+/**
+ * A `MeetingProblem` as a real `Error`, so `get`/`list`/`update`/`cancel`/
+ * `join` can throw and surface through TanStack Query's `error` channel
+ * (unlike `createInstantMeeting`/`scheduleMeeting`, whose modals need a
+ * non-throwing `{ data, error }` result to stay open on failure).
+ */
+export class MeetingApiError extends Error {
+    code?: string;
+    traceId?: string;
+    status?: number;
+
+    constructor(problem: MeetingProblem) {
+        super(problem.message);
+        this.name = 'MeetingApiError';
+        this.code = problem.code;
+        this.traceId = problem.traceId;
+        this.status = problem.status;
+    }
+}
+
+function toMeetingError(source: unknown): MeetingApiError {
+    return new MeetingApiError(toMeetingProblem(source));
+}
+
+/**
+ * Calls an SDK operation, throwing a `MeetingApiError` for both a thrown
+ * (network/validation) failure and an SDK-native `{ error }` result, or
+ * returning the unwrapped `data` otherwise.
+ */
+async function unwrap<T>(
+    call: () => Promise<{ data?: T; error?: unknown }>,
+): Promise<T> {
+    let result: { data?: T; error?: unknown };
+    try {
+        result = await call();
+    } catch (error) {
+        throw toMeetingError(error);
+    }
+    if (result.error !== undefined) throw toMeetingError(result.error);
+    return result.data as T;
+}
+
+/** A meeting's full detail plus its distinct joined-participant roster. */
+export interface MeetingDetail {
+    meeting: Meeting;
+    participants: Participant[];
+}
+
+/** Fetches a meeting's full detail (backend `get`), including participants. */
+export async function getMeeting(meetingId: string): Promise<MeetingDetail> {
+    const response = await unwrap<MeetGetMeetingResponse>(() =>
+        get({
+            client: forgeRemoteClient,
+            path: { version: apiConfig.apiVersion, id: meetingId },
+        }),
+    );
+    return {
+        meeting: meetingFromBackend(response),
+        participants: participantsFromBackend(response),
+    };
+}
+
+/** Lists meetings linked to a Jira issue (backend `list`, exact `issueKey` filter). */
+export async function listIssueMeetings(issueKey: string): Promise<Meeting[]> {
+    const response = await unwrap<MeetMeetingListPage>(() =>
+        list({
+            client: forgeRemoteClient,
+            path: { version: apiConfig.apiVersion },
+            body: { issueKey },
+        }),
+    );
+    return meetingsFromBackend(response);
+}
+
+/**
+ * Lists meetings across a project for the dashboard table. Routed through the
+ * `getProjectMeetings` resolver function rather than the SDK directly: the
+ * real backend's `list` operation has no `projectKey` filter yet (only
+ * `issueKey`/`creatorId`/`statuses`/`search`), so this stays an
+ * `Not implemented` stub (see `app/src/index.ts`) until the backend adds one.
+ */
+export async function listProjectMeetings(
+    filters: MeetingListFilters,
+): Promise<Meeting[]> {
+    return invokeResolver<Meeting[]>(
+        'getProjectMeetings',
+        filters as unknown as Record<string, unknown>,
+    );
+}
+
+/**
+ * Build the full-replace update request body from the edit form's input,
+ * conforming to the OpenAPI `MeetUpdateMeetingRequest` contract. `title`/
+ * `description`/`startTime` come from the edit form; `issueLink`/`zoneId`/
+ * `endTime` are carried forward unchanged from `input.detail` (the meeting's
+ * full detail, fetched separately, since this form doesn't edit them).
+ * Settings are updated through the backend's dedicated settings endpoint and
+ * are not part of this request. Pure, so the contract is unit-testable like
+ * the instant/schedule builders above.
+ */
+export function buildUpdateMeetingPayload(
+    input: UpdateMeetingInput,
+): MeetUpdateMeetingRequest {
+    return {
+        title: input.title,
+        description: input.description,
+        issueLink: {
+            issueId: input.detail.issueId,
+            issueKey: input.detail.issueKey,
+            projectKey: input.detail.projectKey,
+        },
+        zoneId: input.detail.zoneId ?? getLocalTimeZone(),
+        timeRange: input.detail.endTime
+            ? { startTime: input.startTime, endTime: input.detail.endTime }
+            : undefined,
+    };
+}
+
+/** Updates a meeting (backend `update`, full-replace — see `UpdateMeetingInput`). */
+export async function updateMeeting(
+    meetingId: string,
+    input: UpdateMeetingInput,
+): Promise<Meeting> {
+    const response = await unwrap<MeetUpdateMeetingResponse>(() =>
+        update({
+            client: forgeRemoteClient,
+            path: { version: apiConfig.apiVersion, id: meetingId },
+            body: buildUpdateMeetingPayload(input),
+        }),
+    );
+    return meetingFromBackend(response);
+}
+
+/** Cancels (soft-deletes) a meeting (backend `delete`; 409 if it's RUNNING). */
+export async function cancelMeeting(meetingId: string): Promise<Meeting> {
+    const response = await unwrap<MeetDeleteMeetingResponse>(() =>
+        deleteMeetingBackend({
+            client: forgeRemoteClient,
+            path: { version: apiConfig.apiVersion, id: meetingId },
+        }),
+    );
+    return meetingFromBackend(response);
+}
+
+/**
+ * Ends a RUNNING meeting (host/Edit-Meeting action). Routed through the
+ * `endMeeting` resolver function: the real backend has no explicit `end`
+ * operation yet — RUNNING→COMPLETED is expected to be driven by its LiveKit
+ * webhook handling instead — so this stays an `Not implemented` stub (see
+ * `app/src/index.ts`) until the backend adds one.
+ */
+export async function endMeeting(meetingId: string): Promise<Meeting> {
+    return invokeResolver<Meeting>('endMeeting', { meetingId });
+}
+
+/** The joining participant's identity, required by the backend `join` operation. */
+export interface JoinMeetingIdentity {
+    displayName: string;
+    deviceId: string;
+    avatarUrl?: string;
+}
+
+export interface JoinMeetingResult {
+    requestId: string;
+    token: string;
+    roomName: string;
+}
+
+/**
+ * Joins a meeting (backend `join`), shared by "host starts a meeting"
+ * (`useStartMeeting`) and "participant enters the room" (`useRoomToken`).
+ * Under `MANUAL_APPROVAL` admission the response is `PENDING` with no token —
+ * there is no waiting-room UI yet, so that surfaces as a clear error instead
+ * of leaving the caller with a silently-missing token.
+ */
+export async function joinMeeting(
+    meetingId: string,
+    identity: JoinMeetingIdentity,
+): Promise<JoinMeetingResult> {
+    const response = await unwrap<MeetJoinMeetingResponse>(() =>
+        join({
+            client: forgeRemoteClient,
+            path: { version: apiConfig.apiVersion, id: meetingId },
+            body: {
+                displayName: identity.displayName,
+                deviceId: identity.deviceId,
+                avatarUrl: identity.avatarUrl,
+            },
+        }),
+    );
+    if (!response.token || !response.roomName) {
+        throw new MeetingApiError({
+            message: 'Waiting for the host to approve your request to join.',
+            code: 'JOIN_PENDING_APPROVAL',
+        });
+    }
+    return {
+        requestId: response.requestId ?? '',
+        token: response.token,
+        roomName: response.roomName,
+    };
+}
+
+/** Mints a LiveKit room access token for the current user + meeting. */
 export async function getRoomToken(
     meetingId: string,
-): Promise<{ token: string; url: string }> {
-    return invoke('getRoomToken', { meetingId }) as Promise<{
-        token: string;
-        url: string;
-    }>;
+    identity: JoinMeetingIdentity,
+): Promise<{ token: string; url: string | undefined }> {
+    const result = await joinMeeting(meetingId, identity);
+    return { token: result.token, url: apiConfig.liveKitUrl };
+}
+
+/**
+ * Any RUNNING meeting hosted by `accountId`, optionally excluding one issue.
+ * Backs the "confirm before starting a second concurrent meeting" prompt
+ * (UC-01 alt flow). Calls the SDK `list` operation directly (`creatorId` +
+ * `statuses: ['RUNNING']`) rather than a resolver — the real backend already
+ * supports this filter combination, unlike the project-wide listing above.
+ * `list` has no "exclude an issue" filter, so that's applied client-side.
+ */
+export async function findRunningMeetingHostedByUser(
+    accountId: string,
+    excludingIssueKey?: string,
+): Promise<Meeting | null> {
+    const response = await unwrap<MeetMeetingListPage>(() =>
+        list({
+            client: forgeRemoteClient,
+            path: { version: apiConfig.apiVersion },
+            body: { creatorId: accountId, statuses: ['RUNNING'] },
+        }),
+    );
+    const running = meetingsFromBackend(response);
+    return (
+        running.find((meeting) => meeting.issueKey !== excludingIssueKey)
+        ?? null
+    );
+}
+
+/** Calls a resolver function, wrapping any rejection as a `MeetingApiError`. */
+async function invokeResolver<T>(
+    functionKey: string,
+    payload: Record<string, unknown> = {},
+): Promise<T> {
+    try {
+        return (await invoke(functionKey, payload)) as T;
+    } catch (error) {
+        throw toMeetingError(error);
+    }
 }
