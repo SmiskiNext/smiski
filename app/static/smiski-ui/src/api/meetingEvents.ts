@@ -84,14 +84,16 @@ export async function subscribeToMeetingJoinRequests(
                         requestId: string;
                         accountId: string;
                         displayName: string;
+                        requestedAt?: string;
+                        expiresAt?: string;
                     }>(message);
                     options.onJoinRequest({
                         requestId: payload.requestId,
                         accountId: payload.accountId,
                         displayName: payload.displayName,
                         status: 'PENDING',
-                        requestedAt: '',
-                        expiresAt: '',
+                        requestedAt: payload.requestedAt ?? '',
+                        expiresAt: payload.expiresAt ?? '',
                     });
                     return undefined;
                 },

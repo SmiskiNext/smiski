@@ -24,6 +24,14 @@ import {
 const MEETING_ID = '0195e0c2-8f3a-7c21-b9d4-2f1a6e7c8d90';
 const REQUEST_ID = '0195e0c2-8f3a-7c21-b9d4-2f1a6e7c8d91';
 const EMPTY_PAGE = { requests: [], total: 0, offset: 0, pageSize: 20 };
+const PENDING_REQUEST = {
+    requestId: REQUEST_ID,
+    accountId: 'account-42',
+    displayName: 'Alice',
+    status: 'PENDING' as const,
+    requestedAt: '2026-08-02T10:00:00Z',
+    expiresAt: '2026-08-02T10:10:00Z',
+};
 
 function createHarness() {
     const queryClient = new QueryClient({
@@ -84,6 +92,21 @@ describe('manual-admission hooks', () => {
     it('accepts requests then invalidates every pending page for the meeting', async () => {
         const { queryClient, wrapper } = createHarness();
         const invalidate = vi.spyOn(queryClient, 'invalidateQueries');
+        const queryKey = queryKeys.pendingJoinRequestsPage(MEETING_ID, {});
+        queryClient.setQueryData(queryKey, {
+            ...EMPTY_PAGE,
+            requests: [PENDING_REQUEST],
+            total: 1,
+        });
+        apiMocks.acceptPendingMeetingJoinRequests.mockResolvedValue([
+            {
+                requestId: REQUEST_ID,
+                status: 'APPROVED',
+                token: null,
+                roomName: null,
+                reason: null,
+            },
+        ]);
         const { result } = renderHook(() => useAcceptJoinRequests(), {
             wrapper,
         });
@@ -102,11 +125,27 @@ describe('manual-admission hooks', () => {
         expect(invalidate).toHaveBeenCalledWith({
             queryKey: queryKeys.pendingJoinRequests(MEETING_ID),
         });
+        expect(queryClient.getQueryData(queryKey)).toEqual(EMPTY_PAGE);
     });
 
     it('declines requests then invalidates every pending page for the meeting', async () => {
         const { queryClient, wrapper } = createHarness();
         const invalidate = vi.spyOn(queryClient, 'invalidateQueries');
+        const queryKey = queryKeys.pendingJoinRequestsPage(MEETING_ID, {});
+        queryClient.setQueryData(queryKey, {
+            ...EMPTY_PAGE,
+            requests: [PENDING_REQUEST],
+            total: 1,
+        });
+        apiMocks.declinePendingMeetingJoinRequests.mockResolvedValue([
+            {
+                requestId: REQUEST_ID,
+                status: 'DENIED',
+                token: null,
+                roomName: null,
+                reason: 'HOST_DECLINED',
+            },
+        ]);
         const { result } = renderHook(() => useDeclineJoinRequests(), {
             wrapper,
         });
@@ -125,5 +164,38 @@ describe('manual-admission hooks', () => {
         expect(invalidate).toHaveBeenCalledWith({
             queryKey: queryKeys.pendingJoinRequests(MEETING_ID),
         });
+        expect(queryClient.getQueryData(queryKey)).toEqual(EMPTY_PAGE);
+    });
+
+    it('keeps failed decisions in the pending cache', async () => {
+        const { queryClient, wrapper } = createHarness();
+        const queryKey = queryKeys.pendingJoinRequestsPage(MEETING_ID, {});
+        const pendingPage = {
+            ...EMPTY_PAGE,
+            requests: [PENDING_REQUEST],
+            total: 1,
+        };
+        queryClient.setQueryData(queryKey, pendingPage);
+        apiMocks.acceptPendingMeetingJoinRequests.mockResolvedValue([
+            {
+                requestId: REQUEST_ID,
+                status: 'FAILED',
+                token: null,
+                roomName: null,
+                reason: 'ALREADY_RESOLVED',
+            },
+        ]);
+        const { result } = renderHook(() => useAcceptJoinRequests(), {
+            wrapper,
+        });
+
+        await act(async () => {
+            await result.current.mutateAsync({
+                meetingId: MEETING_ID,
+                requestIds: [REQUEST_ID],
+            });
+        });
+
+        expect(queryClient.getQueryData(queryKey)).toEqual(pendingPage);
     });
 });

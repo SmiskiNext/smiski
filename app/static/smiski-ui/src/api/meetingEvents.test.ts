@@ -50,6 +50,8 @@ describe('meeting event streams', () => {
                 requestId: REQUEST_ID,
                 accountId: 'account-42',
                 displayName: 'Alice',
+                requestedAt: '2026-08-02T10:00:00Z',
+                expiresAt: '2026-08-02T10:10:00Z',
             }),
         );
 
@@ -66,6 +68,8 @@ describe('meeting event streams', () => {
             expect.objectContaining({
                 requestId: REQUEST_ID,
                 status: 'PENDING',
+                requestedAt: '2026-08-02T10:00:00Z',
+                expiresAt: '2026-08-02T10:10:00Z',
             }),
         );
     });
