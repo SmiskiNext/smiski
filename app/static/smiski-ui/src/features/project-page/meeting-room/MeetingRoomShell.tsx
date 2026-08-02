@@ -34,6 +34,8 @@ export interface MeetingRoomShellProps {
     onToggleMic?: () => void;
     onToggleCamera?: () => void;
     onToggleScreenShare?: () => void;
+    /** Set when the last screen-share toggle attempt failed (see `useLiveKitRoom`). */
+    screenShareError?: string | null;
     /** Surfaces `useLiveKitRoom`'s connection state for debugging/trial visibility. */
     connectionState?: LiveKitConnectionState;
 }
@@ -63,6 +65,8 @@ function ControlButton({
     icon,
     active = true,
     danger,
+    disabled,
+    title,
     onClick,
     badge,
 }: {
@@ -77,6 +81,8 @@ function ControlButton({
         | 'phoneOff';
     active?: boolean;
     danger?: boolean;
+    disabled?: boolean;
+    title?: string;
     onClick?: () => void;
     badge?: number;
 }) {
@@ -85,10 +91,13 @@ function ControlButton({
             type='button'
             aria-label={label}
             aria-pressed={!danger ? active : undefined}
+            disabled={disabled}
+            title={title}
             onClick={onClick}
             className={cn(
                 'group flex min-w-16 flex-col items-center gap-1.5 text-[10px] font-semibold transition',
                 danger ? 'text-red-300' : 'text-slate-300',
+                disabled && 'cursor-not-allowed opacity-40',
             )}
         >
             <span
@@ -99,6 +108,7 @@ function ControlButton({
                         : active
                           ? 'border-white/10 bg-white/10 text-white hover:bg-white/20'
                           : 'border-white/5 bg-white/5 text-slate-400 hover:bg-white/10',
+                    disabled && 'hover:bg-white/5',
                 )}
             >
                 <Icon name={icon} size={18} />
@@ -127,6 +137,7 @@ export function MeetingRoomShell({
     onToggleMic,
     onToggleCamera,
     onToggleScreenShare,
+    screenShareError,
     connectionState,
 }: MeetingRoomShellProps) {
     const [localMicOn, setLocalMicOn] = useState(true);
@@ -141,6 +152,9 @@ export function MeetingRoomShell({
         onToggleCamera ?? (() => setLocalCameraOn((value) => !value));
     const handleToggleScreenShare =
         onToggleScreenShare ?? (() => setLocalScreenSharing((value) => !value));
+    // Undefined settings (standalone dev, or a list-summary source) means we
+    // can't gate — default to allowed rather than locking the button out.
+    const canShareScreen = meeting?.settings?.allowScreenShare ?? true;
     const elapsed = useElapsedTime(meeting?.startedAt);
     return (
         <section className='overflow-hidden rounded-3xl border border-slate-700 bg-slate-950 shadow-panel'>
@@ -200,38 +214,57 @@ export function MeetingRoomShell({
                     isSelfMicOn={isMicOn}
                 />
             )}
-            <footer className='flex items-center justify-center gap-3 border-t border-white/8 bg-slate-950 px-3 py-4 sm:gap-5'>
-                <ControlButton
-                    label={isMicOn ? 'Mute' : 'Unmute'}
-                    icon={isMicOn ? 'mic' : 'micOff'}
-                    active={isMicOn}
-                    onClick={handleToggleMic}
-                />
-                <ControlButton
-                    label={isCameraOn ? 'Stop video' : 'Start video'}
-                    icon={isCameraOn ? 'camera' : 'cameraOff'}
-                    active={isCameraOn}
-                    onClick={handleToggleCamera}
-                />
-                <ControlButton
-                    label={isScreenSharing ? 'Stop sharing' : 'Share screen'}
-                    icon='screen'
-                    active={isScreenSharing}
-                    onClick={handleToggleScreenShare}
-                />
-                <ControlButton
-                    label='People'
-                    icon='people'
-                    active={isPeoplePanelOpen}
-                    onClick={onTogglePeoplePanel}
-                    badge={participants.length}
-                />
-                <ControlButton
-                    label='Leave'
-                    icon='phoneOff'
-                    danger
-                    onClick={onLeave}
-                />
+            <footer className='border-t border-white/8 bg-slate-950 px-3 py-4'>
+                <div className='flex items-center justify-center gap-3 sm:gap-5'>
+                    <ControlButton
+                        label={isMicOn ? 'Mute' : 'Unmute'}
+                        icon={isMicOn ? 'mic' : 'micOff'}
+                        active={isMicOn}
+                        onClick={handleToggleMic}
+                    />
+                    <ControlButton
+                        label={isCameraOn ? 'Stop video' : 'Start video'}
+                        icon={isCameraOn ? 'camera' : 'cameraOff'}
+                        active={isCameraOn}
+                        onClick={handleToggleCamera}
+                    />
+                    <ControlButton
+                        label={
+                            !canShareScreen && !isScreenSharing
+                                ? 'Screen share off'
+                                : isScreenSharing
+                                  ? 'Stop sharing'
+                                  : 'Share screen'
+                        }
+                        icon='screen'
+                        active={isScreenSharing}
+                        disabled={!canShareScreen && !isScreenSharing}
+                        title={
+                            !canShareScreen && !isScreenSharing
+                                ? 'The host has disabled screen sharing for this meeting'
+                                : undefined
+                        }
+                        onClick={handleToggleScreenShare}
+                    />
+                    <ControlButton
+                        label='People'
+                        icon='people'
+                        active={isPeoplePanelOpen}
+                        onClick={onTogglePeoplePanel}
+                        badge={participants.length}
+                    />
+                    <ControlButton
+                        label='Leave'
+                        icon='phoneOff'
+                        danger
+                        onClick={onLeave}
+                    />
+                </div>
+                {screenShareError && (
+                    <p className='mt-2 text-center text-[11px] font-medium text-red-300'>
+                        {screenShareError}
+                    </p>
+                )}
             </footer>
         </section>
     );

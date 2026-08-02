@@ -132,6 +132,11 @@ export function MeetingRoom({ meetingId, onLeave }: MeetingRoomProps) {
                                 ? liveKit.toggleScreenShare
                                 : undefined
                         }
+                        screenShareError={
+                            isLiveKitEnabled
+                                ? liveKit.screenShareError
+                                : undefined
+                        }
                         connectionState={
                             isLiveKitEnabled
                                 ? liveKit.connectionState

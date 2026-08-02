@@ -72,6 +72,8 @@ export interface UseLiveKitRoomResult {
     isMicOn: boolean;
     isCameraOn: boolean;
     isScreenSharing: boolean;
+    /** Set when the most recent `toggleScreenShare()` call was rejected (e.g. disabled by the host, or the OS share picker was cancelled). Cleared on the next attempt. */
+    screenShareError: string | null;
     toggleMic: () => Promise<void>;
     toggleCamera: () => Promise<void>;
     toggleScreenShare: () => Promise<void>;
@@ -119,6 +121,9 @@ export function useLiveKitRoom({
     // mutation doesn't re-render, so a render-time read leaves the "Share
     // screen" button stuck on its previous state.
     const [isScreenSharing, setIsScreenSharing] = useState(false);
+    const [screenShareError, setScreenShareError] = useState<string | null>(
+        null,
+    );
 
     const snapshot = useCallback(() => {
         const room = roomRef.current;
@@ -235,8 +240,26 @@ export function useLiveKitRoom({
         const room = roomRef.current;
         if (!room) return;
         const isSharing = room.localParticipant.isScreenShareEnabled;
-        await room.localParticipant.setScreenShareEnabled(!isSharing);
-        snapshot();
+        setScreenShareError(null);
+        try {
+            await room.localParticipant.setScreenShareEnabled(!isSharing);
+            snapshot();
+        } catch (shareError) {
+            // Rejected either by LiveKit (screen share disabled for this
+            // meeting — see MeetingSettings.allowScreenShare) or by the
+            // browser (user cancelled the share picker). Swallow it here so
+            // it doesn't surface as an unhandled rejection; the button click
+            // that triggered this already reflects the failure visually.
+            console.warn(
+                '[useLiveKitRoom] screen share toggle failed',
+                shareError,
+            );
+            setScreenShareError(
+                isSharing
+                    ? 'Could not stop screen sharing.'
+                    : "Couldn't start screen sharing. It may be disabled for this meeting.",
+            );
+        }
     }, [snapshot]);
 
     const leave = useCallback(async () => {
@@ -255,6 +278,7 @@ export function useLiveKitRoom({
         isMicOn: local?.isMicOn ?? false,
         isCameraOn: local?.isCameraOn ?? false,
         isScreenSharing,
+        screenShareError,
         toggleMic,
         toggleCamera,
         toggleScreenShare,
