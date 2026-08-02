@@ -29,6 +29,7 @@ class SendMeetingInfoUpdatedEmailApplicationServiceTest {
                 "invitee@example.com",
                 "Meeting Updated",
                 "The meeting details have changed.",
+                null,
                 "BEGIN:VCALENDAR\nEND:VCALENDAR",
                 "REQUEST",
                 "update.ics");

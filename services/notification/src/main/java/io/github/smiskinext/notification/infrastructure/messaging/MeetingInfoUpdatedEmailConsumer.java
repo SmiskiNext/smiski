@@ -9,6 +9,8 @@ import io.github.smiskinext.event.meet.v1.MeetingInfoUpdated;
 import io.github.smiskinext.notification.application.command.SendMeetingInfoUpdatedEmailCommand;
 import io.github.smiskinext.notification.application.usecase.SendMeetingInfoUpdatedEmailUseCase;
 import io.github.smiskinext.notification.domain.model.CalendarEmail;
+import io.github.smiskinext.notification.infrastructure.email.EmailContentBuilder;
+import io.github.smiskinext.notification.infrastructure.email.EmailContentBuilder.EmailContext;
 import io.github.smiskinext.notification.infrastructure.email.IcsGenerator;
 import io.github.smiskinext.notification.infrastructure.email.InvitationCalendar;
 import java.nio.charset.StandardCharsets;
@@ -42,12 +44,15 @@ public class MeetingInfoUpdatedEmailConsumer {
             LoggerFactory.getLogger(MeetingInfoUpdatedEmailConsumer.class);
 
     private final IcsGenerator icsGenerator;
+    private final EmailContentBuilder emailContentBuilder;
     private final SendMeetingInfoUpdatedEmailUseCase sendMeetingInfoUpdatedEmailUseCase;
 
     public MeetingInfoUpdatedEmailConsumer(
             IcsGenerator icsGenerator,
+            EmailContentBuilder emailContentBuilder,
             SendMeetingInfoUpdatedEmailUseCase sendMeetingInfoUpdatedEmailUseCase) {
         this.icsGenerator = icsGenerator;
+        this.emailContentBuilder = emailContentBuilder;
         this.sendMeetingInfoUpdatedEmailUseCase = sendMeetingInfoUpdatedEmailUseCase;
     }
 
@@ -77,17 +82,14 @@ public class MeetingInfoUpdatedEmailConsumer {
 
         List<InvitationCalendar.Attendee> attendees = toAttendees(proto);
         InvitationCalendar calendar = toCalendar(proto.getNewInfo(), attendees);
+        EmailContext emailContext = toEmailContext(proto);
 
         for (InvitationCalendar.Attendee invitee : attendees) {
             String ics = icsGenerator.buildRequest(calendar);
+            CalendarEmail email =
+                    emailContentBuilder.buildUpdate(invitee.email(), emailContext, ics);
             sendMeetingInfoUpdatedEmailUseCase.execute(
-                    new SendMeetingInfoUpdatedEmailCommand(new CalendarEmail(
-                            invitee.email(),
-                            updateSubject(calendar.title()),
-                            updateBody(calendar.title()),
-                            ics,
-                            "REQUEST",
-                            "invite.ics")));
+                    new SendMeetingInfoUpdatedEmailCommand(email));
         }
     }
 
@@ -123,13 +125,20 @@ public class MeetingInfoUpdatedEmailConsumer {
         return attendees;
     }
 
-    private static String updateSubject(@Nullable String title) {
-        return "Updated: " + (title == null ? "Meeting" : title);
-    }
-
-    private static String updateBody(@Nullable String title) {
-        return "The meeting " + (title == null ? "" : title + " ")
-                + "has been rescheduled. The attached calendar invite updates your calendar.";
+    private static EmailContext toEmailContext(MeetingInfoUpdated proto) {
+        MeetingInfoSnapshot newInfo = proto.getNewInfo();
+        String issueKey =
+                newInfo.hasIssueLink() ? blankToNull(newInfo.getIssueLink().getIssueKey()) : null;
+        return new EmailContext(
+                proto.getTenantId(),
+                proto.getMeetingId(),
+                blankToNull(newInfo.getTitle()),
+                parseInstant(newInfo.getStartTime()),
+                parseInstant(newInfo.getEndTime()),
+                newInfo.getZoneId(),
+                newInfo.getOrganizerDisplayName(),
+                proto.getShortCode(),
+                issueKey);
     }
 
     private static MeetingInfoUpdated parse(CloudEvent event) {

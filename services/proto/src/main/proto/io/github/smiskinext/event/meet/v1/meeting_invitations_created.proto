@@ -21,6 +21,9 @@ message MeetingInvitationsCreated {
   string organizer_display_name = 11;
   string calendar_uid = 12;
   int32 calendar_sequence = 13;
+  string issue_id = 14;
+  string issue_key = 15;
+  string project_key = 16;
 
   message InviteeInfo {
     reserved 4;

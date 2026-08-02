@@ -9,12 +9,7 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 
-@SpringBootApplication(
-        excludeName = {
-            "org.springframework.boot.jdbc.autoconfigure.DataSourceAutoConfiguration",
-            "org.springframework.boot.hibernate.autoconfigure.HibernateJpaAutoConfiguration",
-            "org.springframework.boot.flyway.autoconfigure.FlywayAutoConfiguration"
-        })
+@SpringBootApplication
 @EnableConfigurationProperties({SseProperties.class, EmailProperties.class})
 @OpenAPIDefinition(info = @Info(title = "Notification", version = "1.0.0"))
 public class NotificationApplication {

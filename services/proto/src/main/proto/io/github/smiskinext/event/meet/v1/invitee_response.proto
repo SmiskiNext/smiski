@@ -23,6 +23,10 @@ message InviteeAccepted {
   string invitee_display_name = 15;
   string calendar_uid = 16;
   int32 calendar_sequence = 17;
+  string issue_id = 18;
+  string issue_key = 19;
+  string project_key = 20;
+  string short_code = 21;
 }
 
 message InviteeDeclined {
@@ -43,6 +47,10 @@ message InviteeDeclined {
   string invitee_display_name = 15;
   string calendar_uid = 16;
   int32 calendar_sequence = 17;
+  string issue_id = 18;
+  string issue_key = 19;
+  string project_key = 20;
+  string short_code = 21;
 }
 
 message InviteeTentative {
@@ -63,4 +71,8 @@ message InviteeTentative {
   string invitee_display_name = 15;
   string calendar_uid = 16;
   int32 calendar_sequence = 17;
+  string issue_id = 18;
+  string issue_key = 19;
+  string project_key = 20;
+  string short_code = 21;
 }

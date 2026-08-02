@@ -29,6 +29,7 @@ class SendMeetingInvitationEmailApplicationServiceTest {
                 "invitee@example.com",
                 "Meeting Invitation",
                 "You are invited to a meeting.",
+                null,
                 "BEGIN:VCALENDAR\nEND:VCALENDAR",
                 "REQUEST",
                 "invite.ics");

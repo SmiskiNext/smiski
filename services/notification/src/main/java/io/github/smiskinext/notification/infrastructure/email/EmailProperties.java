@@ -21,6 +21,14 @@ public class EmailProperties {
     /** Sender address applied to every outgoing calendar email. Must not be blank. */
     @NotBlank private String sender = "";
 
+    /**
+     * IETF BCP 47 language tag for the default email locale.
+     *
+     * <p>All message bundle lookups use this locale. Falls back to English when the locale is not
+     * supported by the bundle.
+     */
+    private String defaultLocale = "en";
+
     public String getApiKey() {
         return apiKey;
     }
@@ -35,5 +43,13 @@ public class EmailProperties {
 
     public void setSender(String sender) {
         this.sender = sender;
+    }
+
+    public String getDefaultLocale() {
+        return defaultLocale;
+    }
+
+    public void setDefaultLocale(String defaultLocale) {
+        this.defaultLocale = defaultLocale;
     }
 }

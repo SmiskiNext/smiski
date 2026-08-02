@@ -13,6 +13,9 @@ description = "notification"
 dependencies {
     implementation(libs.shared)
     implementation(libs.spring.boot.starter.kafka)
+    implementation(libs.spring.boot.starter.flyway)
+    implementation(libs.flyway.database.postgresql)
+    implementation(libs.spring.boot.starter.data.jpa)
     implementation(libs.cloudevents.kafka)
     implementation(libs.protobuf.java.util)
     implementation(libs.biweekly)

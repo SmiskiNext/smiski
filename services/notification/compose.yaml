@@ -1,0 +1,9 @@
+services:
+    postgres:
+        image: 'postgres:latest'
+        environment:
+            - 'POSTGRES_DB=zms_notification'
+            - 'POSTGRES_PASSWORD=zms_secret'
+            - 'POSTGRES_USER=zms_user'
+        ports:
+            - '5432'

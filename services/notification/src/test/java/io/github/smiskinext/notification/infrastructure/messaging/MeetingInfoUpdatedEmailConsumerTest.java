@@ -1,6 +1,7 @@
 package io.github.smiskinext.notification.infrastructure.messaging;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
 import io.cloudevents.CloudEvent;
@@ -8,6 +9,8 @@ import io.cloudevents.core.builder.CloudEventBuilder;
 import io.cloudevents.core.data.BytesCloudEventData;
 import io.github.smiskinext.notification.application.command.SendMeetingInfoUpdatedEmailCommand;
 import io.github.smiskinext.notification.application.usecase.SendMeetingInfoUpdatedEmailUseCase;
+import io.github.smiskinext.notification.domain.model.CalendarEmail;
+import io.github.smiskinext.notification.infrastructure.email.EmailContentBuilder;
 import io.github.smiskinext.notification.infrastructure.email.IcsGenerator;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
@@ -21,15 +24,25 @@ class MeetingInfoUpdatedEmailConsumerTest {
     private static final String TYPE = "io.github.smiskinext.meet.meeting.info.updated.v1";
 
     private final IcsGenerator icsGenerator = mock(IcsGenerator.class);
+    private final EmailContentBuilder emailContentBuilder = mock(EmailContentBuilder.class);
     private final SendMeetingInfoUpdatedEmailUseCase sendMeetingInfoUpdatedEmailUseCase =
             mock(SendMeetingInfoUpdatedEmailUseCase.class);
 
-    private final MeetingInfoUpdatedEmailConsumer consumer =
-            new MeetingInfoUpdatedEmailConsumer(icsGenerator, sendMeetingInfoUpdatedEmailUseCase);
+    private final MeetingInfoUpdatedEmailConsumer consumer = new MeetingInfoUpdatedEmailConsumer(
+            icsGenerator, emailContentBuilder, sendMeetingInfoUpdatedEmailUseCase);
 
     @Test
     void timeChangeWithInviteesSendsOneEmailPerInvitee() {
         when(icsGenerator.buildRequest(any())).thenReturn("BEGIN:VCALENDAR...");
+        when(emailContentBuilder.buildUpdate(anyString(), any(), any()))
+                .thenAnswer(inv -> new CalendarEmail(
+                        inv.getArgument(0),
+                        "subject",
+                        "body",
+                        null,
+                        inv.getArgument(2),
+                        "REQUEST",
+                        "invite.ics"));
 
         consumer.onMessage(event(timeChangeWithInviteesJson()));
 

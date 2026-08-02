@@ -29,6 +29,7 @@ class SendInviteeRespondedEmailApplicationServiceTest {
                 "organizer@example.com",
                 "Invitee Responded",
                 "An invitee has responded to your meeting.",
+                null,
                 "BEGIN:VCALENDAR\nEND:VCALENDAR",
                 "REPLY",
                 "response.ics");
