@@ -6,6 +6,7 @@
 import { view } from '@forge/bridge';
 import {
     ActiveMeetingWarningDialog,
+    ConfirmMeetingActionDialog,
     MeetingDetailDialog,
     MeetingSettingsModal,
 } from '../../components/shared';
@@ -13,6 +14,8 @@ import { useMeetingParticipants } from '../../hooks/useMeetingParticipants';
 import {
     ACTIVE_MEETING_WARNING_MODAL_KIND,
     type ActiveMeetingWarningModalResult,
+    CONFIRM_MEETING_ACTION_MODAL_KIND,
+    type ConfirmMeetingActionModalResult,
     type IssuePanelModalContext,
     MEETING_SETTINGS_MODAL_KIND,
     type MeetingDetailModalContext,
@@ -46,6 +49,22 @@ export function IssuePanelModalRoot({ payload }: IssuePanelModalRootProps) {
                 chrome='embedded'
                 onClose={() => void view.close()}
                 onSaved={() => void view.close()}
+            />
+        );
+    }
+
+    if (payload.kind === CONFIRM_MEETING_ACTION_MODAL_KIND) {
+        const close = (result: ConfirmMeetingActionModalResult) => {
+            void view.close(result);
+        };
+
+        return (
+            <ConfirmMeetingActionDialog
+                action={payload.action}
+                meeting={payload.meeting}
+                chrome='embedded'
+                onClose={() => close({ confirmed: false })}
+                onConfirm={() => close({ confirmed: true })}
             />
         );
     }

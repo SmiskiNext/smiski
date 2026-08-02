@@ -5,6 +5,8 @@
 
 export * from './ActionButtonGroup';
 export * from './ActiveMeetingWarningDialog';
+export * from './ConfirmActionDialog';
+export * from './ConfirmMeetingActionDialog';
 export * from './EmptyState';
 export * from './ErrorState';
 export * from './InlineFeedback';
