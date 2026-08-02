@@ -23,7 +23,12 @@ import {
     update,
     updateSettings,
 } from '@smiskinext/smiski-ts';
-import type { Meeting, MeetingStatus, Participant } from '../domain';
+import type {
+    Meeting,
+    MeetingSettings,
+    MeetingStatus,
+    Participant,
+} from '../domain';
 import { getLocalTimeZone } from '../utils/datetime';
 import { apiConfig } from './config';
 import { forgeRemoteClient } from './forgeRemoteFetch';
@@ -453,20 +458,34 @@ export async function updateMeeting(
 /**
  * Replaces a meeting's settings (backend `updateSettings`, host-only — 403
  * otherwise). Separate from `updateMeeting`, which no longer carries
- * settings. Not yet wired to any UI — the edit form doesn't expose settings.
+ * settings. Wired to `MeetingSettingsModal` via `useUpdateMeetingSettings`.
+ *
+ * Returns the settings block directly rather than routing the response
+ * through `meetingFromBackend`: `MeetUpdateMeetingSettingsResponse` is a
+ * flat `{ meetingId, admissionPolicy, ... }` shape, not a full meeting
+ * snapshot (no `id`/`title`/`status`/nested `settings`), so mapping it as
+ * one would silently produce a near-empty `Meeting`.
  */
 export async function updateMeetingSettings(
     meetingId: string,
-    settings: MeetUpdateMeetingSettingsRequest,
-): Promise<Meeting> {
+    settings: MeetingSettings,
+): Promise<MeetingSettings> {
     const response = await unwrap<MeetUpdateMeetingSettingsResponse>(() =>
         updateSettings({
             client: forgeRemoteClient,
             path: { version: apiConfig.apiVersion, id: meetingId },
-            body: settings,
+            body: settings satisfies MeetUpdateMeetingSettingsRequest,
         }),
     );
-    return meetingFromBackend(response);
+    return {
+        admissionPolicy: response.admissionPolicy ?? settings.admissionPolicy,
+        maxParticipants: response.maxParticipants ?? settings.maxParticipants,
+        allowScreenShare:
+            response.allowScreenShare ?? settings.allowScreenShare,
+        chatEnabled: response.chatEnabled ?? settings.chatEnabled,
+        allowMicrophone: response.allowMicrophone ?? settings.allowMicrophone,
+        allowVideo: response.allowVideo ?? settings.allowVideo,
+    };
 }
 
 /**

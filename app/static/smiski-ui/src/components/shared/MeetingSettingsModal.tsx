@@ -17,9 +17,9 @@
  * 2-100 (Jakarta `@Min`/`@Max`, also enforced in the `MeetingSettings`
  * domain value object) — sending anything else 400s.
  */
-import type { MeetUpdateMeetingSettingsRequest } from '@smiskinext/smiski-ts';
 import { Alert, Form, InputNumber, Select, Switch } from 'antd';
 import { useEffect, useState } from 'react';
+import type { MeetingSettings } from '../../domain';
 import { useMeeting } from '../../hooks/useMeeting';
 import { useUpdateMeetingSettings } from '../../hooks/useMeetingMutations';
 import { Button, Modal } from '../ui';
@@ -85,7 +85,7 @@ export function MeetingSettingsModal({
 
     const handleSubmit = async (values: SettingsFormValues) => {
         setFormError(null);
-        const request: MeetUpdateMeetingSettingsRequest = {
+        const request: MeetingSettings = {
             admissionPolicy: values.admissionPolicy,
             maxParticipants: values.maxParticipants,
             allowScreenShare: values.allowScreenShare,

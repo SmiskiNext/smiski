@@ -4,7 +4,6 @@
  * lists refresh immediately.
  */
 
-import type { MeetUpdateMeetingSettingsRequest } from '@smiskinext/smiski-ts';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiConfig } from '../api/config';
 import { getDeviceId } from '../api/mappers';
@@ -23,6 +22,7 @@ import {
     updateMeetingSettings,
 } from '../api/meetings';
 import { useCurrentUser } from '../context/CurrentUserContext';
+import type { MeetingSettings } from '../domain';
 import { queryKeys } from './queryKeys';
 
 function useInvalidateMeetings() {
@@ -94,7 +94,7 @@ export function useCancelMeeting() {
     });
 }
 
-/** Not yet wired to any UI — the edit form doesn't expose settings. */
+/** Replaces a meeting's settings (host-only action; backend `updateSettings`). */
 export function useUpdateMeetingSettings() {
     const invalidate = useInvalidateMeetings();
     return useMutation({
@@ -103,7 +103,7 @@ export function useUpdateMeetingSettings() {
             settings,
         }: {
             meetingId: string;
-            settings: MeetUpdateMeetingSettingsRequest;
+            settings: MeetingSettings;
         }) => updateMeetingSettings(meetingId, settings),
         onSuccess: invalidate,
     });
