@@ -34,8 +34,12 @@ export interface MeetingRoomShellProps {
     onToggleMic?: () => void;
     onToggleCamera?: () => void;
     onToggleScreenShare?: () => void;
-    /** Set when the last screen-share toggle attempt failed (see `useLiveKitRoom`). */
-    screenShareError?: string | null;
+    /**
+     * User-facing note about a media-permission change — a failed
+     * screen-share toggle, or the host revoking mic/camera/screen-share
+     * access mid-session (see `useLiveKitRoom`'s `mediaNotice`).
+     */
+    mediaNotice?: string | null;
     /** Surfaces `useLiveKitRoom`'s connection state for debugging/trial visibility. */
     connectionState?: LiveKitConnectionState;
 }
@@ -137,7 +141,7 @@ export function MeetingRoomShell({
     onToggleMic,
     onToggleCamera,
     onToggleScreenShare,
-    screenShareError,
+    mediaNotice,
     connectionState,
 }: MeetingRoomShellProps) {
     const [localMicOn, setLocalMicOn] = useState(true);
@@ -260,9 +264,9 @@ export function MeetingRoomShell({
                         onClick={onLeave}
                     />
                 </div>
-                {screenShareError && (
+                {mediaNotice && (
                     <p className='mt-2 text-center text-[11px] font-medium text-red-300'>
-                        {screenShareError}
+                        {mediaNotice}
                     </p>
                 )}
             </footer>
