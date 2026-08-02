@@ -26,6 +26,7 @@ public class TenantRepositoryAdapter implements TenantRepository {
         if (existing.isPresent()) {
             TenantJpaEntity entity = existing.get();
             entity.setCloudId(record.cloudId());
+            entity.setSiteUrl(record.siteUrl());
             entity.setStatus(record.status().name());
             entity.setUpdatedAt(record.updatedAt());
             entity.setUninstalledAt(record.uninstalledAt());
@@ -35,6 +36,7 @@ public class TenantRepositoryAdapter implements TenantRepository {
             tenantJpaRepository.save(new TenantJpaEntity(
                     record.tenantId(),
                     record.cloudId(),
+                    record.siteUrl(),
                     record.status().name(),
                     record.updatedAt(),
                     record.uninstalledAt(),

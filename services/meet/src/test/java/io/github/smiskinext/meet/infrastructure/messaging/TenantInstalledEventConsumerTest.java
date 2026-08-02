@@ -33,7 +33,7 @@ class TenantInstalledEventConsumerTest {
         HandleTenantInstalledUseCase useCase = mock(HandleTenantInstalledUseCase.class);
         TenantInstalledEventConsumer consumer = new TenantInstalledEventConsumer(useCase);
         String protoJson =
-                "{\"cloudId\":\"cloud-abc\",\"installationId\":\"inst-1\",\"updatedAt\":\"2026-01-01T00:00:00Z\"}";
+                "{\"cloudId\":\"cloud-abc\",\"installationId\":\"inst-1\",\"siteUrl\":\"https://cloud-abc.atlassian.net\",\"updatedAt\":\"2026-01-01T00:00:00Z\"}";
 
         consumer.onMessage(validEvent(protoJson));
 
@@ -43,6 +43,22 @@ class TenantInstalledEventConsumerTest {
         HandleTenantInstalledCommand cmd = captor.getValue();
         assertThat(cmd.tenantId()).isEqualTo("cloud-abc");
         assertThat(cmd.cloudId()).isEqualTo("cloud-abc");
+        assertThat(cmd.siteUrl()).isEqualTo("https://cloud-abc.atlassian.net");
+    }
+
+    @Test
+    void blankSiteUrlMapsToNull() {
+        HandleTenantInstalledUseCase useCase = mock(HandleTenantInstalledUseCase.class);
+        TenantInstalledEventConsumer consumer = new TenantInstalledEventConsumer(useCase);
+        String protoJson =
+                "{\"cloudId\":\"cloud-blank\",\"installationId\":\"inst-2\",\"siteUrl\":\"\",\"updatedAt\":\"2026-01-01T00:00:00Z\"}";
+
+        consumer.onMessage(validEvent(protoJson));
+
+        ArgumentCaptor<HandleTenantInstalledCommand> captor =
+                forClass(HandleTenantInstalledCommand.class);
+        verify(useCase).handle(captor.capture());
+        assertThat(captor.getValue().siteUrl()).isNull();
     }
 
     @Test

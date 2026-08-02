@@ -37,7 +37,11 @@ public class InviteeTentativeEventProtoMapper
                 .setOrganizerDisplayName(event.organizerDisplayName())
                 .setInviteeDisplayName(event.inviteeDisplayName())
                 .setCalendarUid(event.calendarUid())
-                .setCalendarSequence(event.calendarSequence());
+                .setCalendarSequence(event.calendarSequence())
+                .setIssueId(event.issueId())
+                .setIssueKey(event.issueKey())
+                .setProjectKey(event.projectKey())
+                .setShortCode(event.shortCode());
 
         if (event.meetingTitle() != null) {
             builder.setMeetingTitle(event.meetingTitle());

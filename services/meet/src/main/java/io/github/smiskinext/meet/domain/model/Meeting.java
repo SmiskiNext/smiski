@@ -376,6 +376,9 @@ public class Meeting extends AggregateRoot<MeetingId> {
                 calendarUid,
                 calendarSequence,
                 List.copyOf(invitees),
+                issueLink.issueId(),
+                issueLink.issueKey(),
+                issueLink.projectKey(),
                 Instant.now()));
     }
 
@@ -467,6 +470,7 @@ public class Meeting extends AggregateRoot<MeetingId> {
                 hostId.value(),
                 updatedBy.value(),
                 status,
+                shortCode.value(),
                 oldInfo,
                 infoSnapshot(),
                 List.copyOf(invitees),

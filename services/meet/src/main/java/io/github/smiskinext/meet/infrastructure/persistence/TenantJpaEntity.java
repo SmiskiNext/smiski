@@ -24,6 +24,9 @@ public class TenantJpaEntity {
     @Column(name = "cloud_id", nullable = false, length = 255)
     private String cloudId;
 
+    @Column(name = "site_url", length = 512)
+    private @Nullable String siteUrl;
+
     @Column(name = "status", nullable = false, length = 20)
     private String status;
 
@@ -41,12 +44,14 @@ public class TenantJpaEntity {
     public TenantJpaEntity(
             String tenantId,
             String cloudId,
+            @Nullable String siteUrl,
             String status,
             Instant updatedAt,
             @Nullable Instant uninstalledAt,
             @Nullable Instant purgeAfter) {
         this.tenantId = tenantId;
         this.cloudId = cloudId;
+        this.siteUrl = siteUrl;
         this.status = status;
         this.updatedAt = updatedAt;
         this.uninstalledAt = uninstalledAt;
@@ -59,6 +64,10 @@ public class TenantJpaEntity {
 
     public String getCloudId() {
         return cloudId;
+    }
+
+    public @Nullable String getSiteUrl() {
+        return siteUrl;
     }
 
     public String getStatus() {
@@ -79,6 +88,10 @@ public class TenantJpaEntity {
 
     public void setCloudId(String cloudId) {
         this.cloudId = cloudId;
+    }
+
+    public void setSiteUrl(@Nullable String siteUrl) {
+        this.siteUrl = siteUrl;
     }
 
     public void setStatus(String status) {

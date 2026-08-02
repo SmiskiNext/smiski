@@ -11,6 +11,7 @@ import org.jspecify.annotations.Nullable;
  *
  * @param tenantId the Jira cloudId (stable across reinstall)
  * @param cloudId the Jira cloudId (same as tenantId, kept for explicitness)
+ * @param siteUrl the Atlassian site URL, or {@code null} when not provided
  * @param status current lifecycle status
  * @param updatedAt timestamp of the last projection update
  * @param uninstalledAt timestamp when the tenant was uninstalled, or {@code null} if still active
@@ -19,6 +20,7 @@ import org.jspecify.annotations.Nullable;
 public record TenantRecord(
         String tenantId,
         String cloudId,
+        @Nullable String siteUrl,
         TenantStatus status,
         Instant updatedAt,
         @Nullable Instant uninstalledAt,

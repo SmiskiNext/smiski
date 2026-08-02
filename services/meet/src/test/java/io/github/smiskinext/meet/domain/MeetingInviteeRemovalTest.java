@@ -41,6 +41,17 @@ class MeetingInviteeRemovalTest {
 
     private static MeetingContext context() {
         return new MeetingContext(
-                "Title", null, null, "UTC", "host@example.com", "Host", "uid-1", 0);
+                "Title",
+                null,
+                null,
+                "UTC",
+                "host@example.com",
+                "Host",
+                "uid-1",
+                0,
+                "",
+                "",
+                "",
+                "SHORT");
     }
 }

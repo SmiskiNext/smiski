@@ -28,6 +28,7 @@ public class HandleTenantInstalledApplicationService implements HandleTenantInst
         tenantRepository.upsert(new TenantRecord(
                 command.tenantId(),
                 command.cloudId(),
+                command.siteUrl(),
                 TenantStatus.ACTIVE,
                 command.updatedAt(),
                 null,

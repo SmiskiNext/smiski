@@ -14,6 +14,7 @@
 CREATE TABLE tenants (
     tenant_id VARCHAR(255) NOT NULL, -- Jira cloudId
     cloud_id VARCHAR(255) NOT NULL,
+    site_url VARCHAR(512),
     status VARCHAR(20) NOT NULL DEFAULT 'ACTIVE' CHECK (status IN ('ACTIVE', 'SUSPENDED', 'UNINSTALLED')),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now (),
     uninstalled_at TIMESTAMPTZ,

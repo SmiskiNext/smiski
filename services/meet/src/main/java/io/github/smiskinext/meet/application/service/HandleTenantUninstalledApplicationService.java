@@ -28,6 +28,7 @@ public class HandleTenantUninstalledApplicationService implements HandleTenantUn
         tenantRepository.upsert(new TenantRecord(
                 command.tenantId(),
                 command.cloudId(),
+                null,
                 TenantStatus.UNINSTALLED,
                 command.updatedAt(),
                 command.uninstalledAt(),
