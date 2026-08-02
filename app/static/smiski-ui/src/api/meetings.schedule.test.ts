@@ -94,4 +94,47 @@ describe('buildScheduleMeetingPayload (MeetScheduleMeetingRequest body)', () => 
         });
         expect(payload.description).toBe('Solo review');
     });
+
+    it('defaults settings when the caller supplies none', () => {
+        const payload = buildScheduleMeetingPayload({
+            issueKey: 'SMISKI-9',
+            title: 'Solo review',
+            startTime: '2026-08-01T02:00:00.000Z',
+            endTime: '2026-08-01T03:00:00.000Z',
+            invitees: [],
+        });
+        expect(payload.settings).toEqual({
+            admissionPolicy: 'ALLOW_ALL',
+            maxParticipants: 50,
+            allowScreenShare: true,
+            chatEnabled: true,
+            allowMicrophone: true,
+            allowVideo: true,
+        });
+    });
+
+    it("merges the 'Advanced settings' form values over the defaults, keeping chatEnabled fixed", () => {
+        const payload = buildScheduleMeetingPayload({
+            issueKey: 'SMISKI-9',
+            title: 'Locked-down review',
+            startTime: '2026-08-01T02:00:00.000Z',
+            endTime: '2026-08-01T03:00:00.000Z',
+            invitees: [],
+            settings: {
+                admissionPolicy: 'MANUAL_APPROVAL',
+                maxParticipants: 10,
+                allowScreenShare: false,
+                allowMicrophone: false,
+                allowVideo: false,
+            },
+        });
+        expect(payload.settings).toEqual({
+            admissionPolicy: 'MANUAL_APPROVAL',
+            maxParticipants: 10,
+            allowScreenShare: false,
+            chatEnabled: true,
+            allowMicrophone: false,
+            allowVideo: false,
+        });
+    });
 });

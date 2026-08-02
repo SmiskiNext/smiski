@@ -23,6 +23,7 @@ import type { MeetingSettings } from '../../domain';
 import { useMeeting } from '../../hooks/useMeeting';
 import { useUpdateMeetingSettings } from '../../hooks/useMeetingMutations';
 import { Button, Modal } from '../ui';
+import { ADMISSION_POLICY_OPTIONS } from './AdvancedMeetingSettingsFields';
 import { LoadingState } from './LoadingState';
 
 export interface MeetingSettingsModalProps {
@@ -42,14 +43,6 @@ interface SettingsFormValues {
     allowMicrophone: boolean;
     allowVideo: boolean;
 }
-
-const ADMISSION_POLICY_OPTIONS: {
-    value: SettingsFormValues['admissionPolicy'];
-    label: string;
-}[] = [
-    { value: 'ALLOW_ALL', label: 'Anyone can join' },
-    { value: 'MANUAL_APPROVAL', label: 'Host must approve each join request' },
-];
 
 export function MeetingSettingsModal({
     isOpen,

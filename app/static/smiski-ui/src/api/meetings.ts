@@ -54,6 +54,14 @@ export interface InstantMeetingHostIdentity {
     avatarUrl?: string;
 }
 
+/**
+ * User-editable subset of `MeetingSettings` exposed by the create forms'
+ * "Advanced settings" section. `chatEnabled` is deliberately excluded — not
+ * surfaced in the UI yet — and always sent as `DEFAULT_MEETING_SETTINGS`'s
+ * default.
+ */
+export type CreateMeetingSettingsInput = Omit<MeetingSettings, 'chatEnabled'>;
+
 /** Payload to create an instant meeting (UC01). */
 export interface CreateInstantMeetingInput {
     issueKey: string;
@@ -66,6 +74,8 @@ export interface CreateInstantMeetingInput {
     invitees?: MeetingInviteeInput[];
     /** Host identity (from CurrentUserContext); resolves host/organizer fields. */
     host?: InstantMeetingHostIdentity;
+    /** Overrides DEFAULT_MEETING_SETTINGS when the host expands "Advanced settings". */
+    settings?: CreateMeetingSettingsInput;
 }
 
 /** Payload to schedule a meeting (UC03). */
@@ -84,6 +94,8 @@ export interface ScheduleMeetingInput {
     invitees: MeetingInviteeInput[];
     /** Organizer identity (from CurrentUserContext); resolves organizer fields. */
     organizer?: InstantMeetingHostIdentity;
+    /** Overrides DEFAULT_MEETING_SETTINGS when the host expands "Advanced settings". */
+    settings?: CreateMeetingSettingsInput;
 }
 
 /**
@@ -172,7 +184,7 @@ export function buildInstantMeetingPayload(
             issueKey: input.issueKey,
             projectKey,
         },
-        settings: { ...DEFAULT_MEETING_SETTINGS },
+        settings: { ...DEFAULT_MEETING_SETTINGS, ...input.settings },
         host: {
             displayName: input.host?.displayName ?? 'Jira user',
             deviceId,
@@ -210,7 +222,7 @@ export function buildScheduleMeetingPayload(
             issueKey: input.issueKey,
             projectKey,
         },
-        settings: { ...DEFAULT_MEETING_SETTINGS },
+        settings: { ...DEFAULT_MEETING_SETTINGS, ...input.settings },
         timeRange: {
             startTime: input.startTime,
             endTime: input.endTime,
