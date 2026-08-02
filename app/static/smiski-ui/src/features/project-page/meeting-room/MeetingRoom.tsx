@@ -13,6 +13,7 @@ import { useMeetingParticipants } from '../../../hooks/useMeetingParticipants';
 import { useRoomToken } from '../../../hooks/useRoomToken';
 import { MeetingRoomShell } from './MeetingRoomShell';
 import { ParticipantListPlaceholder } from './ParticipantListPlaceholder';
+import { PendingJoinRequestsPanel } from './PendingJoinRequestsPanel';
 
 export interface MeetingRoomProps {
     meetingId: string;
@@ -35,6 +36,8 @@ export function MeetingRoom({ meetingId, onLeave }: MeetingRoomProps) {
     const {
         token,
         url,
+        loading: roomTokenLoading,
+        waitingForApproval,
         error: roomTokenError,
     } = useRoomToken(meetingId, isLiveKitEnabled);
     const liveKit = useLiveKitRoom({ token, url, enabled: isLiveKitEnabled });
@@ -44,6 +47,40 @@ export function MeetingRoom({ meetingId, onLeave }: MeetingRoomProps) {
         return (
             <div className='p-6'>
                 <LoadingState label='Loading meeting room…' />
+            </div>
+        );
+
+    if (waitingForApproval)
+        return (
+            <div className='p-6'>
+                <LoadingState label='Waiting for the host to approve your join request…' />
+                <div className='mt-4 text-center'>
+                    <Button size='sm' variant='ghost' onClick={onLeave}>
+                        Leave waiting room
+                    </Button>
+                </div>
+            </div>
+        );
+
+    if (isLiveKitEnabled && roomTokenLoading)
+        return (
+            <div className='p-6'>
+                <LoadingState label='Requesting access to the meeting…' />
+            </div>
+        );
+
+    if (isLiveKitEnabled && roomTokenError && !token)
+        return (
+            <div className='p-6'>
+                <ErrorState
+                    title="Couldn't join the meeting"
+                    message={roomTokenError.message}
+                />
+                <div className='mt-4 text-center'>
+                    <Button size='sm' variant='ghost' onClick={onLeave}>
+                        Back to meetings
+                    </Button>
+                </div>
             </div>
         );
 
@@ -67,6 +104,7 @@ export function MeetingRoom({ meetingId, onLeave }: MeetingRoomProps) {
                 ];
 
     const selfAccountId = liveKit.localAccountId ?? currentUser.accountId;
+    const isHost = meeting?.hostId === currentUser.accountId;
 
     const handleLeave = async () => {
         await liveKit.leave();
@@ -103,6 +141,7 @@ export function MeetingRoom({ meetingId, onLeave }: MeetingRoomProps) {
                     />
                 </div>
             )}
+            {isHost && <PendingJoinRequestsPanel meetingId={meetingId} />}
             <div className='flex flex-col gap-4 xl:flex-row'>
                 <div className='min-w-0 flex-1'>
                     <MeetingRoomShell
