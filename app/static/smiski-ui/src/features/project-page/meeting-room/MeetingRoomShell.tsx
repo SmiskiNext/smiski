@@ -159,6 +159,8 @@ export function MeetingRoomShell({
     // Undefined settings (standalone dev, or a list-summary source) means we
     // can't gate — default to allowed rather than locking the button out.
     const canShareScreen = meeting?.settings?.allowScreenShare ?? true;
+    const canUseMic = meeting?.settings?.allowMicrophone ?? true;
+    const canUseCamera = meeting?.settings?.allowVideo ?? true;
     const elapsed = useElapsedTime(meeting?.startedAt);
     return (
         <section className='overflow-hidden rounded-3xl border border-slate-700 bg-slate-950 shadow-panel'>
@@ -221,15 +223,39 @@ export function MeetingRoomShell({
             <footer className='border-t border-white/8 bg-slate-950 px-3 py-4'>
                 <div className='flex items-center justify-center gap-3 sm:gap-5'>
                     <ControlButton
-                        label={isMicOn ? 'Mute' : 'Unmute'}
+                        label={
+                            !canUseMic && !isMicOn
+                                ? 'Microphone off'
+                                : isMicOn
+                                  ? 'Mute'
+                                  : 'Unmute'
+                        }
                         icon={isMicOn ? 'mic' : 'micOff'}
                         active={isMicOn}
+                        disabled={!canUseMic && !isMicOn}
+                        title={
+                            !canUseMic && !isMicOn
+                                ? 'The host has disabled the microphone for this meeting'
+                                : undefined
+                        }
                         onClick={handleToggleMic}
                     />
                     <ControlButton
-                        label={isCameraOn ? 'Stop video' : 'Start video'}
+                        label={
+                            !canUseCamera && !isCameraOn
+                                ? 'Video off'
+                                : isCameraOn
+                                  ? 'Stop video'
+                                  : 'Start video'
+                        }
                         icon={isCameraOn ? 'camera' : 'cameraOff'}
                         active={isCameraOn}
+                        disabled={!canUseCamera && !isCameraOn}
+                        title={
+                            !canUseCamera && !isCameraOn
+                                ? 'The host has disabled video for this meeting'
+                                : undefined
+                        }
                         onClick={handleToggleCamera}
                     />
                     <ControlButton

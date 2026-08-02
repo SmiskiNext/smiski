@@ -349,19 +349,43 @@ export function useLiveKitRoom({
     const toggleMic = useCallback(async () => {
         const room = roomRef.current;
         if (!room) return;
-        await room.localParticipant.setMicrophoneEnabled(
-            !room.localParticipant.isMicrophoneEnabled,
-        );
-        snapshot();
+        const isOn = room.localParticipant.isMicrophoneEnabled;
+        setMediaNotice(null);
+        try {
+            await room.localParticipant.setMicrophoneEnabled(!isOn);
+            snapshot();
+        } catch (micError) {
+            // Rejected by LiveKit — the host has disabled microphone access
+            // for this meeting (MeetingSettings.allowMicrophone) — or by the
+            // browser/OS denying mic permission.
+            console.warn('[useLiveKitRoom] microphone toggle failed', micError);
+            setMediaNotice(
+                isOn
+                    ? 'Could not turn off your microphone.'
+                    : "Couldn't turn on your microphone. It may be disabled for this meeting.",
+            );
+        }
     }, [snapshot]);
 
     const toggleCamera = useCallback(async () => {
         const room = roomRef.current;
         if (!room) return;
-        await room.localParticipant.setCameraEnabled(
-            !room.localParticipant.isCameraEnabled,
-        );
-        snapshot();
+        const isOn = room.localParticipant.isCameraEnabled;
+        setMediaNotice(null);
+        try {
+            await room.localParticipant.setCameraEnabled(!isOn);
+            snapshot();
+        } catch (cameraError) {
+            // Rejected by LiveKit — the host has disabled video for this
+            // meeting (MeetingSettings.allowVideo) — or by the browser/OS
+            // denying camera permission.
+            console.warn('[useLiveKitRoom] camera toggle failed', cameraError);
+            setMediaNotice(
+                isOn
+                    ? 'Could not turn off your camera.'
+                    : "Couldn't turn on your camera. It may be disabled for this meeting.",
+            );
+        }
     }, [snapshot]);
 
     const toggleScreenShare = useCallback(async () => {
