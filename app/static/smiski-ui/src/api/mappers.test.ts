@@ -122,6 +122,21 @@ describe('backend API mappers', () => {
         ]);
     });
 
+    it('uses the participantCount override instead of the always-1 backend default', () => {
+        const meeting = meetingFromBackend(
+            {
+                meeting: {
+                    id: 'm-4',
+                    status: 'RUNNING',
+                    title: 'Standup',
+                },
+            },
+            { participantCount: 3 },
+        );
+
+        expect(meeting.participantCount).toBe(3);
+    });
+
     it('maps permission envelopes flexibly', () => {
         expect(
             permissionsFromBackend({

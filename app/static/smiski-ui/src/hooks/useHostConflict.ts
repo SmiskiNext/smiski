@@ -6,6 +6,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { findRunningMeetingHostedByUser } from '../api/meetings';
 import { useCurrentUser } from '../context/CurrentUserContext';
+import { resolveMeetingHostNames } from '../domain';
 import { queryKeys } from './queryKeys';
 
 export function useHostConflict(excludingIssueKey?: string) {
@@ -23,8 +24,16 @@ export function useHostConflict(excludingIssueKey?: string) {
         enabled: Boolean(currentUser.accountId),
     });
 
+    // The result is always hosted by the current user (the SDK `list` call
+    // filters `creatorId: accountId`), and the `list` summary shape carries
+    // no host display name — resolve it from the identity already in hand
+    // instead of leaving the mapper's placeholder.
+    const conflictingMeeting = query.data
+        ? resolveMeetingHostNames([query.data], [currentUser])[0]
+        : null;
+
     return {
-        conflictingMeeting: query.data ?? null,
+        conflictingMeeting,
         loading: query.isLoading,
     };
 }

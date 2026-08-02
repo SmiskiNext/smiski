@@ -15,13 +15,24 @@
  */
 import { Alert, Form, Input } from 'antd';
 import { useState } from 'react';
+import type { CreateMeetingSettingsInput } from '../../api/meetings';
 import type { WorkspaceUser } from '../../api/workspaceUsers';
 import { useCurrentUser } from '../../context/CurrentUserContext';
 import { useCreateInstantMeeting } from '../../hooks/useMeetingMutations';
 import { resolveUserTimeZone } from '../../utils/datetime';
 import { Button, Modal } from '../ui';
+import { AdvancedMeetingSettingsFields } from './AdvancedMeetingSettingsFields';
 import { IssuePicker } from './IssuePicker';
 import { WorkspaceUserPicker } from './WorkspaceUserPicker';
+
+/** Matches DEFAULT_MEETING_SETTINGS in api/meetings.ts. */
+const DEFAULT_ADVANCED_SETTINGS: CreateMeetingSettingsInput = {
+    admissionPolicy: 'ALLOW_ALL',
+    maxParticipants: 50,
+    allowScreenShare: true,
+    allowMicrophone: true,
+    allowVideo: true,
+};
 
 export interface StartInstantMeetingModalProps {
     isOpen: boolean;
@@ -34,7 +45,7 @@ export interface StartInstantMeetingModalProps {
     chrome?: 'overlay' | 'embedded';
 }
 
-interface InstantMeetingFormValues {
+interface InstantMeetingFormValues extends CreateMeetingSettingsInput {
     issueKey?: string;
     title: string;
 }
@@ -98,6 +109,13 @@ export function StartInstantMeetingModal({
                 email: currentUser.email,
                 avatarUrl: currentUser.avatarUrl,
             },
+            settings: {
+                admissionPolicy: values.admissionPolicy,
+                maxParticipants: values.maxParticipants,
+                allowScreenShare: values.allowScreenShare,
+                allowMicrophone: values.allowMicrophone,
+                allowVideo: values.allowVideo,
+            },
         });
 
         if (result.error || !result.data) {
@@ -124,6 +142,7 @@ export function StartInstantMeetingModal({
             form={form}
             layout='vertical'
             requiredMark
+            initialValues={DEFAULT_ADVANCED_SETTINGS}
             onFinish={handleSubmit}
             preserve={false}
         >
@@ -168,6 +187,7 @@ export function StartInstantMeetingModal({
             <Form.Item label='Invitees'>
                 <WorkspaceUserPicker value={invitees} onChange={setInvitees} />
             </Form.Item>
+            <AdvancedMeetingSettingsFields />
             {formError && (
                 <Form.Item>
                     <Alert type='error' message={formError} showIcon />

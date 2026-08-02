@@ -1,5 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { useCurrentUser } from '../../context/CurrentUserContext';
 import {
     getAvailableMeetingActions,
     type Meeting,
@@ -30,6 +31,7 @@ const ACTION_ICONS: Record<MeetingAction, IconName> = {
     JOIN: 'video',
     VIEW_DETAIL: 'info',
     VIEW_HISTORY: 'history',
+    SETTINGS: 'settings',
 };
 
 export function MeetingActionMenu({
@@ -43,9 +45,12 @@ export function MeetingActionMenu({
     const [menuPosition, setMenuPosition] = useState<MenuPosition | null>(null);
     const rootRef = useRef<HTMLDivElement>(null);
     const menuRef = useRef<HTMLDivElement>(null);
-    const actions = getAvailableMeetingActions(meeting, permissions).filter(
-        (action) => !hiddenActions.includes(action),
-    );
+    const currentUser = useCurrentUser();
+    const actions = getAvailableMeetingActions(
+        meeting,
+        permissions,
+        currentUser.accountId,
+    ).filter((action) => !hiddenActions.includes(action));
 
     useEffect(() => {
         if (!isOpen) return;

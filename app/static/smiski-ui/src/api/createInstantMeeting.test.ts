@@ -95,7 +95,7 @@ describe('createInstantMeeting (SDK createInstant over Forge Remote)', () => {
         expect(body).toMatchObject({
             title: 'Contract-shaped body',
             issueLink: { issueKey: 'SMISKI-101', projectKey: 'SMISKI' },
-            settings: { admissionPolicy: 'OPEN' },
+            settings: { admissionPolicy: 'ALLOW_ALL' },
             host: { displayName: 'Host User' },
             zoneId: 'Asia/Ho_Chi_Minh',
         });

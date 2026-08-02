@@ -1,8 +1,9 @@
 /**
  * Mock workspace users — used only in standalone `vite dev`, where the Forge
- * `invoke` bridge is not available. Mirrors the shape returned by the resolver
- * (`api/workspaceUsers.searchWorkspaceUsers`) so `useWorkspaceUsers` can swap
- * between them by env, same pattern as `mocks/issues.ts` / `mocks/projectMembers.ts`.
+ * bridge is not available. Mirrors the shape returned by the real
+ * implementation (`api/workspaceUsers.searchWorkspaceUsers`) so
+ * `useWorkspaceUsers` can swap between them by env, same pattern as
+ * `mocks/issues.ts` / `mocks/projectMembers.ts`.
  *
  * Instant-create itself cannot run in `vite dev` (no backend), but the picker
  * still renders these users so the form stays inspectable.
@@ -29,8 +30,8 @@ const WORKSPACE_USERS: WorkspaceUser[] = MOCK_USERS.map((user) => ({
 
 /**
  * Filter the mock directory by a case-insensitive term over the display name
- * (empty term returns the full seeded list), matching the resolver's empty-vs-
- * query behavior.
+ * (empty term returns the full seeded list), matching the real
+ * implementation's empty-vs-query behavior.
  */
 export async function searchMockWorkspaceUsers(
     query?: string,

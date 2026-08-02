@@ -71,8 +71,8 @@ dashboard, and an in-product video room without requiring users to leave Jira.
 
 The repository is a pnpm workspace with two packages:
 
-- The root package contains the Forge manifest and the thin resolver entry
-  point.
+- The root package contains only the Forge manifest — there is no Forge
+  resolver/function; Jira calls are made directly from the browser.
 - `static/smiski-ui` contains the Vite, React, and TypeScript Custom UI
   application.
 

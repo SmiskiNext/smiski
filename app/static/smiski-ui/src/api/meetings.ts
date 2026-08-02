@@ -1,13 +1,14 @@
-import { invoke } from '@forge/bridge';
 import {
+    cancel,
     createInstant,
-    delete_ as deleteMeetingBackend,
+    end,
     get,
     join,
     list,
+    type MeetCancelMeetingResponse,
     type MeetCreateInstantMeetingRequest,
     type MeetCreateInstantMeetingResponse,
-    type MeetDeleteMeetingResponse,
+    type MeetEndMeetingResponse,
     type MeetGetMeetingResponse,
     type MeetJoinMeetingResponse,
     type MeetMeetingListPage,
@@ -16,10 +17,18 @@ import {
     type MeetScheduleMeetingResponse,
     type MeetUpdateMeetingRequest,
     type MeetUpdateMeetingResponse,
+    type MeetUpdateMeetingSettingsRequest,
+    type MeetUpdateMeetingSettingsResponse,
     schedule,
     update,
+    updateSettings,
 } from '@smiskinext/smiski-ts';
-import type { Meeting, MeetingStatus, Participant } from '../domain';
+import type {
+    Meeting,
+    MeetingSettings,
+    MeetingStatus,
+    Participant,
+} from '../domain';
 import { getLocalTimeZone } from '../utils/datetime';
 import { apiConfig } from './config';
 import { forgeRemoteClient } from './forgeRemoteFetch';
@@ -45,6 +54,14 @@ export interface InstantMeetingHostIdentity {
     avatarUrl?: string;
 }
 
+/**
+ * User-editable subset of `MeetingSettings` exposed by the create forms'
+ * "Advanced settings" section. `chatEnabled` is deliberately excluded — not
+ * surfaced in the UI yet — and always sent as `DEFAULT_MEETING_SETTINGS`'s
+ * default.
+ */
+export type CreateMeetingSettingsInput = Omit<MeetingSettings, 'chatEnabled'>;
+
 /** Payload to create an instant meeting (UC01). */
 export interface CreateInstantMeetingInput {
     issueKey: string;
@@ -57,6 +74,8 @@ export interface CreateInstantMeetingInput {
     invitees?: MeetingInviteeInput[];
     /** Host identity (from CurrentUserContext); resolves host/organizer fields. */
     host?: InstantMeetingHostIdentity;
+    /** Overrides DEFAULT_MEETING_SETTINGS when the host expands "Advanced settings". */
+    settings?: CreateMeetingSettingsInput;
 }
 
 /** Payload to schedule a meeting (UC03). */
@@ -75,6 +94,8 @@ export interface ScheduleMeetingInput {
     invitees: MeetingInviteeInput[];
     /** Organizer identity (from CurrentUserContext); resolves organizer fields. */
     organizer?: InstantMeetingHostIdentity;
+    /** Overrides DEFAULT_MEETING_SETTINGS when the host expands "Advanced settings". */
+    settings?: CreateMeetingSettingsInput;
 }
 
 /**
@@ -125,9 +146,15 @@ export interface ScheduleMeetingResult {
     error?: MeetingProblem;
 }
 
-/** Default meeting settings shared by the instant and scheduled create flows. */
+/**
+ * Default meeting settings shared by the instant and scheduled create flows.
+ * `admissionPolicy` must be one of the backend's `AdmissionPolicy` enum
+ * values (`ALLOW_ALL` | `MANUAL_APPROVAL`) — the backend does
+ * `AdmissionPolicy.valueOf(...)` on this string with no fallback, so any
+ * other value throws.
+ */
 const DEFAULT_MEETING_SETTINGS = {
-    admissionPolicy: 'OPEN',
+    admissionPolicy: 'ALLOW_ALL',
     maxParticipants: 50,
     allowScreenShare: true,
     chatEnabled: true,
@@ -157,7 +184,7 @@ export function buildInstantMeetingPayload(
             issueKey: input.issueKey,
             projectKey,
         },
-        settings: { ...DEFAULT_MEETING_SETTINGS },
+        settings: { ...DEFAULT_MEETING_SETTINGS, ...input.settings },
         host: {
             displayName: input.host?.displayName ?? 'Jira user',
             deviceId,
@@ -195,7 +222,7 @@ export function buildScheduleMeetingPayload(
             issueKey: input.issueKey,
             projectKey,
         },
-        settings: { ...DEFAULT_MEETING_SETTINGS },
+        settings: { ...DEFAULT_MEETING_SETTINGS, ...input.settings },
         timeRange: {
             startTime: input.startTime,
             endTime: input.endTime,
@@ -360,9 +387,12 @@ export async function getMeeting(meetingId: string): Promise<MeetingDetail> {
             path: { version: apiConfig.apiVersion, id: meetingId },
         }),
     );
+    const participants = participantsFromBackend(response);
     return {
-        meeting: meetingFromBackend(response),
-        participants: participantsFromBackend(response),
+        meeting: meetingFromBackend(response, {
+            participantCount: participants.length,
+        }),
+        participants,
     };
 }
 
@@ -379,19 +409,19 @@ export async function listIssueMeetings(issueKey: string): Promise<Meeting[]> {
 }
 
 /**
- * Lists meetings across a project for the dashboard table. Routed through the
- * `getProjectMeetings` resolver function rather than the SDK directly: the
+ * Lists meetings across a project for the dashboard table. Unimplemented: the
  * real backend's `list` operation has no `projectKey` filter yet (only
- * `issueKey`/`creatorId`/`statuses`/`search`), so this stays an
- * `Not implemented` stub (see `app/src/index.ts`) until the backend adds one.
+ * `issueKey`/`creatorId`/`statuses`/`search`), so there is no SDK call this
+ * can make yet.
  */
 export async function listProjectMeetings(
-    filters: MeetingListFilters,
+    _filters: MeetingListFilters,
 ): Promise<Meeting[]> {
-    return invokeResolver<Meeting[]>(
-        'getProjectMeetings',
-        filters as unknown as Record<string, unknown>,
-    );
+    throw new MeetingApiError({
+        message:
+            'Not implemented: the meet backend has no project-wide meeting '
+            + 'listing filter yet.',
+    });
 }
 
 /**
@@ -437,10 +467,48 @@ export async function updateMeeting(
     return meetingFromBackend(response);
 }
 
-/** Cancels (soft-deletes) a meeting (backend `delete`; 409 if it's RUNNING). */
+/**
+ * Replaces a meeting's settings (backend `updateSettings`, host-only — 403
+ * otherwise). Separate from `updateMeeting`, which no longer carries
+ * settings. Wired to `MeetingSettingsModal` via `useUpdateMeetingSettings`.
+ *
+ * Returns the settings block directly rather than routing the response
+ * through `meetingFromBackend`: `MeetUpdateMeetingSettingsResponse` is a
+ * flat `{ meetingId, admissionPolicy, ... }` shape, not a full meeting
+ * snapshot (no `id`/`title`/`status`/nested `settings`), so mapping it as
+ * one would silently produce a near-empty `Meeting`.
+ */
+export async function updateMeetingSettings(
+    meetingId: string,
+    settings: MeetingSettings,
+): Promise<MeetingSettings> {
+    const response = await unwrap<MeetUpdateMeetingSettingsResponse>(() =>
+        updateSettings({
+            client: forgeRemoteClient,
+            path: { version: apiConfig.apiVersion, id: meetingId },
+            body: settings satisfies MeetUpdateMeetingSettingsRequest,
+        }),
+    );
+    return {
+        admissionPolicy: response.admissionPolicy ?? settings.admissionPolicy,
+        maxParticipants: response.maxParticipants ?? settings.maxParticipants,
+        allowScreenShare:
+            response.allowScreenShare ?? settings.allowScreenShare,
+        chatEnabled: response.chatEnabled ?? settings.chatEnabled,
+        allowMicrophone: response.allowMicrophone ?? settings.allowMicrophone,
+        allowVideo: response.allowVideo ?? settings.allowVideo,
+    };
+}
+
+/**
+ * Cancels a SCHEDULED meeting (backend `cancel`; SCHEDULED-only — 409
+ * otherwise). Sets `status: CANCELED`/`cancelReason: HOST_CANCELED` and
+ * publishes `MeetingCanceledEvent`, which triggers a cancellation email to
+ * invitees.
+ */
 export async function cancelMeeting(meetingId: string): Promise<Meeting> {
-    const response = await unwrap<MeetDeleteMeetingResponse>(() =>
-        deleteMeetingBackend({
+    const response = await unwrap<MeetCancelMeetingResponse>(() =>
+        cancel({
             client: forgeRemoteClient,
             path: { version: apiConfig.apiVersion, id: meetingId },
         }),
@@ -449,14 +517,18 @@ export async function cancelMeeting(meetingId: string): Promise<Meeting> {
 }
 
 /**
- * Ends a RUNNING meeting (host/Edit-Meeting action). Routed through the
- * `endMeeting` resolver function: the real backend has no explicit `end`
- * operation yet — RUNNING→COMPLETED is expected to be driven by its LiveKit
- * webhook handling instead — so this stays an `Not implemented` stub (see
- * `app/src/index.ts`) until the backend adds one.
+ * Ends a RUNNING meeting (host/Edit-Meeting action; backend `end`).
+ * Transitions the meeting to COMPLETED, closes participation logs, and
+ * requests best-effort LiveKit room deletion.
  */
 export async function endMeeting(meetingId: string): Promise<Meeting> {
-    return invokeResolver<Meeting>('endMeeting', { meetingId });
+    const response = await unwrap<MeetEndMeetingResponse>(() =>
+        end({
+            client: forgeRemoteClient,
+            path: { version: apiConfig.apiVersion, id: meetingId },
+        }),
+    );
+    return meetingFromBackend(response);
 }
 
 /** The joining participant's identity, required by the backend `join` operation. */
@@ -540,16 +612,4 @@ export async function findRunningMeetingHostedByUser(
         running.find((meeting) => meeting.issueKey !== excludingIssueKey)
         ?? null
     );
-}
-
-/** Calls a resolver function, wrapping any rejection as a `MeetingApiError`. */
-async function invokeResolver<T>(
-    functionKey: string,
-    payload: Record<string, unknown> = {},
-): Promise<T> {
-    try {
-        return (await invoke(functionKey, payload)) as T;
-    } catch (error) {
-        throw toMeetingError(error);
-    }
 }

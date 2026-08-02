@@ -8,6 +8,7 @@ on:
 
 permissions:
     contents: read
+    packages: read
 
 concurrency:
     group: build-${{ github.workflow }}-${{ github.ref }}
@@ -96,10 +97,8 @@ jobs:
               run: pnpm --filter @smiskinext/smiski-ts build
               working-directory: app
 
-            - name: Typecheck
-              run: pnpm exec tsc --noEmit
-              working-directory: app
-
+            # There is no root-level TypeScript anymore (no Forge resolver) —
+            # smiski-ui's own build step below runs `tsc --noEmit` first.
             - name: Build static/smiski-ui
               run: pnpm run build
               working-directory: app
@@ -127,6 +126,11 @@ jobs:
             - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
 
             - uses: jdx/mise-action@e6a8b3978addb5a52f2b4cd9d91eafa7f0ab959d # v4
+
+            - name: Configure GitHub Packages
+              uses: ./.github/actions/configure-github-packages
+              with:
+                  token: ${{ secrets.GITHUB_TOKEN }}
 
             - name: Get pnpm store directory
               id: pnpm-store

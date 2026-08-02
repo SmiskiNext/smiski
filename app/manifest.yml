@@ -9,26 +9,24 @@
 # branches on the Forge module context (moduleKey) to mount the correct root
 # component. See static/smiski-ui/src/App.tsx.
 #
-# NOTE: Meeting reads/mutations go straight from the Custom UI to the real
-# `meet` backend via Forge Remote + a generated SDK — the resolver
-# (src/index.ts) only handles Jira-native operations (workspace user search,
-# the View/Edit Meeting permission check) plus two operations the backend
-# doesn't support yet (project-wide listing, explicit "end meeting").
+# NOTE: There is no Forge resolver/function in this app. Meeting reads/
+# mutations go straight from the Custom UI to the real `meet` backend via
+# Forge Remote + a generated SDK; Jira-native operations (workspace user
+# search, the View/Edit Meeting permission check, issue/project-member lookup)
+# call Jira directly from the browser via `@forge/bridge`'s `requestJira`
+# (Forge bridge v2+ supports this without a resolver hop) — see
+# static/smiski-ui/src/api/.
 
 modules:
     jira:issuePanel:
         - key: smiski-issue-panel
           resource: main
-          resolver:
-              function: resolver
           title: Smiski Meetings
           icon: https://developer.atlassian.com/platform/forge/images/issue-panel-icon.svg
 
     jira:projectPage:
         - key: smiski-project-page
           resource: main
-          resolver:
-              function: resolver
           title: Smiski Meetings
           layout: blank
           icon: https://developer.atlassian.com/platform/forge/images/issue-panel-icon.svg
@@ -37,7 +35,8 @@ modules:
     # View/Edit model, Edit implying View. Once deployed, a Jira/Project Admin
     # assigns these to roles/groups/users via the project's Permission
     # Scheme UI — this app only declares them and reads them back
-    # (`getMeetingPermission` in src/index.ts, via `GET /rest/api/3/mypermissions`).
+    # (`getMeetingPermission` in static/smiski-ui/src/api/meetingPermission.ts,
+    # via `GET /rest/api/3/mypermissions`).
     jira:projectPermission:
         - key: view-meeting
           name: View Meeting
@@ -51,10 +50,6 @@ modules:
               Create, schedule, start, edit, cancel, and end meetings;
               start/stop recording.
           category: projects
-
-    function:
-        - key: resolver
-          handler: index.handler
 
     # Forge Remote endpoint binding the `meet` backend remote. Forge attaches a
     # signed Forge Invocation Token (FIT) as `Authorization: Bearer` on every
@@ -111,10 +106,12 @@ permissions:
             - 'unsafe-inline'
 
     # The app talks to backend APIs only through the Caddy gateway. `backend`
-    # covers Forge resolver fetches and MUST match remotes[meet-backend].baseUrl
-    # above so Forge permits the outbound requestRemote call; `client` covers
-    # Custom UI fetch/WebSocket traffic required by the LiveKit client in the
-    # meeting room. The CI/CD workflow supplies the gateway for each environment.
+    # covers the Custom UI's requestRemote calls (see
+    # static/smiski-ui/src/api/forgeRemoteFetch.ts) and MUST match
+    # remotes[meet-backend].baseUrl above so Forge permits the outbound call;
+    # `client` covers Custom UI fetch/WebSocket traffic required by the
+    # LiveKit client in the meeting room. The CI/CD workflow supplies the
+    # gateway for each environment.
     external:
         fetch:
             backend:

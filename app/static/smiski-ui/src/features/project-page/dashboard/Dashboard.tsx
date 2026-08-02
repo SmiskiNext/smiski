@@ -1,20 +1,19 @@
 import { useState } from 'react';
 import {
     ActiveMeetingWarningDialog,
+    ConfirmMeetingActionDialog,
     ErrorState,
     InlineFeedback,
     LoadingState,
+    MeetingSettingsModal,
     NoPermissionState,
     ScheduleMeetingModal,
     StartInstantMeetingModal,
 } from '../../../components/shared';
 import type { Meeting, MeetingAction } from '../../../domain';
+import { useConfirmMeetingAction } from '../../../hooks/useConfirmMeetingAction';
 import { useHostConflictGuard } from '../../../hooks/useHostConflictGuard';
-import {
-    useCancelMeeting,
-    useEndMeeting,
-    useStartMeeting,
-} from '../../../hooks/useMeetingMutations';
+import { useStartMeeting } from '../../../hooks/useMeetingMutations';
 import { useMeetingPermissions } from '../../../hooks/useMeetingPermission';
 import { useProjectMeetings } from '../../../hooks/useProjectMeetings';
 import { DashboardHeader } from './DashboardHeader';
@@ -37,18 +36,25 @@ export function Dashboard({ projectKey, onOpenRoom }: DashboardProps) {
         focus: 'details' | 'history';
     } | null>(null);
     const [editingMeeting, setEditingMeeting] = useState<Meeting | null>(null);
+    const [settingsMeetingId, setSettingsMeetingId] = useState<string | null>(
+        null,
+    );
     const [isScheduleOpen, setScheduleOpen] = useState(false);
     const [isStartOpen, setStartOpen] = useState(false);
-    const [feedback, setFeedback] = useState<string | null>(null);
+    const [feedback, setFeedback] = useState<{
+        appearance: 'success' | 'error';
+        message: string;
+    } | null>(null);
+    const showSuccess = (message: string) =>
+        setFeedback({ appearance: 'success', message });
 
     const permissions = useMeetingPermissions(projectKey);
     const { meetings, loading, error } = useProjectMeetings(
         { projectKey, ...filters },
         permissions.canViewMeeting && !permissions.isLoading,
     );
-    const cancelMeeting = useCancelMeeting();
     const startMeeting = useStartMeeting();
-    const endMeeting = useEndMeeting();
+    const confirmAction = useConfirmMeetingAction(setFeedback, 'inline');
     const hostConflictGuard = useHostConflictGuard('inline');
 
     const handleAction = (action: MeetingAction, meeting: Meeting) => {
@@ -57,9 +63,7 @@ export function Dashboard({ projectKey, onOpenRoom }: DashboardProps) {
                 setEditingMeeting(meeting);
                 break;
             case 'CANCEL':
-                cancelMeeting.mutate(meeting.id, {
-                    onSuccess: () => setFeedback('Meeting canceled.'),
-                });
+                confirmAction.request('CANCEL', meeting);
                 break;
             case 'START':
                 hostConflictGuard.guard(meeting.issueKey, () => {
@@ -73,9 +77,10 @@ export function Dashboard({ projectKey, onOpenRoom }: DashboardProps) {
                 onOpenRoom(meeting.id);
                 break;
             case 'END':
-                endMeeting.mutate(meeting.id, {
-                    onSuccess: () => setFeedback('Meeting ended.'),
-                });
+                confirmAction.request('END', meeting);
+                break;
+            case 'SETTINGS':
+                setSettingsMeetingId(meeting.id);
                 break;
             case 'VIEW_HISTORY':
                 setSelectedMeeting({ id: meeting.id, focus: 'history' });
@@ -120,8 +125,8 @@ export function Dashboard({ projectKey, onOpenRoom }: DashboardProps) {
             {feedback && (
                 <div className='px-4 sm:px-6'>
                     <InlineFeedback
-                        appearance='success'
-                        message={feedback}
+                        appearance={feedback.appearance}
+                        message={feedback.message}
                         onDismiss={() => setFeedback(null)}
                     />
                 </div>
@@ -147,7 +152,7 @@ export function Dashboard({ projectKey, onOpenRoom }: DashboardProps) {
                 isOpen={isScheduleOpen}
                 projectKey={projectKey}
                 onClose={() => setScheduleOpen(false)}
-                onSubmitted={() => setFeedback('Meeting scheduled.')}
+                onSubmitted={() => showSuccess('Meeting scheduled.')}
             />
             <StartInstantMeetingModal
                 isOpen={isStartOpen}
@@ -161,7 +166,18 @@ export function Dashboard({ projectKey, onOpenRoom }: DashboardProps) {
                     meeting={editingMeeting}
                     issueKey={editingMeeting.issueKey}
                     onClose={() => setEditingMeeting(null)}
-                    onSubmitted={() => setFeedback('Meeting updated.')}
+                    onSubmitted={() => showSuccess('Meeting updated.')}
+                />
+            )}
+            {settingsMeetingId && (
+                <MeetingSettingsModal
+                    isOpen
+                    meetingId={settingsMeetingId}
+                    onClose={() => setSettingsMeetingId(null)}
+                    onSaved={() => {
+                        setSettingsMeetingId(null);
+                        showSuccess('Meeting settings saved.');
+                    }}
                 />
             )}
             {hostConflictGuard.conflictingMeeting && (
@@ -169,6 +185,16 @@ export function Dashboard({ projectKey, onOpenRoom }: DashboardProps) {
                     conflictingMeeting={hostConflictGuard.conflictingMeeting}
                     onClose={hostConflictGuard.dismiss}
                     onConfirm={hostConflictGuard.confirm}
+                />
+            )}
+            {confirmAction.pending && (
+                <ConfirmMeetingActionDialog
+                    action={confirmAction.pending.action}
+                    meeting={confirmAction.pending.meeting}
+                    isLoading={confirmAction.isLoading}
+                    error={confirmAction.error}
+                    onConfirm={confirmAction.confirm}
+                    onClose={confirmAction.dismiss}
                 />
             )}
         </div>

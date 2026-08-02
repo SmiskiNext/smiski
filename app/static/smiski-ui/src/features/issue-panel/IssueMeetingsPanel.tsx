@@ -14,6 +14,7 @@
 import { useState } from 'react';
 import {
     ActiveMeetingWarningDialog,
+    ConfirmMeetingActionDialog,
     EmptyState,
     ErrorState,
     InlineFeedback,
@@ -21,22 +22,21 @@ import {
     MeetingActionMenu,
     MeetingCard,
     MeetingDetailDialog,
+    MeetingSettingsModal,
     NoPermissionState,
     ScheduleMeetingModal,
     StartInstantMeetingModal,
 } from '../../components/shared';
 import { Button, Icon } from '../../components/ui';
 import type { CurrentIssueContextValue, MeetingAction } from '../../domain';
+import { useConfirmMeetingAction } from '../../hooks/useConfirmMeetingAction';
 import { useHostConflictGuard } from '../../hooks/useHostConflictGuard';
 import { useIssueMeetings } from '../../hooks/useIssueMeetings';
 import { useIssuePanelInstantModal } from '../../hooks/useIssuePanelInstantModal';
 import { useIssuePanelMeetingDetailModal } from '../../hooks/useIssuePanelMeetingDetailModal';
 import { useIssuePanelScheduleModal } from '../../hooks/useIssuePanelScheduleModal';
-import {
-    useCancelMeeting,
-    useEndMeeting,
-    useStartMeeting,
-} from '../../hooks/useMeetingMutations';
+import { useIssuePanelSettingsModal } from '../../hooks/useIssuePanelSettingsModal';
+import { useStartMeeting } from '../../hooks/useMeetingMutations';
 import { useMeetingParticipants } from '../../hooks/useMeetingParticipants';
 import { useMeetingPermissions } from '../../hooks/useMeetingPermission';
 import { useNavigateToMeetingRoom } from '../../hooks/useNavigateToMeetingRoom';
@@ -62,6 +62,7 @@ export function IssueMeetingsPanel({
     const permissions = useMeetingPermissions(issue.projectKey);
     const { meetings, loading, error } = useIssueMeetings(
         issue.issueKey,
+        issue.projectKey,
         permissions.canViewMeeting && !permissions.isLoading,
     );
     const openMeetingRoom = useNavigateToMeetingRoom(
@@ -69,19 +70,27 @@ export function IssueMeetingsPanel({
     );
 
     const [filter, setFilter] = useState<IssueMeetingsFilterValue>({});
-    const [feedback, setFeedback] = useState<string | null>(null);
+    const [feedback, setFeedback] = useState<{
+        appearance: 'success' | 'error';
+        message: string;
+    } | null>(null);
+    const showSuccess = (message: string) =>
+        setFeedback({ appearance: 'success', message });
 
     const scheduleModal = useIssuePanelScheduleModal(() =>
-        setFeedback('Meeting scheduled.'),
+        showSuccess('Meeting scheduled.'),
     );
     const instantModal = useIssuePanelInstantModal((meetingId) =>
         openMeetingRoom(issue.projectKey, meetingId),
     );
     const detailModal = useIssuePanelMeetingDetailModal();
+    const settingsModal = useIssuePanelSettingsModal();
     const hostConflictGuard = useHostConflictGuard('platform-modal');
-    const cancelMeeting = useCancelMeeting();
+    const confirmAction = useConfirmMeetingAction(
+        setFeedback,
+        'platform-modal',
+    );
     const startMeeting = useStartMeeting();
-    const endMeeting = useEndMeeting();
     const { participants, loading: participantsLoading } =
         useMeetingParticipants(
             detailModal.devMeeting?.id,
@@ -102,9 +111,7 @@ export function IssueMeetingsPanel({
                 });
                 break;
             case 'CANCEL':
-                cancelMeeting.mutate(meeting.id, {
-                    onSuccess: () => setFeedback('Meeting canceled.'),
-                });
+                confirmAction.request('CANCEL', meeting);
                 break;
             case 'START':
                 hostConflictGuard.guard(meeting.issueKey, () => {
@@ -118,9 +125,10 @@ export function IssueMeetingsPanel({
                 openMeetingRoom(issue.projectKey, meeting.id);
                 break;
             case 'END':
-                endMeeting.mutate(meeting.id, {
-                    onSuccess: () => setFeedback('Meeting ended.'),
-                });
+                confirmAction.request('END', meeting);
+                break;
+            case 'SETTINGS':
+                settingsModal.open(meeting.id);
                 break;
             case 'VIEW_DETAIL':
             case 'VIEW_HISTORY':
@@ -221,8 +229,8 @@ export function IssueMeetingsPanel({
 
             {feedback && (
                 <InlineFeedback
-                    appearance='success'
-                    message={feedback}
+                    appearance={feedback.appearance}
+                    message={feedback.message}
                     onDismiss={() => setFeedback(null)}
                 />
             )}
@@ -235,7 +243,7 @@ export function IssueMeetingsPanel({
                     meeting={scheduleModal.devPayload?.meeting}
                     onClose={scheduleModal.closeDev}
                     onSubmitted={() => {
-                        setFeedback(
+                        showSuccess(
                             scheduleModal.devPayload?.meeting
                                 ? 'Meeting updated.'
                                 : 'Meeting scheduled.',
@@ -271,11 +279,34 @@ export function IssueMeetingsPanel({
                 />
             )}
 
+            {import.meta.env.DEV && settingsModal.devMeetingId && (
+                <MeetingSettingsModal
+                    isOpen
+                    meetingId={settingsModal.devMeetingId}
+                    onClose={settingsModal.closeDev}
+                    onSaved={() => {
+                        settingsModal.closeDev();
+                        showSuccess('Meeting settings saved.');
+                    }}
+                />
+            )}
+
             {import.meta.env.DEV && hostConflictGuard.conflictingMeeting && (
                 <ActiveMeetingWarningDialog
                     conflictingMeeting={hostConflictGuard.conflictingMeeting}
                     onClose={hostConflictGuard.dismiss}
                     onConfirm={hostConflictGuard.confirm}
+                />
+            )}
+
+            {import.meta.env.DEV && confirmAction.pending && (
+                <ConfirmMeetingActionDialog
+                    action={confirmAction.pending.action}
+                    meeting={confirmAction.pending.meeting}
+                    isLoading={confirmAction.isLoading}
+                    error={confirmAction.error}
+                    onConfirm={confirmAction.confirm}
+                    onClose={confirmAction.dismiss}
                 />
             )}
         </section>

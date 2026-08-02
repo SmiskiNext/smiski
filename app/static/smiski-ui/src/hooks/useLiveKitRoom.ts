@@ -72,6 +72,14 @@ export interface UseLiveKitRoomResult {
     isMicOn: boolean;
     isCameraOn: boolean;
     isScreenSharing: boolean;
+    /**
+     * User-facing note about a media-permission change: either the most
+     * recent `toggleScreenShare()` call being rejected (disabled by the
+     * host, or the OS share picker was cancelled), or the host revoking
+     * mic/camera/screen-share access mid-session via meeting settings.
+     * Cleared on the next toggle attempt.
+     */
+    mediaNotice: string | null;
     toggleMic: () => Promise<void>;
     toggleCamera: () => Promise<void>;
     toggleScreenShare: () => Promise<void>;
@@ -100,6 +108,73 @@ function toParticipant(
     };
 }
 
+export type RevocableSource = 'microphone' | 'camera' | 'screenShare';
+
+/**
+ * `canPublishSources`' element type, taken structurally off `Participant.permissions`
+ * instead of importing `TrackSource`/`@livekit/protocol` directly — that package is
+ * only a transitive dependency of `livekit-client` (not in package.json), and this
+ * avoids adding it just for a type annotation.
+ */
+type CanPublishSources = NonNullable<
+    LKParticipant['permissions']
+>['canPublishSources'];
+
+/**
+ * Compares two raw `canPublishSources` snapshots (as carried by
+ * `RoomEvent.ParticipantPermissionsChanged`) and returns which of our three
+ * user-facing publish groups were present before and are missing after — i.e.
+ * newly revoked by the host mid-session, via `Track.sourceFromProto` (public
+ * off `livekit-client`, decodes the protobuf `TrackSource` values). Folds
+ * `Track.Source.ScreenShareAudio` into `'screenShare'`: the backend's
+ * `allowScreenShare` setting drives both sources together, so a separate
+ * "audio" notice would be meaningless.
+ */
+export function diffRevokedPublishSources(
+    prevSources: CanPublishSources,
+    nextSources: CanPublishSources,
+): RevocableSource[] {
+    const toGroup = (
+        source: CanPublishSources[number],
+    ): RevocableSource | undefined => {
+        switch (Track.sourceFromProto(source)) {
+            case Track.Source.Microphone:
+                return 'microphone';
+            case Track.Source.Camera:
+                return 'camera';
+            case Track.Source.ScreenShare:
+            case Track.Source.ScreenShareAudio:
+                return 'screenShare';
+            default:
+                return undefined;
+        }
+    };
+    const prevGroups = new Set(prevSources.map(toGroup).filter(Boolean));
+    const nextGroups = new Set(nextSources.map(toGroup).filter(Boolean));
+    return (['microphone', 'camera', 'screenShare'] as const).filter(
+        (group) => prevGroups.has(group) && !nextGroups.has(group),
+    );
+}
+
+const REVOKED_SOURCE_LABEL: Record<RevocableSource, string> = {
+    microphone: 'microphone',
+    camera: 'camera',
+    screenShare: 'screen sharing',
+};
+
+/** Builds the host-revoked-permissions banner copy; `[]` in ⇒ `''` out (caller skips). */
+export function describeRevokedSources(sources: RevocableSource[]): string {
+    if (sources.length === 0) return '';
+    const labels = sources.map((source) => REVOKED_SOURCE_LABEL[source]);
+    const joined =
+        labels.length === 1
+            ? labels[0]
+            : labels.length === 2
+              ? `${labels[0]} and ${labels[1]}`
+              : `${labels.slice(0, -1).join(', ')}, and ${labels.at(-1)}`;
+    return `The host turned off your ${joined}.`;
+}
+
 export function useLiveKitRoom({
     token,
     url,
@@ -119,6 +194,7 @@ export function useLiveKitRoom({
     // mutation doesn't re-render, so a render-time read leaves the "Share
     // screen" button stuck on its previous state.
     const [isScreenSharing, setIsScreenSharing] = useState(false);
+    const [mediaNotice, setMediaNotice] = useState<string | null>(null);
 
     const snapshot = useCallback(() => {
         const room = roomRef.current;
@@ -173,6 +249,63 @@ export function useLiveKitRoom({
             .on(RoomEvent.TrackUnmuted, snapshot)
             .on(RoomEvent.LocalTrackPublished, snapshot)
             .on(RoomEvent.LocalTrackUnpublished, snapshot)
+            .on(
+                RoomEvent.ParticipantPermissionsChanged,
+                (prevPermissions, participant) => {
+                    if (participant !== room.localParticipant) return;
+                    const nextPermissions = room.localParticipant.permissions;
+                    if (!nextPermissions) return;
+                    const revoked = diffRevokedPublishSources(
+                        prevPermissions?.canPublishSources ?? [],
+                        nextPermissions.canPublishSources,
+                    );
+                    if (revoked.length === 0) return;
+
+                    setMediaNotice(describeRevokedSources(revoked));
+
+                    void (async () => {
+                        const stops: Promise<unknown>[] = [];
+                        if (
+                            revoked.includes('microphone')
+                            && room.localParticipant.isMicrophoneEnabled
+                        ) {
+                            stops.push(
+                                room.localParticipant.setMicrophoneEnabled(
+                                    false,
+                                ),
+                            );
+                        }
+                        if (
+                            revoked.includes('camera')
+                            && room.localParticipant.isCameraEnabled
+                        ) {
+                            stops.push(
+                                room.localParticipant.setCameraEnabled(false),
+                            );
+                        }
+                        if (
+                            revoked.includes('screenShare')
+                            && room.localParticipant.isScreenShareEnabled
+                        ) {
+                            stops.push(
+                                room.localParticipant.setScreenShareEnabled(
+                                    false,
+                                ),
+                            );
+                        }
+                        try {
+                            await Promise.all(stops);
+                        } catch (stopError) {
+                            console.warn(
+                                '[useLiveKitRoom] failed to stop a revoked track',
+                                stopError,
+                            );
+                        }
+                        if (cancelled) return;
+                        snapshot();
+                    })();
+                },
+            )
             .on(RoomEvent.Disconnected, () => {
                 if (!cancelled) setConnectionState('disconnected');
             });
@@ -216,27 +349,69 @@ export function useLiveKitRoom({
     const toggleMic = useCallback(async () => {
         const room = roomRef.current;
         if (!room) return;
-        await room.localParticipant.setMicrophoneEnabled(
-            !room.localParticipant.isMicrophoneEnabled,
-        );
-        snapshot();
+        const isOn = room.localParticipant.isMicrophoneEnabled;
+        setMediaNotice(null);
+        try {
+            await room.localParticipant.setMicrophoneEnabled(!isOn);
+            snapshot();
+        } catch (micError) {
+            // Rejected by LiveKit — the host has disabled microphone access
+            // for this meeting (MeetingSettings.allowMicrophone) — or by the
+            // browser/OS denying mic permission.
+            console.warn('[useLiveKitRoom] microphone toggle failed', micError);
+            setMediaNotice(
+                isOn
+                    ? 'Could not turn off your microphone.'
+                    : "Couldn't turn on your microphone. It may be disabled for this meeting.",
+            );
+        }
     }, [snapshot]);
 
     const toggleCamera = useCallback(async () => {
         const room = roomRef.current;
         if (!room) return;
-        await room.localParticipant.setCameraEnabled(
-            !room.localParticipant.isCameraEnabled,
-        );
-        snapshot();
+        const isOn = room.localParticipant.isCameraEnabled;
+        setMediaNotice(null);
+        try {
+            await room.localParticipant.setCameraEnabled(!isOn);
+            snapshot();
+        } catch (cameraError) {
+            // Rejected by LiveKit — the host has disabled video for this
+            // meeting (MeetingSettings.allowVideo) — or by the browser/OS
+            // denying camera permission.
+            console.warn('[useLiveKitRoom] camera toggle failed', cameraError);
+            setMediaNotice(
+                isOn
+                    ? 'Could not turn off your camera.'
+                    : "Couldn't turn on your camera. It may be disabled for this meeting.",
+            );
+        }
     }, [snapshot]);
 
     const toggleScreenShare = useCallback(async () => {
         const room = roomRef.current;
         if (!room) return;
         const isSharing = room.localParticipant.isScreenShareEnabled;
-        await room.localParticipant.setScreenShareEnabled(!isSharing);
-        snapshot();
+        setMediaNotice(null);
+        try {
+            await room.localParticipant.setScreenShareEnabled(!isSharing);
+            snapshot();
+        } catch (shareError) {
+            // Rejected either by LiveKit (screen share disabled for this
+            // meeting — see MeetingSettings.allowScreenShare) or by the
+            // browser (user cancelled the share picker). Swallow it here so
+            // it doesn't surface as an unhandled rejection; the button click
+            // that triggered this already reflects the failure visually.
+            console.warn(
+                '[useLiveKitRoom] screen share toggle failed',
+                shareError,
+            );
+            setMediaNotice(
+                isSharing
+                    ? 'Could not stop screen sharing.'
+                    : "Couldn't start screen sharing. It may be disabled for this meeting.",
+            );
+        }
     }, [snapshot]);
 
     const leave = useCallback(async () => {
@@ -255,6 +430,7 @@ export function useLiveKitRoom({
         isMicOn: local?.isMicOn ?? false,
         isCameraOn: local?.isCameraOn ?? false,
         isScreenSharing,
+        mediaNotice,
         toggleMic,
         toggleCamera,
         toggleScreenShare,

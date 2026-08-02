@@ -9,7 +9,7 @@ interface RawMeetingPermissions {
     hasEditMeeting: boolean;
 }
 
-/** Standalone `vite dev` has no Forge bridge to invoke the resolver through. */
+/** Standalone `vite dev` has no Forge bridge to call Jira through. */
 async function getMockMeetingPermission(): Promise<RawMeetingPermissions> {
     await new Promise((resolve) => setTimeout(resolve, 180));
     return { hasViewMeeting: true, hasEditMeeting: true };
@@ -18,9 +18,9 @@ async function getMockMeetingPermission(): Promise<RawMeetingPermissions> {
 /**
  * Project-level Jira custom `View Meeting`/`Edit Meeting` permissions
  * (`manifest.yml`'s `jira:projectPermission` module) used by every meeting
- * action. Real in a Forge context (resolver → `asUser().requestJira`'s
- * `mypermissions` check); mocked (always full access) in standalone
- * `vite dev`, which has no Forge bridge.
+ * action. Real in a Forge context (`requestJira`'s `mypermissions` check,
+ * called directly from the browser — see `api/meetingPermission.ts`); mocked
+ * (always full access) in standalone `vite dev`, which has no Forge bridge.
  *
  * UI gating only — the `meet` backend does not yet re-check this itself. See
  * app/AGENTS.md for the researched follow-up mechanism.

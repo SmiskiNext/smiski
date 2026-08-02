@@ -47,6 +47,9 @@ importers:
       '@forge/bridge':
         specifier: 6.1.0-next.8
         version: 6.1.0-next.8(@types/react@18.3.31)(react@18.3.1)(typescript@5.9.3)
+      '@smiskinext/sdks-jira':
+        specifier: 1001.0.0-05f20e18
+        version: 1001.0.0-05f20e18(@hey-api/openapi-ts@0.90.10(typescript@5.9.3))
       '@smiskinext/smiski-ts':
         specifier: workspace:*
         version: link:../../../sdks/typescript
@@ -2373,6 +2376,12 @@ packages:
   '@hapi/topo@5.1.0':
     resolution: {integrity: sha512-foQZKJig7Ob0BMAYBfcJk8d77QtOe7Wo4ox7ff1lQYoNNAb6jwcY1ncdoy2e9wQZzvNy7ODZCYJkK8kzmcAnAg==}
 
+  '@hey-api/client-fetch@0.11.0':
+    resolution: {integrity: sha512-Wafgv5BMCVjdYPgE60CL8NSC6Fi3j3PZYES8Qg23xO+9JNrjN5PguOIHQS2FMKaZ8jMtpa3S4I3ni0XBh/VeSg==}
+    deprecated: Starting with v0.73.0, this package is bundled directly inside @hey-api/openapi-ts.
+    peerDependencies:
+      '@hey-api/openapi-ts': < 2
+
   '@hey-api/codegen-core@0.5.5':
     resolution: {integrity: sha512-f2ZHucnA2wBGAY8ipB4wn/mrEYW+WUxU2huJmUvfDO6AE2vfILSHeF3wCO39Pz4wUYPoAWZByaauftLrOfC12Q==}
     engines: {node: '>=20.19.0'}
@@ -3311,6 +3320,9 @@ packages:
 
   '@slorber/remark-comment@1.0.0':
     resolution: {integrity: sha512-RCE24n7jsOj1M0UPvIQCHTe7fI0sFL4S2nwKVWwHyVr/wI/H8GosgsJGyhnsZoGFnD/P2hLf1mSbrrgSLN93NA==}
+
+  '@smiskinext/sdks-jira@1001.0.0-05f20e18':
+    resolution: {integrity: sha512-hiUroCZ6BZzEuebcYyWj+EUNspPXggGM9icBnv1uvqXnCcv3vTqybU4vFhX9vVcOGwR3Pwnz9uMHkxXxHNzteQ==, tarball: https://npm.pkg.github.com/download/@smiskinext/sdks-jira/1001.0.0-05f20e18/cea454086055c1a9bd6f3bf3bab622a3ad27e0a4}
 
   '@speed-highlight/core@1.2.17':
     resolution: {integrity: sha512-Z92FwKpCtfaW1V0jTU/fh3QzYEZN8wDwrzRIBoADCJfn4mJCNcJN/XegifX7BDrQ8/h9Xh/JnbyMchL0FqXrkg==}
@@ -12269,6 +12281,10 @@ snapshots:
     dependencies:
       '@hapi/hoek': 9.3.0
 
+  '@hey-api/client-fetch@0.11.0(@hey-api/openapi-ts@0.90.10(typescript@5.9.3))':
+    dependencies:
+      '@hey-api/openapi-ts': 0.90.10(typescript@5.9.3)
+
   '@hey-api/codegen-core@0.5.5(typescript@5.9.3)':
     dependencies:
       '@hey-api/types': 0.1.2
@@ -13195,6 +13211,12 @@ snapshots:
       micromark-factory-space: 1.1.0
       micromark-util-character: 1.2.0
       micromark-util-symbol: 1.1.0
+
+  '@smiskinext/sdks-jira@1001.0.0-05f20e18(@hey-api/openapi-ts@0.90.10(typescript@5.9.3))':
+    dependencies:
+      '@hey-api/client-fetch': 0.11.0(@hey-api/openapi-ts@0.90.10(typescript@5.9.3))
+    transitivePeerDependencies:
+      - '@hey-api/openapi-ts'
 
   '@speed-highlight/core@1.2.17': {}
 
@@ -14238,7 +14260,7 @@ snapshots:
       dotenv: 17.4.2
       exsolve: 1.1.0
       giget: 2.0.0
-      jiti: 2.6.1
+      jiti: 2.7.0
       ohash: 2.0.11
       pathe: 2.0.3
       perfect-debounce: 2.1.0

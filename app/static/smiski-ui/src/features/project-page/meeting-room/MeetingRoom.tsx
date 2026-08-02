@@ -1,5 +1,9 @@
 import { useState } from 'react';
-import { ErrorState, LoadingState } from '../../../components/shared';
+import {
+    ErrorState,
+    LoadingState,
+    MeetingSettingsModal,
+} from '../../../components/shared';
 import { Button, Icon } from '../../../components/ui';
 import { useCurrentUser } from '../../../context/CurrentUserContext';
 import type { Participant } from '../../../domain';
@@ -26,6 +30,7 @@ export function MeetingRoom({ meetingId, onLeave }: MeetingRoomProps) {
     const { participants, loading: participantsLoading } =
         useMeetingParticipants(meetingId, meeting?.projectKey);
     const [isPeoplePanelOpen, setPeoplePanelOpen] = useState(false);
+    const [isSettingsOpen, setSettingsOpen] = useState(false);
 
     const {
         token,
@@ -132,11 +137,15 @@ export function MeetingRoom({ meetingId, onLeave }: MeetingRoomProps) {
                                 ? liveKit.toggleScreenShare
                                 : undefined
                         }
+                        mediaNotice={
+                            isLiveKitEnabled ? liveKit.mediaNotice : undefined
+                        }
                         connectionState={
                             isLiveKitEnabled
                                 ? liveKit.connectionState
                                 : undefined
                         }
+                        onOpenSettings={() => setSettingsOpen(true)}
                     />
                 </div>
                 {isPeoplePanelOpen && (
@@ -150,6 +159,12 @@ export function MeetingRoom({ meetingId, onLeave }: MeetingRoomProps) {
                     />
                 )}
             </div>
+            <MeetingSettingsModal
+                isOpen={isSettingsOpen}
+                meetingId={meetingId}
+                onClose={() => setSettingsOpen(false)}
+                onSaved={() => setSettingsOpen(false)}
+            />
         </div>
     );
 }

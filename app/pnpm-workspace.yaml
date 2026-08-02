@@ -1,7 +1,7 @@
 # pnpm workspace root for the Smiski Forge app.
 #
 # Members:
-#   - .                  -> Forge app root (resolver/backend + Forge CLI)
+#   - .                  -> Forge app root (manifest.yml + Forge CLI, no code)
 #   - static/smiski-ui   -> Vite + React + TS Custom UI frontend
 #   - ../sdks/typescript -> @smiskinext/smiski-ts (in-repo, unpublished; linked
 #                           so the isolated app workspace can resolve workspace:*)

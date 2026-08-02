@@ -7,16 +7,6 @@ settings:
 importers:
 
   .:
-    dependencies:
-      '@forge/api':
-        specifier: 8.0.1-next.0
-        version: 8.0.1-next.0(typescript@5.9.3)
-      '@forge/resolver':
-        specifier: 2.0.0
-        version: 2.0.0(typescript@5.9.3)
-      '@smiskinext/sdks-jira':
-        specifier: 1001.0.0-05f20e18
-        version: 1001.0.0-05f20e18(@hey-api/openapi-ts@0.99.0(typescript@5.9.3))
     devDependencies:
       '@biomejs/biome':
         specifier: ^2.4.15
@@ -24,12 +14,6 @@ importers:
       '@forge/cli':
         specifier: ^13.1.0
         version: 13.1.0(@types/express@4.17.25)(@types/node@22.20.1)(loader-utils@2.0.4)(typescript@5.9.3)(webpack@5.108.4)
-      '@types/node':
-        specifier: ^22.0.0
-        version: 22.20.1
-      typescript:
-        specifier: ^5.5.0
-        version: 5.9.3
 
   ../sdks/typescript:
     dependencies:
@@ -52,6 +36,9 @@ importers:
       '@forge/bridge':
         specifier: 6.1.0-next.8
         version: 6.1.0-next.8(@types/react@18.3.31)(react@18.3.1)(typescript@5.9.3)
+      '@smiskinext/sdks-jira':
+        specifier: 1001.0.0-05f20e18
+        version: 1001.0.0-05f20e18(@hey-api/openapi-ts@0.99.0(typescript@5.9.3))
       '@smiskinext/smiski-ts':
         specifier: workspace:*
         version: link:../../../sdks/typescript
@@ -602,22 +589,6 @@ packages:
       '@noble/hashes': ^1.8.0 || ^2.0.0
     peerDependenciesMeta:
       '@noble/hashes':
-        optional: true
-
-  '@forge/api@8.0.1-next.0':
-    resolution: {integrity: sha512-+pv5LNc6qtwt4OP06iUPIDdAYrcwFVNpBc3KkDFmBZuCniVTUuJ+RxVM61OxgUpW/8k8c5+zTpLXcp9x1aB+wQ==}
-    peerDependencies:
-      typescript: '>=5.0.0'
-    peerDependenciesMeta:
-      typescript:
-        optional: true
-
-  '@forge/auth@1.0.0':
-    resolution: {integrity: sha512-lEwaTIS9lZAMeuf9TfuP/OyhoJz1SCoIt5ZbgbgPtG3SV/KYdI2qSW6xafnONy0iAaKJo5D3VDBEbm7K1d+qog==}
-    peerDependencies:
-      typescript: '>=5.0.0'
-    peerDependenciesMeta:
-      typescript:
         optional: true
 
   '@forge/bridge@6.1.0-next.8':
@@ -2793,9 +2764,6 @@ packages:
   he@1.2.0:
     resolution: {integrity: sha512-F/1DnUGPopORZi0ni+CvrCgHQ5FyEAHRLSApuYWMmrbSwoN2Mn/7k+Gl38gJnR7yyDZk6WLXwiGod1JOWNDKGw==}
     hasBin: true
-
-  headers-utils@3.0.2:
-    resolution: {integrity: sha512-xAxZkM1dRyGV2Ou5bzMxBPNLoRCjcX+ya7KSWybQD2KwLphxsapUVK6x/02o7f4VU6GPSXch9vNY2+gkU8tYWQ==}
 
   hidefile@3.0.0:
     resolution: {integrity: sha512-AvJ9joE59PQPGOB78smS63K60KKpTK5GBIagupfK9Hw6zpA0JKba2D9uAnDycaI8/bN30ltHWGZVXIkQ4BU6oA==}
@@ -5463,22 +5431,6 @@ snapshots:
 
   '@exodus/bytes@1.15.1': {}
 
-  '@forge/api@8.0.1-next.0(typescript@5.9.3)':
-    dependencies:
-      '@forge/auth': 1.0.0(typescript@5.9.3)
-      '@forge/egress': 3.0.0(typescript@5.9.3)
-      '@forge/i18n': 1.0.0(typescript@5.9.3)
-      '@forge/manifest': 13.1.0(typescript@5.9.3)
-      headers-utils: 3.0.2
-    optionalDependencies:
-      typescript: 5.9.3
-
-  '@forge/auth@1.0.0(typescript@5.9.3)':
-    dependencies:
-      tslib: 2.8.1
-    optionalDependencies:
-      typescript: 5.9.3
-
   '@forge/bridge@6.1.0-next.8(@types/react@18.3.31)(react@18.3.1)(typescript@5.9.3)':
     dependencies:
       '@atlaskit/adf-schema': 48.0.0(react@18.3.1)
@@ -8118,8 +8070,6 @@ snapshots:
       function-bind: 1.1.2
 
   he@1.2.0: {}
-
-  headers-utils@3.0.2: {}
 
   hidefile@3.0.0:
     dependencies:

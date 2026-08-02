@@ -7,7 +7,8 @@ export type MeetingAction =
     | 'START'
     | 'EDIT'
     | 'CANCEL'
-    | 'END';
+    | 'END'
+    | 'SETTINGS';
 
 /**
  * Centralizes Jira custom-permission inheritance for the frontend.
@@ -30,22 +31,43 @@ export function resolveMeetingPermissions(
     };
 }
 
-/** Pure action policy. Backend authorization must enforce the same rules. */
+/**
+ * Pure action policy — mirrors the backend `meet` service's actual
+ * authorization exactly (verified against
+ * `CancelMeetingApplicationService`/`EndMeetingApplicationService`/
+ * `UpdateMeetingApplicationService`): `EDIT`/`CANCEL`/`END`/`SETTINGS` require the
+ * acting user to be the meeting's host (`hostId.equals(actor)`), not merely
+ * hold the project-level `Edit Meeting` permission — that permission only
+ * gates *which* meetings a user can manage, not *whose*. `START`/`JOIN` have
+ * no host restriction backend-side (`RequestJoinApplicationService` admits
+ * any caller under the meeting's admission policy), so those stay gated on
+ * `canEditMeeting`/`canViewMeeting` alone. `SETTINGS` (backend
+ * `updateSettings`) is available on SCHEDULED and RUNNING — the domain
+ * method rejects COMPLETED/CANCELED.
+ */
 export function getAvailableMeetingActions(
     meeting: Meeting,
     permissions: MeetingPermissions,
+    currentUserAccountId: string,
 ): MeetingAction[] {
     if (permissions.isLoading || !permissions.canViewMeeting) return [];
+    const isHost = meeting.hostId === currentUserAccountId;
 
     switch (meeting.status) {
-        case 'SCHEDULED':
-            return permissions.canEditMeeting
-                ? ['VIEW_DETAIL', 'EDIT', 'START', 'CANCEL']
-                : ['VIEW_DETAIL'];
-        case 'RUNNING':
-            return permissions.canEditMeeting
-                ? ['JOIN', 'VIEW_DETAIL', 'END']
-                : ['JOIN', 'VIEW_DETAIL'];
+        case 'SCHEDULED': {
+            if (!permissions.canEditMeeting) return ['VIEW_DETAIL'];
+            const actions: MeetingAction[] = ['VIEW_DETAIL'];
+            if (isHost) actions.push('EDIT');
+            actions.push('START');
+            if (isHost) actions.push('CANCEL', 'SETTINGS');
+            return actions;
+        }
+        case 'RUNNING': {
+            if (!permissions.canEditMeeting) return ['JOIN', 'VIEW_DETAIL'];
+            const actions: MeetingAction[] = ['JOIN', 'VIEW_DETAIL'];
+            if (isHost) actions.push('END', 'SETTINGS');
+            return actions;
+        }
         case 'COMPLETED':
         case 'CANCELED':
             return ['VIEW_DETAIL', 'VIEW_HISTORY'];

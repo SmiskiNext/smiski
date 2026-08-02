@@ -20,6 +20,7 @@
  */
 import { Alert, Form, Input, Select } from 'antd';
 import { useState } from 'react';
+import type { CreateMeetingSettingsInput } from '../../api/meetings';
 import { listProjectMeetings } from '../../api/meetings';
 import type { WorkspaceUser } from '../../api/workspaceUsers';
 import { useCurrentUser } from '../../context/CurrentUserContext';
@@ -37,6 +38,7 @@ import {
     zonedWallTimeToIso,
 } from '../../utils/datetime';
 import { Button, Modal } from '../ui';
+import { AdvancedMeetingSettingsFields } from './AdvancedMeetingSettingsFields';
 import { IssuePicker } from './IssuePicker';
 import { WorkspaceUserPicker } from './WorkspaceUserPicker';
 
@@ -47,6 +49,15 @@ const TIME_ZONE_OPTIONS = listTimeZones().map((zone) => ({
 
 /** New meetings default to a 1-hour slot; the backend still requires an end time. */
 const DEFAULT_MEETING_DURATION_MS = 60 * 60 * 1000;
+
+/** Matches DEFAULT_MEETING_SETTINGS in api/meetings.ts. */
+const DEFAULT_ADVANCED_SETTINGS: CreateMeetingSettingsInput = {
+    admissionPolicy: 'ALLOW_ALL',
+    maxParticipants: 50,
+    allowScreenShare: true,
+    allowMicrophone: true,
+    allowVideo: true,
+};
 
 export interface ScheduleMeetingModalProps {
     isOpen: boolean;
@@ -59,7 +70,8 @@ export interface ScheduleMeetingModalProps {
     chrome?: 'overlay' | 'embedded';
 }
 
-interface ScheduleMeetingFormValues {
+interface ScheduleMeetingFormValues
+    extends Partial<CreateMeetingSettingsInput> {
     issueKey?: string;
     title: string;
     startDate: string;
@@ -165,6 +177,7 @@ export function ScheduleMeetingModal({
         description: meeting?.description ?? '',
         startDate: start.date,
         startTime: start.time,
+        ...(isEdit ? {} : DEFAULT_ADVANCED_SETTINGS),
     };
 
     const resetAndClose = () => {
@@ -259,6 +272,22 @@ export function ScheduleMeetingModal({
                 displayName: currentUser.displayName,
                 email: currentUser.email,
                 avatarUrl: currentUser.avatarUrl,
+            },
+            settings: {
+                admissionPolicy:
+                    values.admissionPolicy
+                    ?? DEFAULT_ADVANCED_SETTINGS.admissionPolicy,
+                maxParticipants:
+                    values.maxParticipants
+                    ?? DEFAULT_ADVANCED_SETTINGS.maxParticipants,
+                allowScreenShare:
+                    values.allowScreenShare
+                    ?? DEFAULT_ADVANCED_SETTINGS.allowScreenShare,
+                allowMicrophone:
+                    values.allowMicrophone
+                    ?? DEFAULT_ADVANCED_SETTINGS.allowMicrophone,
+                allowVideo:
+                    values.allowVideo ?? DEFAULT_ADVANCED_SETTINGS.allowVideo,
             },
         });
 
@@ -356,6 +385,7 @@ export function ScheduleMeetingModal({
                     />
                 </Form.Item>
             )}
+            {!isEdit && <AdvancedMeetingSettingsFields />}
             <Form.Item label='Description' name='description'>
                 <Input.TextArea
                     rows={4}

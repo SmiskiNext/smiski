@@ -54,7 +54,7 @@ describe('buildInstantMeetingPayload (MeetCreateInstantMeetingRequest body)', ()
             issueKey: 'SMISKI-101',
             projectKey: 'SMISKI',
         });
-        expect(payload.settings.admissionPolicy).toBe('OPEN');
+        expect(payload.settings.admissionPolicy).toBe('ALLOW_ALL');
         expect(payload.zoneId).toBeTruthy();
     });
 
@@ -84,5 +84,45 @@ describe('buildInstantMeetingPayload (MeetCreateInstantMeetingRequest body)', ()
             'web-device-123',
         );
         expect(payload.description).toBe('Solo meeting');
+    });
+
+    it('defaults settings when the caller supplies none', () => {
+        const payload = buildInstantMeetingPayload(
+            { issueKey: 'SMISKI-9', title: 'Solo meeting' },
+            'web-device-123',
+        );
+        expect(payload.settings).toEqual({
+            admissionPolicy: 'ALLOW_ALL',
+            maxParticipants: 50,
+            allowScreenShare: true,
+            chatEnabled: true,
+            allowMicrophone: true,
+            allowVideo: true,
+        });
+    });
+
+    it("merges the 'Advanced settings' form values over the defaults, keeping chatEnabled fixed", () => {
+        const payload = buildInstantMeetingPayload(
+            {
+                issueKey: 'SMISKI-9',
+                title: 'Locked-down meeting',
+                settings: {
+                    admissionPolicy: 'MANUAL_APPROVAL',
+                    maxParticipants: 10,
+                    allowScreenShare: false,
+                    allowMicrophone: false,
+                    allowVideo: false,
+                },
+            },
+            'web-device-123',
+        );
+        expect(payload.settings).toEqual({
+            admissionPolicy: 'MANUAL_APPROVAL',
+            maxParticipants: 10,
+            allowScreenShare: false,
+            chatEnabled: true,
+            allowMicrophone: false,
+            allowVideo: false,
+        });
     });
 });
