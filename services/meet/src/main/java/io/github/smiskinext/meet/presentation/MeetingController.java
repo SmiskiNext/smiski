@@ -568,7 +568,7 @@ public class MeetingController {
                               "code": "VALIDATION_ERROR",
                               "traceId": "6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a",
                               "errors": [
-                                {"field": "maxParticipants", "code": "RANGE", "message": "must be between 2 and 100"}
+                                {"field": "maxParticipants", "code": "TOO_SHORT", "message": "must be between 2 and 100"}
                               ]
                             }"""),
                                     @ExampleObject(

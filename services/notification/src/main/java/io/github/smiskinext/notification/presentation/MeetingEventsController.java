@@ -42,7 +42,10 @@ public class MeetingEventsController {
             summary = "Subscribe to a meeting's join events",
             description = "Opens a text/event-stream connection that delivers join_request_created "
                     + "events for the meeting, replays currently pending requests on subscribe, and "
-                    + "sends periodic heartbeat comments until the configured timeout.")
+                    + "sends periodic heartbeat comments (`: ka`) until the configured timeout. "
+                    + "Each event is sent as an SSE frame with an `event: join_request_created` "
+                    + "line followed by a `data:` line containing the JSON payload described in "
+                    + "the schema.")
     @ApiResponses({
         @ApiResponse(
                 responseCode = "200",
@@ -51,19 +54,12 @@ public class MeetingEventsController {
                         @Content(
                                 mediaType = MediaType.TEXT_EVENT_STREAM_VALUE,
                                 schema = @Schema(implementation = JoinRequestCreatedData.class),
-                                examples = {
-                                    @ExampleObject(
-                                            name = "joinRequestCreated",
-                                            summary = "A new join request arrived",
-                                            value = """
-                            event: join_request_created
-                            data: {"requestId":"018f4e2a-1b3c-7d8e-9f0a-1b2c3d4e5f6a","accountId":"018f4e2a-0000-7d8e-9f0a-1b2c3d4e5f6a","displayName":"Alice","avatarUrl":null}
-                            """),
-                                    @ExampleObject(
-                                            name = "heartbeat",
-                                            summary = "Periodic keep-alive comment",
-                                            value = ": ka\n")
-                                })),
+                                examples =
+                                        @ExampleObject(
+                                                name = "joinRequestCreated",
+                                                summary = "A new join request arrived",
+                                                value = """
+                            {"requestId":"018f4e2a-1b3c-7d8e-9f0a-1b2c3d4e5f6a","accountId":"018f4e2a-0000-7d8e-9f0a-1b2c3d4e5f6a","displayName":"Alice","avatarUrl":null}"""))),
         @ApiResponse(responseCode = "500", description = "Unexpected server error")
     })
     @GetMapping(value = "/meetings/{id}/events", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
@@ -81,8 +77,11 @@ public class MeetingEventsController {
             description = "Opens a text/event-stream connection scoped by request id that delivers "
                     + "the host's accept/decline outcome as a join_request_approved (token, "
                     + "roomName) or join_request_denied (reason) event, replays a decision already "
-                    + "recorded before subscribe, and sends periodic heartbeat comments until the "
-                    + "configured timeout.")
+                    + "recorded before subscribe, and sends periodic heartbeat comments (`: ka`) "
+                    + "until the configured timeout. Each event is sent as an SSE frame with an "
+                    + "`event:` line (either `join_request_approved` or `join_request_denied`) "
+                    + "followed by a `data:` line containing the JSON payload described in the "
+                    + "schema.")
     @ApiResponses({
         @ApiResponse(
                 responseCode = "200",
@@ -92,7 +91,7 @@ public class MeetingEventsController {
                                 mediaType = MediaType.TEXT_EVENT_STREAM_VALUE,
                                 schema =
                                         @Schema(
-                                                oneOf = {
+                                                anyOf = {
                                                     JoinRequestApprovedData.class,
                                                     JoinRequestDeniedData.class
                                                 }),
@@ -101,21 +100,13 @@ public class MeetingEventsController {
                                             name = "joinRequestApproved",
                                             summary = "Host approved; token + room delivered",
                                             value = """
-                            event: join_request_approved
-                            data: {"token":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.example.token","roomName":"room-018f4e2a"}
-                            """),
+                            {"token":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.example.token","roomName":"room-018f4e2a"}"""),
                                     @ExampleObject(
                                             name = "joinRequestDenied",
                                             summary =
                                                     "Host declined; optional reason, never a token",
                                             value = """
-                            event: join_request_denied
-                            data: {"reason":"HOST_DECLINED"}
-                            """),
-                                    @ExampleObject(
-                                            name = "heartbeat",
-                                            summary = "Periodic keep-alive comment",
-                                            value = ": ka\n")
+                            {"reason":"HOST_DECLINED"}""")
                                 })),
         @ApiResponse(responseCode = "500", description = "Unexpected server error")
     })

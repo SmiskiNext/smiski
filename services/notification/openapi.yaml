@@ -60,8 +60,11 @@ paths:
       description: "Opens a text/event-stream connection scoped by request id that\
         \ delivers the host's accept/decline outcome as a join_request_approved (token,\
         \ roomName) or join_request_denied (reason) event, replays a decision already\
-        \ recorded before subscribe, and sends periodic heartbeat comments until the\
-        \ configured timeout."
+        \ recorded before subscribe, and sends periodic heartbeat comments (`: ka`)\
+        \ until the configured timeout. Each event is sent as an SSE frame with an\
+        \ `event:` line (either `join_request_approved` or `join_request_denied`)\
+        \ followed by a `data:` line containing the JSON payload described in the\
+        \ schema."
       operationId: subscribeRequest
       parameters:
       - name: id
@@ -82,27 +85,21 @@ paths:
           content:
             text/event-stream:
               schema:
-                oneOf:
+                anyOf:
                 - $ref: "#/components/schemas/JoinRequestApprovedData"
                 - $ref: "#/components/schemas/JoinRequestDeniedData"
               examples:
                 joinRequestApproved:
                   summary: Host approved; token + room delivered
                   description: joinRequestApproved
-                  value: |
-                    event: join_request_approved
-                    data: {"token":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.example.token","roomName":"room-018f4e2a"}
+                  value:
+                    token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.example.token
+                    roomName: room-018f4e2a
                 joinRequestDenied:
                   summary: "Host declined; optional reason, never a token"
                   description: joinRequestDenied
-                  value: |
-                    event: join_request_denied
-                    data: {"reason":"HOST_DECLINED"}
-                heartbeat:
-                  summary: Periodic keep-alive comment
-                  description: heartbeat
-                  value: |
-                    : ka
+                  value:
+                    reason: HOST_DECLINED
         "500":
           description: Unexpected server error
           content:
@@ -136,7 +133,10 @@ paths:
       summary: Subscribe to a meeting's join events
       description: "Opens a text/event-stream connection that delivers join_request_created\
         \ events for the meeting, replays currently pending requests on subscribe,\
-        \ and sends periodic heartbeat comments until the configured timeout."
+        \ and sends periodic heartbeat comments (`: ka`) until the configured timeout.\
+        \ Each event is sent as an SSE frame with an `event: join_request_created`\
+        \ line followed by a `data:` line containing the JSON payload described in\
+        \ the schema."
       operationId: subscribe
       parameters:
       - name: id
@@ -156,14 +156,11 @@ paths:
                 joinRequestCreated:
                   summary: A new join request arrived
                   description: joinRequestCreated
-                  value: |
-                    event: join_request_created
-                    data: {"requestId":"018f4e2a-1b3c-7d8e-9f0a-1b2c3d4e5f6a","accountId":"018f4e2a-0000-7d8e-9f0a-1b2c3d4e5f6a","displayName":"Alice","avatarUrl":null}
-                heartbeat:
-                  summary: Periodic keep-alive comment
-                  description: heartbeat
-                  value: |
-                    : ka
+                  value:
+                    requestId: 018f4e2a-1b3c-7d8e-9f0a-1b2c3d4e5f6a
+                    accountId: 018f4e2a-0000-7d8e-9f0a-1b2c3d4e5f6a
+                    displayName: Alice
+                    avatarUrl: null
         "500":
           description: Unexpected server error
           content:

@@ -16,7 +16,7 @@ public record EndMeetingResponse(Meeting meeting) {
             String shortCode,
             String type,
             String status,
-            @Nullable String cancelReason,
+            @Schema(nullable = true) @Nullable String cancelReason,
             String title,
             String description,
             IssueLink issueLink,
