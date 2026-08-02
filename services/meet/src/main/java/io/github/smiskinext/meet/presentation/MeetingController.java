@@ -38,6 +38,7 @@ import io.github.smiskinext.meet.application.usecase.DeclineMeetingInviteeUseCas
 import io.github.smiskinext.meet.application.usecase.DeleteMeetingUseCase;
 import io.github.smiskinext.meet.application.usecase.EndMeetingUseCase;
 import io.github.smiskinext.meet.application.usecase.GetMeetingUseCase;
+import io.github.smiskinext.meet.application.usecase.ListIssueMeetingsUseCase;
 import io.github.smiskinext.meet.application.usecase.ListMeetingsUseCase;
 import io.github.smiskinext.meet.application.usecase.ListPendingJoinRequestsUseCase;
 import io.github.smiskinext.meet.application.usecase.RemoveMeetingInviteesUseCase;
@@ -53,6 +54,7 @@ import io.github.smiskinext.meet.presentation.request.BatchDeleteMeetingsRequest
 import io.github.smiskinext.meet.presentation.request.CreateInstantMeetingRequest;
 import io.github.smiskinext.meet.presentation.request.HandleJoinRequestsRequest;
 import io.github.smiskinext.meet.presentation.request.JoinMeetingRequest;
+import io.github.smiskinext.meet.presentation.request.ListIssueMeetingsRequest;
 import io.github.smiskinext.meet.presentation.request.ListMeetingsRequest;
 import io.github.smiskinext.meet.presentation.request.RemoveMeetingInviteesRequest;
 import io.github.smiskinext.meet.presentation.request.ScheduleMeetingRequest;
@@ -65,6 +67,7 @@ import io.github.smiskinext.meet.presentation.response.CreateInstantMeetingRespo
 import io.github.smiskinext.meet.presentation.response.DeleteMeetingResponse;
 import io.github.smiskinext.meet.presentation.response.EndMeetingResponse;
 import io.github.smiskinext.meet.presentation.response.GetMeetingResponse;
+import io.github.smiskinext.meet.presentation.response.IssueMeetingListPageResponse;
 import io.github.smiskinext.meet.presentation.response.JoinDecisionResponse;
 import io.github.smiskinext.meet.presentation.response.JoinMeetingResponse;
 import io.github.smiskinext.meet.presentation.response.ListPendingJoinRequestsResponse;
@@ -131,6 +134,7 @@ public class MeetingController {
     private final AcceptMeetingInviteeUseCase acceptMeetingInviteeUseCase;
     private final DeclineMeetingInviteeUseCase declineMeetingInviteeUseCase;
     private final TentativeMeetingInviteeUseCase tentativeMeetingInviteeUseCase;
+    private final ListIssueMeetingsUseCase listIssueMeetingsUseCase;
     private final ResultResponder responder;
 
     public MeetingController(
@@ -153,6 +157,7 @@ public class MeetingController {
             AcceptMeetingInviteeUseCase acceptMeetingInviteeUseCase,
             DeclineMeetingInviteeUseCase declineMeetingInviteeUseCase,
             TentativeMeetingInviteeUseCase tentativeMeetingInviteeUseCase,
+            ListIssueMeetingsUseCase listIssueMeetingsUseCase,
             ResultResponder responder) {
         this.createInstantMeetingUseCase = createInstantMeetingUseCase;
         this.scheduleMeetingUseCase = scheduleMeetingUseCase;
@@ -173,13 +178,14 @@ public class MeetingController {
         this.acceptMeetingInviteeUseCase = acceptMeetingInviteeUseCase;
         this.declineMeetingInviteeUseCase = declineMeetingInviteeUseCase;
         this.tentativeMeetingInviteeUseCase = tentativeMeetingInviteeUseCase;
+        this.listIssueMeetingsUseCase = listIssueMeetingsUseCase;
         this.responder = responder;
     }
 
     @Operation(
             summary = "List tenant meetings",
             description = "Lists meetings in the caller's tenant with optional creator, status, "
-                    + "issue, and text filters, two sort modes, and opaque keyset pagination. "
+                    + "issue, project, and text filters, two sort modes, and opaque keyset pagination. "
                     + "The request body is optional; an empty body lists with defaults.")
     @ApiResponses({
         @ApiResponse(
@@ -198,7 +204,9 @@ public class MeetingController {
                               "shortCode": "abc-defg-hij",
                               "title": "Sprint planning",
                               "description": "Plan the next sprint",
+                              "issueId": "issue-SMISKI-102",
                               "issueKey": "SMISKI-102",
+                              "projectKey": "SMISKI",
                               "type": "SCHEDULED",
                               "status": "SCHEDULED",
                               "startTime": "2025-02-01T14:00:00Z",
@@ -265,7 +273,7 @@ public class MeetingController {
 
         ListMeetingsRequest effectiveRequest = request != null
                 ? request
-                : new ListMeetingsRequest(null, null, null, null, null, null, null);
+                : new ListMeetingsRequest(null, null, null, null, null, null, null, null);
         String tenantId = TenantContext.getCurrentTenant();
 
         Result<ListMeetingsResult, ListMeetingsError> result =
@@ -2453,6 +2461,124 @@ public class MeetingController {
         Result<EndMeetingResult, MeetingError> result =
                 endMeetingUseCase.execute(new EndMeetingCommand(id, tenantId, accountId));
         return responder.ok(result.map(EndMeetingResponse::from));
+    }
+
+    @Operation(
+            summary = "List meetings linked to a Jira issue",
+            description = "Lists meetings linked to the specified Jira issue id using offset "
+                    + "pagination. This POST on a nested collection denotes a list/search operation "
+                    + "and does NOT create a meeting. The request body carries optional offset and "
+                    + "pageSize; an empty body uses defaults (offset 0, pageSize 20).")
+    @ApiResponses({
+        @ApiResponse(
+                responseCode = "200",
+                description = "Offset-paginated page of issue meetings",
+                content =
+                        @Content(
+                                mediaType = "application/json",
+                                schema =
+                                        @Schema(
+                                                implementation =
+                                                        IssueMeetingListPageResponse.class),
+                                examples = @ExampleObject(name = "page", value = """
+                        {
+                          "data": [
+                            {
+                              "id": "0195e0c2-8f3a-7c21-b9d4-2f1a6e7c8d90",
+                              "hostId": "account-123",
+                              "shortCode": "abc-defg-hij",
+                              "title": "Sprint planning",
+                              "description": "Plan the next sprint",
+                              "issueId": "10102",
+                              "issueKey": "SMISKI-102",
+                              "projectKey": "SMISKI",
+                              "type": "SCHEDULED",
+                              "status": "SCHEDULED",
+                              "startTime": "2025-02-01T14:00:00Z",
+                              "endTime": "2025-02-01T15:00:00Z",
+                              "createdAt": "2025-01-15T10:30:00Z",
+                              "settings": {
+                                "admissionPolicy": "MANUAL_APPROVAL",
+                                "maxParticipants": 50,
+                                "allowScreenShare": true,
+                                "chatEnabled": true,
+                                "allowMicrophone": true,
+                                "allowVideo": true
+                              }
+                            }
+                          ],
+                          "meta": {"total": 3, "offset": 0, "pageSize": 20, "hasNext": false}
+                        }"""))),
+        @ApiResponse(
+                responseCode = "400",
+                description = "Missing account header or request validation failure",
+                content =
+                        @Content(
+                                mediaType = "application/problem+json",
+                                schema = @Schema(implementation = ProblemDetailSchema.class),
+                                examples = {
+                                    @ExampleObject(
+                                            name = "missingAccount",
+                                            summary = "Missing X-Account-Id header",
+                                            value = """
+                            {
+                              "type": "about:blank",
+                              "title": "Bad Request",
+                              "status": 400,
+                              "detail": "X-Account-Id header is required",
+                              "code": "VALIDATION_ERROR",
+                              "traceId": "6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a"
+                            }"""),
+                                    @ExampleObject(
+                                            name = "validationError",
+                                            summary = "pageSize out of range",
+                                            value = """
+                            {
+                              "type": "about:blank",
+                              "title": "Bad Request",
+                              "status": 400,
+                              "detail": "Request validation failed",
+                              "code": "VALIDATION_ERROR",
+                              "traceId": "6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a",
+                              "errors": [
+                                {"field": "pageSize", "code": "TOO_LONG", "message": "must be less than or equal to 50"}
+                              ]
+                            }"""),
+                                    @ExampleObject(
+                                            name = "negativeOffset",
+                                            summary = "offset is negative",
+                                            value = """
+                            {
+                              "type": "about:blank",
+                              "title": "Bad Request",
+                              "status": 400,
+                              "detail": "Request validation failed",
+                              "code": "VALIDATION_ERROR",
+                              "traceId": "6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a",
+                              "errors": [
+                                {"field": "offset", "code": "TOO_SHORT", "message": "must be greater than or equal to 0"}
+                              ]
+                            }""")
+                                }))
+    })
+    @PostMapping("/issues/{issueId}/meetings")
+    @PreAuthorize("hasAuthority('view-meeting')")
+    public ResponseEntity<Object> listIssueMeetings(
+            @PathVariable String issueId,
+            @Valid @RequestBody(required = false) ListIssueMeetingsRequest request) {
+        String accountId = AccountContext.getCurrentAccount().orElse(null);
+        if (accountId == null) {
+            return missingAccount();
+        }
+
+        ListIssueMeetingsRequest effectiveRequest =
+                request != null ? request : new ListIssueMeetingsRequest(null, null);
+
+        String tenantId = TenantContext.getCurrentTenant();
+        var result = listIssueMeetingsUseCase.execute(
+                effectiveRequest.toQuery(issueId, tenantId, accountId));
+
+        return responder.ok(result.map(IssueMeetingListPageResponse::from));
     }
 
     private static ResponseEntity<Object> missingAccount() {

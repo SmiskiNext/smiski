@@ -65,6 +65,7 @@ public class ListMeetingsApplicationService implements ListMeetingsUseCase {
                 query.search(),
                 query.statuses(),
                 query.issueKey(),
+                query.projectKey(),
                 query.sort(),
                 position);
 

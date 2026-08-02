@@ -14,6 +14,7 @@ import io.github.smiskinext.meet.domain.projection.MeetingSortField;
 import io.github.smiskinext.meet.domain.projection.MeetingSummary;
 import io.github.smiskinext.meet.domain.projection.ParticipatedMeetingSummary;
 import io.github.smiskinext.shared.domain.CursorPageResponse;
+import io.github.smiskinext.shared.domain.OffsetPageResponse;
 import jakarta.persistence.criteria.CriteriaBuilder;
 import jakarta.persistence.criteria.Expression;
 import jakarta.persistence.criteria.Predicate;
@@ -26,6 +27,8 @@ import java.util.Set;
 import java.util.UUID;
 import org.jspecify.annotations.Nullable;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.JpaSort;
 import org.springframework.data.jpa.domain.Specification;
@@ -159,6 +162,10 @@ public class MeetingRepositoryAdapter implements MeetingRepository {
             specification = specification.and(issueKeyIs(criteria.issueKey()));
         }
 
+        if (criteria.projectKey() != null && !criteria.projectKey().isBlank()) {
+            specification = specification.and(projectKeyIs(criteria.projectKey()));
+        }
+
         if (criteria.search() != null && !criteria.search().isBlank()) {
             specification = specification.and(matchesSearch(criteria.search()));
         }
@@ -185,6 +192,14 @@ public class MeetingRepositoryAdapter implements MeetingRepository {
 
     private static Specification<MeetingJpaEntity> issueKeyIs(String issueKey) {
         return (root, query, cb) -> cb.equal(root.get("issueKey"), issueKey);
+    }
+
+    private static Specification<MeetingJpaEntity> issueIdIs(String issueId) {
+        return (root, query, cb) -> cb.equal(root.get("issueId"), issueId);
+    }
+
+    private static Specification<MeetingJpaEntity> projectKeyIs(String projectKey) {
+        return (root, query, cb) -> cb.equal(root.get("projectKey"), projectKey);
     }
 
     private static Specification<MeetingJpaEntity> matchesSearch(String search) {
@@ -238,13 +253,37 @@ public class MeetingRepositoryAdapter implements MeetingRepository {
                 entity.getShortCode(),
                 entity.getTitle(),
                 entity.getDescription(),
+                entity.getIssueId(),
                 entity.getIssueKey(),
+                entity.getProjectKey(),
                 entity.getStartTime(),
                 entity.getEndTime(),
                 MeetingType.valueOf(entity.getType()),
                 MeetingStatus.valueOf(entity.getStatus()),
                 entity.getSettings(),
                 entity.getCreatedAt());
+    }
+
+    @Override
+    public IssueMeetingPage findSummariesByIssueId(String issueId, int offset, int pageSize) {
+        Specification<MeetingJpaEntity> spec = notDeleted().and(issueIdIs(issueId));
+        Sort sort =
+                Sort.by(Sort.Direction.DESC, "createdAt").and(Sort.by(Sort.Direction.DESC, "id"));
+
+        Pageable pageable = new OffsetBasedPageable(offset, pageSize, sort);
+        Page<MeetingJpaEntity> page = jpaRepository.findAll(spec, pageable);
+
+        List<MeetingSummary> summaries = page.getContent().stream()
+                .map(MeetingRepositoryAdapter::toSummary)
+                .toList();
+
+        long total = page.getTotalElements();
+        boolean hasNext = offset + summaries.size() < total;
+
+        OffsetPageResponse<MeetingSummary> offsetPage =
+                OffsetPageResponse.of(summaries, pageSize, offset, hasNext);
+
+        return new IssueMeetingPage(offsetPage, total);
     }
 
     /** TODO: Implement in a later slice for participated meetings list. */

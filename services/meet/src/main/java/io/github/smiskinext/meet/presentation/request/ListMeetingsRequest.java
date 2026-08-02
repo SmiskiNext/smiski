@@ -14,13 +14,14 @@ import org.jspecify.annotations.Nullable;
  * Request body for listing tenant meetings. Every field is optional; an absent or empty body lists
  * the tenant's meetings with defaults.
  *
- * @param creatorId filters to a single host; omit for every creator in the tenant
- * @param search    case-insensitive substring over title and issue key
- * @param statuses  restricts to the supplied statuses; omit or empty for any status
- * @param issueKey  exact linked Jira issue key filter
- * @param sort      ordering mode; defaults to {@code CREATED_AT}
- * @param pageSize  page size; defaults to 20, rejected when greater than 50
- * @param pageToken opaque continuation cursor from a previous response
+ * @param creatorId  filters to a single host; omit for every creator in the tenant
+ * @param search     case-insensitive substring over title and issue key
+ * @param statuses   restricts to the supplied statuses; omit or empty for any status
+ * @param issueKey   exact linked Jira issue key filter
+ * @param projectKey exact linked Jira project key filter
+ * @param sort       ordering mode; defaults to {@code CREATED_AT}
+ * @param pageSize   page size; defaults to 20, rejected when greater than 50
+ * @param pageToken  opaque continuation cursor from a previous response
  */
 @Schema(description = "Filters and pagination for listing tenant meetings")
 public record ListMeetingsRequest(
@@ -39,6 +40,9 @@ public record ListMeetingsRequest(
                 example = "SMISKI-102",
                 nullable = true)
         @Nullable String issueKey,
+
+        @Schema(description = "Exact linked Jira project key", example = "SMISKI", nullable = true)
+        @Nullable String projectKey,
 
         @Schema(description = "Ordering mode", nullable = true) @Nullable MeetingSortField sort,
 
@@ -61,6 +65,7 @@ public record ListMeetingsRequest(
                 search,
                 statusSet,
                 issueKey,
+                projectKey,
                 resolvedSort,
                 resolvedPageSize,
                 pageToken);
