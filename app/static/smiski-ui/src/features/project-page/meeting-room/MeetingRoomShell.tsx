@@ -42,6 +42,12 @@ export interface MeetingRoomShellProps {
     mediaNotice?: string | null;
     /** Surfaces `useLiveKitRoom`'s connection state for debugging/trial visibility. */
     connectionState?: LiveKitConnectionState;
+    /**
+     * Opens `MeetingSettingsModal` for this meeting. Rendered only when
+     * provided *and* `meeting.hostId === selfAccountId` — non-hosts never
+     * see the button.
+     */
+    onOpenSettings?: () => void;
 }
 
 function useElapsedTime(startTime?: string): string {
@@ -82,7 +88,8 @@ function ControlButton({
         | 'cameraOff'
         | 'screen'
         | 'people'
-        | 'phoneOff';
+        | 'phoneOff'
+        | 'settings';
     active?: boolean;
     danger?: boolean;
     disabled?: boolean;
@@ -143,6 +150,7 @@ export function MeetingRoomShell({
     onToggleScreenShare,
     mediaNotice,
     connectionState,
+    onOpenSettings,
 }: MeetingRoomShellProps) {
     const [localMicOn, setLocalMicOn] = useState(true);
     const [localCameraOn, setLocalCameraOn] = useState(true);
@@ -161,6 +169,7 @@ export function MeetingRoomShell({
     const canShareScreen = meeting?.settings?.allowScreenShare ?? true;
     const canUseMic = meeting?.settings?.allowMicrophone ?? true;
     const canUseCamera = meeting?.settings?.allowVideo ?? true;
+    const isHost = Boolean(meeting) && meeting?.hostId === selfAccountId;
     const elapsed = useElapsedTime(meeting?.startedAt);
     return (
         <section className='overflow-hidden rounded-3xl border border-slate-700 bg-slate-950 shadow-panel'>
@@ -276,6 +285,14 @@ export function MeetingRoomShell({
                         }
                         onClick={handleToggleScreenShare}
                     />
+                    {isHost && onOpenSettings && (
+                        <ControlButton
+                            label='Settings'
+                            icon='settings'
+                            active={false}
+                            onClick={onOpenSettings}
+                        />
+                    )}
                     <ControlButton
                         label='People'
                         icon='people'
