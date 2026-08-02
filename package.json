@@ -17,13 +17,15 @@
         "sdk:generate": "pnpm --dir sdks/typescript --ignore-workspace run generate",
         "sdk:typecheck": "pnpm --dir sdks/typescript --ignore-workspace run typecheck",
         "sdk:build": "pnpm --dir sdks/typescript --ignore-workspace run build",
-        "sdk:pack": "pnpm --dir sdks/typescript --ignore-workspace run pack:check"
+        "sdk:pack": "pnpm --dir sdks/typescript --ignore-workspace run pack:check",
+        "release:sdk": "pnpm run sdk:build && pnpm --dir sdks/typescript --ignore-workspace publish --no-git-checks"
     },
     "keywords": [],
     "author": "",
     "license": "Apache-2.0",
     "packageManager": "pnpm@11.10.0",
     "devDependencies": {
+        "@changesets/cli": "3.0.0-next.10",
         "@commitlint/cli": "^21.2.1",
         "@commitlint/config-conventional": "^21.2.0",
         "@redocly/cli": "^2.41.1",
