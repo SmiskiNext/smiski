@@ -31,8 +31,8 @@ check the specific hook/API function first.
 Two pnpm workspace packages (`pnpm-workspace.yaml`):
 
 - **root** (`.`) — the Forge app: `manifest.yml` only, no code. There is no
-  Forge resolver/function in this app (removed — see below); this package
-  exists solely to own the Forge CLI and workspace root.
+  Forge resolver/function in this app (removed — see below); this package exists
+  solely to own the Forge CLI and workspace root.
 - **`static/smiski-ui/`** — the Custom UI frontend: Vite + React 18 + TS +
   Tailwind v4 + TanStack Query + Ant Design + LiveKit client. This is the _only_
   UI bundle; both Forge modules render it.
@@ -86,8 +86,8 @@ when `context.extension.modal.kind` is set. Module keys are centralized in
 
 **Jira and backend calls happen directly in the browser — there is no
 resolver.** Forge bridge v2+ supports calling Jira REST APIs from Custom UI
-natively (`@forge/bridge`'s `requestJira`), so nothing in this app needs a
-Forge function/resolver hop. Reality today, all in `static/smiski-ui/src/api/`:
+natively (`@forge/bridge`'s `requestJira`), so nothing in this app needs a Forge
+function/resolver hop. Reality today, all in `static/smiski-ui/src/api/`:
 
 - `workspaceUsers.ts`'s `searchWorkspaceUsers` — implemented; queries Jira as
   the invoking user via `@forge/bridge`'s `requestJira` through the
@@ -100,10 +100,10 @@ Forge function/resolver hop. Reality today, all in `static/smiski-ui/src/api/`:
   permission keys from `GET /rest/api/3/permissions` — Jira may not echo back
   the bare manifest `key`. **UI gating only** — the `meet` backend does not yet
   re-check this; see "Backend permission enforcement (not yet built)" below.
-- `meetings.ts`'s `listProjectMeetings` — stub that throws directly (no
-  resolver involved). The real backend's `list` operation has no project-wide
-  filter (only an exact `issueKey`, `creatorId`, `statuses`, or `search`
-  filter), so the project-page dashboard listing has no backend to call yet.
+- `meetings.ts`'s `listProjectMeetings` — stub that throws directly (no resolver
+  involved). The real backend's `list` operation has no project-wide filter
+  (only an exact `issueKey`, `creatorId`, `statuses`, or `search` filter), so
+  the project-page dashboard listing has no backend to call yet.
 - There is **no** resolver-backed `getRoomToken`, `getIssueMeetings`,
   `scheduleMeeting`, `createInstantMeeting`, `getMeeting`, `updateMeeting`,
   `cancelMeeting`, `endMeeting`, `updateMeetingSettings`, `joinMeeting`, or
@@ -144,11 +144,10 @@ same `getMeeting` query), `useIssueMeetings`, `useCreateInstantMeeting`,
 `useScheduleMeeting`, `useUpdateMeeting`, `useCancelMeeting`, `useEndMeeting`,
 `useUpdateMeetingSettings` (not wired to any UI yet), `useStartMeeting` (joins
 as host), and `useRoomToken`. The one exception is `useProjectMeetings`, which
-calls `listProjectMeetings` — a stub that throws directly (see "Jira and
-backend calls happen directly in the browser" above). Standalone `vite dev`
-therefore cannot list/create/update/cancel/start meetings or enter a room —
-there is no Forge bridge and no Forge Remote binding to reach the backend
-through.
+calls `listProjectMeetings` — a stub that throws directly (see "Jira and backend
+calls happen directly in the browser" above). Standalone `vite dev` therefore
+cannot list/create/update/cancel/start meetings or enter a room — there is no
+Forge bridge and no Forge Remote binding to reach the backend through.
 
 The `shouldUseBackendApi()` / `VITE_SMISKI_DATA_SOURCE` switch described in
 `api/README.md` never existed in code — treat that README as aspirational.
@@ -243,5 +242,5 @@ with `client.ts`/`endpoints.ts`/`participants.ts`/`recordings.ts`) that the
 current code does not implement. When docs and code disagree, trust the code.
 `PERMISSION.md`'s permission _model_ (View/Edit Meeting, the state×permission
 matrix) is accurate and now partially implemented (frontend, per "Backend
-permission enforcement" above) — its §7 backend re-check requirement is the
-part still outstanding.
+permission enforcement" above) — its §7 backend re-check requirement is the part
+still outstanding.
