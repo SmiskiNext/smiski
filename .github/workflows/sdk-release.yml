@@ -24,14 +24,13 @@ jobs:
 
             - uses: jdx/mise-action@e6a8b3978addb5a52f2b4cd9d91eafa7f0ab959d # v4
 
+            - name: Configure GitHub Packages
+              uses: ./.github/actions/configure-github-packages
+              with:
+                  token: ${{ secrets.GITHUB_TOKEN }}
+
             - name: Install dependencies
               run: pnpm install --frozen-lockfile
-
-            - name: Configure GitHub Packages
-              run: |
-                  printf '%s\n' '@smiskinext:registry=https://npm.pkg.github.com' '//npm.pkg.github.com/:_authToken=${NODE_AUTH_TOKEN}' > "$HOME/.npmrc"
-              env:
-                  NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
             - name: Create release PR or publish SDK
               id: changesets
