@@ -8,6 +8,7 @@ import io.github.smiskinext.notification.domain.model.CalendarEmail;
 import io.github.smiskinext.notification.domain.port.EmailSender;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 /**
@@ -23,9 +24,14 @@ public class ResendEmailSender implements EmailSender {
     private final Resend resend;
     private final String sender;
 
+    @Autowired
     public ResendEmailSender(EmailProperties properties) {
-        this.resend = new Resend(properties.getApiKey());
-        this.sender = properties.getSender();
+        this(new Resend(properties.getApiKey()), properties.getSender());
+    }
+
+    ResendEmailSender(Resend resend, String sender) {
+        this.resend = resend;
+        this.sender = sender;
     }
 
     @Override
@@ -38,16 +44,19 @@ public class ResendEmailSender implements EmailSender {
                 .contentType("text/calendar; method=" + email.calendarMethod())
                 .build();
 
-        CreateEmailOptions options = CreateEmailOptions.builder()
+        CreateEmailOptions.Builder optionsBuilder = CreateEmailOptions.builder()
                 .from(sender)
                 .to(email.recipient())
                 .subject(email.subject())
                 .text(email.body())
-                .attachments(attachment)
-                .build();
+                .attachments(attachment);
+
+        if (email.htmlBody() != null) {
+            optionsBuilder.html(email.htmlBody());
+        }
 
         try {
-            resend.emails().send(options);
+            resend.emails().send(optionsBuilder.build());
         } catch (ResendException e) {
             throw new EmailDeliveryException(
                     "Failed to send calendar email to " + email.recipient(), e);

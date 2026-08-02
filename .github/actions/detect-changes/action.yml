@@ -21,7 +21,7 @@ outputs:
     openapi_services:
         description:
             JSON array of changed services that emit OpenAPI specs (tenant,
-            meet)
+            meet, notification)
         value: ${{ steps.build-matrix.outputs.openapi_services }}
 
 runs:
@@ -83,6 +83,7 @@ runs:
               fi
               if [[ "${{ steps.filter.outputs.notification }}" == "true" ]]; then
                 services+=("notification")
+                openapi_services+=("notification")
               fi
 
               services_json=$(printf '%s\n' "${services[@]}" | jq -R . | jq -sc .)

@@ -19,4 +19,8 @@ public record MeetingContext(
         String organizerEmail,
         String organizerDisplayName,
         String calendarUid,
-        int calendarSequence) {}
+        int calendarSequence,
+        String issueId,
+        String issueKey,
+        String projectKey,
+        String shortCode) {}

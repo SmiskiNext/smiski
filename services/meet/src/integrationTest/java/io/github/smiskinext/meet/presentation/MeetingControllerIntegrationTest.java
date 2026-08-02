@@ -811,10 +811,13 @@ class MeetingControllerIntegrationTest {
                     JsonPath.read(result.getResponse().getContentAsString(), "$.meeting.id");
 
             List<Map<String, Object>> meetings = jdbcTemplate.queryForList(
-                    "SELECT type, status FROM meetings WHERE id = ?::uuid", meetingId);
+                    "SELECT type, status, start_time, end_time FROM meetings WHERE id = ?::uuid",
+                    meetingId);
             assertThat(meetings).hasSize(1);
             assertThat(meetings.getFirst().get("type").toString()).isEqualTo("INSTANT");
             assertThat(meetings.getFirst().get("status").toString()).isEqualTo("RUNNING");
+            assertThat(meetings.getFirst().get("start_time")).isNotNull();
+            assertThat(meetings.getFirst().get("end_time")).isNotNull();
 
             assertThat(jdbcTemplate.queryForObject(
                             "SELECT COUNT(*) FROM meeting_invitees WHERE meeting_id = ?::uuid",

@@ -7,6 +7,7 @@ import io.github.smiskinext.meet.domain.model.Meeting;
 import io.github.smiskinext.meet.domain.model.valueobject.*;
 import io.github.smiskinext.shared.domain.DomainEvent;
 import io.github.smiskinext.shared.domain.valueobject.TenantId;
+import java.time.Duration;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
@@ -47,7 +48,8 @@ class MeetingRecordInviteesChangeTest {
                 MeetingTimeZone.of("UTC"),
                 Email.of("host@test.com"),
                 InviteeDisplayName.of("Host"),
-                ShortCode.of("ABC123DEF0"));
+                ShortCode.of("ABC123DEF0"),
+                Duration.ofHours(1));
         meeting.clearDomainEvents();
         return meeting;
     }

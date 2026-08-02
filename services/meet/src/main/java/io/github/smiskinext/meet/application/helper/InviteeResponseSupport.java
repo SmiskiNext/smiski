@@ -44,6 +44,10 @@ public final class InviteeResponseSupport {
                 meeting.getOrganizerEmail().value(),
                 meeting.getOrganizerDisplayName().value(),
                 meeting.getCalendarUid(),
-                meeting.getCalendarSequence());
+                meeting.getCalendarSequence(),
+                meeting.getIssueLink().issueId(),
+                meeting.getIssueLink().issueKey(),
+                meeting.getIssueLink().projectKey(),
+                meeting.getShortCode().value());
     }
 }

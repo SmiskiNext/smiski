@@ -5,10 +5,9 @@ import com.google.protobuf.util.JsonFormat;
 import io.cloudevents.CloudEvent;
 import io.cloudevents.CloudEventData;
 import io.github.smiskinext.event.meet.v1.JoinCreated;
-import io.github.smiskinext.notification.application.sse.JoinRequestCreatedData;
-import io.github.smiskinext.notification.application.sse.SseConnectionManager;
+import io.github.smiskinext.notification.application.command.RelayJoinCreatedCommand;
+import io.github.smiskinext.notification.application.usecase.RelayJoinCreatedUseCase;
 import io.github.smiskinext.notification.domain.model.PendingJoinRequest;
-import io.github.smiskinext.notification.domain.port.PendingJoinRequestStore;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.Instant;
@@ -24,9 +23,9 @@ import org.springframework.stereotype.Component;
  *
  * <p>The outbox publishes each event as CloudEvents 1.0 structured JSON whose {@code data} is the
  * {@code JoinCreated} proto rendered as proto-JSON. This consumer parses the {@code data} back into
- * the typed {@link JoinCreated} proto message via {@link JsonFormat}, upserts the
- * {@link PendingJoinRequestStore} so a host subscribing later can replay the pending set, and pushes
- * a {@code join_request_created} event to the host emitters held locally.
+ * the typed {@link JoinCreated} proto message via {@link JsonFormat}, constructs a
+ * {@link RelayJoinCreatedCommand}, and delegates to {@link RelayJoinCreatedUseCase} which
+ * persists the pending request and pushes it to all locally-held host emitters.
  *
  * <p>Each replica consumes under its own group (see {@code KafkaConfig}) so every replica receives
  * every event and pushes to whatever emitters it holds. A message that cannot be decoded into a
@@ -39,14 +38,10 @@ public class JoinCreatedEventConsumer {
 
     private static final Duration JOIN_REQUEST_TTL = Duration.ofMinutes(5);
 
-    private final SseConnectionManager sseConnectionManager;
-    private final PendingJoinRequestStore pendingJoinRequestStore;
+    private final RelayJoinCreatedUseCase relayJoinCreatedUseCase;
 
-    public JoinCreatedEventConsumer(
-            SseConnectionManager sseConnectionManager,
-            PendingJoinRequestStore pendingJoinRequestStore) {
-        this.sseConnectionManager = sseConnectionManager;
-        this.pendingJoinRequestStore = pendingJoinRequestStore;
+    public JoinCreatedEventConsumer(RelayJoinCreatedUseCase relayJoinCreatedUseCase) {
+        this.relayJoinCreatedUseCase = relayJoinCreatedUseCase;
     }
 
     @KafkaListener(
@@ -55,14 +50,8 @@ public class JoinCreatedEventConsumer {
     public void onMessage(CloudEvent event) {
         try {
             PendingJoinRequest request = decode(event);
-            pendingJoinRequestStore.upsert(request);
-            sseConnectionManager.pushJoinRequestCreated(
-                    request.meetingId(),
-                    new JoinRequestCreatedData(
-                            request.joinRequestId().toString(),
-                            request.accountId(),
-                            request.displayName(),
-                            request.avatarUrl()));
+            relayJoinCreatedUseCase.execute(
+                    new RelayJoinCreatedCommand(request.meetingId(), request));
         } catch (RuntimeException e) {
             log.warn(
                     "Skipping malformed meet.join.created event id={}: {}",

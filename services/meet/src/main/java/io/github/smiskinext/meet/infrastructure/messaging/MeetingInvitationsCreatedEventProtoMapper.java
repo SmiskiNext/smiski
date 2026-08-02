@@ -30,7 +30,10 @@ public class MeetingInvitationsCreatedEventProtoMapper
                 .setMeetingShortCode(event.meetingShortCode())
                 .setZoneId(event.zoneId())
                 .setCalendarUid(event.calendarUid())
-                .setCalendarSequence(event.calendarSequence());
+                .setCalendarSequence(event.calendarSequence())
+                .setIssueId(event.issueId())
+                .setIssueKey(event.issueKey())
+                .setProjectKey(event.projectKey());
 
         if (event.organizerEmail() != null) builder.setOrganizerEmail(event.organizerEmail());
         if (event.organizerDisplayName() != null) {

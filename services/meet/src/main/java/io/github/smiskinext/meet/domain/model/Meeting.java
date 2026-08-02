@@ -173,8 +173,10 @@ public class Meeting extends AggregateRoot<MeetingId> {
     }
 
     /**
-     * Creates a new INSTANT meeting (starts immediately, no scheduled time).
+     * Creates a new INSTANT meeting (starts immediately with a scheduled time range).
      * Registers {@code MeetingCreatedEvent}.
+     *
+     * @param defaultDuration the configured instant-meeting duration (must be positive)
      */
     public static Meeting instant(
             TenantId tenantId,
@@ -186,9 +188,11 @@ public class Meeting extends AggregateRoot<MeetingId> {
             MeetingTimeZone timeZone,
             Email organizerEmail,
             InviteeDisplayName organizerDisplayName,
-            ShortCode shortCode) {
+            ShortCode shortCode,
+            Duration defaultDuration) {
         MeetingId id = MeetingId.of(UuidCreator.getTimeOrderedEpoch());
         Instant now = Instant.now();
+        MeetingTimeRange timeRange = MeetingTimeRange.of(now, now.plus(defaultDuration));
         Meeting meeting = new Meeting(
                 tenantId,
                 id,
@@ -197,7 +201,7 @@ public class Meeting extends AggregateRoot<MeetingId> {
                 title,
                 description,
                 issueLink,
-                null,
+                timeRange,
                 MeetingType.INSTANT,
                 MeetingStatus.SCHEDULED,
                 settings,
@@ -221,8 +225,8 @@ public class Meeting extends AggregateRoot<MeetingId> {
                 issueLink.issueId(),
                 issueLink.issueKey(),
                 issueLink.projectKey(),
-                null,
-                null,
+                timeRange.start(),
+                timeRange.end(),
                 settings,
                 timeZone.value(),
                 organizerEmail.value(),
@@ -372,6 +376,9 @@ public class Meeting extends AggregateRoot<MeetingId> {
                 calendarUid,
                 calendarSequence,
                 List.copyOf(invitees),
+                issueLink.issueId(),
+                issueLink.issueKey(),
+                issueLink.projectKey(),
                 Instant.now()));
     }
 
@@ -463,6 +470,7 @@ public class Meeting extends AggregateRoot<MeetingId> {
                 hostId.value(),
                 updatedBy.value(),
                 status,
+                shortCode.value(),
                 oldInfo,
                 infoSnapshot(),
                 List.copyOf(invitees),

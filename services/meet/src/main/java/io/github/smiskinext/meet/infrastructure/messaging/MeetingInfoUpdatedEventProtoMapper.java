@@ -32,6 +32,7 @@ public class MeetingInfoUpdatedEventProtoMapper
                 .setHostId(event.hostId())
                 .setUpdatedBy(event.updatedBy())
                 .setStatus(event.meetingStatus().name())
+                .setShortCode(event.shortCode())
                 .setOldInfo(toProto(event.oldInfo()))
                 .setNewInfo(toProto(event.newInfo()))
                 .setUpdatedAt(event.updatedAt().toString());

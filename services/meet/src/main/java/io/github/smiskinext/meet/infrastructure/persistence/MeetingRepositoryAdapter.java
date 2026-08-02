@@ -119,6 +119,11 @@ public class MeetingRepositoryAdapter implements MeetingRepository {
     }
 
     @Override
+    public Optional<Meeting> findByCalendarUid(String calendarUid) {
+        return jpaRepository.findByCalendarUid(calendarUid).map(MeetingPersistenceMapper::toDomain);
+    }
+
+    @Override
     public CursorPageResponse<MeetingSummary> searchSummaries(
             MeetingSearchCriteria criteria, int pageSize) {
         Specification<MeetingJpaEntity> specification = searchSpecification(criteria);

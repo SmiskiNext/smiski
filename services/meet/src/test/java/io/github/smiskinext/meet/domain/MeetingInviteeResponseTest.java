@@ -111,7 +111,18 @@ class MeetingInviteeResponseTest {
 
     private static MeetingContext context() {
         return new MeetingContext(
-                "Sprint Review", START, END, "UTC", "host@example.com", "Host User", "uid-42", 3);
+                "Sprint Review",
+                START,
+                END,
+                "UTC",
+                "host@example.com",
+                "Host User",
+                "uid-42",
+                3,
+                "issue-1",
+                "PROJ-1",
+                "PROJ",
+                "ABC123");
     }
 
     @SuppressWarnings("unchecked")

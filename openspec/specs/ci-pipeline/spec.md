@@ -39,9 +39,9 @@ step. The action SHALL classify changed paths and expose: a `services` output
 containing a JSON array of the changed backend service names for use as a job
 matrix, boolean outputs `app`, `scripts`, `proto`, and `docs`, and an
 `openapi_services` output listing the subset of changed services that emit an
-OpenAPI spec (`tenant`, `meet`, `record`). Each service entry SHALL be selected
-when its own directory changes OR when any shared input changes:
-`services/shared/**`, `services/proto/**`, `build-logic/**`, or
+OpenAPI spec (`tenant`, `meet`, `record`, `notification`). Each service entry
+SHALL be selected when its own directory changes OR when any shared input
+changes: `services/shared/**`, `services/proto/**`, `build-logic/**`, or
 `gradle/libs.versions.toml`. Each component job SHALL run only when its
 corresponding output is truthy or its matrix is non-empty.
 
@@ -70,10 +70,10 @@ corresponding output is truthy or its matrix is non-empty.
 - **THEN** the `docs` output is `true`, the `services` output is an empty array,
   and the backend matrix jobs are skipped
 
-#### Scenario: OpenAPI subset excludes notification
+#### Scenario: OpenAPI subset includes notification
 
 - **WHEN** a PR changes `services/notification/` only
-- **THEN** `notification` appears in `services` but NOT in `openapi_services`
+- **THEN** `notification` appears in both `services` and `openapi_services`
 
 ### Requirement: Toolchain provisioning from `.mise.toml`
 

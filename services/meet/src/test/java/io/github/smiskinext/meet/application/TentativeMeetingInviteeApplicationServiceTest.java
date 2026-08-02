@@ -92,7 +92,18 @@ class TentativeMeetingInviteeApplicationServiceTest {
         Meeting meeting = scheduledMeeting();
         MeetingInvitee invitee = invitee(meeting, OWNER);
         invitee.decline(new MeetingContext(
-                "Title", null, null, "UTC", "host@example.com", "Host", "uid", 0));
+                "Title",
+                null,
+                null,
+                "UTC",
+                "host@example.com",
+                "Host",
+                "uid",
+                0,
+                "",
+                "",
+                "",
+                "SHORT"));
         invitee.clearDomainEvents();
         stub(meeting, invitee);
 

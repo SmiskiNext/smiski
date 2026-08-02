@@ -1,0 +1,295 @@
+openapi: 3.1.0
+info:
+  title: Notification
+  version: 1.0.0
+servers:
+- url: http://localhost:8080
+  description: API Gateway
+tags:
+- name: meeting-events-controller
+  description: Real-time meeting join notifications over Server-Sent Events
+- name: resend-inbound-webhook-controller
+  description: Receives Resend inbound email webhooks signed by Svix
+paths:
+  /api/{version}/webhooks/resend/inbound:
+    post:
+      tags:
+      - resend-inbound-webhook-controller
+      summary: Receive a Resend inbound email webhook
+      description: "Verifies the Svix signature from the request headers against the\
+        \ raw body and, if valid, processes the iMIP calendar reply."
+      operationId: handleInboundEmail
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: string
+        required: true
+      responses:
+        "200":
+          description: Signature valid; email reply processed
+        "400":
+          description: Missing or invalid Svix signature
+        "500":
+          description: Unexpected server error
+        "405":
+          description: Method Not Allowed
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "415":
+          description: Unsupported Media Type
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+    parameters:
+    - name: version
+      in: path
+      required: true
+      schema:
+        type: integer
+        format: int32
+      example: 1
+  /api/{version}/meetings/{id}/join-requests/{requestId}/events:
+    get:
+      tags:
+      - meeting-events-controller
+      summary: Subscribe to a join request's decision
+      description: "Opens a text/event-stream connection scoped by request id that\
+        \ delivers the host's accept/decline outcome as a join_request_approved (token,\
+        \ roomName) or join_request_denied (reason) event, replays a decision already\
+        \ recorded before subscribe, and sends periodic heartbeat comments (`: ka`)\
+        \ until the configured timeout. Each event is sent as an SSE frame with an\
+        \ `event:` line (either `join_request_approved` or `join_request_denied`)\
+        \ followed by a `data:` line containing the JSON payload described in the\
+        \ schema."
+      operationId: subscribeRequest
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: requestId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: SSE stream opened; decision delivered over text/event-stream
+          content:
+            text/event-stream:
+              schema:
+                anyOf:
+                - $ref: "#/components/schemas/JoinRequestApprovedData"
+                - $ref: "#/components/schemas/JoinRequestDeniedData"
+              examples:
+                joinRequestApproved:
+                  summary: Host approved; token + room delivered
+                  description: joinRequestApproved
+                  value:
+                    token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.example.token
+                    roomName: room-018f4e2a
+                joinRequestDenied:
+                  summary: "Host declined; optional reason, never a token"
+                  description: joinRequestDenied
+                  value:
+                    reason: HOST_DECLINED
+        "500":
+          description: Unexpected server error
+          content:
+            text/event-stream:
+              schema:
+                $ref: "#/components/schemas/SseEmitter"
+        "405":
+          description: Method Not Allowed
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "415":
+          description: Unsupported Media Type
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+    parameters:
+    - name: version
+      in: path
+      required: true
+      schema:
+        type: integer
+        format: int32
+      example: 1
+  /api/{version}/meetings/{id}/events:
+    get:
+      tags:
+      - meeting-events-controller
+      summary: Subscribe to a meeting's join events
+      description: "Opens a text/event-stream connection that delivers join_request_created\
+        \ events for the meeting, replays currently pending requests on subscribe,\
+        \ and sends periodic heartbeat comments (`: ka`) until the configured timeout.\
+        \ Each event is sent as an SSE frame with an `event: join_request_created`\
+        \ line followed by a `data:` line containing the JSON payload described in\
+        \ the schema."
+      operationId: subscribe
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: SSE stream opened; events delivered over text/event-stream
+          content:
+            text/event-stream:
+              schema:
+                $ref: "#/components/schemas/JoinRequestCreatedData"
+              examples:
+                joinRequestCreated:
+                  summary: A new join request arrived
+                  description: joinRequestCreated
+                  value:
+                    requestId: 018f4e2a-1b3c-7d8e-9f0a-1b2c3d4e5f6a
+                    accountId: 018f4e2a-0000-7d8e-9f0a-1b2c3d4e5f6a
+                    displayName: Alice
+                    avatarUrl: null
+        "500":
+          description: Unexpected server error
+          content:
+            text/event-stream:
+              schema:
+                $ref: "#/components/schemas/SseEmitter"
+        "405":
+          description: Method Not Allowed
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "415":
+          description: Unsupported Media Type
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+    parameters:
+    - name: version
+      in: path
+      required: true
+      schema:
+        type: integer
+        format: int32
+      example: 1
+components:
+  schemas:
+    JoinRequestApprovedData:
+      type: object
+      description: Payload of the join_request_approved SSE event delivered to the
+        requester
+      properties:
+        token:
+          type: string
+          description: LiveKit access token for connecting to the meeting room
+          example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.example.token
+        roomName:
+          type: string
+          description: LiveKit room name to connect to
+          example: room-018f4e2a
+    JoinRequestDeniedData:
+      type: object
+      description: Payload of the join_request_denied SSE event delivered to the requester
+      properties:
+        reason:
+          type:
+          - string
+          - "null"
+          description: Machine-readable denial reason; null when no reason is provided
+    SseEmitter:
+      type: object
+      properties:
+        timeout:
+          type: integer
+          format: int64
+    JoinRequestCreatedData:
+      type: object
+      description: Payload of the join_request_created SSE event delivered to the
+        meeting host
+      properties:
+        requestId:
+          type: string
+          description: Identifier of the join request
+          example: 018f4e2a-1b3c-7d8e-9f0a-1b2c3d4e5f6a
+        accountId:
+          type: string
+          description: Account identifier of the requester
+          example: 018f4e2a-0000-7d8e-9f0a-1b2c3d4e5f6a
+        displayName:
+          type: string
+          description: Display name provided by the requester
+          example: Alice
+        avatarUrl:
+          type:
+          - string
+          - "null"
+          description: Avatar URL provided by the requester; null when not supplied
+    ProblemDetail:
+      description: RFC 9457 Problem Details response body
+      properties:
+        type:
+          type: string
+          description: URI reference identifying the problem type
+          example: about:blank
+        title:
+          type: string
+          description: Short human-readable summary of the problem
+          example: Bad Request
+        status:
+          type: integer
+          format: int32
+          description: HTTP status code
+          example: 400
+        detail:
+          type: string
+          description: Human-readable explanation specific to this occurrence
+          example: The request body failed validation
+        code:
+          type: string
+          description: Machine-readable error code
+          example: VALIDATION_ERROR
+        traceId:
+          type: string
+          description: Distributed trace identifier for correlation
+          example: 6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a
+        errors:
+          type: array
+          description: Field-level validation errors (present when code is VALIDATION_ERROR)
+          items:
+            $ref: "#/components/schemas/Violation"
+    Violation:
+      description: Field-level validation error
+      properties:
+        field:
+          type: string
+          description: Request field that failed validation
+          example: app.id
+        code:
+          type: string
+          description: Machine-readable violation category
+          enum:
+          - REQUIRED
+          - INVALID_FORMAT
+          - TOO_SHORT
+          - TOO_LONG
+          - INVALID_VALUE
+          example: REQUIRED
+        message:
+          type: string
+          description: Server-localized human-readable message
+          example: must not be blank

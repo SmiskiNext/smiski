@@ -53,6 +53,12 @@ public interface MeetingRepository {
     Optional<Meeting> findByShortCode(ShortCode shortCode);
 
     /**
+     * Finds a meeting by its calendar UID (used for inbound iMIP reply resolution).
+     * The lookup spans all tenants because the UID from an iMIP reply carries no tenant context.
+     */
+    Optional<Meeting> findByCalendarUid(String calendarUid);
+
+    /**
      * Lists tenant meetings matching the given criteria using keyset pagination.
      *
      * <p>Fetches at most {@code pageSize} items; the returned {@link CursorPageResponse#hasNext()}

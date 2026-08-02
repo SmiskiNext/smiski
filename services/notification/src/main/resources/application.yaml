@@ -9,6 +9,24 @@ spring:
             default: 1
             supported: 1
 
+    datasource:
+        url: jdbc:postgresql://${POSTGRES_HOST:localhost}:${POSTGRES_PORT:5432}/${POSTGRES_DB:zms_notification}
+        username: ${POSTGRES_USER:zms_user}
+        password: ${POSTGRES_PASSWORD:zms_secret}
+        driver-class-name: org.postgresql.Driver
+
+    jpa:
+        hibernate:
+            ddl-auto: validate
+        open-in-view: false
+        properties:
+            hibernate:
+                dialect: org.hibernate.dialect.PostgreSQLDialect
+
+    flyway:
+        enabled: true
+        locations: classpath:db/migration
+
     kafka:
         bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
 
@@ -36,9 +54,14 @@ app:
             invite-invalidated-consumer-group: ${INVITE_INVALIDATED_CONSUMER_GROUP:notification-meeting-invite-invalidated}
             invitee-responded-consumer-group: ${INVITEE_RESPONDED_CONSUMER_GROUP:notification-invitee-responded}
             meeting-info-updated-consumer-group: ${MEETING_INFO_UPDATED_CONSUMER_GROUP:notification-meeting-info-updated}
+            tenant-installed-consumer-group: ${TENANT_INSTALLED_CONSUMER_GROUP:notification-tenant-installed}
+            tenant-uninstalled-consumer-group: ${TENANT_UNINSTALLED_CONSUMER_GROUP:notification-tenant-uninstalled}
             email-retry-attempts: ${EMAIL_RETRY_ATTEMPTS:3}
             email-retry-backoff-ms: ${EMAIL_RETRY_BACKOFF_MS:1000}
             email-dead-letter-suffix: ${EMAIL_DEAD_LETTER_SUFFIX:.dlt}
         email:
             api-key: ${RESEND_API_KEY:}
             sender: ${RESEND_SENDER:calendar@smiskinext.io}
+            default-locale: ${EMAIL_DEFAULT_LOCALE:en}
+        webhook:
+            signing-secret: ${RESEND_WEBHOOK_SECRET:}

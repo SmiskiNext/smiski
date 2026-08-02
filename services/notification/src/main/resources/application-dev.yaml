@@ -5,6 +5,11 @@ spring:
     kafka:
         bootstrap-servers: localhost:9094
 
+    datasource:
+        url: jdbc:postgresql://localhost:5432/zms_notification
+        username: zms_user
+        password: zms_secret
+
     data:
         redis:
             host: localhost

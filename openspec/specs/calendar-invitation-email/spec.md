@@ -20,6 +20,12 @@ one `ATTENDEE` entry per invitee carrying the invitee email, display name, and
 participation status. The attachment SHALL be sent with the `text/calendar`
 content type and the `REQUEST` method parameter.
 
+The email subject and body SHALL conform to the `email-content-templates` spec:
+subject resolved from message bundle, body in both HTML and plain-text formats,
+including meeting title, formatted time, organiser, short code, meeting ID,
+invitee list, and an optional Jira issue deep-link composed from the tenant's
+`site_url` and the event's `issue_key`.
+
 #### Scenario: Invitation event produces an invite email per invitee
 
 - **WHEN** the notification service consumes a
@@ -27,6 +33,21 @@ content type and the `REQUEST` method parameter.
 - **THEN** it sends an email to each invitee's address with a `METHOD:REQUEST`
   iCalendar attachment whose `UID` equals the event's `calendarUid` and whose
   `SEQUENCE` equals the event's `calendarSequence`
+
+#### Scenario: Invitation email contains structured body and Jira link
+
+- **WHEN** the tenant's `site_url` is known and the event carries a non-blank
+  `issue_key`
+- **THEN** the invitation email body includes meeting title, formatted time,
+  organiser, short code, meeting ID, invitee list, and a deep-link to
+  `{siteUrl}/browse/{issueKey}`
+
+#### Scenario: Invitation email omits Jira link when site_url is unknown
+
+- **WHEN** the tenant has no `site_url` in the notification service's tenant
+  projection or the event carries no `issue_key`
+- **THEN** the invitation email body is sent without a Jira deep-link; all other
+  fields are still included
 
 #### Scenario: Malformed invitation event does not break the consumer
 
@@ -47,6 +68,11 @@ responding invitee whose `PARTSTAT` maps the response to the iCalendar
 participation status: accepted to `ACCEPTED`, declined to `DECLINED`, and
 tentative to `TENTATIVE`. The attachment SHALL be sent with the `text/calendar`
 content type and the `REPLY` method parameter.
+
+The email subject and body SHALL conform to the `email-content-templates` spec:
+subject identifies the invitee and meeting title; body in HTML and plain-text
+includes invitee name, response status, meeting details, and an optional Jira
+deep-link.
 
 #### Scenario: Accepted response produces an organizer reply email
 

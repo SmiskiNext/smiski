@@ -5,8 +5,11 @@ import com.google.protobuf.util.JsonFormat;
 import io.cloudevents.CloudEvent;
 import io.cloudevents.CloudEventData;
 import io.github.smiskinext.event.meet.v1.MeetingInvitationsCreated;
+import io.github.smiskinext.notification.application.command.SendMeetingInvitationEmailCommand;
+import io.github.smiskinext.notification.application.usecase.SendMeetingInvitationEmailUseCase;
 import io.github.smiskinext.notification.domain.model.CalendarEmail;
-import io.github.smiskinext.notification.domain.port.EmailSender;
+import io.github.smiskinext.notification.infrastructure.email.EmailContentBuilder;
+import io.github.smiskinext.notification.infrastructure.email.EmailContentBuilder.EmailContext;
 import io.github.smiskinext.notification.infrastructure.email.IcsGenerator;
 import io.github.smiskinext.notification.infrastructure.email.InvitationCalendar;
 import java.nio.charset.StandardCharsets;
@@ -35,12 +38,16 @@ public class MeetingInvitationsCreatedEmailConsumer {
             LoggerFactory.getLogger(MeetingInvitationsCreatedEmailConsumer.class);
 
     private final IcsGenerator icsGenerator;
-    private final EmailSender emailSender;
+    private final EmailContentBuilder emailContentBuilder;
+    private final SendMeetingInvitationEmailUseCase sendMeetingInvitationEmailUseCase;
 
     public MeetingInvitationsCreatedEmailConsumer(
-            IcsGenerator icsGenerator, EmailSender emailSender) {
+            IcsGenerator icsGenerator,
+            EmailContentBuilder emailContentBuilder,
+            SendMeetingInvitationEmailUseCase sendMeetingInvitationEmailUseCase) {
         this.icsGenerator = icsGenerator;
-        this.emailSender = emailSender;
+        this.emailContentBuilder = emailContentBuilder;
+        this.sendMeetingInvitationEmailUseCase = sendMeetingInvitationEmailUseCase;
     }
 
     @KafkaListener(
@@ -50,10 +57,12 @@ public class MeetingInvitationsCreatedEmailConsumer {
     public void onMessage(CloudEvent event) {
         InvitationCalendar calendar;
         List<InvitationCalendar.Attendee> attendees;
+        EmailContext emailContext;
         try {
             MeetingInvitationsCreated proto = parse(event);
             attendees = toAttendees(proto);
             calendar = toCalendar(proto, attendees);
+            emailContext = toEmailContext(proto);
         } catch (RuntimeException e) {
             log.warn(
                     "Skipping malformed meet.meeting.invitations.created event id={}: {}",
@@ -64,14 +73,23 @@ public class MeetingInvitationsCreatedEmailConsumer {
 
         for (InvitationCalendar.Attendee invitee : attendees) {
             String ics = icsGenerator.buildRequest(calendar);
-            emailSender.send(new CalendarEmail(
-                    invitee.email(),
-                    invitationSubject(calendar.title()),
-                    invitationBody(calendar.title()),
-                    ics,
-                    "REQUEST",
-                    "invite.ics"));
+            CalendarEmail email =
+                    emailContentBuilder.buildInvitation(invitee.email(), emailContext, ics);
+            sendMeetingInvitationEmailUseCase.execute(new SendMeetingInvitationEmailCommand(email));
         }
+    }
+
+    private static EmailContext toEmailContext(MeetingInvitationsCreated proto) {
+        return new EmailContext(
+                proto.getTenantId(),
+                proto.getMeetingId(),
+                blankToNull(proto.getMeetingTitle()),
+                parseInstant(proto.getStartTime()),
+                parseInstant(proto.getEndTime()),
+                proto.getZoneId(),
+                proto.getOrganizerDisplayName(),
+                proto.getMeetingShortCode(),
+                blankToNull(proto.getIssueKey()));
     }
 
     private static InvitationCalendar toCalendar(
@@ -100,15 +118,6 @@ public class MeetingInvitationsCreatedEmailConsumer {
             throw new IllegalArgumentException("Invitations-created event carries no invitees");
         }
         return attendees;
-    }
-
-    private static String invitationSubject(@Nullable String title) {
-        return "Invitation: " + (title == null ? "Meeting" : title);
-    }
-
-    private static String invitationBody(@Nullable String title) {
-        return "You have been invited to " + (title == null ? "a meeting" : title)
-                + ". The attached calendar invite lets you add it to your calendar.";
     }
 
     private static MeetingInvitationsCreated parse(CloudEvent event) {

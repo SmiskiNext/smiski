@@ -16,8 +16,8 @@ import org.springframework.kafka.core.DefaultKafkaConsumerFactory;
 import org.springframework.kafka.core.DefaultKafkaProducerFactory;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.core.ProducerFactory;
-import org.springframework.kafka.support.serializer.JsonDeserializer;
-import org.springframework.kafka.support.serializer.JsonSerializer;
+import org.springframework.kafka.support.serializer.JacksonJsonDeserializer;
+import org.springframework.kafka.support.serializer.JacksonJsonSerializer;
 
 /**
  * Kafka producer template and consumer container factory for the internal LiveKit webhook topic.
@@ -31,7 +31,7 @@ public class LiveKitWebhookKafkaConfig {
             KafkaProperties kafkaProperties) {
         Map<String, Object> props = kafkaProperties.buildProducerProperties();
         props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
-        props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, JsonSerializer.class);
+        props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, JacksonJsonSerializer.class);
         return new DefaultKafkaProducerFactory<>(props);
     }
 
@@ -46,11 +46,14 @@ public class LiveKitWebhookKafkaConfig {
             KafkaProperties kafkaProperties) {
         Map<String, Object> props = new HashMap<>(kafkaProperties.buildConsumerProperties());
         props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
-        props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, JsonDeserializer.class);
+        props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, JacksonJsonDeserializer.class);
         props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
-        props.put(JsonDeserializer.VALUE_DEFAULT_TYPE, LiveKitWebhookMessage.class.getName());
-        props.put(JsonDeserializer.TRUSTED_PACKAGES, LiveKitWebhookMessage.class.getPackageName());
-        props.put(JsonDeserializer.USE_TYPE_INFO_HEADERS, false);
+        props.put(
+                JacksonJsonDeserializer.VALUE_DEFAULT_TYPE, LiveKitWebhookMessage.class.getName());
+        props.put(
+                JacksonJsonDeserializer.TRUSTED_PACKAGES,
+                LiveKitWebhookMessage.class.getPackageName());
+        props.put(JacksonJsonDeserializer.USE_TYPE_INFO_HEADERS, false);
         return new DefaultKafkaConsumerFactory<>(props);
     }
 

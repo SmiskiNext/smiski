@@ -42,6 +42,7 @@ jobs:
                   commit-message: 'chore(sdk): release SDK'
                   pr-base-branch: dev
                   create-github-releases: false
+                  push-git-tags: false
               env:
                   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
                   NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -9,6 +9,7 @@ import io.github.smiskinext.meet.application.command.HandleTenantInstalledComman
 import io.github.smiskinext.meet.application.usecase.HandleTenantInstalledUseCase;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.kafka.annotation.KafkaListener;
@@ -45,6 +46,7 @@ public class TenantInstalledEventConsumer {
         handleTenantInstalledUseCase.handle(new HandleTenantInstalledCommand(
                 requireNonBlank(proto.getCloudId(), "cloudId"),
                 proto.getCloudId(),
+                blankToNull(proto.getSiteUrl()),
                 parseInstant(proto.getUpdatedAt(), Instant.now())));
     }
 
@@ -69,6 +71,10 @@ public class TenantInstalledEventConsumer {
             throw new IllegalArgumentException("Missing required field: " + field);
         }
         return value;
+    }
+
+    private static @Nullable String blankToNull(String value) {
+        return value == null || value.isBlank() ? null : value;
     }
 
     private static Instant parseInstant(String value, Instant fallback) {

@@ -29,7 +29,11 @@ public record InviteeAcceptedEvent(
         String organizerDisplayName,
         String inviteeDisplayName,
         String calendarUid,
-        int calendarSequence)
+        int calendarSequence,
+        String issueId,
+        String issueKey,
+        String projectKey,
+        String shortCode)
         implements PublishableEvent {
 
     @Override

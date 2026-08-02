@@ -177,7 +177,11 @@ public class MeetingInvitee extends AggregateRoot<InviteeId> {
                 context.organizerDisplayName(),
                 displayName.value(),
                 context.calendarUid(),
-                context.calendarSequence()));
+                context.calendarSequence(),
+                context.issueId(),
+                context.issueKey(),
+                context.projectKey(),
+                context.shortCode()));
         return Result.success();
     }
 
@@ -212,7 +216,11 @@ public class MeetingInvitee extends AggregateRoot<InviteeId> {
                 context.organizerDisplayName(),
                 displayName.value(),
                 context.calendarUid(),
-                context.calendarSequence()));
+                context.calendarSequence(),
+                context.issueId(),
+                context.issueKey(),
+                context.projectKey(),
+                context.shortCode()));
         return Result.success();
     }
 
@@ -248,7 +256,11 @@ public class MeetingInvitee extends AggregateRoot<InviteeId> {
                 context.organizerDisplayName(),
                 displayName.value(),
                 context.calendarUid(),
-                context.calendarSequence()));
+                context.calendarSequence(),
+                context.issueId(),
+                context.issueKey(),
+                context.projectKey(),
+                context.shortCode()));
         return Result.success();
     }
 

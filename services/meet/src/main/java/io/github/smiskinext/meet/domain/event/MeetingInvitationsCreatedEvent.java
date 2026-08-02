@@ -18,6 +18,9 @@ import org.jspecify.annotations.Nullable;
  * @param endTime          scheduled end time, or {@code null} for instant meetings
  * @param zoneId           host IANA time zone id
  * @param invitees         list of resolved invitees with display info
+ * @param issueId          Jira issue ID, or empty when no issue is linked
+ * @param issueKey         Jira issue key (e.g. {@code PROJ-123}), or empty when no issue is linked
+ * @param projectKey       Jira project key, or empty when no issue is linked
  * @param occurredAt       timestamp when the event occurred
  */
 public record MeetingInvitationsCreatedEvent(
@@ -34,6 +37,9 @@ public record MeetingInvitationsCreatedEvent(
         String calendarUid,
         int calendarSequence,
         List<InviteeInfo> invitees,
+        String issueId,
+        String issueKey,
+        String projectKey,
         Instant occurredAt)
         implements PublishableEvent {
 

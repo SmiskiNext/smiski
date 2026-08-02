@@ -2,6 +2,7 @@ package io.github.smiskinext.meet.domain.port;
 
 import io.github.smiskinext.meet.domain.model.MeetingInvitee;
 import io.github.smiskinext.meet.domain.model.valueobject.AccountId;
+import io.github.smiskinext.meet.domain.model.valueobject.Email;
 import io.github.smiskinext.meet.domain.model.valueobject.InviteeId;
 import io.github.smiskinext.meet.domain.projection.InviteeSummary;
 
@@ -38,6 +39,12 @@ public interface MeetingInviteeRepository {
      * Returns an invitee by meeting and registered account identity.
      */
     Optional<MeetingInvitee> findByMeetingIdAndAccountId(UUID meetingId, AccountId accountId);
+
+    /**
+     * Returns an active (non-removed) invitee by meeting and email address.
+     * Used for inbound email reply resolution where account identity is unavailable.
+     */
+    Optional<MeetingInvitee> findByMeetingIdAndEmail(UUID meetingId, Email email);
 
     /**
      * Returns NEEDS_ACTION invitees for the given registered account.

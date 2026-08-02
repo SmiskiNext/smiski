@@ -7,9 +7,9 @@ import io.cloudevents.CloudEvent;
 import io.cloudevents.CloudEventData;
 import io.github.smiskinext.event.meet.v1.JoinApproved;
 import io.github.smiskinext.event.meet.v1.JoinDenied;
-import io.github.smiskinext.notification.application.sse.SseConnectionManager;
+import io.github.smiskinext.notification.application.command.RelayJoinResolvedCommand;
+import io.github.smiskinext.notification.application.usecase.RelayJoinResolvedUseCase;
 import io.github.smiskinext.notification.domain.model.JoinDecision;
-import io.github.smiskinext.notification.domain.port.JoinDecisionStore;
 import java.nio.charset.StandardCharsets;
 import java.util.UUID;
 import org.slf4j.Logger;
@@ -23,9 +23,9 @@ import org.springframework.stereotype.Component;
  *
  * <p>The outbox publishes each event as CloudEvents 1.0 structured JSON whose {@code data} is the
  * decision proto rendered as proto-JSON. This consumer parses the {@code data} back into the typed
- * {@link JoinApproved} or {@link JoinDenied} proto message via {@link JsonFormat}, records the
- * decision in {@link JoinDecisionStore} for replay, and pushes it to the requester emitters held
- * locally, keyed by join request id.
+ * {@link JoinApproved} or {@link JoinDenied} proto message via {@link JsonFormat}, constructs a
+ * {@link RelayJoinResolvedCommand}, and delegates to {@link RelayJoinResolvedUseCase} which
+ * persists the decision and pushes it to all locally-held requester emitters.
  *
  * <p>Each replica consumes under its own group (see {@code KafkaConfig}) so every replica receives
  * every decision and pushes to whatever emitters it holds. A message that cannot be decoded into a
@@ -39,13 +39,10 @@ public class JoinResolvedEventConsumer {
     private static final String TYPE_APPROVED = "io.github.smiskinext.meet.join.approved.v1";
     private static final String TYPE_DENIED = "io.github.smiskinext.meet.join.denied.v1";
 
-    private final SseConnectionManager sseConnectionManager;
-    private final JoinDecisionStore joinDecisionStore;
+    private final RelayJoinResolvedUseCase relayJoinResolvedUseCase;
 
-    public JoinResolvedEventConsumer(
-            SseConnectionManager sseConnectionManager, JoinDecisionStore joinDecisionStore) {
-        this.sseConnectionManager = sseConnectionManager;
-        this.joinDecisionStore = joinDecisionStore;
+    public JoinResolvedEventConsumer(RelayJoinResolvedUseCase relayJoinResolvedUseCase) {
+        this.relayJoinResolvedUseCase = relayJoinResolvedUseCase;
     }
 
     @KafkaListener(
@@ -54,8 +51,8 @@ public class JoinResolvedEventConsumer {
     public void onMessage(CloudEvent event) {
         try {
             JoinDecision decision = decode(event);
-            joinDecisionStore.upsert(decision);
-            sseConnectionManager.pushJoinResolved(decision.joinRequestId(), decision);
+            relayJoinResolvedUseCase.execute(
+                    new RelayJoinResolvedCommand(decision.joinRequestId(), decision));
         } catch (RuntimeException e) {
             log.warn(
                     "Skipping malformed join decision event id={} type={}: {}",

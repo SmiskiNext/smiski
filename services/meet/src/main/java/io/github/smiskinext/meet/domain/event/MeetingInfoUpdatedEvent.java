@@ -14,6 +14,7 @@ public record MeetingInfoUpdatedEvent(
         String hostId,
         String updatedBy,
         MeetingStatus meetingStatus,
+        String shortCode,
         MeetingInfoSnapshot oldInfo,
         MeetingInfoSnapshot newInfo,
         List<InviteeInfo> invitees,
