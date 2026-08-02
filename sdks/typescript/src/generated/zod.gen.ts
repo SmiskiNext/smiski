@@ -565,7 +565,10 @@ export const zMeetCompletedMeetingSnapshot = z.object({
     shortCode: z.optional(z.string()),
     type: z.optional(z.string()),
     status: z.optional(z.string()),
-    cancelReason: z.optional(z.string()),
+    cancelReason: z.optional(z.union([
+        z.string(),
+        z.null()
+    ])),
     title: z.optional(z.string()),
     description: z.optional(z.string()),
     issueLink: z.optional(zMeetIssueLink),
@@ -834,8 +837,39 @@ export const zMeetDeleteMeetingResponse = z.object({
     meeting: z.optional(zMeetDeletedMeetingSnapshot)
 });
 
+/**
+ * Payload of the join_request_approved SSE event delivered to the requester
+ */
+export const zNotificationJoinRequestApprovedData = z.object({
+    token: z.optional(z.string()),
+    roomName: z.optional(z.string())
+});
+
+/**
+ * Payload of the join_request_denied SSE event delivered to the requester
+ */
+export const zNotificationJoinRequestDeniedData = z.object({
+    reason: z.optional(z.union([
+        z.string(),
+        z.null()
+    ]))
+});
+
 export const zNotificationSseEmitter = z.object({
     timeout: z.optional(z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' }))
+});
+
+/**
+ * Payload of the join_request_created SSE event delivered to the meeting host
+ */
+export const zNotificationJoinRequestCreatedData = z.object({
+    requestId: z.optional(z.string()),
+    accountId: z.optional(z.string()),
+    displayName: z.optional(z.string()),
+    avatarUrl: z.optional(z.union([
+        z.string(),
+        z.null()
+    ]))
 });
 
 /**
@@ -1192,7 +1226,10 @@ export const zSubscribeRequestData = z.object({
 /**
  * SSE stream opened; decision delivered over text/event-stream
  */
-export const zSubscribeRequestResponse = zNotificationSseEmitter;
+export const zSubscribeRequestResponse = z.union([
+    zNotificationJoinRequestApprovedData,
+    zNotificationJoinRequestDeniedData
+]);
 
 export const zSubscribeData = z.object({
     body: z.optional(z.never()),
@@ -1206,4 +1243,4 @@ export const zSubscribeData = z.object({
 /**
  * SSE stream opened; events delivered over text/event-stream
  */
-export const zSubscribeResponse = zNotificationSseEmitter;
+export const zSubscribeResponse = zNotificationJoinRequestCreatedData;

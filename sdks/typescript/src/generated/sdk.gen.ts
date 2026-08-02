@@ -356,7 +356,7 @@ export const handleInboundEmail = <ThrowOnError extends boolean = false>(options
 /**
  * Subscribe to a join request's decision
  *
- * Opens a text/event-stream connection scoped by request id that delivers the host's accept/decline outcome as a join_request_approved (token, roomName) or join_request_denied (reason) event, replays a decision already recorded before subscribe, and sends periodic heartbeat comments until the configured timeout.
+ * Opens a text/event-stream connection scoped by request id that delivers the host's accept/decline outcome as a join_request_approved (token, roomName) or join_request_denied (reason) event, replays a decision already recorded before subscribe, and sends periodic heartbeat comments (`: ka`) until the configured timeout. Each event is sent as an SSE frame with an `event:` line (either `join_request_approved` or `join_request_denied`) followed by a `data:` line containing the JSON payload described in the schema.
  */
 export const subscribeRequest = <ThrowOnError extends boolean = false>(options: Options<SubscribeRequestData, ThrowOnError>) => (options.client ?? client).sse.get<SubscribeRequestResponses, SubscribeRequestErrors, ThrowOnError>({
     requestValidator: async (data) => await zSubscribeRequestData.parseAsync(data),
@@ -368,7 +368,7 @@ export const subscribeRequest = <ThrowOnError extends boolean = false>(options: 
 /**
  * Subscribe to a meeting's join events
  *
- * Opens a text/event-stream connection that delivers join_request_created events for the meeting, replays currently pending requests on subscribe, and sends periodic heartbeat comments until the configured timeout.
+ * Opens a text/event-stream connection that delivers join_request_created events for the meeting, replays currently pending requests on subscribe, and sends periodic heartbeat comments (`: ka`) until the configured timeout. Each event is sent as an SSE frame with an `event: join_request_created` line followed by a `data:` line containing the JSON payload described in the schema.
  */
 export const subscribe = <ThrowOnError extends boolean = false>(options: Options<SubscribeData, ThrowOnError>) => (options.client ?? client).sse.get<SubscribeResponses, SubscribeErrors, ThrowOnError>({
     requestValidator: async (data) => await zSubscribeData.parseAsync(data),

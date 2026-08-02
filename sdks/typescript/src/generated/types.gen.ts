@@ -672,7 +672,7 @@ export type MeetCompletedMeetingSnapshot = {
     shortCode?: string;
     type?: string;
     status?: string;
-    cancelReason?: string;
+    cancelReason?: string | null;
     title?: string;
     description?: string;
     issueLink?: MeetIssueLink;
@@ -995,8 +995,54 @@ export type MeetDeleteMeetingResponse = {
     meeting?: MeetDeletedMeetingSnapshot;
 };
 
+/**
+ * Payload of the join_request_approved SSE event delivered to the requester
+ */
+export type NotificationJoinRequestApprovedData = {
+    /**
+     * LiveKit access token for connecting to the meeting room
+     */
+    token?: string;
+    /**
+     * LiveKit room name to connect to
+     */
+    roomName?: string;
+};
+
+/**
+ * Payload of the join_request_denied SSE event delivered to the requester
+ */
+export type NotificationJoinRequestDeniedData = {
+    /**
+     * Machine-readable denial reason; null when no reason is provided
+     */
+    reason?: string | null;
+};
+
 export type NotificationSseEmitter = {
     timeout?: number;
+};
+
+/**
+ * Payload of the join_request_created SSE event delivered to the meeting host
+ */
+export type NotificationJoinRequestCreatedData = {
+    /**
+     * Identifier of the join request
+     */
+    requestId?: string;
+    /**
+     * Account identifier of the requester
+     */
+    accountId?: string;
+    /**
+     * Display name provided by the requester
+     */
+    displayName?: string;
+    /**
+     * Avatar URL provided by the requester; null when not supplied
+     */
+    avatarUrl?: string | null;
 };
 
 /**
@@ -2172,7 +2218,7 @@ export type SubscribeRequestResponses = {
     /**
      * SSE stream opened; decision delivered over text/event-stream
      */
-    200: NotificationSseEmitter;
+    200: NotificationJoinRequestApprovedData | NotificationJoinRequestDeniedData;
 };
 
 export type SubscribeRequestResponse = SubscribeRequestResponses[keyof SubscribeRequestResponses];
@@ -2208,7 +2254,7 @@ export type SubscribeResponses = {
     /**
      * SSE stream opened; events delivered over text/event-stream
      */
-    200: NotificationSseEmitter;
+    200: NotificationJoinRequestCreatedData;
 };
 
 export type SubscribeResponse = SubscribeResponses[keyof SubscribeResponses];
