@@ -11,15 +11,16 @@ archive.
 
 The build tooling SHALL produce a single combined OpenAPI 3.1 document at
 `services/openapi.yaml` by joining the per-service documents
-`services/tenant/openapi.yaml`, `services/meet/openapi.yaml`, and
-`services/record/openapi.yaml` using the Redocly `join` command. The combined
-document SHALL be committed to the repository as a generated artifact.
+`services/tenant/openapi.yaml`, `services/meet/openapi.yaml`,
+`services/record/openapi.yaml`, and `services/notification/openapi.yaml` using
+the Redocly `join` command. The combined document SHALL be committed to the
+repository as a generated artifact.
 
-#### Scenario: Combined document is generated from the three services
+#### Scenario: Combined document is generated from the four services
 
-- **WHEN** the merge tooling runs against the three per-service specs
+- **WHEN** the merge tooling runs against the four per-service specs
 - **THEN** it writes `services/openapi.yaml` containing the paths, components,
-  and tags of all three source documents
+  and tags of all four source documents
 
 #### Scenario: Combined document is valid
 
@@ -38,8 +39,8 @@ combined document instead of causing a join conflict.
 - **WHEN** the combined document is generated and a schema name exists in more
   than one source document
 - **THEN** each occurrence appears prefixed by its source `info.title` (for
-  example `Tenant_ProblemDetail`, `Meet_ProblemDetail`, `Record_ProblemDetail`)
-  and no join conflict aborts the operation
+  example `Tenant_ProblemDetail`, `Meet_ProblemDetail`, `Record_ProblemDetail`,
+  `Notification_ProblemDetail`) and no join conflict aborts the operation
 
 #### Scenario: References target the prefixed components
 

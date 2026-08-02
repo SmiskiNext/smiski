@@ -834,6 +834,38 @@ export const zMeetDeleteMeetingResponse = z.object({
     meeting: z.optional(zMeetDeletedMeetingSnapshot)
 });
 
+export const zNotificationSseEmitter = z.object({
+    timeout: z.optional(z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' }))
+});
+
+/**
+ * Field-level validation error
+ */
+export const zNotificationViolation = z.object({
+    field: z.optional(z.string()),
+    code: z.optional(z.enum([
+        'REQUIRED',
+        'INVALID_FORMAT',
+        'TOO_SHORT',
+        'TOO_LONG',
+        'INVALID_VALUE'
+    ])),
+    message: z.optional(z.string())
+});
+
+/**
+ * RFC 9457 Problem Details response body
+ */
+export const zNotificationProblemDetail = z.object({
+    type: z.optional(z.string()),
+    title: z.optional(z.string()),
+    status: z.optional(z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' })),
+    detail: z.optional(z.string()),
+    code: z.optional(z.string()),
+    traceId: z.optional(z.string()),
+    errors: z.optional(z.array(zNotificationViolation))
+});
+
 export const zUninstallData = z.object({
     body: z.optional(zTenantUninstallTenantRequest),
     path: z.object({
@@ -1138,3 +1170,40 @@ export const zListPendingJoinRequestsData = z.object({
  * Paginated list of pending join requests
  */
 export const zListPendingJoinRequestsResponse = zMeetListPendingJoinRequestsResponse;
+
+export const zHandleInboundEmailData = z.object({
+    body: z.string(),
+    path: z.object({
+        version: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' })
+    }),
+    query: z.optional(z.never())
+});
+
+export const zSubscribeRequestData = z.object({
+    body: z.optional(z.never()),
+    path: z.object({
+        version: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }),
+        id: z.uuid(),
+        requestId: z.uuid()
+    }),
+    query: z.optional(z.never())
+});
+
+/**
+ * SSE stream opened; decision delivered over text/event-stream
+ */
+export const zSubscribeRequestResponse = zNotificationSseEmitter;
+
+export const zSubscribeData = z.object({
+    body: z.optional(z.never()),
+    path: z.object({
+        version: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }),
+        id: z.uuid()
+    }),
+    query: z.optional(z.never())
+});
+
+/**
+ * SSE stream opened; events delivered over text/event-stream
+ */
+export const zSubscribeResponse = zNotificationSseEmitter;

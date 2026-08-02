@@ -995,6 +995,62 @@ export type MeetDeleteMeetingResponse = {
     meeting?: MeetDeletedMeetingSnapshot;
 };
 
+export type NotificationSseEmitter = {
+    timeout?: number;
+};
+
+/**
+ * RFC 9457 Problem Details response body
+ */
+export type NotificationProblemDetail = {
+    /**
+     * URI reference identifying the problem type
+     */
+    type?: string;
+    /**
+     * Short human-readable summary of the problem
+     */
+    title?: string;
+    /**
+     * HTTP status code
+     */
+    status?: number;
+    /**
+     * Human-readable explanation specific to this occurrence
+     */
+    detail?: string;
+    /**
+     * Machine-readable error code
+     */
+    code?: string;
+    /**
+     * Distributed trace identifier for correlation
+     */
+    traceId?: string;
+    /**
+     * Field-level validation errors (present when code is VALIDATION_ERROR)
+     */
+    errors?: Array<NotificationViolation>;
+};
+
+/**
+ * Field-level validation error
+ */
+export type NotificationViolation = {
+    /**
+     * Request field that failed validation
+     */
+    field?: string;
+    /**
+     * Machine-readable violation category
+     */
+    code?: 'REQUIRED' | 'INVALID_FORMAT' | 'TOO_SHORT' | 'TOO_LONG' | 'INVALID_VALUE';
+    /**
+     * Server-localized human-readable message
+     */
+    message?: string;
+};
+
 export type UninstallData = {
     body?: TenantUninstallTenantRequest;
     path: {
@@ -2046,3 +2102,113 @@ export type ListPendingJoinRequestsResponses = {
 };
 
 export type ListPendingJoinRequestsResponse = ListPendingJoinRequestsResponses[keyof ListPendingJoinRequestsResponses];
+
+export type HandleInboundEmailData = {
+    body: string;
+    path: {
+        version: number;
+    };
+    query?: never;
+    url: '/api/{version}/webhooks/resend/inbound';
+};
+
+export type HandleInboundEmailErrors = {
+    /**
+     * Missing or invalid Svix signature
+     */
+    400: unknown;
+    /**
+     * Method Not Allowed
+     */
+    405: NotificationProblemDetail;
+    /**
+     * Unsupported Media Type
+     */
+    415: NotificationProblemDetail;
+    /**
+     * Unexpected server error
+     */
+    500: unknown;
+};
+
+export type HandleInboundEmailError = HandleInboundEmailErrors[keyof HandleInboundEmailErrors];
+
+export type HandleInboundEmailResponses = {
+    /**
+     * Signature valid; email reply processed
+     */
+    200: unknown;
+};
+
+export type SubscribeRequestData = {
+    body?: never;
+    path: {
+        version: number;
+        id: string;
+        requestId: string;
+    };
+    query?: never;
+    url: '/api/{version}/meetings/{id}/join-requests/{requestId}/events';
+};
+
+export type SubscribeRequestErrors = {
+    /**
+     * Method Not Allowed
+     */
+    405: NotificationProblemDetail;
+    /**
+     * Unsupported Media Type
+     */
+    415: NotificationProblemDetail;
+    /**
+     * Unexpected server error
+     */
+    500: NotificationSseEmitter;
+};
+
+export type SubscribeRequestError = SubscribeRequestErrors[keyof SubscribeRequestErrors];
+
+export type SubscribeRequestResponses = {
+    /**
+     * SSE stream opened; decision delivered over text/event-stream
+     */
+    200: NotificationSseEmitter;
+};
+
+export type SubscribeRequestResponse = SubscribeRequestResponses[keyof SubscribeRequestResponses];
+
+export type SubscribeData = {
+    body?: never;
+    path: {
+        version: number;
+        id: string;
+    };
+    query?: never;
+    url: '/api/{version}/meetings/{id}/events';
+};
+
+export type SubscribeErrors = {
+    /**
+     * Method Not Allowed
+     */
+    405: NotificationProblemDetail;
+    /**
+     * Unsupported Media Type
+     */
+    415: NotificationProblemDetail;
+    /**
+     * Unexpected server error
+     */
+    500: NotificationSseEmitter;
+};
+
+export type SubscribeError = SubscribeErrors[keyof SubscribeErrors];
+
+export type SubscribeResponses = {
+    /**
+     * SSE stream opened; events delivered over text/event-stream
+     */
+    200: NotificationSseEmitter;
+};
+
+export type SubscribeResponse = SubscribeResponses[keyof SubscribeResponses];

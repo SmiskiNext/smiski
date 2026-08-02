@@ -1,3 +1,5 @@
+import org.gradle.api.tasks.testing.Test
+
 plugins {
     id("io.github.smiskinext.plugin.spotless")
     id("io.github.smiskinext.plugin.jvm.base")
@@ -28,4 +30,21 @@ configurations.all {
             because("Proto module compiled with protoc 4.35.1 requires matching runtime")
         }
     }
+}
+
+val integrationTestTask = tasks.named<Test>("integrationTest")
+
+tasks.register<Test>("generateOpenApiDocsFromTests") {
+    group = "openapi"
+    description = "Generate the notification OpenAPI spec via SpringBootTest"
+    testClassesDirs = integrationTestTask.get().testClassesDirs
+    classpath = integrationTestTask.get().classpath
+    useJUnitPlatform()
+    filter {
+        includeTestsMatching("*OpenApiGenerationTest")
+    }
+    val specFile = layout.projectDirectory.file("openapi.yaml")
+    systemProperty("openapi.output.file", specFile.asFile.absolutePath)
+    outputs.file(specFile)
+    shouldRunAfter(integrationTestTask)
 }

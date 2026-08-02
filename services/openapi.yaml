@@ -16,6 +16,12 @@ tags:
   - name: meeting-controller
     description: 'Meeting lifecycle: schedule, create instant, update, list, delete meetings and manage invitees'
     x-displayName: meeting-controller
+  - name: meeting-events-controller
+    description: Real-time meeting join notifications over Server-Sent Events
+    x-displayName: meeting-events-controller
+  - name: resend-inbound-webhook-controller
+    description: Receives Resend inbound email webhooks signed by Svix
+    x-displayName: resend-inbound-webhook-controller
 paths:
   /api/{version}/tenants:
     post:
@@ -2759,6 +2765,146 @@ paths:
           type: integer
           format: int32
         example: 1
+  /api/{version}/webhooks/resend/inbound:
+    post:
+      tags:
+        - resend-inbound-webhook-controller
+      summary: Receive a Resend inbound email webhook
+      description: Verifies the Svix signature from the request headers against the raw body and, if valid, processes the iMIP calendar reply.
+      operationId: handleInboundEmail
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: string
+        required: true
+      responses:
+        '200':
+          description: Signature valid; email reply processed
+        '400':
+          description: Missing or invalid Svix signature
+        '405':
+          description: Method Not Allowed
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Notification_ProblemDetail'
+        '415':
+          description: Unsupported Media Type
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Notification_ProblemDetail'
+        '500':
+          description: Unexpected server error
+    parameters:
+      - name: version
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int32
+        example: 1
+  /api/{version}/meetings/{id}/join-requests/{requestId}/events:
+    get:
+      tags:
+        - meeting-events-controller
+      summary: Subscribe to a join request's decision
+      description: Opens a text/event-stream connection scoped by request id that delivers the host's accept/decline outcome as a join_request_approved (token, roomName) or join_request_denied (reason) event, replays a decision already recorded before subscribe, and sends periodic heartbeat comments until the configured timeout.
+      operationId: subscribeRequest
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: requestId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: SSE stream opened; decision delivered over text/event-stream
+          content:
+            text/event-stream:
+              schema:
+                $ref: '#/components/schemas/Notification_SseEmitter'
+        '405':
+          description: Method Not Allowed
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Notification_ProblemDetail'
+        '415':
+          description: Unsupported Media Type
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Notification_ProblemDetail'
+        '500':
+          description: Unexpected server error
+          content:
+            text/event-stream:
+              schema:
+                $ref: '#/components/schemas/Notification_SseEmitter'
+    parameters:
+      - name: version
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int32
+        example: 1
+  /api/{version}/meetings/{id}/events:
+    get:
+      tags:
+        - meeting-events-controller
+      summary: Subscribe to a meeting's join events
+      description: Opens a text/event-stream connection that delivers join_request_created events for the meeting, replays currently pending requests on subscribe, and sends periodic heartbeat comments until the configured timeout.
+      operationId: subscribe
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: SSE stream opened; events delivered over text/event-stream
+          content:
+            text/event-stream:
+              schema:
+                $ref: '#/components/schemas/Notification_SseEmitter'
+        '405':
+          description: Method Not Allowed
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Notification_ProblemDetail'
+        '415':
+          description: Unsupported Media Type
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Notification_ProblemDetail'
+        '500':
+          description: Unexpected server error
+          content:
+            text/event-stream:
+              schema:
+                $ref: '#/components/schemas/Notification_SseEmitter'
+    parameters:
+      - name: version
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int32
+        example: 1
 components:
   schemas:
     Tenant_App:
@@ -4160,6 +4306,66 @@ components:
       properties:
         meeting:
           $ref: '#/components/schemas/Meet_DeletedMeetingSnapshot'
+    Notification_SseEmitter:
+      type: object
+      properties:
+        timeout:
+          type: integer
+          format: int64
+    Notification_ProblemDetail:
+      description: RFC 9457 Problem Details response body
+      properties:
+        type:
+          type: string
+          description: URI reference identifying the problem type
+          example: about:blank
+        title:
+          type: string
+          description: Short human-readable summary of the problem
+          example: Bad Request
+        status:
+          type: integer
+          format: int32
+          description: HTTP status code
+          example: 400
+        detail:
+          type: string
+          description: Human-readable explanation specific to this occurrence
+          example: The request body failed validation
+        code:
+          type: string
+          description: Machine-readable error code
+          example: VALIDATION_ERROR
+        traceId:
+          type: string
+          description: Distributed trace identifier for correlation
+          example: 6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a
+        errors:
+          type: array
+          description: Field-level validation errors (present when code is VALIDATION_ERROR)
+          items:
+            $ref: '#/components/schemas/Notification_Violation'
+    Notification_Violation:
+      description: Field-level validation error
+      properties:
+        field:
+          type: string
+          description: Request field that failed validation
+          example: app.id
+        code:
+          type: string
+          description: Machine-readable violation category
+          enum:
+            - REQUIRED
+            - INVALID_FORMAT
+            - TOO_SHORT
+            - TOO_LONG
+            - INVALID_VALUE
+          example: REQUIRED
+        message:
+          type: string
+          description: Server-localized human-readable message
+          example: must not be blank
 x-tagGroups:
   - name: Tenant
     tags:
@@ -4168,3 +4374,7 @@ x-tagGroups:
     tags:
       - livekit-webhook-controller
       - meeting-controller
+  - name: Notification
+    tags:
+      - meeting-events-controller
+      - resend-inbound-webhook-controller

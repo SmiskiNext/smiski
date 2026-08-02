@@ -2,7 +2,15 @@ package io.github.smiskinext.notification.presentation;
 
 import io.github.smiskinext.notification.application.command.SubscribeMeetingEventsCommand;
 import io.github.smiskinext.notification.application.usecase.SubscribeMeetingEventsUseCase;
+import io.github.smiskinext.notification.presentation.response.JoinRequestApprovedData;
+import io.github.smiskinext.notification.presentation.response.JoinRequestCreatedData;
+import io.github.smiskinext.notification.presentation.response.JoinRequestDeniedData;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.ExampleObject;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import java.util.UUID;
 import org.springframework.http.MediaType;
@@ -35,6 +43,29 @@ public class MeetingEventsController {
             description = "Opens a text/event-stream connection that delivers join_request_created "
                     + "events for the meeting, replays currently pending requests on subscribe, and "
                     + "sends periodic heartbeat comments until the configured timeout.")
+    @ApiResponses({
+        @ApiResponse(
+                responseCode = "200",
+                description = "SSE stream opened; events delivered over text/event-stream",
+                content =
+                        @Content(
+                                mediaType = MediaType.TEXT_EVENT_STREAM_VALUE,
+                                schema = @Schema(implementation = JoinRequestCreatedData.class),
+                                examples = {
+                                    @ExampleObject(
+                                            name = "joinRequestCreated",
+                                            summary = "A new join request arrived",
+                                            value = """
+                            event: join_request_created
+                            data: {"requestId":"018f4e2a-1b3c-7d8e-9f0a-1b2c3d4e5f6a","accountId":"018f4e2a-0000-7d8e-9f0a-1b2c3d4e5f6a","displayName":"Alice","avatarUrl":null}
+                            """),
+                                    @ExampleObject(
+                                            name = "heartbeat",
+                                            summary = "Periodic keep-alive comment",
+                                            value = ": ka\n")
+                                })),
+        @ApiResponse(responseCode = "500", description = "Unexpected server error")
+    })
     @GetMapping(value = "/meetings/{id}/events", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public SseEmitter subscribe(@PathVariable UUID id) {
         return subscribeMeetingEventsUseCase
@@ -52,6 +83,42 @@ public class MeetingEventsController {
                     + "roomName) or join_request_denied (reason) event, replays a decision already "
                     + "recorded before subscribe, and sends periodic heartbeat comments until the "
                     + "configured timeout.")
+    @ApiResponses({
+        @ApiResponse(
+                responseCode = "200",
+                description = "SSE stream opened; decision delivered over text/event-stream",
+                content =
+                        @Content(
+                                mediaType = MediaType.TEXT_EVENT_STREAM_VALUE,
+                                schema =
+                                        @Schema(
+                                                oneOf = {
+                                                    JoinRequestApprovedData.class,
+                                                    JoinRequestDeniedData.class
+                                                }),
+                                examples = {
+                                    @ExampleObject(
+                                            name = "joinRequestApproved",
+                                            summary = "Host approved; token + room delivered",
+                                            value = """
+                            event: join_request_approved
+                            data: {"token":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.example.token","roomName":"room-018f4e2a"}
+                            """),
+                                    @ExampleObject(
+                                            name = "joinRequestDenied",
+                                            summary =
+                                                    "Host declined; optional reason, never a token",
+                                            value = """
+                            event: join_request_denied
+                            data: {"reason":"HOST_DECLINED"}
+                            """),
+                                    @ExampleObject(
+                                            name = "heartbeat",
+                                            summary = "Periodic keep-alive comment",
+                                            value = ": ka\n")
+                                })),
+        @ApiResponse(responseCode = "500", description = "Unexpected server error")
+    })
     @GetMapping(
             value = "/meetings/{id}/join-requests/{requestId}/events",
             produces = MediaType.TEXT_EVENT_STREAM_VALUE)
