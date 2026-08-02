@@ -18,19 +18,21 @@ that is generic Forge boilerplate and is wrong for this repo. The UI is plain
 React 18 + JSX (`<div>` etc.) + Tailwind v4 + Ant Design.
 
 **Status:** meeting reads/mutations go straight from the Custom UI to the real
-`meet` backend over Forge Remote + a generated SDK. One resolver function
-(`getProjectMeetings`) still throws `Not implemented: ...` because the backend
-has no matching operation yet — see "Resolver is a thin bridge" below. Meeting
-settings can be replaced via `updateMeetingSettings`/`useUpdateMeetingSettings`
-(backend `updateSettings`), but no UI exposes it yet. Do not assume a code
-path is wired to the backend — check the specific hook/resolver first.
+`meet` backend over Forge Remote + a generated SDK. `listProjectMeetings`
+(`api/meetings.ts`) still throws `Not implemented: ...` directly because the
+backend has no matching operation yet — see "Jira and backend calls happen
+directly in the browser" below. Meeting settings can be replaced via
+`updateMeetingSettings`/`useUpdateMeetingSettings` (backend `updateSettings`),
+but no UI exposes it yet. Do not assume a code path is wired to the backend —
+check the specific hook/API function first.
 
 ## Layout
 
 Two pnpm workspace packages (`pnpm-workspace.yaml`):
 
-- **root** (`.`) — the Forge app: `manifest.yml` + `src/` resolver (plain
-  TypeScript, CommonJS, no framework). Owns the Forge CLI.
+- **root** (`.`) — the Forge app: `manifest.yml` only, no code. There is no
+  Forge resolver/function in this app (removed — see below); this package
+  exists solely to own the Forge CLI and workspace root.
 - **`static/smiski-ui/`** — the Custom UI frontend: Vite + React 18 + TS +
   Tailwind v4 + TanStack Query + Ant Design + LiveKit client. This is the _only_
   UI bundle; both Forge modules render it.
@@ -82,31 +84,32 @@ when `context.extension.modal.kind` is set. Module keys are centralized in
 `utils/forgeModuleKeys.ts`. Put module-specific work under the matching
 `features/` subtree, not in shared code.
 
-**Resolver is a thin bridge, not a brain** (`src/index.ts`). Reality today:
+**Jira and backend calls happen directly in the browser — there is no
+resolver.** Forge bridge v2+ supports calling Jira REST APIs from Custom UI
+natively (`@forge/bridge`'s `requestJira`), so nothing in this app needs a
+Forge function/resolver hop. Reality today, all in `static/smiski-ui/src/api/`:
 
-- `searchWorkspaceUsers` — implemented; queries Jira as the invoking user via
-  `@forge/api` `asUser().requestJira` through the `@smiskinext/sdks-jira` SDK
-  (`src/jiraSdkClient.ts`), so Jira enforces the user's "Browse users"
-  permission.
-- `getMeetingPermission` — implemented; checks the invoking user's custom
-  `View Meeting`/`Edit Meeting` Jira project permission (declared in
-  `manifest.yml`'s `jira:projectPermission`, per `PERMISSION.md`) via
-  `jiraSdkClient.ts`'s `getMeetingPermission` (`GET /rest/api/3/mypermissions`
-  as the user, after resolving the real permission keys from
-  `GET /rest/api/3/permissions` — Jira may not echo back the bare manifest
-  `key`). **UI gating only** — the `meet` backend does not yet re-check this;
-  see "Backend permission enforcement (not yet built)" below.
-- `getProjectMeetings` — stub that throws. The real backend's `list` operation
-  has no project-wide filter (only an exact `issueKey`, `creatorId`, `statuses`,
-  or `search` filter), so the project-page dashboard listing has no backend to
-  call yet.
-- There is **no** `getRoomToken`, `getIssueMeetings`, `scheduleMeeting`,
-  `createInstantMeeting`, `getMeeting`, `updateMeeting`, `cancelMeeting`,
-  `endMeeting`, `updateMeetingSettings`, `joinMeeting`, or `getHostConflict`
-  resolver. All of those go straight from the Custom UI to the real `meet`
-  backend via Forge Remote + the generated SDK
-  (see below) — do not add resolver-side business logic for them; the brain is
-  the backend `meet` service.
+- `workspaceUsers.ts`'s `searchWorkspaceUsers` — implemented; queries Jira as
+  the invoking user via `@forge/bridge`'s `requestJira` through the
+  `@smiskinext/sdks-jira` SDK (bridged by `jiraSdkFetch.ts`), so Jira enforces
+  the user's "Browse users" permission.
+- `meetingPermission.ts`'s `getMeetingPermission` — implemented; checks the
+  invoking user's custom `View Meeting`/`Edit Meeting` Jira project permission
+  (declared in `manifest.yml`'s `jira:projectPermission`, per `PERMISSION.md`)
+  via `GET /rest/api/3/mypermissions` as the user, after resolving the real
+  permission keys from `GET /rest/api/3/permissions` — Jira may not echo back
+  the bare manifest `key`. **UI gating only** — the `meet` backend does not yet
+  re-check this; see "Backend permission enforcement (not yet built)" below.
+- `meetings.ts`'s `listProjectMeetings` — stub that throws directly (no
+  resolver involved). The real backend's `list` operation has no project-wide
+  filter (only an exact `issueKey`, `creatorId`, `statuses`, or `search`
+  filter), so the project-page dashboard listing has no backend to call yet.
+- There is **no** resolver-backed `getRoomToken`, `getIssueMeetings`,
+  `scheduleMeeting`, `createInstantMeeting`, `getMeeting`, `updateMeeting`,
+  `cancelMeeting`, `endMeeting`, `updateMeetingSettings`, `joinMeeting`, or
+  `getHostConflict` — all of those go straight from the Custom UI to the real
+  `meet` backend via Forge Remote + the generated SDK (see below); the brain is
+  the backend `meet` service, not this app.
 
 **Backend calls go through Forge Remote + a generated SDK.**
 `api/forgeRemoteFetch.ts` injects a `fetch`-shaped adapter into the
@@ -122,9 +125,10 @@ identity itself. The `meet-backend` remote and its `baseUrl`
   colocated `.test.ts`). No side effects.
 - `api/` — backend/Jira adapters. `config.ts` reads Vite env; `meetings.ts` (all
   real `meet` backend calls: instant/schedule/get/list/update/cancel/ join, over
-  the generated SDK + Forge Remote), `workspaceUsers.ts` (resolver `invoke`),
-  `currentUser.ts`/`projectMembers.ts`/`issues.ts` (Jira direct via
-  `@forge/bridge` `requestJira`), `mappers.ts` (DTO↔domain).
+  the generated SDK + Forge Remote), `workspaceUsers.ts`/`meetingPermission.ts`
+  (Jira direct via the `@smiskinext/sdks-jira` SDK bridged through
+  `jiraSdkFetch.ts`), `currentUser.ts`/`projectMembers.ts`/`issues.ts` (Jira
+  direct via `@forge/bridge` `requestJira`), `mappers.ts` (DTO↔domain).
 - `hooks/` — TanStack Query hooks. `hooks/queryKeys.ts` centralizes every cache
   key; always add new keys there so mutation invalidation stays in sync.
 - `context/`, `components/shared/`, `components/ui/` (local Tailwind design
@@ -140,10 +144,11 @@ same `getMeeting` query), `useIssueMeetings`, `useCreateInstantMeeting`,
 `useScheduleMeeting`, `useUpdateMeeting`, `useCancelMeeting`, `useEndMeeting`,
 `useUpdateMeetingSettings` (not wired to any UI yet), `useStartMeeting` (joins
 as host), and `useRoomToken`. The one exception is `useProjectMeetings`, which
-goes through the `getProjectMeetings` resolver stub that throws (see
-"Resolver is a thin bridge" above). Standalone `vite dev` therefore cannot
-list/create/update/cancel/start meetings or enter a room — there is no Forge
-bridge and no Forge Remote binding to reach the backend through.
+calls `listProjectMeetings` — a stub that throws directly (see "Jira and
+backend calls happen directly in the browser" above). Standalone `vite dev`
+therefore cannot list/create/update/cancel/start meetings or enter a room —
+there is no Forge bridge and no Forge Remote binding to reach the backend
+through.
 
 The `shouldUseBackendApi()` / `VITE_SMISKI_DATA_SOURCE` switch described in
 `api/README.md` never existed in code — treat that README as aspirational.
@@ -154,10 +159,10 @@ it:
 
 - `useProjectIssues`, `useProjectMembers` → real Jira via `requestJira` from the
   browser; mock only under `vite dev`.
-- `useWorkspaceUsers` → resolver `searchWorkspaceUsers`; mock only under
-  `vite dev`.
-- `useMeetingPermission` → resolver `getMeetingPermission`; mocked (always full
-  access) only under `vite dev`.
+- `useWorkspaceUsers` → `api/workspaceUsers.searchWorkspaceUsers` (direct Jira
+  call, no resolver); mock only under `vite dev`.
+- `useMeetingPermission` → `api/meetingPermission.getMeetingPermission` (direct
+  Jira call, no resolver); mocked (always full access) only under `vite dev`.
 - `CurrentUserContext` → Jira `/myself`; `mocks/users.ts`'s `CURRENT_USER` is
   the context default and the `vite dev` value. `CurrentUserProvider` wraps the
   whole app including modal roots (`App.tsx`), so the default never leaks into a
@@ -183,8 +188,8 @@ need re-discovering:
   `Bearer` token against the FIT's `apiBaseUrl` claim (**not** the site URL) to
   call `GET /rest/api/3/mypermissions` directly from Java
   (`RestTemplate`/`WebClient`) — mirrors the same `getMeetingPermission` logic
-  already implemented in `jiraSdkClient.ts`, just from the backend instead of
-  the resolver.
+  already implemented in `static/smiski-ui/src/api/meetingPermission.ts`, just
+  from the backend instead of the browser.
 
 ## manifest.yml / egress
 
@@ -210,11 +215,12 @@ need re-discovering:
 - The app's `biome.json` turns **off** `useImportExtensions`, so app imports
   omit the `.ts`/`.tsx` extension (`import x from './foo'`) — the opposite of
   the root default. Match surrounding files.
-- Unused vars/imports are errors, but Biome ignores `_`-prefixed names — the
-  resolver stubs use `_req` on purpose; don't "fix" those away.
+- Unused vars/imports are errors, but Biome ignores `_`-prefixed names — e.g.
+  `listProjectMeetings`'s unimplemented `_filters` param; don't "fix" those
+  away.
 - `@/*` path alias → `static/smiski-ui/src/*` (Vite + tsconfig). Code mixes it
   with relative imports; follow the local file.
-- Env files: copy `.env.example` → `app/.env` for the Forge CLI/resolver, and
+- Env files: copy `.env.example` → `app/.env` for the Forge CLI, and
   `static/smiski-ui/.env.example` → `.env.local` for Vite.
 
 ## Forge CLI
@@ -236,6 +242,6 @@ resolver `backendRequest` transport, a mock/backend switch, an `api/` file list
 with `client.ts`/`endpoints.ts`/`participants.ts`/`recordings.ts`) that the
 current code does not implement. When docs and code disagree, trust the code.
 `PERMISSION.md`'s permission _model_ (View/Edit Meeting, the state×permission
-matrix) is accurate and now partially implemented (frontend and resolver, per
-"Backend permission enforcement" above) — its §7 backend re-check requirement is
-the part still outstanding.
+matrix) is accurate and now partially implemented (frontend, per "Backend
+permission enforcement" above) — its §7 backend re-check requirement is the
+part still outstanding.

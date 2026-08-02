@@ -1,8 +1,8 @@
 /**
- * Pure filter/map for Jira user search results — no `@forge/api` or network
+ * Pure filter/map for Jira user search results — no `@forge/bridge` or network
  * dependency, so the workspace-user contract (only active, human Atlassian
  * accounts; mapped to `{accountId, displayName, email, avatarUrl}`) is
- * unit-testable in isolation. `jiraSdkClient.ts` composes this with the Forge
+ * unit-testable in isolation. `workspaceUsers.ts` composes this with the Forge
  * transport.
  */
 import type { User } from '@smiskinext/sdks-jira';

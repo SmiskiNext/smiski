@@ -1,4 +1,3 @@
-import { invoke } from '@forge/bridge';
 import {
     cancel,
     createInstant,
@@ -365,9 +364,12 @@ export async function getMeeting(meetingId: string): Promise<MeetingDetail> {
             path: { version: apiConfig.apiVersion, id: meetingId },
         }),
     );
+    const participants = participantsFromBackend(response);
     return {
-        meeting: meetingFromBackend(response),
-        participants: participantsFromBackend(response),
+        meeting: meetingFromBackend(response, {
+            participantCount: participants.length,
+        }),
+        participants,
     };
 }
 
@@ -384,19 +386,19 @@ export async function listIssueMeetings(issueKey: string): Promise<Meeting[]> {
 }
 
 /**
- * Lists meetings across a project for the dashboard table. Routed through the
- * `getProjectMeetings` resolver function rather than the SDK directly: the
+ * Lists meetings across a project for the dashboard table. Unimplemented: the
  * real backend's `list` operation has no `projectKey` filter yet (only
- * `issueKey`/`creatorId`/`statuses`/`search`), so this stays an
- * `Not implemented` stub (see `app/src/index.ts`) until the backend adds one.
+ * `issueKey`/`creatorId`/`statuses`/`search`), so there is no SDK call this
+ * can make yet.
  */
 export async function listProjectMeetings(
-    filters: MeetingListFilters,
+    _filters: MeetingListFilters,
 ): Promise<Meeting[]> {
-    return invokeResolver<Meeting[]>(
-        'getProjectMeetings',
-        filters as unknown as Record<string, unknown>,
-    );
+    throw new MeetingApiError({
+        message:
+            'Not implemented: the meet backend has no project-wide meeting '
+            + 'listing filter yet.',
+    });
 }
 
 /**
@@ -573,16 +575,4 @@ export async function findRunningMeetingHostedByUser(
         running.find((meeting) => meeting.issueKey !== excludingIssueKey)
         ?? null
     );
-}
-
-/** Calls a resolver function, wrapping any rejection as a `MeetingApiError`. */
-async function invokeResolver<T>(
-    functionKey: string,
-    payload: Record<string, unknown> = {},
-): Promise<T> {
-    try {
-        return (await invoke(functionKey, payload)) as T;
-    } catch (error) {
-        throw toMeetingError(error);
-    }
 }

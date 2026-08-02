@@ -1,5 +1,5 @@
 /**
- * API barrel — re-exports the meeting SDK adapters and Forge resolver clients.
+ * API barrel — re-exports the meeting SDK adapters and direct Jira clients.
  */
 export * from './config';
 export * from './currentUser';

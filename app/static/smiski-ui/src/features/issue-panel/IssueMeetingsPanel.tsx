@@ -62,6 +62,7 @@ export function IssueMeetingsPanel({
     const permissions = useMeetingPermissions(issue.projectKey);
     const { meetings, loading, error } = useIssueMeetings(
         issue.issueKey,
+        issue.projectKey,
         permissions.canViewMeeting && !permissions.isLoading,
     );
     const openMeetingRoom = useNavigateToMeetingRoom(

@@ -1,26 +1,43 @@
 /**
- * Workspace-user search — routed through the Forge resolver.
- *
- * Unlike `projectMembers.ts` (which calls Jira directly from the browser via
- * `requestJira`), workspace-user search runs in the resolver so it can query
- * Jira as the invoking user and keep the call surface server-side. The frontend
- * only crosses the `invoke` boundary here; the resolver owns the Jira SDK.
+ * Workspace-user search — calls Jira directly from the browser via
+ * `@smiskinext/sdks-jira` bridged to `@forge/bridge`'s `requestJira`
+ * (`jiraSdkFetch.ts`), so Jira enforces the invoking user's own "Browse
+ * users" permission. No resolver hop: Forge bridge v2+ supports Jira REST
+ * calls natively from Custom UI, same as `issues.ts`/`projectMembers.ts`.
  */
-import { invoke } from '@forge/bridge';
+import { findUsers, getAllUsers, type User } from '@smiskinext/sdks-jira';
+import { jiraCallOptions } from './jiraSdkFetch';
+import { toWorkspaceUsers } from './workspaceUserMapping';
 
-/** A Jira site user offered as a meeting invitee. */
-export interface WorkspaceUser {
-    accountId: string;
-    displayName: string;
-    email: string;
-    avatarUrl?: string;
-}
+export type { WorkspaceUser } from './workspaceUserMapping';
 
-/** Search Jira site users. An empty query returns an initial seeded list. */
-export async function searchWorkspaceUsers(
-    query?: string,
-): Promise<WorkspaceUser[]> {
-    return invoke('searchWorkspaceUsers', {
-        query: query ?? '',
-    }) as Promise<WorkspaceUser[]>;
+const USER_SEARCH_MAX_RESULTS = 50;
+
+/**
+ * Search Jira site users as the invoking user. An empty query seeds the list
+ * via `getAllUsers` (`GET /users/search`); a non-empty query uses `findUsers`
+ * (`GET /user/search`), which rejects an empty `query`.
+ */
+export async function searchWorkspaceUsers(query?: string) {
+    const term = query?.trim();
+
+    const result = term
+        ? await findUsers({
+              ...jiraCallOptions,
+              query: { query: term, maxResults: USER_SEARCH_MAX_RESULTS },
+          })
+        : await getAllUsers({
+              ...jiraCallOptions,
+              query: { maxResults: USER_SEARCH_MAX_RESULTS },
+          });
+
+    if (result.error) {
+        throw new Error(
+            `Jira user search failed${
+                result.response ? ` (status ${result.response.status})` : ''
+            }.`,
+        );
+    }
+
+    return toWorkspaceUsers((result.data ?? []) as User[]);
 }

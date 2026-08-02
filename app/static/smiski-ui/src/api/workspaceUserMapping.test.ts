@@ -1,13 +1,7 @@
 import { describe, expect, it } from 'vitest';
-/**
- * Tests the resolver-side pure filter/map (`app/src/workspaceUserMapping.ts`).
- * That module lives in the Forge resolver package but has no `@forge/api` or
- * network dependency, so it is imported here to unit-test the workspace-user
- * exclusion + field-mapping contract in the existing smiski-ui vitest runner.
- */
-import { toWorkspaceUsers } from '../../../../src/workspaceUserMapping';
+import { toWorkspaceUsers } from './workspaceUserMapping';
 
-describe('resolver searchUsers mapping/filter (toWorkspaceUsers)', () => {
+describe('searchWorkspaceUsers mapping/filter (toWorkspaceUsers)', () => {
     it('excludes inactive and non-human accounts, keeping active atlassian users', () => {
         const result = toWorkspaceUsers([
             {

@@ -96,10 +96,8 @@ jobs:
               run: pnpm --filter @smiskinext/smiski-ts build
               working-directory: app
 
-            - name: Typecheck
-              run: pnpm exec tsc --noEmit
-              working-directory: app
-
+            # There is no root-level TypeScript anymore (no Forge resolver) —
+            # smiski-ui's own build step below runs `tsc --noEmit` first.
             - name: Build static/smiski-ui
               run: pnpm run build
               working-directory: app

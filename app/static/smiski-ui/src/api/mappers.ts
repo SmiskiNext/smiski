@@ -52,7 +52,21 @@ interface BackendParticipantSnapshot {
 
 type BackendEnvelope = Record<string, unknown>;
 
-export function meetingFromBackend(payload: unknown): Meeting {
+/** Overrides for fields the backend doesn't carry on every response shape. */
+export interface MeetingFromBackendOverrides {
+    /**
+     * The backend never returns a participant count on any meeting snapshot
+     * (list summary or detail) — only `get`'s sibling `participants` array
+     * carries real data. Callers with that array should pass its length here
+     * rather than let the mapper's placeholder default stand.
+     */
+    participantCount?: number;
+}
+
+export function meetingFromBackend(
+    payload: unknown,
+    overrides?: MeetingFromBackendOverrides,
+): Meeting {
     const snapshot = extractMeetingSnapshot(payload);
     const issueLink = snapshot.issueLink ?? {};
     const issueKey = issueLink.issueKey ?? snapshot.issueKey ?? '';
@@ -98,7 +112,10 @@ export function meetingFromBackend(payload: unknown): Meeting {
         endedAt: snapshot.endedAt ?? undefined,
         status,
         participantCount:
-            snapshot.participantCount ?? snapshot.inviteeCount ?? 1,
+            overrides?.participantCount
+            ?? snapshot.participantCount
+            ?? snapshot.inviteeCount
+            ?? 1,
         endTime: snapshot.endTime ?? undefined,
         zoneId: snapshot.zoneId ?? undefined,
         settings: snapshot.settings ?? undefined,
@@ -112,7 +129,7 @@ export function meetingsFromBackend(payload: unknown): Meeting[] {
         'meetings',
         'items',
         'content',
-    ]).map(meetingFromBackend);
+    ]).map((snapshot) => meetingFromBackend(snapshot));
 }
 
 export function participantsFromBackend(payload: unknown): Participant[] {

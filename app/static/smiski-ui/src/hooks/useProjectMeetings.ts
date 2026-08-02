@@ -1,10 +1,9 @@
 /**
  * useProjectMeetings — meetings across a project for the dashboard table.
  *
- * Backed by the `getProjectMeetings` resolver function, which is an
- * unimplemented stub — the real `meet` backend's `list` operation has no
- * project-wide filter yet (only an exact `issueKey` filter), see
- * `app/src/index.ts`.
+ * `listProjectMeetings` is an unimplemented stub — the real `meet` backend's
+ * `list` operation has no project-wide filter yet (only an exact `issueKey`
+ * filter), see `api/meetings.ts`.
  */
 import { useQuery } from '@tanstack/react-query';
 import type { MeetingListFilters } from '../api/meetings';
