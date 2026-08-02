@@ -129,9 +129,15 @@ export interface ScheduleMeetingResult {
     error?: MeetingProblem;
 }
 
-/** Default meeting settings shared by the instant and scheduled create flows. */
+/**
+ * Default meeting settings shared by the instant and scheduled create flows.
+ * `admissionPolicy` must be one of the backend's `AdmissionPolicy` enum
+ * values (`ALLOW_ALL` | `MANUAL_APPROVAL`) — the backend does
+ * `AdmissionPolicy.valueOf(...)` on this string with no fallback, so any
+ * other value throws.
+ */
 const DEFAULT_MEETING_SETTINGS = {
-    admissionPolicy: 'OPEN',
+    admissionPolicy: 'ALLOW_ALL',
     maxParticipants: 50,
     allowScreenShare: true,
     chatEnabled: true,

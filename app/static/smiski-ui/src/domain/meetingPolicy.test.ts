@@ -36,54 +36,69 @@ describe('getAvailableMeetingActions', () => {
     const viewOnly = resolveMeetingPermissions(true, false);
     const edit = resolveMeetingPermissions(false, true);
 
+    const HOST = 'user-1';
+    const NON_HOST = 'user-2';
+
     it('returns no actions while permissions are loading', () => {
         expect(
-            getAvailableMeetingActions(meeting('RUNNING'), {
-                ...edit,
-                isLoading: true,
-            }),
+            getAvailableMeetingActions(
+                meeting('RUNNING'),
+                { ...edit, isLoading: true },
+                HOST,
+            ),
         ).toEqual([]);
     });
 
     it('returns no actions without View or Edit Meeting', () => {
         expect(
-            getAvailableMeetingActions(meeting('SCHEDULED'), noAccess),
+            getAvailableMeetingActions(meeting('SCHEDULED'), noAccess, HOST),
         ).toEqual([]);
     });
 
     it('gates scheduled meeting actions', () => {
         expect(
-            getAvailableMeetingActions(meeting('SCHEDULED'), viewOnly),
+            getAvailableMeetingActions(meeting('SCHEDULED'), viewOnly, HOST),
         ).toEqual(['VIEW_DETAIL']);
-        expect(getAvailableMeetingActions(meeting('SCHEDULED'), edit)).toEqual([
-            'VIEW_DETAIL',
-            'EDIT',
-            'START',
-            'CANCEL',
-        ]);
+        expect(
+            getAvailableMeetingActions(meeting('SCHEDULED'), edit, HOST),
+        ).toEqual(['VIEW_DETAIL', 'EDIT', 'START', 'CANCEL']);
     });
 
     it('gates running meeting actions', () => {
         expect(
-            getAvailableMeetingActions(meeting('RUNNING'), viewOnly),
+            getAvailableMeetingActions(meeting('RUNNING'), viewOnly, HOST),
         ).toEqual(['JOIN', 'VIEW_DETAIL']);
-        expect(getAvailableMeetingActions(meeting('RUNNING'), edit)).toEqual([
-            'JOIN',
-            'VIEW_DETAIL',
-            'END',
-        ]);
+        expect(
+            getAvailableMeetingActions(meeting('RUNNING'), edit, HOST),
+        ).toEqual(['JOIN', 'VIEW_DETAIL', 'END']);
     });
 
     it.each(['COMPLETED', 'CANCELED'] as const)(
         'only exposes details and history for %s meetings',
         (status) => {
             expect(
-                getAvailableMeetingActions(meeting(status), viewOnly),
+                getAvailableMeetingActions(meeting(status), viewOnly, HOST),
             ).toEqual(['VIEW_DETAIL', 'VIEW_HISTORY']);
-            expect(getAvailableMeetingActions(meeting(status), edit)).toEqual([
-                'VIEW_DETAIL',
-                'VIEW_HISTORY',
-            ]);
+            expect(
+                getAvailableMeetingActions(meeting(status), edit, HOST),
+            ).toEqual(['VIEW_DETAIL', 'VIEW_HISTORY']);
         },
     );
+
+    // The backend enforces EDIT/CANCEL/END as host-only
+    // (`hostId.equals(actor)` in CancelMeetingApplicationService /
+    // EndMeetingApplicationService / UpdateMeetingApplicationService), not
+    // "any Edit Meeting permission holder" — a non-host Edit-Meeting user
+    // must not see actions the backend will reject with 403.
+    it('hides EDIT/CANCEL from a non-host Edit Meeting user, keeps START', () => {
+        expect(
+            getAvailableMeetingActions(meeting('SCHEDULED'), edit, NON_HOST),
+        ).toEqual(['VIEW_DETAIL', 'START']);
+    });
+
+    it('hides END from a non-host Edit Meeting user, keeps JOIN', () => {
+        expect(
+            getAvailableMeetingActions(meeting('RUNNING'), edit, NON_HOST),
+        ).toEqual(['JOIN', 'VIEW_DETAIL']);
+    });
 });

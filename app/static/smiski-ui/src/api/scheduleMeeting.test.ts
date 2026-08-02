@@ -93,7 +93,7 @@ describe('scheduleMeeting (SDK schedule over Forge Remote)', () => {
         expect(body).toMatchObject({
             title: 'Sprint planning',
             issueLink: { issueKey: 'SMISKI-101', projectKey: 'SMISKI' },
-            settings: { admissionPolicy: 'OPEN' },
+            settings: { admissionPolicy: 'ALLOW_ALL' },
             timeRange: {
                 startTime: '2026-08-01T02:00:00.000Z',
                 endTime: '2026-08-01T03:00:00.000Z',

@@ -54,7 +54,7 @@ describe('buildInstantMeetingPayload (MeetCreateInstantMeetingRequest body)', ()
             issueKey: 'SMISKI-101',
             projectKey: 'SMISKI',
         });
-        expect(payload.settings.admissionPolicy).toBe('OPEN');
+        expect(payload.settings.admissionPolicy).toBe('ALLOW_ALL');
         expect(payload.zoneId).toBeTruthy();
     });
 

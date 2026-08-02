@@ -7,6 +7,7 @@ import {
     MeetingStatusTag,
 } from '../../../components/shared';
 import { Button, Icon } from '../../../components/ui';
+import { useCurrentUser } from '../../../context/CurrentUserContext';
 import {
     getAvailableMeetingActions,
     type Meeting,
@@ -34,7 +35,12 @@ function ActionsCell({
     permissions: MeetingPermissions;
     onAction: (action: MeetingAction, meeting: Meeting) => void;
 }) {
-    const actions = getAvailableMeetingActions(meeting, permissions);
+    const currentUser = useCurrentUser();
+    const actions = getAvailableMeetingActions(
+        meeting,
+        permissions,
+        currentUser.accountId,
+    );
     const primaryAction = actions.includes('JOIN')
         ? 'JOIN'
         : actions.includes('START')
