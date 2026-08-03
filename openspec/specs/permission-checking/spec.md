@@ -342,6 +342,20 @@ serialised as a JSON array.
 - **WHEN** retrieving cached permissions
 - **THEN** system parses the JSON array back to a string slice
 
+#### Scenario: Retention copy written alongside the primary entry
+
+- **WHEN** a permission result is cached under key `perm:cloud456:user123:10001`
+- **THEN** system also stores the same JSON array under
+  `perm:cloud456:user123:10001:stale` with the retention TTL, so the value
+  outlives the primary entry and remains available to the stale-while-error
+  fallback
+
+#### Scenario: Configurable stale retention window
+
+- **WHEN** environment variable `CACHE_STALE_RETENTION` is set to `6h`
+- **THEN** system retains the stale copy for 6 hours instead of the default 24
+  hours
+
 ### Requirement: Cache key format ensures uniqueness
 
 The authorization service SHALL construct cache keys that uniquely identify the
@@ -368,12 +382,28 @@ permission context across tenant, user and resource.
 ### Requirement: Implement stale-while-error fallback
 
 The authorization service SHALL serve stale cached permissions when the Jira API
-is unavailable, even if the cache TTL has expired.
+is unavailable, even if the cache TTL has expired. Because the primary entry is
+removed by Valkey once its TTL elapses, the fallback SHALL read the retention
+copy held under the `:stale` companion key.
 
 #### Scenario: Stale cache used on Jira API failure
 
 - **WHEN** the Jira API returns an error and stale cached permissions exist
 - **THEN** system returns the stale cached permissions and logs a warning
+
+#### Scenario: Stale copy outlives the expired primary entry
+
+- **WHEN** a permission result was cached more than 15 minutes ago and the Jira
+  API returns an error
+- **THEN** the primary lookup misses, and system serves the permissions from the
+  retention copy
+
+#### Scenario: Stale copy discarded after the retention window
+
+- **WHEN** a permission result was cached longer ago than the retention window
+  and the Jira API returns an error
+- **THEN** no stale permissions are available and system returns an empty
+  permissions array
 
 #### Scenario: No stale cache available on API failure
 
@@ -405,6 +435,62 @@ bypassing the cache rather than failing the request.
 
 - **WHEN** Valkey becomes available after a temporary failure
 - **THEN** system resumes normal caching behaviour without restart
+
+#### Scenario: Service starts while Valkey is unreachable
+
+- **WHEN** the service starts and Valkey cannot be reached
+- **THEN** the service still starts and serves authorization requests, logging a
+  warning rather than terminating
+
+#### Scenario: Connection attempts are time-bounded
+
+- **WHEN** establishing a connection to Valkey stalls
+- **THEN** the attempt fails within a bounded timeout so concurrent
+  authorization requests are not blocked waiting on the cache
+
+### Requirement: Support managed Valkey endpoints
+
+The authorization service SHALL be deployable against a managed Valkey endpoint
+such as AWS ElastiCache without code changes, configured entirely through
+environment variables.
+
+#### Scenario: In-transit encryption enabled
+
+- **WHEN** environment variable `REDIS_TLS` is set to `true`
+- **THEN** system connects using TLS 1.2 or higher
+
+#### Scenario: Plaintext connection by default
+
+- **WHEN** `REDIS_TLS` is unset
+- **THEN** system connects without TLS, matching the local Valkey container
+
+#### Scenario: Named user authentication
+
+- **WHEN** environment variables `REDIS_USERNAME` and `REDIS_PASSWORD` are set
+- **THEN** system authenticates with that user rather than the default user
+
+#### Scenario: Credentials resolved per connection
+
+- **WHEN** system opens a connection to Valkey
+- **THEN** credentials are resolved at that moment rather than captured once at
+  startup, so short-lived secrets can be adopted without a restart
+
+#### Scenario: Credential resolution failure surfaces as a cache error
+
+- **WHEN** credentials cannot be resolved for a connection attempt
+- **THEN** the cache operation fails and the request falls back to the Jira API
+
+#### Scenario: Deployment topology detected automatically
+
+- **WHEN** `REDIS_ADDR` points at a cluster-mode endpoint
+- **THEN** system operates in cluster mode, and falls back to single-node mode
+  when the endpoint does not advertise cluster support
+
+#### Scenario: Server-assisted client-side caching disabled
+
+- **WHEN** system connects to any Valkey deployment
+- **THEN** system does not issue `CLIENT TRACKING`, which managed proxy-based
+  endpoints do not support
 
 ### Requirement: Handle concurrent cache writes
 

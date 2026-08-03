@@ -22,10 +22,17 @@ func main() {
 	cfg := config.Load()
 
 	log.Printf("Starting gateway service on port %s", cfg.GRPCPort)
-	log.Printf("Config: RedisAddr=%s, JiraAPIBase=%s, CacheTTL=%s",
-		cfg.RedisAddr, cfg.JiraAPIBase, cfg.CacheTTL)
+	log.Printf("Config: RedisAddr=%s, RedisTLS=%t, JiraAPIBase=%s, CacheTTL=%s, StaleRetention=%s",
+		cfg.RedisAddr, cfg.RedisTLS, cfg.JiraAPIBase, cfg.CacheTTL, cfg.StaleRetention)
 
-	cacheClient := cache.NewCache(cfg.RedisAddr, cfg.RedisPassword, cfg.CacheTTL)
+	cacheClient := cache.NewCache(cache.Options{
+		Addr:           cfg.RedisAddr,
+		Username:       cfg.RedisUsername,
+		Password:       cfg.RedisPassword,
+		TLS:            cfg.RedisTLS,
+		TTL:            cfg.CacheTTL,
+		StaleRetention: cfg.StaleRetention,
+	})
 	if err := cacheClient.Ping(context.Background()); err != nil {
 		log.Printf("WARNING: Failed to connect to cache: %v", err)
 	} else {

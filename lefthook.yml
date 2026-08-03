@@ -114,8 +114,9 @@ pre-push:
             root: services/gateway
             glob: 'services/gateway/**'
             run: >
-                command -v go >/dev/null 2>&1 || { echo "[build-go] go not found,
-                skipping (install via: mise install go)"; exit 0; }; go build ./...
+                command -v go >/dev/null 2>&1 || { echo "[build-go] go not
+                found, skipping (install via: mise install go)"; exit 0; }; go
+                build ./...
 
         test-go:
             priority: 4
@@ -123,9 +124,9 @@ pre-push:
             glob: 'services/gateway/**'
             run: >
                 command -v go >/dev/null 2>&1 || { echo "[test-go] go not found,
-                skipping (install via: mise install go)"; exit 0; }; go build ./...
-                >/dev/null 2>&1 || { echo "[test-go] build failed, skipping
-                tests"; exit 1; }; go test ./...
+                skipping (install via: mise install go)"; exit 0; }; go build
+                ./... >/dev/null 2>&1 || { echo "[test-go] build failed,
+                skipping tests"; exit 1; }; go test ./...
 
         openapi-drift:
             priority: 4
