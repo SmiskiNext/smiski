@@ -170,7 +170,7 @@ static_resources:
                               address:
                                   socket_address:
                                       address: tenant
-                                      port_value: 8081
+                                      port_value: 8080
 
         - name: meet_cluster
           type: STRICT_DNS
@@ -184,7 +184,7 @@ static_resources:
                               address:
                                   socket_address:
                                       address: meet
-                                      port_value: 8082
+                                      port_value: 8080
 
         - name: notification_cluster
           type: STRICT_DNS
@@ -198,4 +198,4 @@ static_resources:
                               address:
                                   socket_address:
                                       address: notification
-                                      port_value: 8083
+                                      port_value: 8080

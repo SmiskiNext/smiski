@@ -10,9 +10,9 @@ spring:
             supported: 1
 
     datasource:
-        url: jdbc:postgresql://${POSTGRES_HOST:localhost}:${POSTGRES_PORT:5432}/${POSTGRES_DB:zms_notification}
-        username: ${POSTGRES_USER:zms_user}
-        password: ${POSTGRES_PASSWORD:zms_secret}
+        url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/notification}
+        username: ${POSTGRES_USER:smiski_user}
+        password: ${POSTGRES_PASSWORD:smiski_secret}
         driver-class-name: org.postgresql.Driver
 
     jpa:
@@ -40,11 +40,10 @@ spring:
         virtual:
             enabled: true
 
-logging:
-    aspect:
-        include-args: false
-
 app:
+    logging:
+        aspect:
+            include-args: false
     sse:
         host-stream-timeout-ms: ${SSE_HOST_STREAM_TIMEOUT_MS:300000}
         heartbeat-interval-seconds: ${SSE_HEARTBEAT_INTERVAL_SECONDS:15}

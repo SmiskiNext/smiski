@@ -1,11 +1,8 @@
-server:
-    port: 8183
-
 spring:
     datasource:
-        url: jdbc:postgresql://localhost:8283/zms_tenants
-        username: ${POSTGRES_USER:zms_user}
-        password: ${POSTGRES_PASSWORD:zms_secret}
+        url: jdbc:postgresql://localhost:8283/tenant
+        username: ${POSTGRES_USER:smiski_user}
+        password: ${POSTGRES_PASSWORD:smiski_secret}
 
     kafka:
         bootstrap-servers: localhost:9094

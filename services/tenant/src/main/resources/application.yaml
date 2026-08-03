@@ -10,9 +10,9 @@ spring:
             supported: 1
 
     datasource:
-        url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/zms_tenants}
-        username: zms_user
-        password: zms_secret
+        url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/tenant}
+        username: ${POSTGRES_USER:smiski_user}
+        password: ${POSTGRES_PASSWORD:smiski_secret}
         driver-class-name: org.postgresql.Driver
 
     jpa:
@@ -41,11 +41,10 @@ spring:
         virtual:
             enabled: true
 
-logging:
-    aspect:
-        include-args: false
-
-smiski:
+app:
+    logging:
+        aspect:
+            include-args: false
     outbox:
         transport: kafka
         relay:

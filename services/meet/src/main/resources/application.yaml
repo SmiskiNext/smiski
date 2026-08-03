@@ -10,9 +10,9 @@ spring:
             supported: 1
 
     datasource:
-        url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/zms_meetings}
-        username: zms_user
-        password: zms_secret
+        url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/meet}
+        username: ${POSTGRES_USER:smiski_user}
+        password: ${POSTGRES_PASSWORD:smiski_secret}
         driver-class-name: org.postgresql.Driver
 
     jpa:
@@ -55,15 +55,10 @@ app:
             retry-attempts: ${TENANT_KAFKA_RETRY_ATTEMPTS:3}
             retry-backoff-ms: ${TENANT_KAFKA_RETRY_BACKOFF_MS:1000}
             dead-letter-suffix: ${TENANT_KAFKA_DLT_SUFFIX:.dlt}
-    tenancy:
-        header: X-Tenant-ID
-        default-tenant: system
-    identity:
-        header: X-Account-Id
     livekit:
         url: ${LIVEKIT_URL:http://localhost:7880}
         ws-url: ${LIVEKIT_WS_URL:ws://localhost:7880}
-        api-key: ${LIVEKIT_API_KEY:zms-livekit-key}
+        api-key: ${LIVEKIT_API_KEY:smiski-livekit-key}
         api-secret: ${LIVEKIT_API_SECRET:change-me-livekit-secret-must-be-at-least-32-chars}
         webhook-url: ${LIVEKIT_WEBHOOK_URL:http://localhost:8080/api/1/webhooks/livekit}
         webhook-topic: ${LIVEKIT_WEBHOOK_TOPIC:meet.livekit.webhook.internal}
@@ -87,12 +82,13 @@ app:
     meet:
         instant:
             default-duration: ${MEET_INSTANT_DEFAULT_DURATION:PT1H}
+        no-show-canceler:
+            fixed-delay: PT5M
+            batch-size: 100
     short-code:
         alphabet: ${MEET_SHORT_CODE_ALPHABET:0123456789abcdefghijklmnopqrstuvwxyz}
         length: ${MEET_SHORT_CODE_LENGTH:10}
         max-attempts: ${MEET_SHORT_CODE_MAX_ATTEMPTS:10}
-
-smiski:
     outbox:
         transport: kafka
         relay:
@@ -101,14 +97,9 @@ smiski:
             batch-size: 50
         cloudevent:
             source: meet-service
-    meet:
-        no-show-canceler:
-            fixed-delay: PT5M
-            batch-size: 100
-
-logging:
-    aspect:
-        include-args: false
+    logging:
+        aspect:
+            include-args: false
 
 springdoc:
     api-docs:

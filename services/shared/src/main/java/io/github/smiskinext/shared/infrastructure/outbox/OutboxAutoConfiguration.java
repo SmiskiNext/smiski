@@ -58,7 +58,7 @@ public class OutboxAutoConfiguration {
     @Bean
     @ConditionalOnMissingBean
     @ConditionalOnProperty(
-            prefix = "smiski.outbox",
+            prefix = "app.outbox",
             name = "transport",
             havingValue = "kafka",
             matchIfMissing = true)
@@ -86,7 +86,7 @@ public class OutboxAutoConfiguration {
     @Bean
     @ConditionalOnMissingBean
     @ConditionalOnProperty(
-            prefix = "smiski.outbox.relay",
+            prefix = "app.outbox.relay",
             name = "enabled",
             havingValue = "true",
             matchIfMissing = true)

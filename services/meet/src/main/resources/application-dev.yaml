@@ -1,11 +1,8 @@
-server:
-    port: 8182
-
 spring:
     datasource:
-        url: jdbc:postgresql://localhost:8282/zms_meetings
-        username: ${POSTGRES_USER:zms_user}
-        password: ${POSTGRES_PASSWORD:zms_secret}
+        url: jdbc:postgresql://localhost:8282/meet
+        username: ${POSTGRES_USER:smiski_user}
+        password: ${POSTGRES_PASSWORD:smiski_secret}
 
     kafka:
         bootstrap-servers: localhost:9094
