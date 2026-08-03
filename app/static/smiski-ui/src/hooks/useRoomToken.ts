@@ -9,6 +9,7 @@
  * from its own `join` call so the room screen doesn't re-request a token.
  */
 import { useQuery } from '@tanstack/react-query';
+import { useState } from 'react';
 import { getDeviceId } from '../api/mappers';
 import { getRoomToken } from '../api/meetings';
 import { useCurrentUser } from '../context/CurrentUserContext';
@@ -18,6 +19,7 @@ export interface UseRoomTokenResult {
     token: string | null;
     url: string | null;
     loading: boolean;
+    waitingForApproval: boolean;
     error: Error | null;
 }
 
@@ -26,16 +28,30 @@ export function useRoomToken(
     enabled = true,
 ): UseRoomTokenResult {
     const currentUser = useCurrentUser();
+    const [waitingForApproval, setWaitingForApproval] = useState(false);
     const query = useQuery({
         queryKey: meetingId
             ? queryKeys.roomToken(meetingId)
             : ['room-token', 'none'],
-        queryFn: () =>
-            getRoomToken(meetingId as string, {
-                displayName: currentUser.displayName,
-                deviceId: getDeviceId(),
-                avatarUrl: currentUser.avatarUrl,
-            }),
+        queryFn: async ({ signal }) => {
+            setWaitingForApproval(false);
+            try {
+                return await getRoomToken(
+                    meetingId as string,
+                    {
+                        displayName: currentUser.displayName,
+                        deviceId: getDeviceId(),
+                        avatarUrl: currentUser.avatarUrl,
+                    },
+                    {
+                        signal,
+                        onPending: () => setWaitingForApproval(true),
+                    },
+                );
+            } finally {
+                setWaitingForApproval(false);
+            }
+        },
         enabled: enabled && Boolean(meetingId) && !import.meta.env.DEV,
         staleTime: Infinity,
         retry: false,
@@ -45,6 +61,7 @@ export function useRoomToken(
         token: query.data?.token ?? null,
         url: query.data?.url ?? null,
         loading: query.isLoading,
+        waitingForApproval,
         error: query.error as Error | null,
     };
 }
