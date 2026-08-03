@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"time"
 )
@@ -77,7 +78,11 @@ func (c *Client) doRequest(ctx context.Context, url, systemToken string, req *Pe
 	if err != nil {
 		return nil, &RetryableError{Err: err}
 	}
-	defer resp.Body.Close()
+	defer func() {
+		if closeErr := resp.Body.Close(); closeErr != nil {
+			log.Printf("Failed to close jira response body: %v", closeErr)
+		}
+	}()
 
 	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {

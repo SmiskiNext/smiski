@@ -63,6 +63,8 @@ func main() {
 
 	log.Println("Shutting down gracefully...")
 	grpcServer.GracefulStop()
-	cacheClient.Close()
+	if err := cacheClient.Close(); err != nil {
+		log.Printf("Failed to close cache connection: %v", err)
+	}
 	log.Println("Shutdown complete")
 }
