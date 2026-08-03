@@ -24,6 +24,20 @@ pre-commit:
                 for f in {staged_files}; do buf format -w --path "$f"; done
             stage_fixed: true
 
+        format-go:
+            root: services/gateway
+            glob: 'services/gateway/**/*.go'
+            run: >
+                command -v gofmt >/dev/null 2>&1 || { echo "[format-go] gofmt
+                not found, skipping (install via: mise install go)"; exit 0; };
+                gofmt -w {staged_files} || exit 1; command -v golangci-lint
+                >/dev/null 2>&1 || { echo "[format-go] golangci-lint not found,
+                skipping lint autofix (install via: mise install
+                golangci-lint)"; exit 0; }; dirs=$(for f in {staged_files}; do
+                dirname "$f"; done | sort -u); for d in $dirs; do golangci-lint
+                run --fix "$d" >/dev/null 2>&1 || true; done; exit 0
+            stage_fixed: true
+
         format-general:
             glob: '**/*.{md,json,toml,yaml,yml,sh,sql}'
             exclude:
@@ -94,6 +108,24 @@ pre-push:
                 "$(echo "$f" | cut -d/ -f2)" ;; esac; done | sort -u); [ -z
                 "$svcs" ] && exit 0; for s in $svcs; do ./services/gradlew -p
                 "services/$s" assemble || exit 1; done
+
+        build-go:
+            priority: 3
+            root: services/gateway
+            glob: 'services/gateway/**'
+            run: >
+                command -v go >/dev/null 2>&1 || { echo "[build-go] go not found,
+                skipping (install via: mise install go)"; exit 0; }; go build ./...
+
+        test-go:
+            priority: 4
+            root: services/gateway
+            glob: 'services/gateway/**'
+            run: >
+                command -v go >/dev/null 2>&1 || { echo "[test-go] go not found,
+                skipping (install via: mise install go)"; exit 0; }; go build ./...
+                >/dev/null 2>&1 || { echo "[test-go] build failed, skipping
+                tests"; exit 1; }; go test ./...
 
         openapi-drift:
             priority: 4

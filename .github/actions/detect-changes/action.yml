@@ -23,6 +23,9 @@ outputs:
             JSON array of changed services that emit OpenAPI specs (tenant,
             meet, notification)
         value: ${{ steps.build-matrix.outputs.openapi_services }}
+    gateway:
+        description: Whether services/gateway/ changed
+        value: ${{ steps.filter.outputs.gateway }}
 
 runs:
     using: composite
@@ -49,6 +52,8 @@ runs:
                     - 'services/proto/**'
                     - 'build-logic/**'
                     - 'gradle/libs.versions.toml'
+                  gateway:
+                    - 'services/gateway/**'
                   app:
                     - 'app/**'
                   scripts:
