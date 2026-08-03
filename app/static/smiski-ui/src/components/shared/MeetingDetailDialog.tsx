@@ -1,6 +1,7 @@
 import type { Meeting, Participant } from '../../domain';
 import { Button, Icon, Modal } from '../ui';
 import { LoadingState } from './LoadingState';
+import { MeetingInviteeManager } from './MeetingInviteeManager';
 import { ParticipantAvatarGroup } from './ParticipantAvatarGroup';
 import { MeetingStatusTag } from './StatusTag';
 
@@ -70,6 +71,7 @@ export function MeetingDetailDialog({
                             </dd>
                         </div>
                     </dl>
+                    <MeetingInviteeManager meeting={meeting} />
                     <div>
                         <p className='mb-2 text-xs font-bold tracking-wider text-[var(--text-faint)] uppercase'>
                             Participants

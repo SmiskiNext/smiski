@@ -1,10 +1,14 @@
 import {
+    addInvitees,
+    batchDeleteInvitees,
     cancel,
     createInstant,
     end,
     get,
     join,
     list,
+    type MeetAddMeetingInviteesRequest,
+    type MeetAddMeetingInviteesResponse,
     type MeetCancelMeetingResponse,
     type MeetCreateInstantMeetingRequest,
     type MeetCreateInstantMeetingResponse,
@@ -13,6 +17,7 @@ import {
     type MeetJoinMeetingResponse,
     type MeetMeetingListPage,
     type MeetProblemDetail,
+    type MeetRemoveMeetingInviteesResponse,
     type MeetScheduleMeetingRequest,
     type MeetScheduleMeetingResponse,
     type MeetUpdateMeetingRequest,
@@ -25,6 +30,7 @@ import {
 } from '@smiskinext/smiski-ts';
 import type {
     Meeting,
+    MeetingInvitee,
     MeetingSettings,
     MeetingStatus,
     Participant,
@@ -35,6 +41,7 @@ import { forgeRemoteClient } from './forgeRemoteFetch';
 import {
     getDeviceId,
     meetingFromBackend,
+    meetingInviteesFromBackend,
     meetingsFromBackend,
     participantsFromBackend,
 } from './mappers';
@@ -373,9 +380,10 @@ async function unwrap<T>(
     return result.data as T;
 }
 
-/** A meeting's full detail plus its distinct joined-participant roster. */
+/** A meeting's full detail with active invitees and joined participants. */
 export interface MeetingDetail {
     meeting: Meeting;
+    invitees: MeetingInvitee[];
     participants: Participant[];
 }
 
@@ -392,8 +400,52 @@ export async function getMeeting(meetingId: string): Promise<MeetingDetail> {
         meeting: meetingFromBackend(response, {
             participantCount: participants.length,
         }),
+        invitees: meetingInviteesFromBackend(response),
         participants,
     };
+}
+
+/** Builds the exact body accepted by the atomic add-invitees endpoint. */
+export function buildAddMeetingInviteesPayload(
+    invitees: MeetingInviteeInput[],
+): MeetAddMeetingInviteesRequest {
+    return {
+        invitees: invitees.map((invitee) => ({
+            accountId: invitee.accountId,
+            displayName: invitee.displayName,
+            email: invitee.email,
+        })),
+    };
+}
+
+/** Adds invitees to a SCHEDULED meeting as its host. */
+export async function addMeetingInvitees(
+    meetingId: string,
+    invitees: MeetingInviteeInput[],
+): Promise<MeetingInvitee[]> {
+    const response = await unwrap<MeetAddMeetingInviteesResponse>(() =>
+        addInvitees({
+            client: forgeRemoteClient,
+            path: { version: apiConfig.apiVersion, id: meetingId },
+            body: buildAddMeetingInviteesPayload(invitees),
+        }),
+    );
+    return meetingInviteesFromBackend(response);
+}
+
+/** Removes active invitees by invitee id from a SCHEDULED meeting. */
+export async function removeMeetingInvitees(
+    meetingId: string,
+    inviteeIds: string[],
+): Promise<MeetingInvitee[]> {
+    const response = await unwrap<MeetRemoveMeetingInviteesResponse>(() =>
+        batchDeleteInvitees({
+            client: forgeRemoteClient,
+            path: { version: apiConfig.apiVersion, id: meetingId },
+            body: { inviteeIds },
+        }),
+    );
+    return meetingInviteesFromBackend(response);
 }
 
 /** Lists meetings linked to a Jira issue (backend `list`, exact `issueKey` filter). */
