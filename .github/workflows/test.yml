@@ -24,6 +24,7 @@ jobs:
         outputs:
             services: ${{ steps.detect.outputs.services }}
             openapi_services: ${{ steps.detect.outputs.openapi_services }}
+            gateway: ${{ steps.detect.outputs.gateway }}
         steps:
             - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
             - id: detect
@@ -137,9 +138,45 @@ jobs:
             - name: Lint combined spec
               run: pnpm exec redocly lint services/openapi.yaml
 
+    test-gateway:
+        name: Test (gateway)
+        needs: changes
+        if: needs.changes.outputs.gateway == 'true'
+        runs-on: ubuntu-latest
+        env:
+            COVERAGE_THRESHOLD: '80'
+            COVERAGE_PROFILE: coverage.out
+        steps:
+            - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+
+            - uses: jdx/mise-action@e6a8b3978addb5a52f2b4cd9d91eafa7f0ab959d # v4
+
+            - name: Run tests with coverage
+              run: go test ./... -coverprofile="$COVERAGE_PROFILE"
+              working-directory: services/gateway
+
+            - name: Coverage gate
+              run: |
+                  set -euo pipefail
+                  go tool cover -func="$COVERAGE_PROFILE"
+                  measured=$(go tool cover -func="$COVERAGE_PROFILE" | tail -1 | awk '{print $NF}' | tr -d '%')
+                  echo "Measured statement coverage: ${measured}% (threshold ${COVERAGE_THRESHOLD}%)"
+                  if awk -v c="$measured" -v t="$COVERAGE_THRESHOLD" 'BEGIN { exit !(c < t) }'; then
+                    echo "::error::Gateway statement coverage ${measured}% is below the ${COVERAGE_THRESHOLD}% threshold."
+                    exit 1
+                  fi
+              working-directory: services/gateway
+
+            - name: Upload coverage report
+              uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+              if: always()
+              with:
+                  name: go-coverage-gateway
+                  path: services/gateway/coverage.out
+
     test-success:
         name: Test Success
-        needs: [java, openapi]
+        needs: [java, openapi, test-gateway]
         if: always()
         runs-on: ubuntu-latest
         steps:

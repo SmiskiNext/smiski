@@ -27,6 +27,7 @@ jobs:
             scripts: ${{ steps.detect.outputs.scripts }}
             proto: ${{ steps.detect.outputs.proto }}
             docs: ${{ steps.detect.outputs.docs }}
+            gateway: ${{ steps.detect.outputs.gateway }}
         steps:
             - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
             - id: detect
@@ -205,9 +206,33 @@ jobs:
                   pnpm exec prettier --check
                   '**/*.{md,json,toml,yaml,yml,sh,sql}'
 
+    lint-gateway:
+        name: Lint (gateway)
+        needs: changes
+        if: needs.changes.outputs.gateway == 'true'
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+
+            - uses: jdx/mise-action@e6a8b3978addb5a52f2b4cd9d91eafa7f0ab959d # v4
+
+            - name: Format check
+              run: |
+                  unformatted=$(gofmt -l .)
+                  if [[ -n "$unformatted" ]]; then
+                    echo "::error::The following files are not formatted:"
+                    echo "$unformatted"
+                    exit 1
+                  fi
+              working-directory: services/gateway
+
+            - name: Lint
+              run: golangci-lint run
+              working-directory: services/gateway
+
     lint-success:
         name: Lint Success
-        needs: [spotless, lint-app, biome-scripts, proto, docs]
+        needs: [spotless, lint-app, biome-scripts, proto, docs, lint-gateway]
         if: always()
         runs-on: ubuntu-latest
         steps:

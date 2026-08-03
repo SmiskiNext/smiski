@@ -66,3 +66,8 @@ UPCOMING_CHANGELOG.md
 
 # npm packaging
 .pack/
+
+# Go build output
+services/gateway/gateway
+*.test
+coverage.out

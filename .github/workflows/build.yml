@@ -25,6 +25,7 @@ jobs:
             services: ${{ steps.detect.outputs.services }}
             app: ${{ steps.detect.outputs.app }}
             scripts: ${{ steps.detect.outputs.scripts }}
+            gateway: ${{ steps.detect.outputs.gateway }}
         steps:
             - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
             - id: detect
@@ -154,9 +155,23 @@ jobs:
               run: pnpm exec tsc --noEmit
               working-directory: scripts
 
+    build-gateway:
+        name: Gateway
+        needs: changes
+        if: needs.changes.outputs.gateway == 'true'
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+
+            - uses: jdx/mise-action@e6a8b3978addb5a52f2b4cd9d91eafa7f0ab959d # v4
+
+            - name: Build
+              run: go build ./...
+              working-directory: services/gateway
+
     build-success:
         name: Build Success
-        needs: [java, app, scripts]
+        needs: [java, app, scripts, build-gateway]
         if: always()
         runs-on: ubuntu-latest
         steps:
