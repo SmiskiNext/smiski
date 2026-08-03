@@ -2,8 +2,8 @@
 
 import { client } from './client.gen.js';
 import type { Client, Options as Options2, TDataShape } from './client/index.js';
-import type { AcceptInvitationData, AcceptInvitationErrors, AcceptInvitationResponses, AcceptJoinRequestsData, AcceptJoinRequestsErrors, AcceptJoinRequestsResponses, AddInviteesData, AddInviteesErrors, AddInviteesResponses, BatchDeleteData, BatchDeleteErrors, BatchDeleteInviteesData, BatchDeleteInviteesErrors, BatchDeleteInviteesResponses, BatchDeleteResponses, CancelData, CancelErrors, CancelResponses, CreateInstantData, CreateInstantErrors, CreateInstantResponses, DeclineInvitationData, DeclineInvitationErrors, DeclineInvitationResponses, DeclineJoinRequestsData, DeclineJoinRequestsErrors, DeclineJoinRequestsResponses, DeleteData, DeleteErrors, DeleteResponses, EndData, EndErrors, EndResponses, GetData, GetErrors, GetResponses, HandleInboundEmailData, HandleInboundEmailErrors, HandleInboundEmailResponses, JoinData, JoinErrors, JoinResponses, ListData, ListErrors, ListPendingJoinRequestsData, ListPendingJoinRequestsErrors, ListPendingJoinRequestsResponses, ListResponses, ReceiveData, ReceiveErrors, ReceiveResponses, RegisterData, RegisterErrors, RegisterResponses, ScheduleData, ScheduleErrors, ScheduleResponses, SubscribeData, SubscribeErrors, SubscribeRequestData, SubscribeRequestErrors, SubscribeRequestResponses, SubscribeResponses, TentativeInvitationData, TentativeInvitationErrors, TentativeInvitationResponses, UninstallData, UninstallErrors, UninstallResponses, UpdateData, UpdateErrors, UpdateResponses, UpdateSettingsData, UpdateSettingsErrors, UpdateSettingsResponses } from './types.gen.js';
-import { zAcceptInvitationData, zAcceptInvitationResponse, zAcceptJoinRequestsData, zAcceptJoinRequestsResponse, zAddInviteesData, zAddInviteesResponse, zBatchDeleteData, zBatchDeleteInviteesData, zBatchDeleteInviteesResponse, zBatchDeleteResponse, zCancelData, zCancelResponse, zCreateInstantData, zCreateInstantResponse, zDeclineInvitationData, zDeclineInvitationResponse, zDeclineJoinRequestsData, zDeclineJoinRequestsResponse, zDeleteData, zDeleteResponse, zEndData, zEndResponse, zGetData, zGetResponse, zHandleInboundEmailData, zJoinData, zJoinResponse, zListData, zListPendingJoinRequestsData, zListPendingJoinRequestsResponse, zListResponse, zReceiveData, zRegisterData, zRegisterResponse, zScheduleData, zScheduleResponse, zSubscribeData, zSubscribeRequestData, zSubscribeRequestResponse, zSubscribeResponse, zTentativeInvitationData, zTentativeInvitationResponse, zUninstallData, zUninstallResponse, zUpdateData, zUpdateResponse, zUpdateSettingsData, zUpdateSettingsResponse } from './zod.gen.js';
+import type { AcceptInvitationData, AcceptInvitationErrors, AcceptInvitationResponses, AcceptJoinRequestsData, AcceptJoinRequestsErrors, AcceptJoinRequestsResponses, AddInviteesData, AddInviteesErrors, AddInviteesResponses, BatchDeleteData, BatchDeleteErrors, BatchDeleteInviteesData, BatchDeleteInviteesErrors, BatchDeleteInviteesResponses, BatchDeleteResponses, CancelData, CancelErrors, CancelResponses, CreateInstantData, CreateInstantErrors, CreateInstantResponses, DeclineInvitationData, DeclineInvitationErrors, DeclineInvitationResponses, DeclineJoinRequestsData, DeclineJoinRequestsErrors, DeclineJoinRequestsResponses, DeleteData, DeleteErrors, DeleteResponses, EndData, EndErrors, EndResponses, GetData, GetErrors, GetResponses, HandleInboundEmailData, HandleInboundEmailErrors, HandleInboundEmailResponses, JoinData, JoinErrors, JoinResponses, ListData, ListErrors, ListIssueMeetingsData, ListIssueMeetingsErrors, ListIssueMeetingsResponses, ListPendingJoinRequestsData, ListPendingJoinRequestsErrors, ListPendingJoinRequestsResponses, ListResponses, ReceiveData, ReceiveErrors, ReceiveResponses, RegisterData, RegisterErrors, RegisterResponses, ScheduleData, ScheduleErrors, ScheduleResponses, SubscribeData, SubscribeErrors, SubscribeRequestData, SubscribeRequestErrors, SubscribeRequestResponses, SubscribeResponses, TentativeInvitationData, TentativeInvitationErrors, TentativeInvitationResponses, UninstallData, UninstallErrors, UninstallResponses, UpdateData, UpdateErrors, UpdateResponses, UpdateSettingsData, UpdateSettingsErrors, UpdateSettingsResponses } from './types.gen.js';
+import { zAcceptInvitationData, zAcceptInvitationResponse, zAcceptJoinRequestsData, zAcceptJoinRequestsResponse, zAddInviteesData, zAddInviteesResponse, zBatchDeleteData, zBatchDeleteInviteesData, zBatchDeleteInviteesResponse, zBatchDeleteResponse, zCancelData, zCancelResponse, zCreateInstantData, zCreateInstantResponse, zDeclineInvitationData, zDeclineInvitationResponse, zDeclineJoinRequestsData, zDeclineJoinRequestsResponse, zDeleteData, zDeleteResponse, zEndData, zEndResponse, zGetData, zGetResponse, zHandleInboundEmailData, zJoinData, zJoinResponse, zListData, zListIssueMeetingsData, zListIssueMeetingsResponse, zListPendingJoinRequestsData, zListPendingJoinRequestsResponse, zListResponse, zReceiveData, zRegisterData, zRegisterResponse, zScheduleData, zScheduleResponse, zSubscribeData, zSubscribeRequestData, zSubscribeRequestResponse, zSubscribeResponse, zTentativeInvitationData, zTentativeInvitationResponse, zUninstallData, zUninstallResponse, zUpdateData, zUpdateResponse, zUpdateSettingsData, zUpdateSettingsResponse } from './zod.gen.js';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean> = Options2<TData, ThrowOnError> & {
     /**
@@ -125,7 +125,7 @@ export const receive = <ThrowOnError extends boolean = false>(options: Options<R
 /**
  * List tenant meetings
  *
- * Lists meetings in the caller's tenant with optional creator, status, issue, and text filters, two sort modes, and opaque keyset pagination. The request body is optional; an empty body lists with defaults.
+ * Lists meetings in the caller's tenant with optional creator, status, issue, project, and text filters, two sort modes, and opaque keyset pagination. The request body is optional; an empty body lists with defaults.
  */
 export const list = <ThrowOnError extends boolean = false>(options: Options<ListData, ThrowOnError>) => (options.client ?? client).post<ListResponses, ListErrors, ThrowOnError>({
     requestValidator: async (data) => await zListData.parseAsync(data),
@@ -324,6 +324,22 @@ export const acceptInvitation = <ThrowOnError extends boolean = false>(options: 
     responseValidator: async (data) => await zAcceptInvitationResponse.parseAsync(data),
     url: '/api/{version}/meetings/{id}/invitees/{inviteeId}:accept',
     ...options
+});
+
+/**
+ * List meetings linked to a Jira issue
+ *
+ * Lists meetings linked to the specified Jira issue id using offset pagination. This POST on a nested collection denotes a list/search operation and does NOT create a meeting. The request body carries optional offset and pageSize; an empty body uses defaults (offset 0, pageSize 20).
+ */
+export const listIssueMeetings = <ThrowOnError extends boolean = false>(options: Options<ListIssueMeetingsData, ThrowOnError>) => (options.client ?? client).post<ListIssueMeetingsResponses, ListIssueMeetingsErrors, ThrowOnError>({
+    requestValidator: async (data) => await zListIssueMeetingsData.parseAsync(data),
+    responseValidator: async (data) => await zListIssueMeetingsResponse.parseAsync(data),
+    url: '/api/{version}/issues/{issueId}/meetings',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
 });
 
 /**

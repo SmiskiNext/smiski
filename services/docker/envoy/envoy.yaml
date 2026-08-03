@@ -1,0 +1,201 @@
+# Envoy API gateway for the Smiski backend services.
+#
+# Request pipeline on the :8080 listener:
+#   1. jwt_authn  — verifies the Forge Invocation Token (FIT) signature,
+#                   issuer, audience and expiry against the Atlassian JWKS,
+#                   and publishes the claims as `fit_payload` metadata.
+#   2. lua        — derives x-fit-cloud-id / x-fit-account-id from those
+#                   claims (see lua/extract_claims.lua).
+#   3. ext_authz  — calls the gateway gRPC service, which checks the caller's
+#                   Jira project permissions and returns the identity headers
+#                   trusted by the backend services.
+#   4. router     — forwards to the tenant / meet / notification clusters.
+#
+# The admin interface on :9901 exposes stats, the config dump and the
+# /ready endpoint used for health checking.
+
+admin:
+    address:
+        socket_address:
+            address: 0.0.0.0
+            port_value: 9901
+
+static_resources:
+    listeners:
+        - name: ingress_http
+          address:
+              socket_address:
+                  address: 0.0.0.0
+                  port_value: 8080
+          filter_chains:
+              - filters:
+                    - name: envoy.filters.network.http_connection_manager
+                      typed_config:
+                          '@type': type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager
+                          stat_prefix: ingress_http
+                          codec_type: AUTO
+                          use_remote_address: true
+                          route_config:
+                              name: smiski_routes
+                              virtual_hosts:
+                                  - name: smiski_backend
+                                    domains: ['*']
+                                    routes:
+                                        - name: tenant_route
+                                          match:
+                                              prefix: /api/1/tenants
+                                          route:
+                                              cluster: tenant_cluster
+                                        - name: meet_route
+                                          match:
+                                              prefix: /api/1/meetings
+                                          route:
+                                              cluster: meet_cluster
+                                        - name: notification_route
+                                          match:
+                                              prefix: /api/1/notifications
+                                          route:
+                                              cluster: notification_cluster
+                          http_filters:
+                              - name: envoy.filters.http.jwt_authn
+                                typed_config:
+                                    '@type': type.googleapis.com/envoy.extensions.filters.http.jwt_authn.v3.JwtAuthentication
+                                    providers:
+                                        forge_fit:
+                                            issuer: forge/invocation-token
+                                            audiences:
+                                                - ari:cloud:ecosystem::app/5e00d851-2813-4c0b-b447-c4fd5ba7b150
+                                            forward: true
+                                            payload_in_metadata: fit_payload
+                                            remote_jwks:
+                                                http_uri:
+                                                    uri: https://forge.cdn.prod.atlassian-dev.net/.well-known/jwks.json
+                                                    cluster: forge_jwks_cluster
+                                                    timeout: 5s
+                                                cache_duration: 3600s
+                                    rules:
+                                        - match:
+                                              prefix: /api/
+                                          requires:
+                                              provider_name: forge_fit
+                              - name: envoy.filters.http.lua
+                                typed_config:
+                                    '@type': type.googleapis.com/envoy.extensions.filters.http.lua.v3.Lua
+                                    default_source_code:
+                                        filename: /etc/envoy/lua/extract_claims.lua
+                              - name: envoy.filters.http.ext_authz
+                                typed_config:
+                                    '@type': type.googleapis.com/envoy.extensions.filters.http.ext_authz.v3.ExtAuthz
+                                    transport_api_version: V3
+                                    grpc_service:
+                                        envoy_grpc:
+                                            cluster_name: gateway_grpc_cluster
+                                        timeout: 2s
+                                    failure_mode_allow: false
+                                    allowed_headers:
+                                        patterns:
+                                            - exact: authorization
+                                              ignore_case: true
+                                            - exact: x-issue-id
+                                              ignore_case: true
+                                            - exact: x-project-key
+                                              ignore_case: true
+                                            - exact: x-forge-oauth-system
+                                              ignore_case: true
+                                            - exact: x-fit-cloud-id
+                                              ignore_case: true
+                                            - exact: x-fit-account-id
+                                              ignore_case: true
+                              - name: envoy.filters.http.router
+                                typed_config:
+                                    '@type': type.googleapis.com/envoy.extensions.filters.http.router.v3.Router
+
+    clusters:
+        - name: forge_jwks_cluster
+          type: STRICT_DNS
+          lb_policy: ROUND_ROBIN
+          connect_timeout: 5s
+          dns_lookup_family: V4_ONLY
+          load_assignment:
+              cluster_name: forge_jwks_cluster
+              endpoints:
+                  - lb_endpoints:
+                        - endpoint:
+                              address:
+                                  socket_address:
+                                      address: forge.cdn.prod.atlassian-dev.net
+                                      port_value: 443
+          transport_socket:
+              name: envoy.transport_sockets.tls
+              typed_config:
+                  '@type': type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.UpstreamTlsContext
+                  sni: forge.cdn.prod.atlassian-dev.net
+                  common_tls_context:
+                      validation_context:
+                          trusted_ca:
+                              filename: /etc/ssl/certs/ca-certificates.crt
+                          match_typed_subject_alt_names:
+                              - san_type: DNS
+                                matcher:
+                                    exact: forge.cdn.prod.atlassian-dev.net
+
+        - name: gateway_grpc_cluster
+          type: STRICT_DNS
+          lb_policy: ROUND_ROBIN
+          connect_timeout: 2s
+          typed_extension_protocol_options:
+              envoy.extensions.upstreams.http.v3.HttpProtocolOptions:
+                  '@type': type.googleapis.com/envoy.extensions.upstreams.http.v3.HttpProtocolOptions
+                  explicit_http_config:
+                      http2_protocol_options: {}
+          load_assignment:
+              cluster_name: gateway_grpc_cluster
+              endpoints:
+                  - lb_endpoints:
+                        - endpoint:
+                              address:
+                                  socket_address:
+                                      address: gateway
+                                      port_value: 9001
+
+        - name: tenant_cluster
+          type: STRICT_DNS
+          lb_policy: ROUND_ROBIN
+          connect_timeout: 5s
+          load_assignment:
+              cluster_name: tenant_cluster
+              endpoints:
+                  - lb_endpoints:
+                        - endpoint:
+                              address:
+                                  socket_address:
+                                      address: tenant
+                                      port_value: 8081
+
+        - name: meet_cluster
+          type: STRICT_DNS
+          lb_policy: ROUND_ROBIN
+          connect_timeout: 5s
+          load_assignment:
+              cluster_name: meet_cluster
+              endpoints:
+                  - lb_endpoints:
+                        - endpoint:
+                              address:
+                                  socket_address:
+                                      address: meet
+                                      port_value: 8082
+
+        - name: notification_cluster
+          type: STRICT_DNS
+          lb_policy: ROUND_ROBIN
+          connect_timeout: 5s
+          load_assignment:
+              cluster_name: notification_cluster
+              endpoints:
+                  - lb_endpoints:
+                        - endpoint:
+                              address:
+                                  socket_address:
+                                      address: notification
+                                      port_value: 8083

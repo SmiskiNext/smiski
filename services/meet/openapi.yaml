@@ -300,7 +300,7 @@ paths:
                         issueKey: PROJ-1
                         projectKey: PROJ
                       settings:
-                        admissionPolicy: OPEN
+                        admissionPolicy: MANUAL_APPROVAL
                         maxParticipants: 50
                         allowScreenShare: true
                         chatEnabled: true
@@ -596,8 +596,8 @@ paths:
       - meeting-controller
       summary: List tenant meetings
       description: "Lists meetings in the caller's tenant with optional creator, status,\
-        \ issue, and text filters, two sort modes, and opaque keyset pagination. The\
-        \ request body is optional; an empty body lists with defaults."
+        \ issue, project, and text filters, two sort modes, and opaque keyset pagination.\
+        \ The request body is optional; an empty body lists with defaults."
       operationId: list
       requestBody:
         content:
@@ -621,7 +621,9 @@ paths:
                       shortCode: abc-defg-hij
                       title: Sprint planning
                       description: Plan the next sprint
+                      issueId: issue-SMISKI-102
                       issueKey: SMISKI-102
+                      projectKey: SMISKI
                       type: SCHEDULED
                       status: SCHEDULED
                       startTime: 2025-02-01T14:00:00Z
@@ -736,7 +738,7 @@ paths:
                         issueKey: PROJ-1
                         projectKey: PROJ
                       settings:
-                        admissionPolicy: OPEN
+                        admissionPolicy: MANUAL_APPROVAL
                         maxParticipants: 50
                         allowScreenShare: true
                         chatEnabled: true
@@ -744,6 +746,11 @@ paths:
                         allowVideo: true
                       startTime: 2025-02-01T14:00:00Z
                       endTime: 2025-02-01T15:00:00Z
+                      zoneId: Asia/Ho_Chi_Minh
+                      organizerEmail: host@example.com
+                      organizerDisplayName: Host User
+                      calendarUid: meeting-0195e0c2@smiski.app
+                      calendarSequence: 1
                       createdAt: 2025-01-15T10:30:00Z
         "400":
           description: "Validation error, missing account header, or start time in\
@@ -774,8 +781,18 @@ paths:
                     type: about:blank
                     title: Start time is in the past
                     status: 400
-                    detail: "The scheduled start time is in the past: {0}."
+                    detail: "The scheduled start time is in the past: 2025-01-10T08:00:00Z."
                     code: MEETING_START_IN_PAST
+                    traceId: 6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a
+                missingAccount:
+                  summary: Missing X-Account-Id header
+                  description: missingAccount
+                  value:
+                    type: about:blank
+                    title: Bad Request
+                    status: 400
+                    detail: X-Account-Id header is required
+                    code: VALIDATION_ERROR
                     traceId: 6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a
         "405":
           description: Method Not Allowed
@@ -849,12 +866,15 @@ paths:
                         issueKey: PROJ-1
                         projectKey: PROJ
                       settings:
-                        admissionPolicy: OPEN
+                        admissionPolicy: MANUAL_APPROVAL
                         maxParticipants: 50
                         allowScreenShare: true
                         chatEnabled: true
                         allowMicrophone: true
                         allowVideo: true
+                      zoneId: Asia/Ho_Chi_Minh
+                      organizerEmail: host@example.com
+                      organizerDisplayName: Host User
                       createdAt: 2025-01-15T10:30:00Z
                     livekit:
                       token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.example.token
@@ -955,7 +975,7 @@ paths:
                         issueKey: PROJ-1
                         projectKey: PROJ
                       settings:
-                        admissionPolicy: OPEN
+                        admissionPolicy: MANUAL_APPROVAL
                         maxParticipants: 50
                         allowScreenShare: true
                         chatEnabled: true
@@ -2455,6 +2475,135 @@ paths:
         type: integer
         format: int32
       example: 1
+  /api/{version}/issues/{issueId}/meetings:
+    post:
+      tags:
+      - meeting-controller
+      summary: List meetings linked to a Jira issue
+      description: "Lists meetings linked to the specified Jira issue id using offset\
+        \ pagination. This POST on a nested collection denotes a list/search operation\
+        \ and does NOT create a meeting. The request body carries optional offset\
+        \ and pageSize; an empty body uses defaults (offset 0, pageSize 20)."
+      operationId: listIssueMeetings
+      parameters:
+      - name: issueId
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ListIssueMeetingsRequest"
+      responses:
+        "200":
+          description: Offset-paginated page of issue meetings
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IssueMeetingListPage"
+              examples:
+                page:
+                  description: page
+                  value:
+                    data:
+                    - id: 0195e0c2-8f3a-7c21-b9d4-2f1a6e7c8d90
+                      hostId: account-123
+                      shortCode: abc-defg-hij
+                      title: Sprint planning
+                      description: Plan the next sprint
+                      issueId: "10102"
+                      issueKey: SMISKI-102
+                      projectKey: SMISKI
+                      type: SCHEDULED
+                      status: SCHEDULED
+                      startTime: 2025-02-01T14:00:00Z
+                      endTime: 2025-02-01T15:00:00Z
+                      createdAt: 2025-01-15T10:30:00Z
+                      settings:
+                        admissionPolicy: MANUAL_APPROVAL
+                        maxParticipants: 50
+                        allowScreenShare: true
+                        chatEnabled: true
+                        allowMicrophone: true
+                        allowVideo: true
+                    meta:
+                      total: 3
+                      offset: 0
+                      pageSize: 20
+                      hasNext: false
+        "400":
+          description: Missing account header or request validation failure
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+              examples:
+                missingAccount:
+                  summary: Missing X-Account-Id header
+                  description: missingAccount
+                  value:
+                    type: about:blank
+                    title: Bad Request
+                    status: 400
+                    detail: X-Account-Id header is required
+                    code: VALIDATION_ERROR
+                    traceId: 6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a
+                validationError:
+                  summary: pageSize out of range
+                  description: validationError
+                  value:
+                    type: about:blank
+                    title: Bad Request
+                    status: 400
+                    detail: Request validation failed
+                    code: VALIDATION_ERROR
+                    traceId: 6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a
+                    errors:
+                    - field: pageSize
+                      code: TOO_LONG
+                      message: must be less than or equal to 50
+                negativeOffset:
+                  summary: offset is negative
+                  description: negativeOffset
+                  value:
+                    type: about:blank
+                    title: Bad Request
+                    status: 400
+                    detail: Request validation failed
+                    code: VALIDATION_ERROR
+                    traceId: 6d3e5f1a2b4c7d8e9f0a1b2c3d4e5f6a
+                    errors:
+                    - field: offset
+                      code: TOO_SHORT
+                      message: must be greater than or equal to 0
+        "405":
+          description: Method Not Allowed
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "415":
+          description: Unsupported Media Type
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "500":
+          description: Internal Server Error
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+    parameters:
+    - name: version
+      in: path
+      required: true
+      schema:
+        type: integer
+        format: int32
+      example: 1
   /api/{version}/meetings/{id}/join-requests:
     get:
       tags:
@@ -2820,6 +2969,12 @@ components:
           - "null"
           description: Exact linked Jira issue key
           example: SMISKI-102
+        projectKey:
+          type:
+          - string
+          - "null"
+          description: Exact linked Jira project key
+          example: SMISKI
         sort:
           type:
           - string
@@ -2877,7 +3032,11 @@ components:
           type: string
         description:
           type: string
+        issueId:
+          type: string
         issueKey:
+          type: string
+        projectKey:
           type: string
         type:
           type: string
@@ -3558,6 +3717,58 @@ components:
           - "null"
           format: date-time
           description: Timestamp when the invitee responded; null if not yet responded
+    ListIssueMeetingsRequest:
+      type: object
+      description: Pagination parameters for listing issue meetings
+      properties:
+        offset:
+          type:
+          - integer
+          - "null"
+          format: int32
+          description: Zero-based row offset
+          example: 0
+          minimum: 0
+        pageSize:
+          type:
+          - integer
+          - "null"
+          format: int32
+          description: "Page size (default 20, range 1–50)"
+          example: 20
+          maximum: 50
+          minimum: 1
+    IssueMeetingListPage:
+      type: object
+      description: Offset-paginated list of issue meetings
+      properties:
+        data:
+          type: array
+          description: Meeting summaries for the current page
+          items:
+            $ref: "#/components/schemas/MeetingSummary"
+        meta:
+          $ref: "#/components/schemas/IssueMeetingListPageMeta"
+          description: Pagination metadata with total count
+    IssueMeetingListPageMeta:
+      type: object
+      description: Offset pagination metadata with total
+      properties:
+        total:
+          type: integer
+          format: int64
+          description: Total non-deleted meetings linked to this issue
+        offset:
+          type: integer
+          format: int32
+          description: Zero-based row offset used for this page
+        pageSize:
+          type: integer
+          format: int32
+          description: Maximum items per page requested
+        hasNext:
+          type: boolean
+          description: Whether more results exist after this page
     GetMeetingResponse:
       type: object
       description: A single meeting with its invitees and joined participants

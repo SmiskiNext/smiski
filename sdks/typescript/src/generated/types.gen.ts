@@ -372,6 +372,10 @@ export type MeetListMeetingsRequest = {
      */
     issueKey?: string | null;
     /**
+     * Exact linked Jira project key
+     */
+    projectKey?: string | null;
+    /**
      * Ordering mode
      */
     sort?: 'CREATED_AT' | 'START_TIME';
@@ -408,7 +412,9 @@ export type MeetMeetingSummary = {
     shortCode?: string;
     title?: string;
     description?: string;
+    issueId?: string;
     issueKey?: string;
+    projectKey?: string;
     type?: 'INSTANT' | 'SCHEDULED';
     status?: 'SCHEDULED' | 'RUNNING' | 'COMPLETED' | 'CANCELED';
     /**
@@ -854,6 +860,56 @@ export type MeetMeetingInviteeResponse = {
      * Timestamp when the invitee responded; null if not yet responded
      */
     respondedAt?: string | null;
+};
+
+/**
+ * Pagination parameters for listing issue meetings
+ */
+export type MeetListIssueMeetingsRequest = {
+    /**
+     * Zero-based row offset
+     */
+    offset?: number | null;
+    /**
+     * Page size (default 20, range 1–50)
+     */
+    pageSize?: number | null;
+};
+
+/**
+ * Offset-paginated list of issue meetings
+ */
+export type MeetIssueMeetingListPage = {
+    /**
+     * Meeting summaries for the current page
+     */
+    data?: Array<MeetMeetingSummary>;
+    /**
+     * Pagination metadata with total count
+     */
+    meta?: MeetIssueMeetingListPageMeta;
+};
+
+/**
+ * Offset pagination metadata with total
+ */
+export type MeetIssueMeetingListPageMeta = {
+    /**
+     * Total non-deleted meetings linked to this issue
+     */
+    total?: number;
+    /**
+     * Zero-based row offset used for this page
+     */
+    offset?: number;
+    /**
+     * Maximum items per page requested
+     */
+    pageSize?: number;
+    /**
+     * Whether more results exist after this page
+     */
+    hasNext?: boolean;
 };
 
 /**
@@ -2097,6 +2153,46 @@ export type AcceptInvitationResponses = {
 };
 
 export type AcceptInvitationResponse = AcceptInvitationResponses[keyof AcceptInvitationResponses];
+
+export type ListIssueMeetingsData = {
+    body?: MeetListIssueMeetingsRequest;
+    path: {
+        version: number;
+        issueId: string;
+    };
+    query?: never;
+    url: '/api/{version}/issues/{issueId}/meetings';
+};
+
+export type ListIssueMeetingsErrors = {
+    /**
+     * Missing account header or request validation failure
+     */
+    400: MeetProblemDetail;
+    /**
+     * Method Not Allowed
+     */
+    405: MeetProblemDetail;
+    /**
+     * Unsupported Media Type
+     */
+    415: MeetProblemDetail;
+    /**
+     * Internal Server Error
+     */
+    500: MeetProblemDetail;
+};
+
+export type ListIssueMeetingsError = ListIssueMeetingsErrors[keyof ListIssueMeetingsErrors];
+
+export type ListIssueMeetingsResponses = {
+    /**
+     * Offset-paginated page of issue meetings
+     */
+    200: MeetIssueMeetingListPage;
+};
+
+export type ListIssueMeetingsResponse = ListIssueMeetingsResponses[keyof ListIssueMeetingsResponses];
 
 export type ListPendingJoinRequestsData = {
     body?: never;

@@ -32,7 +32,9 @@ public record ListMeetingsResult(
      * @param shortCode   the short code
      * @param title       the meeting title
      * @param description the meeting description
+     * @param issueId     the linked Jira issue id
      * @param issueKey    the linked Jira issue key
+     * @param projectKey  the linked Jira project key
      * @param type        the meeting type
      * @param status      the meeting status
      * @param startTime   the scheduled start time, or {@code null} for meetings without one
@@ -46,7 +48,9 @@ public record ListMeetingsResult(
             String shortCode,
             @Nullable String title,
             @Nullable String description,
+            String issueId,
             String issueKey,
+            String projectKey,
             MeetingType type,
             MeetingStatus status,
             @Nullable Instant startTime,

@@ -1,12 +1,15 @@
 import {
+    acceptJoinRequests as acceptJoinRequestsOperation,
     addInvitees,
     batchDeleteInvitees,
     cancel,
     createInstant,
+    declineJoinRequests as declineJoinRequestsOperation,
     end,
     get,
     join,
     list,
+    listPendingJoinRequests as listPendingJoinRequestsOperation,
     type MeetAddMeetingInviteesRequest,
     type MeetAddMeetingInviteesResponse,
     type MeetCancelMeetingResponse,
@@ -14,7 +17,9 @@ import {
     type MeetCreateInstantMeetingResponse,
     type MeetEndMeetingResponse,
     type MeetGetMeetingResponse,
+    type MeetJoinDecisionResponse,
     type MeetJoinMeetingResponse,
+    type MeetListPendingJoinRequestsResponse,
     type MeetMeetingListPage,
     type MeetProblemDetail,
     type MeetRemoveMeetingInviteesResponse,
@@ -29,11 +34,15 @@ import {
     updateSettings,
 } from '@smiskinext/smiski-ts';
 import type {
+    JoinRequestDecision,
     Meeting,
     MeetingInvitee,
     MeetingSettings,
     MeetingStatus,
     Participant,
+    PendingJoinRequest,
+    PendingJoinRequestsPage,
+    PendingJoinRequestsPageParams,
 } from '../domain';
 import { getLocalTimeZone } from '../utils/datetime';
 import { apiConfig } from './config';
@@ -45,6 +54,7 @@ import {
     meetingsFromBackend,
     participantsFromBackend,
 } from './mappers';
+import { waitForJoinRequestDecision } from './meetingEvents';
 
 /** A meeting invitee, carrying the identity the backend requires. */
 export interface MeetingInviteeInput {
@@ -460,6 +470,92 @@ export async function listIssueMeetings(issueKey: string): Promise<Meeting[]> {
     return meetingsFromBackend(response);
 }
 
+/** Lists a page of PENDING join requests for the meeting host. */
+export async function listPendingMeetingJoinRequests(
+    meetingId: string,
+    params: PendingJoinRequestsPageParams = {},
+): Promise<PendingJoinRequestsPage> {
+    const response = await unwrap<MeetListPendingJoinRequestsResponse>(() =>
+        listPendingJoinRequestsOperation({
+            client: forgeRemoteClient,
+            path: { version: apiConfig.apiVersion, id: meetingId },
+            query: params,
+        }),
+    );
+    const requests: PendingJoinRequest[] = (response.results ?? []).map(
+        (request) => ({
+            requestId: request.requestId ?? '',
+            accountId: request.accountId ?? '',
+            displayName:
+                request.displayName ?? request.accountId ?? 'Jira user',
+            status: 'PENDING',
+            requestedAt: request.requestedAt ?? '',
+            expiresAt: request.expiresAt ?? '',
+        }),
+    );
+    return {
+        requests,
+        total: response.meta?.total ?? requests.length,
+        offset: response.meta?.offset ?? params.offset ?? 0,
+        pageSize: response.meta?.pageSize ?? params.pageSize ?? 20,
+    };
+}
+
+function joinRequestDecisionsFromBackend(
+    response: MeetJoinDecisionResponse,
+): JoinRequestDecision[] {
+    return (response.results ?? []).map((decision) => {
+        if (
+            decision.status !== 'APPROVED'
+            && decision.status !== 'DENIED'
+            && decision.status !== 'FAILED'
+        ) {
+            throw new MeetingApiError({
+                message:
+                    'The meeting backend returned an invalid join decision.',
+                code: 'INVALID_JOIN_DECISION_RESPONSE',
+            });
+        }
+        return {
+            requestId: decision.requestId ?? '',
+            status: decision.status,
+            token: decision.token ?? null,
+            roomName: decision.roomName ?? null,
+            reason: decision.reason ?? null,
+        };
+    });
+}
+
+/** Accepts one or more PENDING requests as the meeting host. */
+export async function acceptPendingMeetingJoinRequests(
+    meetingId: string,
+    requestIds: string[],
+): Promise<JoinRequestDecision[]> {
+    const response = await unwrap<MeetJoinDecisionResponse>(() =>
+        acceptJoinRequestsOperation({
+            client: forgeRemoteClient,
+            path: { version: apiConfig.apiVersion, id: meetingId },
+            body: { requestIds },
+        }),
+    );
+    return joinRequestDecisionsFromBackend(response);
+}
+
+/** Declines one or more PENDING requests as the meeting host. */
+export async function declinePendingMeetingJoinRequests(
+    meetingId: string,
+    requestIds: string[],
+): Promise<JoinRequestDecision[]> {
+    const response = await unwrap<MeetJoinDecisionResponse>(() =>
+        declineJoinRequestsOperation({
+            client: forgeRemoteClient,
+            path: { version: apiConfig.apiVersion, id: meetingId },
+            body: { requestIds },
+        }),
+    );
+    return joinRequestDecisionsFromBackend(response);
+}
+
 /**
  * Lists meetings across a project for the dashboard table. Unimplemented: the
  * real backend's `list` operation has no `projectKey` filter yet (only
@@ -596,16 +692,47 @@ export interface JoinMeetingResult {
     roomName: string;
 }
 
+export interface JoinMeetingOptions {
+    signal?: AbortSignal;
+    onPending?: (requestId: string) => void;
+}
+
+type JoinAttempt =
+    | ({ status: 'APPROVED' } & JoinMeetingResult)
+    | { status: 'PENDING'; requestId: string };
+
+function joinAttemptFromBackend(
+    response: MeetJoinMeetingResponse,
+): JoinAttempt {
+    const requestId = response.requestId ?? '';
+    if (response.status === 'APPROVED' && response.token && response.roomName) {
+        return {
+            status: 'APPROVED',
+            requestId,
+            token: response.token,
+            roomName: response.roomName,
+        };
+    }
+    if (response.status === 'PENDING' && requestId) {
+        return { status: 'PENDING', requestId };
+    }
+    throw new MeetingApiError({
+        message: 'The meeting backend returned an invalid join response.',
+        code: 'INVALID_JOIN_RESPONSE',
+    });
+}
+
 /**
  * Joins a meeting (backend `join`), shared by "host starts a meeting"
  * (`useStartMeeting`) and "participant enters the room" (`useRoomToken`).
- * Under `MANUAL_APPROVAL` admission the response is `PENDING` with no token —
- * there is no waiting-room UI yet, so that surfaces as a clear error instead
- * of leaving the caller with a silently-missing token.
+ * Under `MANUAL_APPROVAL`, waits on the request-scoped SSE stream and returns
+ * only after the host approves. The LiveKit token therefore never reaches the
+ * room client before admission succeeds.
  */
 export async function joinMeeting(
     meetingId: string,
     identity: JoinMeetingIdentity,
+    options: JoinMeetingOptions = {},
 ): Promise<JoinMeetingResult> {
     const response = await unwrap<MeetJoinMeetingResponse>(() =>
         join({
@@ -618,16 +745,32 @@ export async function joinMeeting(
             },
         }),
     );
-    if (!response.token || !response.roomName) {
+    const attempt = joinAttemptFromBackend(response);
+    if (attempt.status === 'APPROVED') {
+        return {
+            requestId: attempt.requestId,
+            token: attempt.token,
+            roomName: attempt.roomName,
+        };
+    }
+
+    options.onPending?.(attempt.requestId);
+    const signal = options.signal ?? new AbortController().signal;
+    const decision = await waitForJoinRequestDecision(
+        meetingId,
+        attempt.requestId,
+        signal,
+    );
+    if (decision.status === 'DENIED') {
         throw new MeetingApiError({
-            message: 'Waiting for the host to approve your request to join.',
-            code: 'JOIN_PENDING_APPROVAL',
+            message: decision.reason ?? 'The host declined your join request.',
+            code: 'JOIN_REQUEST_DENIED',
         });
     }
     return {
-        requestId: response.requestId ?? '',
-        token: response.token,
-        roomName: response.roomName,
+        requestId: attempt.requestId,
+        token: decision.token,
+        roomName: decision.roomName,
     };
 }
 
@@ -635,8 +778,9 @@ export async function joinMeeting(
 export async function getRoomToken(
     meetingId: string,
     identity: JoinMeetingIdentity,
+    options: JoinMeetingOptions = {},
 ): Promise<{ token: string; url: string | undefined }> {
-    const result = await joinMeeting(meetingId, identity);
+    const result = await joinMeeting(meetingId, identity, options);
     return { token: result.token, url: apiConfig.liveKitUrl };
 }
 

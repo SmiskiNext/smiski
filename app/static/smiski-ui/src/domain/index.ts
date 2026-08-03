@@ -5,6 +5,7 @@
 export * from './currentIssue';
 export * from './enums';
 export * from './issue';
+export * from './joinRequest';
 export * from './meeting';
 export * from './meetingInvitee';
 export * from './meetingPolicy';

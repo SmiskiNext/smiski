@@ -297,6 +297,101 @@ class MeetingSearchRepositoryAdapterIntegrationTest {
         assertThat(summary.hostId()).isEqualTo("host-a");
     }
 
+    @Test
+    void filtersByProjectKey() {
+        UUID smiskiMeeting = insertFull(
+                TENANT,
+                "host-a",
+                "A",
+                "10001",
+                "SMISKI-1",
+                "SMISKI",
+                "SCHEDULED",
+                null,
+                base,
+                false);
+        insertFull(
+                TENANT,
+                "host-a",
+                "B",
+                "10002",
+                "OTHER-1",
+                "OTHER",
+                "SCHEDULED",
+                null,
+                base.plusSeconds(1),
+                false);
+
+        List<UUID> ids = ids(search(
+                criteria(null, null, Set.of(), null, "SMISKI", MeetingSortField.CREATED_AT, null),
+                20));
+
+        assertThat(ids).containsExactly(smiskiMeeting);
+    }
+
+    @Test
+    void projectKeyAndIssueKeyFiltersCombineWithAnd() {
+        insertFull(
+                TENANT,
+                "host-a",
+                "A",
+                "10001",
+                "SMISKI-1",
+                "SMISKI",
+                "SCHEDULED",
+                null,
+                base,
+                false);
+        insertFull(
+                TENANT,
+                "host-a",
+                "B",
+                "10002",
+                "OTHER-1",
+                "OTHER",
+                "SCHEDULED",
+                null,
+                base.plusSeconds(1),
+                false);
+
+        CursorPageResponse<MeetingSummary> page = search(
+                criteria(
+                        null,
+                        null,
+                        Set.of(),
+                        "OTHER-1",
+                        "SMISKI",
+                        MeetingSortField.CREATED_AT,
+                        null),
+                20);
+
+        assertThat(page.items()).isEmpty();
+    }
+
+    @Test
+    void summaryCarriesIssueIdIssueKeyAndProjectKey() {
+        insertFull(
+                TENANT,
+                "host-a",
+                "A",
+                "10102",
+                "SMISKI-102",
+                "SMISKI",
+                "SCHEDULED",
+                null,
+                base,
+                false);
+
+        MeetingSummary summary = search(
+                        criteria(null, null, Set.of(), null, MeetingSortField.CREATED_AT, null), 20)
+                .items()
+                .getFirst();
+
+        assertThat(summary.issueId()).isEqualTo("10102");
+        assertThat(summary.issueKey()).isEqualTo("SMISKI-102");
+        assertThat(summary.projectKey()).isEqualTo("SMISKI");
+    }
+
     private CursorPageResponse<MeetingSummary> search(
             MeetingSearchCriteria criteria, int pageSize) {
         return repository.searchSummaries(criteria, pageSize);
@@ -309,7 +404,20 @@ class MeetingSearchRepositoryAdapterIntegrationTest {
             @Nullable String issueKey,
             MeetingSortField sort,
             MeetingSearchCriteria.@Nullable Position position) {
-        return new MeetingSearchCriteria(creatorId, search, statuses, issueKey, sort, position);
+        return new MeetingSearchCriteria(
+                creatorId, search, statuses, issueKey, null, sort, position);
+    }
+
+    private static MeetingSearchCriteria criteria(
+            @Nullable AccountId creatorId,
+            @Nullable String search,
+            Set<MeetingStatus> statuses,
+            @Nullable String issueKey,
+            @Nullable String projectKey,
+            MeetingSortField sort,
+            MeetingSearchCriteria.@Nullable Position position) {
+        return new MeetingSearchCriteria(
+                creatorId, search, statuses, issueKey, projectKey, sort, position);
     }
 
     private static List<UUID> ids(CursorPageResponse<MeetingSummary> page) {
@@ -350,6 +458,46 @@ class MeetingSearchRepositoryAdapterIntegrationTest {
                 UUID.randomUUID().toString(),
                 UUID.randomUUID().toString().substring(0, 12),
                 issueKey,
+                title,
+                startTime != null ? java.sql.Timestamp.from(startTime) : null,
+                status,
+                SETTINGS_JSON,
+                java.sql.Timestamp.from(createdAt),
+                java.sql.Timestamp.from(createdAt),
+                deleted ? java.sql.Timestamp.from(createdAt.plus(1, ChronoUnit.HOURS)) : null);
+        return id;
+    }
+
+    private UUID insertFull(
+            String tenantId,
+            String hostId,
+            String title,
+            String issueId,
+            String issueKey,
+            String projectKey,
+            String status,
+            @Nullable Instant startTime,
+            Instant createdAt,
+            boolean deleted) {
+        UUID id = UuidCreator.getTimeOrderedEpoch();
+        jdbcTemplate.update(
+                """
+                INSERT INTO meetings (
+                    tenant_id, id, host_id, organizer_email, organizer_display_name,
+                    calendar_uid, calendar_sequence, short_code, issue_id, issue_key,
+                    project_key, title, description, start_time, zone_id, type, status,
+                    settings, created_at, updated_at, deleted_at
+                ) VALUES (?, ?, ?, 'host@example.com', 'Host User', ?, 0, ?, ?, ?,
+                    ?, ?, 'Description', ?, 'UTC', 'SCHEDULED', ?, ?::jsonb, ?, ?, ?)
+                """,
+                tenantId,
+                id,
+                hostId,
+                UUID.randomUUID().toString(),
+                UUID.randomUUID().toString().substring(0, 12),
+                issueId,
+                issueKey,
+                projectKey,
                 title,
                 startTime != null ? java.sql.Timestamp.from(startTime) : null,
                 status,

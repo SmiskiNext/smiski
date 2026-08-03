@@ -76,6 +76,7 @@ class ListMeetingsApplicationServiceTest {
                 "retro",
                 Set.of(MeetingStatus.SCHEDULED, MeetingStatus.RUNNING),
                 "SMISKI-102",
+                null,
                 MeetingSortField.START_TIME,
                 10,
                 null);
@@ -92,8 +93,33 @@ class ListMeetingsApplicationServiceTest {
         assertThat(criteria.statuses())
                 .containsExactlyInAnyOrder(MeetingStatus.SCHEDULED, MeetingStatus.RUNNING);
         assertThat(criteria.issueKey()).isEqualTo("SMISKI-102");
+        assertThat(criteria.projectKey()).isNull();
         assertThat(criteria.sort()).isEqualTo(MeetingSortField.START_TIME);
         assertThat(criteria.position()).isNull();
+    }
+
+    @Test
+    void projectKeyPropagatedIntoCriteria() {
+        stubEmptyPage();
+        ListMeetingsQuery query = new ListMeetingsQuery(
+                TENANT,
+                ACCOUNT,
+                null,
+                null,
+                Set.of(),
+                null,
+                "SMISKI",
+                MeetingSortField.CREATED_AT,
+                20,
+                null);
+
+        service.execute(query);
+
+        ArgumentCaptor<MeetingSearchCriteria> captor =
+                ArgumentCaptor.forClass(MeetingSearchCriteria.class);
+        verify(meetingRepository).searchSummaries(captor.capture(), eq(20));
+        MeetingSearchCriteria criteria = captor.getValue();
+        assertThat(criteria.projectKey()).isEqualTo("SMISKI");
     }
 
     @Test
@@ -217,7 +243,7 @@ class ListMeetingsApplicationServiceTest {
 
     private static ListMeetingsQuery query(int pageSize, MeetingSortField sort, String pageToken) {
         return new ListMeetingsQuery(
-                TENANT, ACCOUNT, null, null, Set.of(), null, sort, pageSize, pageToken);
+                TENANT, ACCOUNT, null, null, Set.of(), null, null, sort, pageSize, pageToken);
     }
 
     private static MeetingSummary summary(Instant createdAt, Instant startTime) {
@@ -229,7 +255,9 @@ class ListMeetingsApplicationServiceTest {
                 "abc-defg-hij",
                 "Retro",
                 "desc",
+                "ISS-1",
                 "SMISKI-1",
+                "SMISKI",
                 startTime,
                 null,
                 MeetingType.SCHEDULED,
