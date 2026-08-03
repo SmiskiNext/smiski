@@ -13,15 +13,16 @@ import org.jspecify.annotations.Nullable;
  * Validation and page-size clamping are performed by the application service; this record only
  * transports values.
  *
- * @param tenantId  the resolved tenant identifier
- * @param accountId the resolved caller account identifier
- * @param creatorId host filter; {@code null} means every creator in the tenant
- * @param search    case-insensitive substring filter over title and issue key; {@code null} to skip
- * @param statuses  status filter; empty means any status
- * @param issueKey  exact issue-key filter; {@code null} to skip
- * @param sort      the ordering mode
- * @param pageSize  the requested page size (validated and clamped by the service)
- * @param pageToken opaque continuation cursor from a previous page; {@code null} on the first page
+ * @param tenantId   the resolved tenant identifier
+ * @param accountId  the resolved caller account identifier
+ * @param creatorId  host filter; {@code null} means every creator in the tenant
+ * @param search     case-insensitive substring filter over title and issue key; {@code null} to skip
+ * @param statuses   status filter; empty means any status
+ * @param issueKey   exact issue-key filter; {@code null} to skip
+ * @param projectKey exact project-key filter; {@code null} to skip
+ * @param sort       the ordering mode
+ * @param pageSize   the requested page size (validated and clamped by the service)
+ * @param pageToken  opaque continuation cursor from a previous page; {@code null} on the first page
  */
 public record ListMeetingsQuery(
         String tenantId,
@@ -30,6 +31,7 @@ public record ListMeetingsQuery(
         @Nullable String search,
         Set<MeetingStatus> statuses,
         @Nullable String issueKey,
+        @Nullable String projectKey,
         MeetingSortField sort,
         int pageSize,
         @Nullable String pageToken)

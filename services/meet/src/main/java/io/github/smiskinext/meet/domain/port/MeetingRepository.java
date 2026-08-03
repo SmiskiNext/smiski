@@ -10,6 +10,7 @@ import io.github.smiskinext.meet.domain.projection.MeetingSearchCriteria;
 import io.github.smiskinext.meet.domain.projection.MeetingSummary;
 import io.github.smiskinext.meet.domain.projection.ParticipatedMeetingSummary;
 import io.github.smiskinext.shared.domain.CursorPageResponse;
+import io.github.smiskinext.shared.domain.OffsetPageResponse;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
@@ -76,6 +77,27 @@ public interface MeetingRepository {
             Set<MeetingStatus> statuses,
             @Nullable ParticipatedMeetingCursor cursor,
             int pageSize);
+
+    /**
+     * Returns an offset-paginated page of meeting summaries linked to the given issue.
+     *
+     * <p>Tenant scoping is applied automatically by the persistence layer. Soft-deleted meetings
+     * are excluded from both the returned items and the total count.
+     *
+     * @param issueId  the exact Jira issue id to filter on
+     * @param offset   zero-based row offset (not a page number)
+     * @param pageSize maximum items to return
+     * @return an offset page carrying items, total count, and a hasNext flag
+     */
+    IssueMeetingPage findSummariesByIssueId(String issueId, int offset, int pageSize);
+
+    /**
+     * Offset page of meeting summaries for a single issue, including the total count.
+     *
+     * @param page  the offset-paginated slice of summaries
+     * @param total the total number of non-deleted meetings linked to the issue in this tenant
+     */
+    record IssueMeetingPage(OffsetPageResponse<MeetingSummary> page, long total) {}
 
     /**
      * Finds SCHEDULED meetings whose end time is before {@code cutoff}, across all tenants,

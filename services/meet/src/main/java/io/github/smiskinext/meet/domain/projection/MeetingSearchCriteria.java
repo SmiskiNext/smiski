@@ -14,18 +14,20 @@ import org.jspecify.annotations.Nullable;
  * persistence layer and is therefore absent here. The decoded keyset {@link Position} is present
  * only on continuation requests (a page token was supplied); on the first page it is {@code null}.
  *
- * @param creatorId filters to a single host when present; all creators when {@code null}
- * @param search    case-insensitive substring matched against title and issue key when present
- * @param statuses  restricts to the supplied statuses; all statuses when empty
- * @param issueKey  restricts to a single linked Jira issue key when present
- * @param sort      the ordering mode
- * @param position  the decoded keyset position to scroll past, or {@code null} for the first page
+ * @param creatorId  filters to a single host when present; all creators when {@code null}
+ * @param search     case-insensitive substring matched against title and issue key when present
+ * @param statuses   restricts to the supplied statuses; all statuses when empty
+ * @param issueKey   restricts to a single linked Jira issue key when present
+ * @param projectKey restricts to a single linked Jira project key when present
+ * @param sort       the ordering mode
+ * @param position   the decoded keyset position to scroll past, or {@code null} for the first page
  */
 public record MeetingSearchCriteria(
         @Nullable AccountId creatorId,
         @Nullable String search,
         Set<MeetingStatus> statuses,
         @Nullable String issueKey,
+        @Nullable String projectKey,
         MeetingSortField sort,
         @Nullable Position position) {
 

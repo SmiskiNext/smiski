@@ -295,6 +295,10 @@ export const zMeetListMeetingsRequest = z.object({
         z.string(),
         z.null()
     ])),
+    projectKey: z.optional(z.union([
+        z.string(),
+        z.null()
+    ])),
     sort: z.optional(z.enum(['CREATED_AT', 'START_TIME'])),
     pageSize: z.optional(z.union([
         z.int().gte(1).lte(50),
@@ -333,7 +337,9 @@ export const zMeetMeetingSummary = z.object({
     shortCode: z.optional(z.string()),
     title: z.optional(z.string()),
     description: z.optional(z.string()),
+    issueId: z.optional(z.string()),
     issueKey: z.optional(z.string()),
+    projectKey: z.optional(z.string()),
     type: z.optional(z.enum(['INSTANT', 'SCHEDULED'])),
     status: z.optional(z.enum([
         'SCHEDULED',
@@ -732,6 +738,38 @@ export const zMeetMeetingInviteeResponse = z.object({
         z.iso.datetime(),
         z.null()
     ]))
+});
+
+/**
+ * Pagination parameters for listing issue meetings
+ */
+export const zMeetListIssueMeetingsRequest = z.object({
+    offset: z.optional(z.union([
+        z.int().gte(0).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }),
+        z.null()
+    ])),
+    pageSize: z.optional(z.union([
+        z.int().gte(1).lte(50),
+        z.null()
+    ]))
+});
+
+/**
+ * Offset pagination metadata with total
+ */
+export const zMeetIssueMeetingListPageMeta = z.object({
+    total: z.optional(z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' })),
+    offset: z.optional(z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' })),
+    pageSize: z.optional(z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' })),
+    hasNext: z.optional(z.boolean())
+});
+
+/**
+ * Offset-paginated list of issue meetings
+ */
+export const zMeetIssueMeetingListPage = z.object({
+    data: z.optional(z.array(zMeetMeetingSummary)),
+    meta: z.optional(zMeetIssueMeetingListPageMeta)
 });
 
 /**
@@ -1187,6 +1225,20 @@ export const zAcceptInvitationData = z.object({
  * Invitation accepted
  */
 export const zAcceptInvitationResponse = zMeetMeetingInviteeResponse;
+
+export const zListIssueMeetingsData = z.object({
+    body: z.optional(zMeetListIssueMeetingsRequest),
+    path: z.object({
+        version: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }),
+        issueId: z.string()
+    }),
+    query: z.optional(z.never())
+});
+
+/**
+ * Offset-paginated page of issue meetings
+ */
+export const zListIssueMeetingsResponse = zMeetIssueMeetingListPage;
 
 export const zListPendingJoinRequestsData = z.object({
     body: z.optional(z.never()),
