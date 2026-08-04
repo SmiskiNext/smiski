@@ -52,7 +52,7 @@ class OutboxAutoConfigurationTest {
             contextRunner
                     .withUserConfiguration(OutboxTestConfiguration.class)
                     .withPropertyValues(
-                            "smiski.outbox.transport=test", "smiski.outbox.relay.enabled=false")
+                            "app.outbox.transport=test", "app.outbox.relay.enabled=false")
                     .run(context -> {
                         assertThat(context).hasSingleBean(OutboxRelay.class);
                         assertThat(context).hasSingleBean(OutboxRelayTransactionDelegate.class);
@@ -113,7 +113,7 @@ class OutboxAutoConfigurationTest {
                     .withUserConfiguration(
                             OutboxTestConfiguration.class, CustomDelegateConfiguration.class)
                     .withPropertyValues(
-                            "smiski.outbox.transport=test", "smiski.outbox.relay.enabled=false")
+                            "app.outbox.transport=test", "app.outbox.relay.enabled=false")
                     .run(context -> {
                         assertThat(context).hasSingleBean(OutboxRelayTransactionDelegate.class);
                         assertThat(context.getBeanNamesForType(

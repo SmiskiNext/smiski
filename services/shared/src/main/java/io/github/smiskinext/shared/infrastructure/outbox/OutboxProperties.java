@@ -9,7 +9,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.validation.annotation.Validated;
 
 @Validated
-@ConfigurationProperties(prefix = "smiski.outbox")
+@ConfigurationProperties(prefix = "app.outbox")
 public record OutboxProperties(
         @Valid @NotNull Relay relay,
         @Valid @NotNull Cloudevent cloudevent,

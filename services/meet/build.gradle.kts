@@ -17,7 +17,6 @@ dependencies {
     implementation(libs.spring.boot.starter.kafka)
     implementation(libs.cloudevents.kafka)
     implementation(libs.livekit.server)
-    implementation(libs.aws.s3)
     implementation(libs.spring.boot.starter.security)
     implementation(libs.bouncycastle)
     implementation(libs.protobuf.java.util)

@@ -1,4 +1,12 @@
-## ADDED Requirements
+# consume-install-app Specification
+
+## Purpose
+
+Defines how the `meet` service consumes tenant installation events from Kafka
+and maintains its local `tenants` projection, so that meeting operations can
+resolve tenant state without calling the `tenant` service.
+
+## Requirements
 
 ### Requirement: Consume tenant-installed event and upsert local projection
 

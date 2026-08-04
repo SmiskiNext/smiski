@@ -10,8 +10,8 @@ registered in `settings.gradle.kts` via `includeBuild`.
 
 - `tenant` — Postgres `tenants`
 - `meet` — Postgres `meetings`, Kafka, LiveKit (most complete reference service)
-- `record` — Postgres `recordings`, LiveKit egress → RustFS (S3-compatible)
-- `notification` — Kafka consumer, Resend email (no DB, no Flyway)
+- `notification` — Postgres `notification`, Kafka consumer, Resend email, SSE
+  event streams
 - `shared` — shared libs + `testFixtures` (ArchUnit base + testcontainer
   support)
 - `proto` — gRPC proto (`buf`); `notification` → identity service over gRPC
@@ -35,7 +35,7 @@ Run from repo root. `<name>` is a service dir.
 
 API-first: each service emits its own spec to `services/<name>/openapi.yaml`
 from a `@SpringBootTest`; specs are per-service, never merged.
-`pnpm run openapi` (root) regenerates + lints tenant/meet/record.
+`pnpm run openapi` (root) regenerates + lints tenant/meet/notification.
 
 ## Hexagonal + DDD layering (ArchUnit-enforced)
 
@@ -163,9 +163,11 @@ Shared library (`io.github.smiskinext.shared`):
   `infrastructure.persistence`; `@RestController` only in `presentation`.
 - Domain stays framework-agnostic (no Spring/JPA imports).
 
-## Flyway migrations (Postgres: tenant, meet, record)
+## Flyway migrations (Postgres: tenant, meet, notification)
 
-Schema lives in `src/main/resources/db/migration/`. `notification` has no DB.
+Schema lives in `src/main/resources/db/migration/`. All three services have a
+Postgres database and Flyway; `notification`'s baseline creates a `tenants`
+read-model projection synchronised from `tenant` over Kafka.
 
 - Baseline: each service starts from a single `B1.0.0__baseline.sql` (Flyway `B`
   prefix — applied only on a clean DB). Incremental changes use

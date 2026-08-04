@@ -12,9 +12,9 @@ Monorepo: Spring Boot 4 / Java 25 microservices (hexagonal DDD) under
 `services/` + an Atlassian **Forge** app under `app/` embedding online meetings
 into a Jira issue panel. API-first: each service emits its own OpenAPI spec.
 
-Top-level dirs: `services/` (backend + `k8s/`), `app/` (Forge), `scripts/`
-(`pnpm smiski` CLI), `openspec/` (specs), `build-logic/` (Gradle convention
-plugins), `requirements/`, `docs/`.
+Top-level dirs: `services/` (backend + `k8s/` + `docker/` compose stack), `app/`
+(Forge), `scripts/` (workspace tooling config), `openspec/` (specs),
+`build-logic/` (Gradle convention plugins), `requirements/`, `docs/`.
 
 **Legacy `zms/`** is a gitignored full snapshot of the old Zero Meeting System.
 Treat it as **read-only reference**; consult only when asked or when porting
@@ -23,18 +23,21 @@ behavior. Never extend or wire into it. Removed dirs (`user-management`,
 
 ## Commands
 
-Prefer the `pnpm smiski` CLI (`scripts/`, citty + tsx + zx) — it loads
-allowlisted secrets from `services/docker/.env` and forwards signals to parallel
-child processes.
+Local stack: Docker Compose under `services/docker/`. Java service images are
+built by `bootBuildImage`, not by compose — build them before starting.
 
 ```sh
-pnpm smiski --help                 # list groups
-pnpm smiski setup                  # bootstrap: mise tools + pnpm + hooks + .env
-pnpm smiski setup --env-only       # copy services/docker/.env from .env.example
-pnpm smiski doctor                 # tool status
-pnpm smiski dev                    # infra up + backend services in parallel
-pnpm smiski infra <up|down|reset|logs|ps>
+cp services/docker/.env.example services/docker/.env # fill SMISKI_HOST_IP + CURSOR_SECRET
+./services/gradlew -p services/tenant bootBuildImage
+./services/gradlew -p services/meet bootBuildImage
+./services/gradlew -p services/notification bootBuildImage
+docker compose -f services/docker/compose.yaml up -d
+docker compose -f services/docker/compose.yaml ps
+docker compose -f services/docker/compose.yaml logs -f envoy
+docker compose -f services/docker/compose.yaml down # add -v to wipe data
 ```
+
+The gateway is the only app entry point: `http://localhost:30000`.
 
 Root formatting/specs: `pnpm lint` (markdownlint), `pnpm format` (prettier),
 `pnpm run openapi` (regenerate + lint service specs). Toolchain is pinned by

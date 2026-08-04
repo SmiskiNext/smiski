@@ -14,7 +14,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplicat
  * AOP aspect that intercepts all {@code @Service}-annotated beans and emits DEBUG-level log
  * entries with {@code -->} on method entry and {@code <--} on exit (with duration). Exceptions are
  * logged at ERROR level and re-thrown. Argument logging is opt-in via
- * {@code logging.aspect.include-args=true}.
+ * {@code app.logging.aspect.include-args=true}.
  *
  * <p>Only active when running in a SERVLET container (not Netty/WebFlux).
  */
@@ -22,7 +22,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplicat
 @ConditionalOnWebApplication(type = Type.SERVLET)
 public class LoggingAspect {
 
-    @Value("${logging.aspect.include-args:false}")
+    @Value("${app.logging.aspect.include-args:false}")
     private boolean includeArgs;
 
     @Around("@within(org.springframework.stereotype.Service)")

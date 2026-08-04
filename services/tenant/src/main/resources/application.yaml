@@ -10,9 +10,9 @@ spring:
             supported: 1
 
     datasource:
-        url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/zms_tenants}
-        username: zms_user
-        password: zms_secret
+        url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/tenant}
+        username: ${POSTGRES_USER:smiski_user}
+        password: ${POSTGRES_PASSWORD:smiski_secret}
         driver-class-name: org.postgresql.Driver
 
     jpa:
@@ -37,15 +37,28 @@ spring:
             key-serializer: org.apache.kafka.common.serialization.StringSerializer
             value-serializer: io.cloudevents.kafka.CloudEventSerializer
 
+    data:
+        redis:
+            host: ${REDIS_HOST:localhost}
+            port: ${REDIS_PORT:6379}
+            password: ${REDIS_PASSWORD:}
+
     threads:
         virtual:
             enabled: true
 
-logging:
-    aspect:
-        include-args: false
+management:
+    endpoints:
+        web:
+            exposure:
+                include: health,prometheus
 
-smiski:
+app:
+    logging:
+        aspect:
+            include-args: false
+    cursor:
+        secret: ${CURSOR_SECRET}
     outbox:
         transport: kafka
         relay:

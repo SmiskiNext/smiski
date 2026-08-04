@@ -504,11 +504,12 @@ meeting aggregate. The `MeetingInfoUpdatedEvent` domain record SHALL carry a
 
 ### Requirement: Invitee response events carry issue link and short_code
 
-The invitee response proto messages (`InviteeAccepted`, `InviteeDeclined`,
-`InviteeTentative`) SHALL each carry `issue_id` (field 18), `issue_key` (field
-19), `project_key` (field 20), and `short_code` (field 21) as string fields. The
-`meet` service's corresponding proto mappers SHALL populate these fields. The
-domain event records SHALL carry the corresponding fields.
+Each invitee response proto message SHALL carry `issue_id` (field 18),
+`issue_key` (field 19), `project_key` (field 20), and `short_code` (field 21) as
+string fields — namely `InviteeAccepted`, `InviteeDeclined`, and
+`InviteeTentative`. The `meet` service's corresponding proto mappers SHALL
+populate these fields. The domain event records SHALL carry the corresponding
+fields.
 
 #### Scenario: Accepted response event includes issue and short_code fields
 

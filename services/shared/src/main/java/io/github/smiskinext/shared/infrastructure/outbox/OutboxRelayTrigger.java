@@ -10,7 +10,7 @@ public class OutboxRelayTrigger {
         this.outboxRelay = outboxRelay;
     }
 
-    @Scheduled(fixedDelayString = "${smiski.outbox.relay.fixed-delay:PT5S}")
+    @Scheduled(fixedDelayString = "${app.outbox.relay.fixed-delay:PT5S}")
     public void trigger() {
         outboxRelay.relay();
     }

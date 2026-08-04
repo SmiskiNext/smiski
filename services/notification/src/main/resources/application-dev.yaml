@@ -1,14 +1,11 @@
-server:
-    port: 8184
-
 spring:
     kafka:
         bootstrap-servers: localhost:9094
 
     datasource:
-        url: jdbc:postgresql://localhost:5432/zms_notification
-        username: zms_user
-        password: zms_secret
+        url: jdbc:postgresql://localhost:8283/notification
+        username: ${POSTGRES_USER:smiski_user}
+        password: ${POSTGRES_PASSWORD:smiski_secret}
 
     data:
         redis:

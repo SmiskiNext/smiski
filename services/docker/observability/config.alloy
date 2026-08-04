@@ -1,0 +1,78 @@
+// Grafana Alloy configuration for the `observability` compose profile.
+//
+// Alloy replaces Promtail, which reached end of life on 2 March 2026. It also
+// collapses two containers into one: it ships container logs to Loki AND runs
+// cAdvisor in-process, so per-container CPU and memory need no separate agent.
+// That matters because the standalone cAdvisor image has inconsistent tags.
+//
+// Validate without starting the stack:
+//   docker run --rm -v "$(pwd)/services/docker/observability:/w:ro" \
+//       grafana/alloy:v1.18.0 validate /w/config.alloy
+
+// Logs are read off the Docker socket rather than configured per service, so a
+// container added to the stack is collected with no edit to its own definition.
+discovery.docker "containers" {
+    host = "unix:///var/run/docker.sock"
+}
+
+// Docker reports names as "/tenant"; the leading slash is stripped so the
+// label matches the compose service name an operator actually types.
+discovery.relabel "containers" {
+    targets = discovery.docker.containers.targets
+
+    rule {
+        source_labels = ["__meta_docker_container_name"]
+        regex         = "/(.*)"
+        target_label  = "service_name"
+    }
+}
+
+loki.source.docker "containers" {
+    host       = "unix:///var/run/docker.sock"
+    targets    = discovery.relabel.containers.output
+    labels     = {platform = "smiski-local"}
+    forward_to = [loki.write.default.receiver]
+}
+
+loki.write "default" {
+    endpoint {
+        url = "http://loki:3100/loki/api/v1/push"
+    }
+}
+
+// Per-container CPU and memory, in-process instead of a standalone cAdvisor.
+// The exporter joins two host sources to attribute usage to a container: the
+// kernel's cgroup accounting for the numbers, and Docker's own state for the
+// names. compose.yaml mounts both read-only; with only one the metrics are
+// either absent or unattributable.
+//
+// store_container_labels is off because cAdvisor otherwise copies every Docker
+// image label onto every series it emits — a dozen OCI annotation labels no
+// query here uses, multiplying cardinality. Dropping them at the source rather
+// than relabelling afterwards means they are never allocated at all. The
+// identifying labels — name, image, id — are unaffected.
+prometheus.exporter.cadvisor "containers" {
+    docker_host = "unix:///var/run/docker.sock"
+
+    storage_duration       = "5m"
+    store_container_labels = false
+}
+
+// The exporter stamps its own job label, `integrations/cadvisor`, over
+// anything set here, which is why prometheus.yml declares no cadvisor job.
+prometheus.scrape "cadvisor" {
+    targets    = prometheus.exporter.cadvisor.containers.targets
+    forward_to = [prometheus.remote_write.default.receiver]
+
+    scrape_interval = "15s"
+}
+
+// An in-process exporter has no port for Prometheus to scrape, so this one
+// series set is pushed instead of pulled. That mirrors how logs already reach
+// Loki and keeps the application services pull-only: they stay unaware of
+// Prometheus, which is what the pull model exists to protect.
+prometheus.remote_write "default" {
+    endpoint {
+        url = "http://prometheus:9090/api/v1/write"
+    }
+}

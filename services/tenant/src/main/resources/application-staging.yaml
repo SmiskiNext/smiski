@@ -1,0 +1,12 @@
+spring:
+    datasource:
+        url: ${SPRING_DATASOURCE_URL}
+        username: ${POSTGRES_USER}
+        password: ${POSTGRES_PASSWORD}
+
+    kafka:
+        bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS}
+
+app:
+    cursor:
+        secret: ${CURSOR_SECRET}

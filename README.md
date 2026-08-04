@@ -70,26 +70,59 @@ The auth bridge (how Forge identity reaches the backend) and the final role of
 - Java 25
 - Node.js 22+
 - pnpm 10+
-- Docker (for local Postgres, Valkey, LiveKit — or use the provided
-  docker-compose)
+- Docker with Compose v2 (Postgres, Kafka, Valkey, LiveKit, Envoy all run in
+  containers)
+- A host LAN IP reachable from your browser — LiveKit advertises it in ICE
+  candidates, and loopback does not work under rootless Docker
 - An Atlassian developer site + Forge CLI (for the Jira integration)
 
-### 1. Start backing services
+### 1. Configure the environment
 
 ```bash
-docker compose up -d
+cp services/docker/.env.example services/docker/.env
 ```
 
-### 2. Build all backend services
+Fill in the two required values: `SMISKI_HOST_IP` (your host LAN IP) and
+`CURSOR_SECRET`. Both have no default and block startup when unset.
+
+### 2. Build the service images
+
+Compose does **not** build the Java images — it pulls the same artifacts the
+release pipeline publishes, so they must exist locally first.
 
 ```bash
-./services/gradlew build
+./services/gradlew -p services/tenant bootBuildImage
+./services/gradlew -p services/meet bootBuildImage
+./services/gradlew -p services/notification bootBuildImage
 ```
 
-### 3. Run the services
+### 3. Start the stack
 
 ```bash
-pnpm smiski dev
+docker compose -f services/docker/compose.yaml up -d
+docker compose -f services/docker/compose.yaml ps
+```
+
+Everything is reached through the Envoy gateway at `http://localhost:30000`. See
+[services/docker/AGENTS.md](services/docker/AGENTS.md) for the host port map,
+the gateway route table, and the stack's security limitations — the event-stream
+routes are served **unauthenticated**, so the stack is restricted to local
+development.
+
+To stop it:
+
+```bash
+docker compose -f services/docker/compose.yaml down # add -v to wipe data
+```
+
+### Running services natively instead
+
+For day-to-day coding, run a service with the `dev` profile against the stack's
+datastores rather than rebuilding its image:
+
+```bash
+docker compose -f services/docker/compose.yaml up -d # datastores + gateway
+./services/gradlew -p services/meet bootRun --args='--spring.profiles.active=dev'
 ```
 
 ---
@@ -99,14 +132,18 @@ pnpm smiski dev
 ```text
 smiski/
 ├── services/
-│   ├── user-management/       # Identity bridge, gRPC name/avatar resolution
-│   ├── meeting-management/    # Meeting lifecycle, Issue link, LiveKit
-│   ├── shared/                # Shared domain types, Result type, JSend
-│   └── proto/                 # gRPC proto definitions
-├── services/k8s/              # Kubernetes manifests (Kustomize overlays)
+│   ├── tenant/                # Identity and tenancy
+│   ├── meet/                  # Meeting lifecycle, Issue link, LiveKit
+│   ├── notification/          # Email + SSE event streams
+│   ├── gateway/               # Go authorization service (Envoy ext_authz)
+│   ├── shared/                # Shared domain types, Result type, test fixtures
+│   ├── proto/                 # gRPC proto definitions
+│   ├── docker/                # Local Compose stack + Envoy configuration
+│   └── k8s/                   # Kubernetes manifests (Kustomize overlays)
+├── app/                       # Atlassian Forge app (Jira issue panel)
 ├── requirements/              # BA and roadmap documents
 ├── openspec/                  # Product specifications and change artifacts
-└── build-logic/              # Shared Gradle convention plugins
+└── build-logic/               # Shared Gradle convention plugins
 ```
 
 ---
@@ -171,7 +208,7 @@ and are not merged into a single document.
 
 - `tenant` — identity and tenancy
 - `meet` — meetings, invitations, participants, join requests
-- `record` — recordings
+- `notification` — meeting event streams and inbound email
 
 ---
 

@@ -1,0 +1,24 @@
+spring:
+    datasource:
+        url: ${SPRING_DATASOURCE_URL}
+        username: ${POSTGRES_USER}
+        password: ${POSTGRES_PASSWORD}
+
+    kafka:
+        bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS}
+
+    data:
+        redis:
+            host: ${REDIS_HOST}
+            port: ${REDIS_PORT}
+            password: ${REDIS_PASSWORD}
+
+app:
+    cursor:
+        secret: ${CURSOR_SECRET}
+    livekit:
+        url: ${LIVEKIT_URL}
+        ws-url: ${LIVEKIT_WS_URL}
+        api-key: ${LIVEKIT_API_KEY}
+        api-secret: ${LIVEKIT_API_SECRET}
+        webhook-url: ${LIVEKIT_WEBHOOK_URL}

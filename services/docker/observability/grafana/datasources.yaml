@@ -1,0 +1,34 @@
+# Grafana datasource provisioning for the `observability` compose profile.
+#
+# Provisioned datasources are recreated on every restart, so the stack needs no
+# manual setup step and a dashboard exported later cannot drift from the
+# datasource it points at. Dashboards and alert rules are deliberately absent —
+# this change provisions datasources only.
+#
+# URLs are compose service names on the stack network, not the published host
+# ports: Grafana reaches both stores from inside the network.
+
+apiVersion: 1
+
+datasources:
+    - name: Prometheus
+      type: prometheus
+      access: proxy
+      uid: prometheus
+      url: http://prometheus:9090
+      isDefault: true
+      jsonData:
+          # Matches global.scrape_interval in prometheus.yml so Grafana's
+          # $__rate_interval never falls below a single scrape.
+          timeInterval: 15s
+
+    - name: Loki
+      type: loki
+      access: proxy
+      uid: loki
+      url: http://loki:3100
+      # No basicAuth and no X-Scope-OrgID header: loki.yaml sets
+      # auth_enabled: false, so every record belongs to the `fake` tenant.
+      jsonData:
+          # Loki holds seven days locally; asking for more returns nothing.
+          maxLines: 1000

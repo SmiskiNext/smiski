@@ -4,11 +4,16 @@ import io.github.smiskinext.meet.application.service.NoShowMeetingCancelerApplic
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
+/**
+ * Periodically cancels meetings nobody joined, driven by {@link NoShowCancelerProperties}.
+ *
+ * <p>{@code @Scheduled} resolves its delay from the property placeholder rather than the bound
+ * record, so the placeholder key and {@code NoShowCancelerProperties} prefix must stay in sync.
+ */
 @Component
 @EnableScheduling
 public class NoShowMeetingCancelerTrigger {
@@ -17,18 +22,17 @@ public class NoShowMeetingCancelerTrigger {
             LoggerFactory.getLogger(NoShowMeetingCancelerTrigger.class);
 
     private final NoShowMeetingCancelerApplicationService canceler;
-    private final int batchSize;
+    private final NoShowCancelerProperties properties;
 
     public NoShowMeetingCancelerTrigger(
-            NoShowMeetingCancelerApplicationService canceler,
-            @Value("${smiski.meet.no-show-canceler.batch-size:100}") int batchSize) {
+            NoShowMeetingCancelerApplicationService canceler, NoShowCancelerProperties properties) {
         this.canceler = canceler;
-        this.batchSize = batchSize;
+        this.properties = properties;
     }
 
-    @Scheduled(fixedDelayString = "${smiski.meet.no-show-canceler.fixed-delay:PT5M}")
+    @Scheduled(fixedDelayString = "${app.meet.no-show-canceler.fixed-delay:PT5M}")
     public void cancelExpiredMeetings() {
-        logger.debug("No-show canceler triggered (batch size: {})", batchSize);
-        canceler.cancelAllExpired(batchSize);
+        logger.debug("No-show canceler triggered (batch size: {})", properties.batchSize());
+        canceler.cancelAllExpired(properties.batchSize());
     }
 }

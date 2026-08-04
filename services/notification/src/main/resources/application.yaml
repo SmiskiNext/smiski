@@ -10,9 +10,9 @@ spring:
             supported: 1
 
     datasource:
-        url: jdbc:postgresql://${POSTGRES_HOST:localhost}:${POSTGRES_PORT:5432}/${POSTGRES_DB:zms_notification}
-        username: ${POSTGRES_USER:zms_user}
-        password: ${POSTGRES_PASSWORD:zms_secret}
+        url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/notification}
+        username: ${POSTGRES_USER:smiski_user}
+        password: ${POSTGRES_PASSWORD:smiski_secret}
         driver-class-name: org.postgresql.Driver
 
     jpa:
@@ -40,18 +40,22 @@ spring:
         virtual:
             enabled: true
 
-logging:
-    aspect:
-        include-args: false
+management:
+    endpoints:
+        web:
+            exposure:
+                include: health,prometheus
 
 app:
+    logging:
+        aspect:
+            include-args: false
     sse:
         host-stream-timeout-ms: ${SSE_HOST_STREAM_TIMEOUT_MS:300000}
         heartbeat-interval-seconds: ${SSE_HEARTBEAT_INTERVAL_SECONDS:15}
     notification:
         kafka:
             invitation-consumer-group: ${INVITATION_CONSUMER_GROUP:notification-meeting-invitations}
-            invite-invalidated-consumer-group: ${INVITE_INVALIDATED_CONSUMER_GROUP:notification-meeting-invite-invalidated}
             invitee-responded-consumer-group: ${INVITEE_RESPONDED_CONSUMER_GROUP:notification-invitee-responded}
             meeting-info-updated-consumer-group: ${MEETING_INFO_UPDATED_CONSUMER_GROUP:notification-meeting-info-updated}
             tenant-installed-consumer-group: ${TENANT_INSTALLED_CONSUMER_GROUP:notification-tenant-installed}

@@ -1,4 +1,12 @@
-## ADDED Requirements
+# consume-uninstall-app Specification
+
+## Purpose
+
+Defines how the `meet` service consumes tenant uninstallation events from Kafka
+and marks the affected row in its local `tenants` projection, so that
+uninstalled tenants stop being treated as active and carry a purge deadline.
+
+## Requirements
 
 ### Requirement: Consume tenant-uninstalled event and upsert local projection
 

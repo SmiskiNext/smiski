@@ -10,12 +10,10 @@ spring:
         enabled: true
         locations: classpath:db/migration
 
-smiski:
+app:
     outbox:
         relay:
             fixed-delay: PT60S
-
-app:
     cursor:
         secret: test-cursor-secret-fixed-value-for-tests
     livekit:
@@ -27,16 +25,6 @@ app:
         webhook-topic: meet.livekit.webhook.internal
         webhook-consumer-group: meet-livekit-webhook-test
         token-expiry-seconds: 1800
-        recording:
-            layout: speaker
-            bucket: recordings
-            region: us-east-1
-            endpoint: http://localhost:9000
-            egress-endpoint: http://localhost:9000
-            access-key: test-access-key
-            secret-key: test-secret-key
-            force-path-style: true
-            pending-max-age: PT7M
     sse:
         timeout-ms: 300000
         join-request-timeout-ms: 600000
