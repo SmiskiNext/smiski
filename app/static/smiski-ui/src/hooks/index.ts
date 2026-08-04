@@ -9,6 +9,7 @@ export * from './useIssueMeetings';
 export * from './useJoinRequests';
 export * from './useLiveKitRoom';
 export * from './useMeeting';
+export * from './useMeetingInvitees';
 export * from './useMeetingMutations';
 export * from './useMeetingParticipants';
 export * from './useMeetingPermission';

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
     meetingFromBackend,
+    meetingInviteesFromBackend,
     meetingsFromBackend,
     participantsFromBackend,
     permissionsFromBackend,
@@ -120,6 +121,47 @@ describe('backend API mappers', () => {
                 leftAt: undefined,
             },
         ]);
+    });
+
+    it('maps meeting-detail invitees with their deletion identity and RSVP status', () => {
+        const invitees = meetingInviteesFromBackend({
+            invitees: [
+                {
+                    id: 'invitee-1',
+                    accountId: 'account-456',
+                    email: 'alice@example.com',
+                    displayName: 'Alice Nguyen',
+                    status: 'TENTATIVE',
+                    invitedAt: '2026-08-02T10:35:00Z',
+                    respondedAt: null,
+                },
+            ],
+        });
+
+        expect(invitees).toEqual([
+            {
+                id: 'invitee-1',
+                accountId: 'account-456',
+                email: 'alice@example.com',
+                displayName: 'Alice Nguyen',
+                status: 'TENTATIVE',
+                invitedAt: '2026-08-02T10:35:00Z',
+                respondedAt: undefined,
+            },
+        ]);
+    });
+
+    it('does not treat invitees as joined participants', () => {
+        expect(
+            participantsFromBackend({
+                invitees: [
+                    {
+                        accountId: 'account-456',
+                        displayName: 'Alice Nguyen',
+                    },
+                ],
+            }),
+        ).toEqual([]);
     });
 
     it('uses the participantCount override instead of the always-1 backend default', () => {

@@ -18,6 +18,8 @@ import {
     resolveSelectedInvitees,
 } from './inviteeIdentity';
 
+const NO_EXCLUDED_ACCOUNTS: readonly string[] = [];
+
 export interface WorkspaceUserPickerProps {
     /** Currently selected invitees, retained with full identity. */
     value: WorkspaceUser[];
@@ -25,6 +27,10 @@ export interface WorkspaceUserPickerProps {
     placeholder?: string;
     disabled?: boolean;
     ariaLabel?: string;
+    /** Account ids that should not be offered as new selections. */
+    excludedAccountIds?: readonly string[];
+    /** Disable users whose Jira profile does not expose an email address. */
+    requireEmail?: boolean;
 }
 
 function optionLabel(user: WorkspaceUser): string {
@@ -39,6 +45,8 @@ export function WorkspaceUserPicker({
     placeholder,
     disabled,
     ariaLabel,
+    excludedAccountIds = NO_EXCLUDED_ACCOUNTS,
+    requireEmail = false,
 }: WorkspaceUserPickerProps) {
     const [query, setQuery] = useState('');
     const { users, loading, error } = useWorkspaceUsers(query);
@@ -47,16 +55,31 @@ export function WorkspaceUserPicker({
         () => value.map((user) => user.accountId),
         [value],
     );
+    const selectedIdSet = useMemo(() => new Set(selectedIds), [selectedIds]);
+    const excludedIdSet = useMemo(
+        () => new Set(excludedAccountIds),
+        [excludedAccountIds],
+    );
 
     // Merge search results with the current selection so already-picked
     // invitees remain visible even when they aren't in the latest results.
     const options = useMemo(
         () =>
-            mergeInviteeOptions(value, users).map((user) => ({
-                value: user.accountId,
-                label: optionLabel(user),
-            })),
-        [users, value],
+            mergeInviteeOptions(value, users)
+                .filter(
+                    (user) =>
+                        selectedIdSet.has(user.accountId)
+                        || !excludedIdSet.has(user.accountId),
+                )
+                .map((user) => ({
+                    value: user.accountId,
+                    label:
+                        requireEmail && !user.email
+                            ? `${user.displayName} (email unavailable)`
+                            : optionLabel(user),
+                    disabled: requireEmail && !user.email,
+                })),
+        [excludedIdSet, requireEmail, selectedIdSet, users, value],
     );
 
     const handleChange = (ids: string[]) => {

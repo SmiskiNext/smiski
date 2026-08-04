@@ -1,5 +1,7 @@
 import type {
     Meeting,
+    MeetingInvitee,
+    MeetingInviteeStatus,
     MeetingSettings,
     MeetingStatus,
     Participant,
@@ -48,6 +50,16 @@ interface BackendParticipantSnapshot {
     role?: string;
     joinedAt?: string | null;
     leftAt?: string | null;
+}
+
+interface BackendMeetingInviteeSnapshot {
+    id?: string;
+    accountId?: string;
+    email?: string;
+    displayName?: string;
+    status?: string;
+    invitedAt?: string | null;
+    respondedAt?: string | null;
 }
 
 type BackendEnvelope = Record<string, unknown>;
@@ -137,7 +149,6 @@ export function participantsFromBackend(payload: unknown): Participant[] {
         'participants',
         'items',
         'content',
-        'invitees',
         'data',
     ]).map((participant) => ({
         accountId: participant.accountId ?? '',
@@ -148,6 +159,28 @@ export function participantsFromBackend(payload: unknown): Participant[] {
         role: normalizeParticipantRole(participant.role),
         joinedAt: participant.joinedAt ?? undefined,
         leftAt: participant.leftAt ?? undefined,
+    }));
+}
+
+/** Maps invitees embedded in meeting detail or invitee mutation responses. */
+export function meetingInviteesFromBackend(payload: unknown): MeetingInvitee[] {
+    return extractArray<BackendMeetingInviteeSnapshot>(payload, [
+        'invitees',
+        'items',
+        'content',
+        'data',
+    ]).map((invitee) => ({
+        id: invitee.id ?? '',
+        accountId: invitee.accountId ?? '',
+        email: invitee.email ?? '',
+        displayName:
+            invitee.displayName
+            ?? invitee.email
+            ?? invitee.accountId
+            ?? 'Unknown invitee',
+        status: normalizeMeetingInviteeStatus(invitee.status),
+        invitedAt: invitee.invitedAt ?? undefined,
+        respondedAt: invitee.respondedAt ?? undefined,
     }));
 }
 
@@ -214,6 +247,15 @@ function normalizeMeetingStatus(value: string | undefined): MeetingStatus {
 
 function normalizeParticipantRole(value: string | undefined): ParticipantRole {
     return value === 'HOST' ? 'HOST' : 'PARTICIPANT';
+}
+
+function normalizeMeetingInviteeStatus(
+    value: string | undefined,
+): MeetingInviteeStatus {
+    if (value === 'ACCEPTED' || value === 'DECLINED' || value === 'TENTATIVE') {
+        return value;
+    }
+    return 'NEEDS_ACTION';
 }
 
 function isEnvelope(value: unknown): value is BackendEnvelope {

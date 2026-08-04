@@ -1,5 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
-import { LoadingState, MeetingStatusTag } from '../../../components/shared';
+import {
+    LoadingState,
+    MeetingInviteeManager,
+    MeetingStatusTag,
+} from '../../../components/shared';
 import { Avatar, Button, Icon } from '../../../components/ui';
 import { useMeeting } from '../../../hooks/useMeeting';
 import { useMeetingParticipants } from '../../../hooks/useMeetingParticipants';
@@ -121,6 +125,7 @@ export function MeetingDetailPanel({
                                 </dd>
                             </div>
                         </dl>
+                        <MeetingInviteeManager meeting={meeting} />
                         <section>
                             <h3 className='mb-3 flex items-center gap-2 text-xs font-semibold text-[var(--text)]'>
                                 <Icon name='people' size={15} />

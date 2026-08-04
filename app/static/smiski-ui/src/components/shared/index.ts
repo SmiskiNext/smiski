@@ -16,6 +16,7 @@ export * from './LoadingState';
 export * from './MeetingActionMenu';
 export * from './MeetingCard';
 export * from './MeetingDetailDialog';
+export * from './MeetingInviteeManager';
 export * from './MeetingSettingsModal';
 export * from './meetingActionRules';
 export * from './meetingStatusOptions';
