@@ -1,0 +1,60 @@
+# Prometheus scrape configuration for the `observability` compose profile.
+#
+# Targets are compose service names resolved on the stack network, so this file
+# only works from inside the stack. Nothing here is published to the host
+# except Prometheus itself.
+#
+# Validate without starting the stack:
+#   docker run --rm -v "$(pwd)/services/docker/observability:/w:ro" \
+#       --entrypoint promtool prom/prometheus:v3.13.2 check config /w/prometheus.yml
+
+global:
+    scrape_interval: 15s
+    evaluation_interval: 15s
+
+scrape_configs:
+    # Actuator serves metrics on the application port. Exposure is restricted
+    # to health,prometheus in each service's application.yaml, and AOT freezes
+    # that decision at build time — a service image built before this change
+    # reports as a down target rather than failing the stack.
+    - job_name: spring-services
+      metrics_path: /actuator/prometheus
+      static_configs:
+          - targets:
+                - tenant:8080
+                - meet:8080
+                - notification:8080
+
+    # Envoy publishes Prometheus text on its admin port, not on the ingress
+    # listener, and under /stats/prometheus rather than /metrics.
+    - job_name: envoy
+      metrics_path: /stats/prometheus
+      static_configs:
+          - targets:
+                - envoy:9901
+
+    # One exporter per database: postgres-exporter reads a single
+    # DATA_SOURCE_NAME, so three instances beat one instance per connection.
+    - job_name: postgres
+      static_configs:
+          - targets:
+                - tenant-postgres-exporter:9187
+                - meet-postgres-exporter:9187
+                - notification-postgres-exporter:9187
+
+    - job_name: valkey
+      static_configs:
+          - targets:
+                - valkey-exporter:9121
+
+    # Alloy's own pipeline health. The per-container CPU and memory metrics it
+    # collects arrive by remote write instead, because Alloy scrapes its
+    # built-in cAdvisor exporter in-process and pushes the result.
+    - job_name: alloy
+      static_configs:
+          - targets:
+                - alloy:12345
+
+    # kafka has no job: apache/kafka:4.1.0 bundles no JMX exporter, so it is
+    # left out deliberately rather than declared as a permanently down target.
+    # gateway has none either — the Go service carries no instrumentation yet.

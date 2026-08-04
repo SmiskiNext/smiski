@@ -111,6 +111,9 @@ log4j-layout-template-json = { module = "org.apache.logging.log4j:log4j-layout-t
 spring-boot-devtools = { module = "org.springframework.boot:spring-boot-devtools" }
 spring-boot-configuration-processor = { module = "org.springframework.boot:spring-boot-configuration-processor" }
 
+# Micrometer (version managed by micrometer-bom through the Spring Boot BOM)
+micrometer-registry-prometheus = { module = "io.micrometer:micrometer-registry-prometheus" }
+
 # Spring Integration
 spring-integration-http = { module = "org.springframework.integration:spring-integration-http" }
 spring-integration-jpa = { module = "org.springframework.integration:spring-integration-jpa" }

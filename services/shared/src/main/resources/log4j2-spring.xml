@@ -15,6 +15,13 @@
                 eventTemplateUri="classpath:EcsLayout.json" />
         </Console>
 
+        <!-- ── docker profile: structured ECS JSON output via Spring Boot's own
+            layout, which resolves service.name from spring.application.name and honours
+            the logging.structured.* properties ────────────────── -->
+        <Console name="ConsoleStructured" target="SYSTEM_OUT">
+            <StructuredLogLayout format="ecs" />
+        </Console>
+
     </Appenders>
 
     <Loggers>
@@ -36,6 +43,16 @@
             </Logger>
             <Root level="INFO">
                 <AppenderRef ref="ConsoleJson" />
+            </Root>
+        </SpringProfile>
+
+        <SpringProfile name="docker">
+            <Logger name="io.github.smiskinext" level="DEBUG"
+                additivity="false">
+                <AppenderRef ref="ConsoleStructured" />
+            </Logger>
+            <Root level="INFO">
+                <AppenderRef ref="ConsoleStructured" />
             </Root>
         </SpringProfile>
 

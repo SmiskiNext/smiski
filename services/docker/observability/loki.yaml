@@ -1,0 +1,56 @@
+# Loki configuration for the `observability` compose profile.
+#
+# Single-binary mode on local disk: the stack is local-only, so the ring lives
+# in memory with a single replica and no object store is involved. A
+# microservices deployment would add components a developer never queries.
+#
+# Validate without starting the stack:
+#   docker run --rm -v "$(pwd)/services/docker/observability:/w:ro" \
+#       grafana/loki:3.7.4 -config.file=/w/loki.yaml -verify-config
+
+# No multi-tenancy: with auth disabled every write and read lands in the
+# `fake` tenant, so Grafana needs no X-Scope-OrgID header.
+auth_enabled: false
+
+server:
+    http_listen_port: 3100
+    grpc_listen_port: 9096
+    log_level: info
+
+common:
+    path_prefix: /loki
+    storage:
+        filesystem:
+            chunks_directory: /loki/chunks
+            rules_directory: /loki/rules
+    replication_factor: 1
+    ring:
+        kvstore:
+            store: inmemory
+
+schema_config:
+    configs:
+        - from: 2024-04-01
+          store: tsdb
+          object_store: filesystem
+          schema: v13
+          index:
+              prefix: index_
+              period: 24h
+
+# allow_structured_metadata carries the JSON fields Alloy attaches to each
+# record without promoting them to index labels. volume_enabled powers
+# Grafana's log-volume histogram above the query results.
+limits_config:
+    allow_structured_metadata: true
+    volume_enabled: true
+    retention_period: 168h
+
+# Retention is only enforced when the compactor runs it, and the compactor
+# refuses to start with retention enabled unless it is told where to persist
+# delete requests. 168h is seven days — a working week of history without
+# unbounded local disk growth.
+compactor:
+    working_directory: /loki/compactor
+    delete_request_store: filesystem
+    retention_enabled: true

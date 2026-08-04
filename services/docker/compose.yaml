@@ -9,6 +9,12 @@
 # `notification` and `gateway` by STRICT_DNS hostname on port 8080 (9001 for the
 # gateway), so renaming a service here silently breaks gateway routing.
 #
+# The observability services at the bottom of this file all carry
+# `profiles: [observability]`, which excludes them from `up` unless the profile
+# is named. `docker compose up -d` therefore starts the same containers it
+# started before observability existed; enable it with
+# `docker compose --profile observability up -d`.
+#
 # See AGENTS.md for the host port map, the route table and the security caveat.
 
 services:
@@ -225,6 +231,7 @@ services:
         image: ghcr.io/smiskinext/tenant:${VERSION:-0.0.1-SNAPSHOT}
         environment:
             JAVA_TOOL_OPTIONS: -Dspring.aot.enabled=true
+            SPRING_PROFILES_ACTIVE: docker
             SPRING_DATASOURCE_URL: jdbc:postgresql://tenant-postgres:5432/${TENANT_POSTGRES_DB:-tenant}
             POSTGRES_USER: ${POSTGRES_USER:-smiski_user}
             POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-smiski_secret}
@@ -248,6 +255,7 @@ services:
         image: ghcr.io/smiskinext/meet:${VERSION:-0.0.1-SNAPSHOT}
         environment:
             JAVA_TOOL_OPTIONS: -Dspring.aot.enabled=true
+            SPRING_PROFILES_ACTIVE: docker
             SPRING_DATASOURCE_URL: jdbc:postgresql://meet-postgres:5432/${MEET_POSTGRES_DB:-meet}
             POSTGRES_USER: ${POSTGRES_USER:-smiski_user}
             POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-smiski_secret}
@@ -278,6 +286,7 @@ services:
         image: ghcr.io/smiskinext/notification:${VERSION:-0.0.1-SNAPSHOT}
         environment:
             JAVA_TOOL_OPTIONS: -Dspring.aot.enabled=true
+            SPRING_PROFILES_ACTIVE: docker
             SPRING_DATASOURCE_URL: jdbc:postgresql://notification-postgres:5432/${NOTIFICATION_POSTGRES_DB:-notification}
             POSTGRES_USER: ${POSTGRES_USER:-smiski_user}
             POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-smiski_secret}
@@ -295,6 +304,169 @@ services:
                 condition: service_healthy
             kafka:
                 condition: service_healthy
+            valkey:
+                condition: service_healthy
+
+    # ── profile: observability ──────────────────────────────────────────────
+    #
+    # Everything below is gated behind `profiles: [observability]`. Nothing here
+    # is a dependency of any application container, so a component that fails or
+    # is stopped never stops the stack serving requests.
+    #
+    # kafka has no exporter: apache/kafka:4.1.0 bundles no JMX exporter, so
+    # adding one means a sidecar plus KAFKA_OPTS wiring for value a developer
+    # rarely needs locally. `gateway` has none either — the Go service carries
+    # no instrumentation yet. Both are left off the target list deliberately
+    # rather than declared and left permanently down.
+
+    # The image is distroless: /usr/bin/loki is its only executable, with no
+    # shell and no wget or curl, so a container-side HTTP probe is impossible.
+    # Readiness is observed from the host instead — see AGENTS.md. Loki reached
+    # /ready in 16s under measurement, so dependants wait on service_started.
+    loki:
+        image: grafana/loki:3.7.4
+        profiles: [observability]
+        command:
+            - '-config.file=/etc/loki/loki.yaml'
+        ports:
+            - '3100:3100'
+        volumes:
+            - ./observability/loki.yaml:/etc/loki/loki.yaml:ro
+            - loki-data:/loki
+
+    # The Docker socket is mounted read-only so Alloy can discover containers
+    # and read their stdout. This is a real if bounded exposure — the Docker API
+    # grants broad authority even read-only — accepted because the stack is
+    # local-only and the mount is opt-in behind the profile. The alternative, a
+    # logging driver per service, hardcodes Loki into every service definition
+    # and breaks when Loki is absent.
+    #
+    # The built-in cAdvisor exporter needs two host paths, because it joins two
+    # sources to attribute usage to a container: the kernel's cgroup accounting
+    # supplies the numbers, and Docker's own state supplies the names. Measured
+    # with the socket alone it reports a single series for its own cgroup; with
+    # cgroups added it reports every container but with no `name` label, so no
+    # series can be attributed; both together are what produces named metrics.
+    # Neither needs more than read access, and no privileged flag is required.
+    #
+    # The container-side path of the Docker root must stay /var/lib/docker —
+    # cAdvisor's own root is not configurable through this component — but the
+    # host side is interpolated for hosts that keep it elsewhere. On Docker
+    # Desktop (Windows and macOS) the daemon runs inside a VM and this path does
+    # not exist on the host, so set CADVISOR_DOCKER_ROOT accordingly or drop the
+    # profile; see AGENTS.md.
+    alloy:
+        image: grafana/alloy:v1.18.0
+        profiles: [observability]
+        command:
+            - 'run'
+            - '--server.http.listen-addr=0.0.0.0:12345'
+            - '--storage.path=/var/lib/alloy/data'
+            - '/etc/alloy/config.alloy'
+        ports:
+            - '12345:12345'
+        volumes:
+            - ./observability/config.alloy:/etc/alloy/config.alloy:ro
+            - /var/run/docker.sock:/var/run/docker.sock:ro
+            - ${CADVISOR_CGROUP_ROOT:-/sys/fs/cgroup}:/sys/fs/cgroup:ro
+            - ${CADVISOR_DOCKER_ROOT:-/var/lib/docker}:/var/lib/docker:ro
+            - alloy-data:/var/lib/alloy/data
+        depends_on:
+            loki:
+                condition: service_started
+
+    # --web.enable-remote-write-receiver is required, not optional: Alloy's
+    # cAdvisor exporter runs in-process and has no port to scrape, so that one
+    # series set is pushed here. Every other target in prometheus.yml is pulled.
+    prometheus:
+        image: prom/prometheus:v3.13.2
+        profiles: [observability]
+        command:
+            - '--config.file=/etc/prometheus/prometheus.yml'
+            - '--storage.tsdb.path=/prometheus'
+            - '--storage.tsdb.retention.time=7d'
+            - '--web.enable-remote-write-receiver'
+        ports:
+            - '9090:9090'
+        volumes:
+            - ./observability/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+            - prometheus-data:/prometheus
+        healthcheck:
+            test:
+                [
+                    'CMD',
+                    'wget',
+                    '-q',
+                    '--spider',
+                    'http://localhost:9090/-/ready',
+                ]
+            interval: 10s
+            timeout: 5s
+            retries: 10
+
+    # Datasources are provisioned from a file, so the stack needs no manual
+    # setup click. The admin password is interpolated rather than written into
+    # any application yaml, keeping it out of the paths .gitleaks.toml scans.
+    grafana:
+        image: grafana/grafana:12.4.6
+        profiles: [observability]
+        environment:
+            GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+            GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-admin}
+            GF_USERS_ALLOW_SIGN_UP: 'false'
+        ports:
+            - '3000:3000'
+        volumes:
+            - ./observability/grafana:/etc/grafana/provisioning/datasources:ro
+            - grafana-data:/var/lib/grafana
+        depends_on:
+            prometheus:
+                condition: service_started
+            loki:
+                condition: service_started
+
+    # One exporter per database: postgres-exporter reads a single
+    # DATA_SOURCE_NAME, so three instances are simpler than one instance juggling
+    # three connections. sslmode=disable matches the servers, which run without
+    # TLS on an internal network. None publishes a host port — only Prometheus
+    # reads them, over the stack network.
+    tenant-postgres-exporter:
+        image: prometheuscommunity/postgres-exporter:v0.20.1
+        profiles: [observability]
+        environment:
+            DATA_SOURCE_NAME: postgresql://${POSTGRES_USER:-smiski_user}:${POSTGRES_PASSWORD:-smiski_secret}@tenant-postgres:5432/${TENANT_POSTGRES_DB:-tenant}?sslmode=disable
+        depends_on:
+            tenant-postgres:
+                condition: service_healthy
+
+    meet-postgres-exporter:
+        image: prometheuscommunity/postgres-exporter:v0.20.1
+        profiles: [observability]
+        environment:
+            DATA_SOURCE_NAME: postgresql://${POSTGRES_USER:-smiski_user}:${POSTGRES_PASSWORD:-smiski_secret}@meet-postgres:5432/${MEET_POSTGRES_DB:-meet}?sslmode=disable
+        depends_on:
+            meet-postgres:
+                condition: service_healthy
+
+    notification-postgres-exporter:
+        image: prometheuscommunity/postgres-exporter:v0.20.1
+        profiles: [observability]
+        environment:
+            DATA_SOURCE_NAME: postgresql://${POSTGRES_USER:-smiski_user}:${POSTGRES_PASSWORD:-smiski_secret}@notification-postgres:5432/${NOTIFICATION_POSTGRES_DB:-notification}?sslmode=disable
+        depends_on:
+            notification-postgres:
+                condition: service_healthy
+
+    # Valkey speaks the Redis protocol, so the Redis exporter reads it
+    # unmodified. This watches the application cache; livekit-redis is LiveKit
+    # internal state and is not instrumented.
+    valkey-exporter:
+        image: oliver006/redis_exporter:v1.88.0-alpine
+        profiles: [observability]
+        environment:
+            REDIS_ADDR: redis://valkey:6379
+            REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+        depends_on:
             valkey:
                 condition: service_healthy
 
@@ -329,3 +501,10 @@ volumes:
     kafka-data:
     valkey-data:
     livekit-redis-data:
+    # Observability persistence. loki-data keeps ingested records queryable
+    # across an alloy or loki restart; alloy-data holds the read positions and
+    # the write-ahead log, so a restart resumes instead of re-reading.
+    loki-data:
+    alloy-data:
+    prometheus-data:
+    grafana-data:
