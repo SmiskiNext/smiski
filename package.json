@@ -18,7 +18,7 @@
         "sdk:typecheck": "pnpm --dir sdks/typescript --ignore-workspace run typecheck",
         "sdk:build": "pnpm --dir sdks/typescript --ignore-workspace run build",
         "sdk:pack": "pnpm --dir sdks/typescript --ignore-workspace run pack:check",
-        "release:sdk": "pnpm run sdk:build && pnpm --dir sdks/typescript --ignore-workspace publish --no-git-checks"
+        "release:sdk": "pnpm run sdk:build && pnpm --dir sdks/typescript --ignore-workspace publish --no-git-checks && changeset git-tag"
     },
     "keywords": [],
     "author": "",
