@@ -8,7 +8,6 @@ springGrpc = "1.1.0"
 springDependencyManagement = "1.1.7"
 flyway = "12.9.0"
 hibernateOrm = "7.4.2.Final"
-graalvmNative = "1.1.2"
 spotless = "8.7.0"
 jspecify = "1.0.0"
 jjwt = "0.13.0"
@@ -159,7 +158,6 @@ livekit-android = { module = "io.livekit:livekit-android", version.ref = "liveki
 springBoot = { id = "org.springframework.boot", version.ref = "springBoot" }
 springDependencyManagement = { id = "io.spring.dependency-management", version.ref = "springDependencyManagement" }
 hibernateOrm = { id = "org.hibernate.orm", version.ref = "hibernateOrm" }
-graalvmNative = { id = "org.graalvm.buildtools.native", version.ref = "graalvmNative" }
 spotless = { id = "com.diffplug.spotless", version.ref = "spotless" }
 protobuf = { id = "com.google.protobuf", version.ref = "protobuf" }
 buildBuf = { id = "build.buf", version.ref = "buildBuf" }

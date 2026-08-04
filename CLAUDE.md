@@ -29,35 +29,41 @@ or when porting behavior. Never extend or wire into it.
 
 - `tenant` — Postgres `tenants` (identity/tenancy; supersedes `user-management`)
 - `meet` — Postgres `meetings`, Kafka, LiveKit
-- `record` — Postgres `recordings`, LiveKit egress → RustFS (S3-compatible)
-- `notification` — Kafka consumer, Resend email (no DB)
+- `notification` — Postgres `notification` (tenant projection), Kafka consumer,
+  Resend email, SSE event streams
 - `proto`, `shared` — shared proto + libs
 
 The legacy `user-management`, `meeting-management`, `chat-management` (MongoDB)
 and the Next.js `frontends/web` client no longer live in the tree — they exist
 only in `zms/`.
 
-**Wiring:** Kong gateway (external) · gRPC (`notification` → user identity
-service) · Kafka + CloudEvents (async, consumed by `notification`) · SSE +
-Valkey (real-time). Integrations: LiveKit (video), Firebase (auth/storage),
+**Wiring:** Envoy gateway (external, `services/docker/envoy/`) + a Go
+authorization service (`services/gateway/`, gRPC `ext_authz`) · Kafka +
+CloudEvents (async) · SSE + Valkey (real-time). Integrations: LiveKit (video),
 Resend (email).
 
 ## Build Commands
 
-### Convenience CLI (`pnpm smiski`)
+### Local stack (Docker Compose)
 
-A TypeScript CLI under `scripts/` (citty + tsx + zx) wraps common dev workflows.
-It loads only allowlisted secrets from `services/docker/.env` before running
-Spring services and forwards SIGINT/SIGTERM to child processes in parallel runs.
+The stack lives in `services/docker/`. Java service images come from
+`bootBuildImage` and must exist before starting — compose only pulls them.
 
 ```sh
-pnpm smiski --help                       # list all groups
-pnpm smiski setup                        # bootstrap (mise tools + pnpm + hooks + .env)
-pnpm smiski setup --env-only             # only copy services/docker/.env from .env.example
-pnpm smiski doctor                       # report tool status
-pnpm smiski dev                          # infra up + backend services in parallel
-pnpm smiski infra <up|down|reset|logs|ps>
+cp services/docker/.env.example services/docker/.env # fill SMISKI_HOST_IP + CURSOR_SECRET
+./services/gradlew -p services/tenant bootBuildImage
+./services/gradlew -p services/meet bootBuildImage
+./services/gradlew -p services/notification bootBuildImage
+docker compose -f services/docker/compose.yaml up -d
+docker compose -f services/docker/compose.yaml ps
+docker compose -f services/docker/compose.yaml logs -f envoy
+docker compose -f services/docker/compose.yaml down # add -v to wipe data
 ```
+
+Envoy is the only entry point (`http://localhost:30000`).
+`services/docker/README.md` has the host port map, the gateway route table, and
+the security caveat: the SSE routes are served **unauthenticated**, so the stack
+is local-development only.
 
 ### Backend services (Gradle)
 
@@ -92,8 +98,8 @@ direct pushes to `main` and runs full-scan verification.
 
 ## Database Migrations (Flyway)
 
-Postgres services (`meet`, `record`) manage schema with Flyway SQL under
-`src/main/resources/db/migration/`.
+Postgres services (`tenant`, `meet`, `notification`) manage schema with Flyway
+SQL under `src/main/resources/db/migration/`.
 
 - Baseline: each Postgres service starts the current phase from a single
   `B1.0.0__baseline.sql` (Flyway `B` baseline prefix — applied only on a clean
@@ -111,8 +117,8 @@ Postgres services (`meet`, `record`) manage schema with Flyway SQL under
 
 ## REST API Design
 
-Postgres/servlet services (`tenant`, `meet`, `record`, `notification`) share a
-versioned path scheme configured in `spring.mvc.apiversion` +
+Postgres/servlet services (`tenant`, `meet`, `notification`) share a versioned
+path scheme configured in `spring.mvc.apiversion` +
 `ApiPathPrefixAutoConfiguration` (`services/shared`). The URL shape is
 `/api/{version}/path/to/resource` where `{version}` is an integer (`1`, `2`,
 `3`, …) at path-segment index 1 (segment 0 is the literal `api`).

@@ -7,7 +7,7 @@ plugins {
     id("io.github.smiskinext.plugin.spotless")
     id("org.springframework.boot")
     id("io.spring.dependency-management")
-    id("org.graalvm.buildtools.native")
+    id("org.springframework.boot.aot")
     id("com.google.protobuf")
     java
 }
