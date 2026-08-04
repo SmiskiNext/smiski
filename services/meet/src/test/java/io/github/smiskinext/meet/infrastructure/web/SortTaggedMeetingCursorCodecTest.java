@@ -7,12 +7,16 @@ import io.github.smiskinext.meet.domain.projection.MeetingSortField;
 import io.github.smiskinext.shared.domain.CursorErrorCode;
 import io.github.smiskinext.shared.domain.Result;
 import io.github.smiskinext.shared.infrastructure.web.CursorEncoder;
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.Base64;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 
 class SortTaggedMeetingCursorCodecTest {
+
+    private static final int PREFIX_LENGTH = 2;
 
     private final SortTaggedMeetingCursorCodec codec =
             new SortTaggedMeetingCursorCodec(new CursorEncoder("unit-test-cursor-secret"));
@@ -46,10 +50,29 @@ class SortTaggedMeetingCursorCodecTest {
     @Test
     void tamperedSignatureIsRejected() {
         String token = codec.encode(MeetingSortField.CREATED_AT, Instant.now(), UUID.randomUUID());
-        String tampered = token.substring(0, token.length() - 1)
-                + (token.charAt(token.length() - 1) == 'A' ? 'B' : 'A');
+        String signed = decodeInnerToken(token);
+        String tamperedSigned = signed.substring(0, signed.length() - 1)
+                + (signed.charAt(signed.length() - 1) == '0' ? '1' : '0');
 
-        assertThat(codec.decode(tampered).isFailure()).isTrue();
+        String tampered = token.substring(0, PREFIX_LENGTH) + encodeInnerToken(tamperedSigned);
+
+        assertThat(failure(codec.decode(tampered))).isEqualTo(CursorErrorCode.INVALID_CURSOR);
+    }
+
+    @Test
+    void nonCanonicallyEncodedTokenIsRejected() {
+        String token = codec.encode(MeetingSortField.CREATED_AT, Instant.now(), UUID.randomUUID());
+
+        assertThat(failure(codec.decode(token + "="))).isEqualTo(CursorErrorCode.INVALID_CURSOR);
+    }
+
+    @Test
+    void rewrittenSortTagIsRejected() {
+        String createdToken =
+                codec.encode(MeetingSortField.CREATED_AT, Instant.now(), UUID.randomUUID());
+        String retagged = "S" + createdToken.substring(1);
+
+        assertThat(failure(codec.decode(retagged))).isEqualTo(CursorErrorCode.INVALID_CURSOR);
     }
 
     @Test
@@ -67,10 +90,9 @@ class SortTaggedMeetingCursorCodecTest {
 
     @Test
     void tooShortTokenIsRejected() {
-        assertThat(failure(codec.decode("C")).equals(CursorErrorCode.INVALID_CURSOR))
-                .isTrue();
-        assertThat(failure(codec.decode("")).equals(CursorErrorCode.INVALID_CURSOR))
-                .isTrue();
+        assertThat(failure(codec.decode("C"))).isEqualTo(CursorErrorCode.INVALID_CURSOR);
+        assertThat(failure(codec.decode("C."))).isEqualTo(CursorErrorCode.INVALID_CURSOR);
+        assertThat(failure(codec.decode(""))).isEqualTo(CursorErrorCode.INVALID_CURSOR);
     }
 
     @Test
@@ -85,6 +107,29 @@ class SortTaggedMeetingCursorCodecTest {
                 .isEqualTo(MeetingSortField.CREATED_AT);
         assertThat(success(codec.decode(startToken)).sort()).isEqualTo(MeetingSortField.START_TIME);
         assertThat(createdToken).isNotEqualTo(startToken);
+    }
+
+    @Test
+    void sortTagIsCoveredBySignatureRatherThanPayload() {
+        Instant ts = Instant.now().truncatedTo(ChronoUnit.MILLIS);
+        UUID id = UUID.randomUUID();
+
+        String createdToken = codec.encode(MeetingSortField.CREATED_AT, ts, id);
+        String startToken = codec.encode(MeetingSortField.START_TIME, ts, id);
+
+        assertThat(createdToken).hasSameSizeAs(startToken);
+        assertThat(decodeInnerToken(createdToken)).isNotEqualTo(decodeInnerToken(startToken));
+    }
+
+    private static String decodeInnerToken(String token) {
+        byte[] decoded = Base64.getUrlDecoder().decode(token.substring(PREFIX_LENGTH));
+        return new String(decoded, StandardCharsets.UTF_8);
+    }
+
+    private static String encodeInnerToken(String signed) {
+        return Base64.getUrlEncoder()
+                .withoutPadding()
+                .encodeToString(signed.getBytes(StandardCharsets.UTF_8));
     }
 
     private static MeetingCursorCodec.DecodedCursor success(
