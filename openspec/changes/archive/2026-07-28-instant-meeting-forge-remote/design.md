@@ -27,7 +27,7 @@ The backend already assumes the gateway-injects-identity model:
 
 The identity bridge is an explicitly deferred decision:
 `requirements/ROADMAP.md` Phase 2 ("Auth Bridge — spike first, decide later")
-and `README.md` both mark it unresolved. The current Kong config still validates
+and `AGENTS.md` both mark it unresolved. The current Kong config still validates
 a legacy `zms` user-management HS256 JWT and injects `X-User-ID` — it does not
 yet verify a FIT nor inject `X-Tenant-ID`/`X-Account-Id`.
 

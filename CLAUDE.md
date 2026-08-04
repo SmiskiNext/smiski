@@ -61,7 +61,7 @@ docker compose -f services/docker/compose.yaml down # add -v to wipe data
 ```
 
 Envoy is the only entry point (`http://localhost:30000`).
-`services/docker/README.md` has the host port map, the gateway route table, and
+`services/docker/AGENTS.md` has the host port map, the gateway route table, and
 the security caveat: the SSE routes are served **unauthenticated**, so the stack
 is local-development only.
 

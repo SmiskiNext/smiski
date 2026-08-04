@@ -104,7 +104,7 @@ docker compose -f services/docker/compose.yaml ps
 ```
 
 Everything is reached through the Envoy gateway at `http://localhost:30000`. See
-[services/docker/README.md](services/docker/README.md) for the host port map,
+[services/docker/AGENTS.md](services/docker/AGENTS.md) for the host port map,
 the gateway route table, and the stack's security limitations — the event-stream
 routes are served **unauthenticated**, so the stack is restricted to local
 development.

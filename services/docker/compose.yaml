@@ -1,0 +1,331 @@
+# Local development stack for the Smiski backend.
+#
+# Java service images are NOT built here. Build them first:
+#   ./services/gradlew -p services/tenant bootBuildImage
+#   ./services/gradlew -p services/meet bootBuildImage
+#   ./services/gradlew -p services/notification bootBuildImage
+#
+# Service names are load-bearing: envoy/envoy.yaml resolves `tenant`, `meet`,
+# `notification` and `gateway` by STRICT_DNS hostname on port 8080 (9001 for the
+# gateway), so renaming a service here silently breaks gateway routing.
+#
+# See AGENTS.md for the host port map, the route table and the security caveat.
+
+services:
+    tenant-postgres:
+        image: postgres:18-alpine
+        environment:
+            POSTGRES_DB: ${TENANT_POSTGRES_DB:-tenant}
+            POSTGRES_USER: ${POSTGRES_USER:-smiski_user}
+            POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-smiski_secret}
+        ports:
+            - '8281:5432'
+        volumes:
+            - tenant-postgres-data:/var/lib/postgresql
+        healthcheck:
+            test:
+                [
+                    'CMD-SHELL',
+                    'pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}',
+                ]
+            interval: 10s
+            timeout: 5s
+            retries: 10
+
+    meet-postgres:
+        image: postgres:18-alpine
+        environment:
+            POSTGRES_DB: ${MEET_POSTGRES_DB:-meet}
+            POSTGRES_USER: ${POSTGRES_USER:-smiski_user}
+            POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-smiski_secret}
+        ports:
+            - '8282:5432'
+        volumes:
+            - meet-postgres-data:/var/lib/postgresql
+        healthcheck:
+            test:
+                [
+                    'CMD-SHELL',
+                    'pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}',
+                ]
+            interval: 10s
+            timeout: 5s
+            retries: 10
+
+    notification-postgres:
+        image: postgres:18-alpine
+        environment:
+            POSTGRES_DB: ${NOTIFICATION_POSTGRES_DB:-notification}
+            POSTGRES_USER: ${POSTGRES_USER:-smiski_user}
+            POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-smiski_secret}
+        ports:
+            - '8283:5432'
+        volumes:
+            - notification-postgres-data:/var/lib/postgresql
+        healthcheck:
+            test:
+                [
+                    'CMD-SHELL',
+                    'pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}',
+                ]
+            interval: 10s
+            timeout: 5s
+            retries: 10
+
+    # Dual listener: containers reach PLAINTEXT://kafka:9092 (the default
+    # profile), natively run services reach PLAINTEXT_HOST://localhost:9094
+    # (the dev profile). Both must work; a single listener breaks one of them.
+    kafka:
+        image: apache/kafka:4.1.0
+        environment:
+            KAFKA_NODE_ID: 1
+            KAFKA_PROCESS_ROLES: broker,controller
+            KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+            KAFKA_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093,PLAINTEXT_HOST://:9094
+            KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:9094
+            KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,CONTROLLER:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+            KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+            KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+            KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+            KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+            KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+            KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+        ports:
+            - '9094:9094'
+        volumes:
+            - kafka-data:/var/lib/kafka/data
+        healthcheck:
+            test:
+                [
+                    'CMD-SHELL',
+                    '/opt/kafka/bin/kafka-broker-api-versions.sh
+                    --bootstrap-server localhost:9092 >/dev/null 2>&1',
+                ]
+            interval: 10s
+            timeout: 10s
+            retries: 12
+
+    valkey:
+        image: valkey/valkey:8-alpine
+        ports:
+            - '8284:6379'
+        volumes:
+            - valkey-data:/data
+        healthcheck:
+            test: ['CMD', 'valkey-cli', 'ping']
+            interval: 10s
+            timeout: 5s
+            retries: 10
+
+    # LiveKit's own Redis, kept separate from the application Valkey so LiveKit
+    # internal state and application cache never share a keyspace.
+    livekit-redis:
+        image: redis:8-alpine
+        volumes:
+            - livekit-redis-data:/data
+        healthcheck:
+            test: ['CMD', 'redis-cli', 'ping']
+            interval: 10s
+            timeout: 5s
+            retries: 10
+
+    # 7880 (HTTP/WebSocket), 7881 (ICE/TCP) and 7882/udp (ICE/UDP mux) are
+    # published directly: WebRTC media is not HTTP and cannot traverse Envoy.
+    # SMISKI_HOST_IP has no default on purpose — LiveKit advertises it in ICE
+    # candidates, and loopback does not work under rootless Docker, so an unset
+    # value must fail loudly at startup rather than yield media that never
+    # connects.
+    livekit-server:
+        image: livekit/livekit-server:v1.9
+        command:
+            - '--config'
+            - '/etc/livekit/livekit.yaml'
+            - '--node-ip'
+            - '${SMISKI_HOST_IP}'
+        environment:
+            SMISKI_HOST_IP:
+                ${SMISKI_HOST_IP:?set SMISKI_HOST_IP in services/docker/.env to
+                your host LAN IP (LiveKit advertises this IP in ICE candidates)}
+        ports:
+            - '7880:7880'
+            - '7881:7881'
+            - '7882:7882/udp'
+        configs:
+            - source: livekit_server_config
+              target: /etc/livekit/livekit.yaml
+        depends_on:
+            livekit-redis:
+                condition: service_healthy
+        healthcheck:
+            test:
+                [
+                    'CMD-SHELL',
+                    'wget -q --spider http://localhost:7880 || exit 1',
+                ]
+            interval: 10s
+            timeout: 5s
+            retries: 10
+
+    # Built from source, matching how release.yml builds it. The image is
+    # FROM scratch, so it has no shell and no HTTP endpoint to probe: its only
+    # health surface is the gRPC health service on 9001. Compose cannot express
+    # a gRPC probe (healthcheck.test must start with CMD, CMD-SHELL or NONE) and
+    # the image contains no probe binary, so no healthcheck is declared here and
+    # envoy depends on service_started instead. See AGENTS.md.
+    gateway:
+        build:
+            context: ../gateway
+        environment:
+            REDIS_ADDR: ${REDIS_ADDR:-valkey:6379}
+            REDIS_USERNAME: ${REDIS_USERNAME:-}
+            REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+            REDIS_TLS: ${REDIS_TLS:-false}
+            JIRA_API_BASE: ${JIRA_API_BASE:-https://api.atlassian.com}
+            CACHE_TTL: ${CACHE_TTL:-15m}
+            CACHE_STALE_RETENTION: ${CACHE_STALE_RETENTION:-24h}
+            GRPC_PORT: ${GRPC_PORT:-9001}
+        depends_on:
+            valkey:
+                condition: service_healthy
+
+    # The single ingress for the Forge app. ext_authz runs with
+    # failure_mode_allow: false, so an unreachable gateway rejects every
+    # authenticated request.
+    envoy:
+        image: envoyproxy/envoy:v1.36-latest
+        command:
+            - '-c'
+            - '/etc/envoy/envoy.yaml'
+        ports:
+            - '30000:8080'
+            - '9901:9901'
+        volumes:
+            - ./envoy/envoy.yaml:/etc/envoy/envoy.yaml:ro
+            - ./envoy/lua:/etc/envoy/lua:ro
+        depends_on:
+            gateway:
+                condition: service_started
+            tenant:
+                condition: service_started
+            meet:
+                condition: service_started
+            notification:
+                condition: service_started
+
+    # The three Spring services run the exact image bootBuildImage produces and
+    # release.yml publishes. Their Paketo run image (ubuntu-noble-run-tiny) has
+    # no shell and no curl/wget, so no container healthcheck is declared — see
+    # AGENTS.md for how readiness is observed instead.
+    #
+    # JAVA_TOOL_OPTIONS carries spring.aot.enabled: Spring reads that flag
+    # before it builds the Environment, so relaxed binding from a plain
+    # SPRING_AOT_ENABLED variable never applies and it must arrive as a JVM
+    # system property.
+    tenant:
+        image: ghcr.io/smiskinext/tenant:${VERSION:-0.0.1-SNAPSHOT}
+        environment:
+            JAVA_TOOL_OPTIONS: -Dspring.aot.enabled=true
+            SPRING_DATASOURCE_URL: jdbc:postgresql://tenant-postgres:5432/${TENANT_POSTGRES_DB:-tenant}
+            POSTGRES_USER: ${POSTGRES_USER:-smiski_user}
+            POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-smiski_secret}
+            KAFKA_BOOTSTRAP_SERVERS: ${KAFKA_BOOTSTRAP_SERVERS:-kafka:9092}
+            REDIS_HOST: ${REDIS_HOST:-valkey}
+            REDIS_PORT: ${REDIS_PORT:-6379}
+            REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+            CURSOR_SECRET:
+                ${CURSOR_SECRET:?set CURSOR_SECRET in services/docker/.env
+                (shared CursorEncoder reads app.cursor.secret and has no
+                default)}
+        depends_on:
+            tenant-postgres:
+                condition: service_healthy
+            kafka:
+                condition: service_healthy
+            valkey:
+                condition: service_healthy
+
+    meet:
+        image: ghcr.io/smiskinext/meet:${VERSION:-0.0.1-SNAPSHOT}
+        environment:
+            JAVA_TOOL_OPTIONS: -Dspring.aot.enabled=true
+            SPRING_DATASOURCE_URL: jdbc:postgresql://meet-postgres:5432/${MEET_POSTGRES_DB:-meet}
+            POSTGRES_USER: ${POSTGRES_USER:-smiski_user}
+            POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-smiski_secret}
+            KAFKA_BOOTSTRAP_SERVERS: ${KAFKA_BOOTSTRAP_SERVERS:-kafka:9092}
+            REDIS_HOST: ${REDIS_HOST:-valkey}
+            REDIS_PORT: ${REDIS_PORT:-6379}
+            REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+            CURSOR_SECRET:
+                ${CURSOR_SECRET:?set CURSOR_SECRET in services/docker/.env
+                (shared CursorEncoder reads app.cursor.secret and has no
+                default)}
+            LIVEKIT_URL: ${LIVEKIT_URL:-http://livekit-server:7880}
+            LIVEKIT_WS_URL: ${LIVEKIT_WS_URL:-ws://localhost:7880}
+            LIVEKIT_API_KEY: ${LIVEKIT_API_KEY:-smiski-livekit-key}
+            LIVEKIT_API_SECRET: ${LIVEKIT_API_SECRET:-change-me-livekit-secret-must-be-at-least-32-chars}
+            LIVEKIT_WEBHOOK_URL: ${LIVEKIT_WEBHOOK_URL:-http://meet:8080/api/1/webhooks/livekit}
+        depends_on:
+            meet-postgres:
+                condition: service_healthy
+            kafka:
+                condition: service_healthy
+            valkey:
+                condition: service_healthy
+            livekit-server:
+                condition: service_healthy
+
+    notification:
+        image: ghcr.io/smiskinext/notification:${VERSION:-0.0.1-SNAPSHOT}
+        environment:
+            JAVA_TOOL_OPTIONS: -Dspring.aot.enabled=true
+            SPRING_DATASOURCE_URL: jdbc:postgresql://notification-postgres:5432/${NOTIFICATION_POSTGRES_DB:-notification}
+            POSTGRES_USER: ${POSTGRES_USER:-smiski_user}
+            POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-smiski_secret}
+            KAFKA_BOOTSTRAP_SERVERS: ${KAFKA_BOOTSTRAP_SERVERS:-kafka:9092}
+            REDIS_HOST: ${REDIS_HOST:-valkey}
+            REDIS_PORT: ${REDIS_PORT:-6379}
+            REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+            RESEND_API_KEY: ${RESEND_API_KEY:-}
+            RESEND_SENDER: ${RESEND_SENDER:-calendar@smiskinext.io}
+            RESEND_WEBHOOK_SECRET: ${RESEND_WEBHOOK_SECRET:-}
+            SSE_HOST_STREAM_TIMEOUT_MS: ${SSE_HOST_STREAM_TIMEOUT_MS:-300000}
+            SSE_HEARTBEAT_INTERVAL_SECONDS: ${SSE_HEARTBEAT_INTERVAL_SECONDS:-15}
+        depends_on:
+            notification-postgres:
+                condition: service_healthy
+            kafka:
+                condition: service_healthy
+            valkey:
+                condition: service_healthy
+
+configs:
+    # webhook.urls points straight at meet:8080 rather than through Envoy:
+    # LiveKit is an internal caller with no FIT, and the direct path avoids
+    # depending on gateway routing for an internal callback.
+    livekit_server_config:
+        content: |
+            port: 7880
+            bind_addresses:
+                - 0.0.0.0
+            rtc:
+                tcp_port: 7881
+                use_external_ip: false
+                udp_port: 7882
+            redis:
+                address: livekit-redis:6379
+            keys:
+                ${LIVEKIT_API_KEY:-smiski-livekit-key}: ${LIVEKIT_API_SECRET:-change-me-livekit-secret-must-be-at-least-32-chars}
+            webhook:
+                api_key: ${LIVEKIT_API_KEY:-smiski-livekit-key}
+                urls:
+                    - ${LIVEKIT_WEBHOOK_URL:-http://meet:8080/api/1/webhooks/livekit}
+            logging:
+                level: info
+
+volumes:
+    tenant-postgres-data:
+    meet-postgres-data:
+    notification-postgres-data:
+    kafka-data:
+    valkey-data:
+    livekit-redis-data:

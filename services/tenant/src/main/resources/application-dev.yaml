@@ -1,8 +1,14 @@
 spring:
     datasource:
-        url: jdbc:postgresql://localhost:8283/tenant
+        url: jdbc:postgresql://localhost:8281/tenant
         username: ${POSTGRES_USER:smiski_user}
         password: ${POSTGRES_PASSWORD:smiski_secret}
 
     kafka:
         bootstrap-servers: localhost:9094
+
+    data:
+        redis:
+            host: localhost
+            port: 8284
+            password:

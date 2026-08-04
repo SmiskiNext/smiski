@@ -18,5 +18,3 @@ app:
         url: http://localhost:7880
         ws-url: ws://localhost:7880
         webhook-url: http://localhost:30000/api/1/webhooks/livekit
-        recording:
-            egress-endpoint: http://rustfs:9000

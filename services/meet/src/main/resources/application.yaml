@@ -64,16 +64,6 @@ app:
         webhook-topic: ${LIVEKIT_WEBHOOK_TOPIC:meet.livekit.webhook.internal}
         webhook-consumer-group: ${LIVEKIT_WEBHOOK_CONSUMER_GROUP:meet-livekit-webhook}
         token-expiry-seconds: 1800
-        recording:
-            layout: ${LIVEKIT_RECORDING_LAYOUT:speaker}
-            bucket: ${LIVEKIT_RECORDING_BUCKET:recordings}
-            region: ${LIVEKIT_RECORDING_REGION:us-east-1}
-            endpoint: ${LIVEKIT_RECORDING_PUBLIC_ENDPOINT:http://localhost:9000}
-            egress-endpoint: ${LIVEKIT_RECORDING_EGRESS_ENDPOINT:http://rustfs:9000}
-            access-key: ${LIVEKIT_RECORDING_ACCESS_KEY:${RUSTFS_ACCESS_KEY:rustfs-access-key}}
-            secret-key: ${LIVEKIT_RECORDING_SECRET_KEY:${RUSTFS_SECRET_KEY:rustfs-secret-key}}
-            force-path-style: ${LIVEKIT_RECORDING_FORCE_PATH_STYLE:true}
-            pending-max-age: ${LIVEKIT_RECORDING_PENDING_MAX_AGE:PT7M}
     sse:
         timeout-ms: 300000
         join-request-timeout-ms: 600000

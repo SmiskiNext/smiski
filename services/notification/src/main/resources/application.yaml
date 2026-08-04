@@ -50,7 +50,6 @@ app:
     notification:
         kafka:
             invitation-consumer-group: ${INVITATION_CONSUMER_GROUP:notification-meeting-invitations}
-            invite-invalidated-consumer-group: ${INVITE_INVALIDATED_CONSUMER_GROUP:notification-meeting-invite-invalidated}
             invitee-responded-consumer-group: ${INVITEE_RESPONDED_CONSUMER_GROUP:notification-invitee-responded}
             meeting-info-updated-consumer-group: ${MEETING_INFO_UPDATED_CONSUMER_GROUP:notification-meeting-info-updated}
             tenant-installed-consumer-group: ${TENANT_INSTALLED_CONSUMER_GROUP:notification-tenant-installed}

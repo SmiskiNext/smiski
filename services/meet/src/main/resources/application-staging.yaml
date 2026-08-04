@@ -22,8 +22,3 @@ app:
         api-key: ${LIVEKIT_API_KEY}
         api-secret: ${LIVEKIT_API_SECRET}
         webhook-url: ${LIVEKIT_WEBHOOK_URL}
-        recording:
-            endpoint: ${LIVEKIT_RECORDING_PUBLIC_ENDPOINT}
-            egress-endpoint: ${LIVEKIT_RECORDING_EGRESS_ENDPOINT}
-            access-key: ${LIVEKIT_RECORDING_ACCESS_KEY}
-            secret-key: ${LIVEKIT_RECORDING_SECRET_KEY}

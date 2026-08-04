@@ -37,6 +37,12 @@ spring:
             key-serializer: org.apache.kafka.common.serialization.StringSerializer
             value-serializer: io.cloudevents.kafka.CloudEventSerializer
 
+    data:
+        redis:
+            host: ${REDIS_HOST:localhost}
+            port: ${REDIS_PORT:6379}
+            password: ${REDIS_PASSWORD:}
+
     threads:
         virtual:
             enabled: true
@@ -45,6 +51,8 @@ app:
     logging:
         aspect:
             include-args: false
+    cursor:
+        secret: ${CURSOR_SECRET}
     outbox:
         transport: kafka
         relay:

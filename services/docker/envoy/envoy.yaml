@@ -11,6 +11,12 @@
 #                   trusted by the backend services.
 #   4. router     — forwards to the tenant / meet / notification clusters.
 #
+# The webhook routes and the meeting event-stream routes bypass steps 1 and 3.
+# Webhook callers are external systems that cannot present a FIT and verify
+# their own signatures instead. The event streams are opened by a plain browser
+# fetch that cannot attach a FIT, which leaves them unauthenticated — this stack
+# is therefore restricted to local development. See services/docker/AGENTS.md.
+#
 # The admin interface on :9901 exposes stats, the config dump and the
 # /ready endpoint used for health checking.
 
@@ -35,12 +41,88 @@ static_resources:
                           stat_prefix: ingress_http
                           codec_type: AUTO
                           use_remote_address: true
+                          # Notification closes host event streams at
+                          # app.sse.host-stream-timeout-ms (default 300s) and heartbeats
+                          # every app.sse.heartbeat-interval-seconds (default 15s). Envoy's
+                          # 300s default sits exactly on the application's own deadline, so
+                          # it is raised to leave the upstream service in control of when a
+                          # stream ends.
+                          stream_idle_timeout: 360s
                           route_config:
                               name: smiski_routes
                               virtual_hosts:
                                   - name: smiski_backend
                                     domains: ['*']
+                                    # The Spring images ship no shell, so compose
+                                    # cannot health-check them and starts them with
+                                    # depends_on: service_started. Retrying
+                                    # connection-level failures absorbs the window
+                                    # where a container listens but has not finished
+                                    # booting. Only failures where no response has
+                                    # begun are retried, so a stream is never replayed.
+                                    retry_policy:
+                                        retry_on: connect-failure,refused-stream,unavailable
+                                        num_retries: 3
+                                    # First match wins. The webhook and event-stream routes
+                                    # precede `/api/1/meetings` because notification owns two
+                                    # paths inside meet's path space, and because external
+                                    # callers of the webhooks can never present a FIT.
+                                    #
+                                    # Routes that bypass authentication must disable BOTH
+                                    # jwt_authn and ext_authz: ext_authz is declared at the
+                                    # http_filters level, so it runs for every route, and the
+                                    # gateway returns 401 for a request with no Authorization
+                                    # header. With failure_mode_allow: false there is no
+                                    # fallthrough, so disabling jwt_authn alone still fails.
                                     routes:
+                                        - name: livekit_webhook_route
+                                          match:
+                                              path: /api/1/webhooks/livekit
+                                          route:
+                                              cluster: meet_cluster
+                                          typed_per_filter_config:
+                                              envoy.filters.http.jwt_authn:
+                                                  '@type': type.googleapis.com/envoy.extensions.filters.http.jwt_authn.v3.PerRouteConfig
+                                                  disabled: true
+                                              envoy.filters.http.ext_authz:
+                                                  '@type': type.googleapis.com/envoy.extensions.filters.http.ext_authz.v3.ExtAuthzPerRoute
+                                                  disabled: true
+                                        - name: resend_inbound_webhook_route
+                                          match:
+                                              path: /api/1/webhooks/resend/inbound
+                                          route:
+                                              cluster: notification_cluster
+                                          typed_per_filter_config:
+                                              envoy.filters.http.jwt_authn:
+                                                  '@type': type.googleapis.com/envoy.extensions.filters.http.jwt_authn.v3.PerRouteConfig
+                                                  disabled: true
+                                              envoy.filters.http.ext_authz:
+                                                  '@type': type.googleapis.com/envoy.extensions.filters.http.ext_authz.v3.ExtAuthzPerRoute
+                                                  disabled: true
+                                        # Anchored at both ends and limited to single path
+                                        # segments so only /meetings/{id}/events and
+                                        # /meetings/{id}/join-requests/{requestId}/events match.
+                                        # timeout: 0s disables the 15s per-route response
+                                        # timeout that would otherwise sever every stream.
+                                        - name: meeting_events_stream_route
+                                          match:
+                                              safe_regex:
+                                                  regex: ^/api/1/meetings/[^/]+(/join-requests/[^/]+)?/events$
+                                          route:
+                                              cluster: notification_cluster
+                                              timeout: 0s
+                                          typed_per_filter_config:
+                                              envoy.filters.http.jwt_authn:
+                                                  '@type': type.googleapis.com/envoy.extensions.filters.http.jwt_authn.v3.PerRouteConfig
+                                                  disabled: true
+                                              envoy.filters.http.ext_authz:
+                                                  '@type': type.googleapis.com/envoy.extensions.filters.http.ext_authz.v3.ExtAuthzPerRoute
+                                                  disabled: true
+                                        - name: issue_meetings_route
+                                          match:
+                                              prefix: /api/1/issues
+                                          route:
+                                              cluster: meet_cluster
                                         - name: tenant_route
                                           match:
                                               prefix: /api/1/tenants
@@ -51,11 +133,6 @@ static_resources:
                                               prefix: /api/1/meetings
                                           route:
                                               cluster: meet_cluster
-                                        - name: notification_route
-                                          match:
-                                              prefix: /api/1/notifications
-                                          route:
-                                              cluster: notification_cluster
                           http_filters:
                               - name: envoy.filters.http.jwt_authn
                                 typed_config:
