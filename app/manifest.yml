@@ -16,6 +16,11 @@
 # call Jira directly from the browser via `@forge/bridge`'s `requestJira`
 # (Forge bridge v2+ supports this without a resolver hop) — see
 # static/smiski-ui/src/api/.
+#
+# Because there is no function, ALL egress is client-side: see the
+# `permissions.external.fetch.client` note below for why `fetch.backend` is
+# absent, and the `endpoint` note for why `appSystemToken` does not reach the
+# gateway under `requestRemote`.
 
 modules:
     jira:issuePanel:
@@ -51,38 +56,80 @@ modules:
               start/stop recording.
           category: projects
 
-    # Forge Remote endpoint binding the `meet` backend remote. Forge attaches a
-    # signed Forge Invocation Token (FIT) as `Authorization: Bearer` on every
-    # requestRemote call to this remote; the app itself asserts no tenant/account
-    # identity. `route.path` mirrors the backend path the Custom UI calls (see
-    # static/smiski-ui/src/api/meetings.ts). OAuth token flags stay disabled:
-    # requestRemote delivers only the FIT, and deriving tenant/account identity
-    # from it is the gateway's responsibility (deferred). Enable appUserToken
-    # later — with the read:app-user-token scope — if the backend must call Jira
-    # APIs on the user's behalf.
+    # Forge Remote endpoint binding the `meet` backend remote.
+    #
+    # This entry only takes effect for module invocations that route THROUGH the
+    # Forge platform — i.e. `invokeRemote` from a module wired via
+    # `resolver.endpoint`, or a trigger. The Custom UI currently calls the
+    # backend with `requestRemote` (static/smiski-ui/src/api/forgeRemoteFetch.ts),
+    # which goes browser → gateway directly and, per the Forge docs, "does not
+    # include OAuth tokens, even if configured on the endpoint". So today only
+    # the FIT reaches the gateway and `appSystemToken` below is inert.
+    #
+    # It is declared enabled anyway because the gateway REQUIRES it: the Go
+    # authorization service reads `x-forge-oauth-system` and fails closed with
+    # "missing system token" (services/gateway/internal/authz/service.go:105)
+    # before calling Jira's permission-check API. Until the transport moves to
+    # `invokeRemote`, every authenticated route is denied — see the
+    # `requestRemote` note in app/AGENTS.md.
+    #
+    # `route.path` is intentionally absent: it is only required for backend
+    # module endpoints, and UI-module remote paths are supplied per call.
     endpoint:
         - key: meet-endpoint
           remote: meet-backend
-          route:
-              path: /api/1/meetings:instant
           auth:
               appUserToken:
                   enabled: false
               appSystemToken:
-                  enabled: false
+                  enabled: true
 
 # The self-hosted `meet` backend, reached through Forge Remote so Atlassian
-# attaches the FIT. `baseUrl` is the API gateway origin — the SAME env-var as
-# permissions.external.fetch.backend below, resolved by the CI/CD workflow per
-# Forge environment. `operations: [compute]` is required to call the remote; no
-# End-User Data is stored on the remote.
+# attaches the FIT. `baseUrl` is the API gateway origin.
+#
+# NOTE the literal URL. This file previously used `${SMISKI_API_BASE_URL}` here,
+# which is a documented manifest-variable feature and passes every local
+# validator — but Forge's SERVER-SIDE check rejects it:
+#
+#   Invalid URL detected for EGRESS permissions object:
+#   ${SMISKI_API_BASE_URL}, ${SMISKI_API_BASE_URL}   MANIFEST_INVALID_RULE
+#
+# The variable is reported TWICE for this single occurrence, because the server
+# also resolves the `- remote: meet-backend` egress reference below back to this
+# same `baseUrl`. So neither the `- remote:` indirection nor `baseUrl` itself
+# escapes the check: the manifest ON DISK must already contain a real URL by the
+# time the Forge CLI reads it.
+#
+# `scripts/render-manifest.sh` does that substitution from
+# `SMISKI_API_BASE_URL`. `pnpm run deploy` and `pnpm run install:site` invoke it
+# first; a bare `pnpm run forge <cmd>` does NOT, so run `pnpm manifest:render`
+# by hand before `forge lint`/`forge deploy`. The committed placeholder is a
+# syntactically valid `.invalid` origin on purpose, so `forge lint` still passes
+# on a fresh clone — but it resolves nowhere, so an unrendered deploy fails fast
+# instead of silently pointing at the wrong gateway. Never commit a rendered
+# manifest; `git checkout app/manifest.yml` puts the placeholder back.
+#
+# `operations` declares every purpose this backend serves:
+#   - compute: required for invokeRemote/requestRemote to work at all
+#   - storage: the backend PERSISTS meeting data in Postgres
+#   - fetch:   the remote is referenced from permissions.external.fetch below
+#
+# `inScopeEUD: true` because the persisted rows include End-User Data:
+# `meetings.organizer_email` / `organizer_display_name` and
+# `meeting_invitees.email` / `display_name`
+# (services/meet/src/main/resources/db/migration/B1.0.0__baseline.sql).
+# Consequences, accepted deliberately: the app is ineligible for the Runs on
+# Atlassian badge, and reaching PINNED data-residency status would additionally
+# require region-specific baseUrl entries.
 remotes:
     - key: meet-backend
-      baseUrl: '${SMISKI_API_BASE_URL}'
+      baseUrl: 'https://render-manifest-not-run.invalid'
       operations:
           - compute
+          - storage
+          - fetch
       storage:
-          inScopeEUD: false
+          inScopeEUD: true
 
 resources:
     # Single Vite build output shared by both modules.
@@ -95,6 +142,8 @@ permissions:
         - read:jira-work
         - read:jira-user # current user (/myself) + assignable project member lookup
         - read:permission:jira # list/check custom View Meeting / Edit Meeting permissions
+        - read:app-system-token # required by endpoint.auth.appSystemToken above
+        # - read:app-user-token # TODO: enable alongside endpoint.auth.appUserToken
         # - read:me            # TODO: enable if we need the invoking user's identity/profile
         # - offline_access     # TODO: enable if the identity bridge needs refresh tokens
 
@@ -105,35 +154,36 @@ permissions:
         styles:
             - 'unsafe-inline'
 
-    # The app talks to backend APIs only through the Caddy gateway. `backend`
-    # covers the Custom UI's requestRemote calls (see
-    # static/smiski-ui/src/api/forgeRemoteFetch.ts) and MUST match
-    # remotes[meet-backend].baseUrl above so Forge permits the outbound call;
-    # `client` covers Custom UI fetch/WebSocket traffic required by the
-    # LiveKit client in the meeting room. The CI/CD workflow supplies the
-    # gateway for each environment.
+    # Egress is client-side only: this app has NO Forge function or resolver, and
+    # `requestRemote` is not proxied through the platform, so all backend traffic
+    # leaves the Custom UI iframe and needs `connect-src` (fetch.client) rather
+    # than fetch.backend. Covered here:
+    #   - requestRemote      (api/forgeRemoteFetch.ts)
+    #   - the raw-fetch SSE stream (api/meetingEvents.ts, api/sseClient.ts)
+    #   - LiveKit signalling (room.connect in the meeting room)
+    #
+    # The gateway is referenced as `- remote: meet-backend` rather than repeated
+    # as an address, so its origin has a single source of truth. This does NOT
+    # dodge the server-side egress check — the server resolves the reference back
+    # to the remote's `baseUrl` and validates that — which is why `baseUrl` above
+    # must already be a real URL. LiveKit is not a Forge remote (the browser
+    # dials it directly), so it is a concrete wss:// origin.
     external:
         fetch:
-            backend:
-                - address: '${SMISKI_API_BASE_URL}' # Caddy API gateway == remotes[meet-backend].baseUrl
             client:
-                - address: '${SMISKI_API_BASE_URL}' # meeting/token endpoints
-                - address: '${LIVEKIT_URL}' # LiveKit signalling
+                - remote: meet-backend
+                - address: 'wss://smiski-meeting-2rcpqikr.livekit.cloud'
 
-# Resolved by the Forge CLI from its process environment while it reads the
-# manifest; `default` applies only when the variable is unset, which keeps
-# local `forge lint` usable. Deployments must provide real values.
+# No `environment.variables` block: nothing in this manifest is interpolated by
+# the Forge CLI any more. Both deployment origins are literal, because Forge's
+# server-side egress check rejects `${...}` in `remotes[].baseUrl` and in
+# anything reachable from `permissions.external.fetch` (see the remotes note).
 #
-# Only variables actually interpolated above are declared here.
-# `static/smiski-ui/vite.config.ts` reads these SAME names (plus the
-# code-only `SMISKI_API_VERSION` path segment) into the Custom UI bundle, so
-# the declared egress and the origins the frontend calls cannot drift apart.
-environment:
-    variables:
-        - key: SMISKI_API_BASE_URL
-          default: 'https://TODO-caddy-gateway.smiski.example'
-        - key: LIVEKIT_URL
-          default: 'wss://smiski-meeting-2rcpqikr.livekit.cloud'
+# Per-environment values are therefore applied by rewriting the file before the
+# CLI runs — `scripts/render-manifest.sh`, driven by `SMISKI_API_BASE_URL`.
+# `static/smiski-ui/vite.config.ts` still reads SMISKI_API_BASE_URL and
+# LIVEKIT_URL into the bundle from the same environment, so keep the LiveKit
+# address above in sync with LIVEKIT_URL by hand or signalling is CSP-blocked.
 
 app:
     runtime:

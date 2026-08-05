@@ -51,31 +51,6 @@ Single test, from `static/smiski-ui`:
 `vitest.config.ts` — DOM tests opt in per file with a
 `// @vitest-environment jsdom` first-line pragma. Add it to any new `.tsx` test.
 
-### Forge CLI is pinned to 13.1.0 — always run it via pnpm
-
-`@forge/cli` is pinned to the **exact** version `13.1.0`, and every invocation
-must go through `pnpm exec forge` / `pnpm run forge` so it resolves to
-`app/node_modules/.bin/forge`. A bare `forge` picks up whatever is installed
-globally, which is a different binary.
-
-**Do not raise the pin to 13.3.0+ without first changing how egress is
-declared.** CLI 13.3.0 added a `ServerSideLinter` that zips the manifest read as
-**raw bytes** (`readBinaryFile`, no interpolation) and uploads it to the
-`appPreDeploymentCheck` GraphQL API. The server therefore sees the literal
-`${SMISKI_API_BASE_URL}` / `${LIVEKIT_URL}` strings and fails with:
-
-```text
-Invalid URL detected for EGRESS permissions object: ${SMISKI_API_BASE_URL}, ... MANIFEST_INVALID_RULE
-```
-
-The manifest itself is valid — `environment.variables` is a documented feature
-and the 13.1.0 validators report zero errors. Only the new server-side check
-disagrees, because it bypasses interpolation (`readConfig()` does interpolate;
-`readBinaryFile()` does not). 13.0.0–13.2.0 have no server-side linter; 13.3.0
-is the first broken version. Moving off the pin requires replacing the `${...}`
-egress addresses with a `- remote: meet-backend` reference and a concrete or
-wildcard LiveKit origin.
-
 ## Architecture
 
 **Dual-surface, one bundle.** `manifest.yml` points `jira:issuePanel`
@@ -128,35 +103,12 @@ permissions (declared as `jira:projectPermission`) via
 `GET /rest/api/3/permissions` first — Jira does not echo back the bare manifest
 key, so match on `name`.
 
-**UI gating only**: `meet` enforces nothing but host ownership on update/delete.
-Backend fix path: enable `appUserToken` (scope `read:app-user-token`) on the
-relevant `endpoint` entries — auth attaches per declared endpoint path, not per
-remote, and only `/api/1/meetings:instant` exists today. The token arrives as
-`x-forge-oauth-user`; use it against the FIT's `apiBaseUrl` claim, not the site
-URL. See `PERMISSION.md` §7.
-
 ## manifest.yml
 
 - `content.styles: [unsafe-inline]` is required — AntD injects CSS-in-JS.
-- `external.fetch` locks egress to `${SMISKI_API_BASE_URL}` + `${LIVEKIT_URL}`;
-  any new origin must be declared or it's blocked at runtime. These `${...}`
-  placeholders are why the Forge CLI is pinned to 13.1.0 — see the pin note
-  under Commands before touching them or the CLI version.
 - After changing scopes or egress: `pnpm exec forge deploy` **then**
   `pnpm exec forge install --upgrade` — a tunnel restart is not enough. Run
   `pnpm exec forge lint` after editing. Forge commands need `app/` as cwd.
-
-## Environment variables
-
-**One name per value, no `VITE_` prefix.** The Forge CLI interpolates `${...}`
-from its process environment; `vite.config.ts` injects the same names into the
-bundle via `define` (Vite rejects an empty `envPrefix`, hence the
-`DEPLOYMENT_VARIABLES` list). `SMISKI_API_BASE_URL` and `LIVEKIT_URL` must be
-byte-identical in both places or the SSE/LiveKit calls get CSP-blocked.
-`SMISKI_API_VERSION` is bundle-only (path segment, defaults to `1`). No LiveKit
-API key/secret here — the backend mints room tokens. `forge variables set` is
-unused (runtime vars for functions; there are none). Copy `.env.example` →
-`app/.env` and `static/smiski-ui/.env.example` → `.env.local`.
 
 ## Deploy
 
