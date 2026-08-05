@@ -120,8 +120,14 @@ permissions:
                 - address: '${SMISKI_API_BASE_URL}' # meeting/token endpoints
                 - address: '${LIVEKIT_URL}' # LiveKit signalling
 
-# These values are resolved by the Forge CLI while it reads the manifest. The
-# defaults keep local linting usable; deployments must provide real values.
+# Resolved by the Forge CLI from its process environment while it reads the
+# manifest; `default` applies only when the variable is unset, which keeps
+# local `forge lint` usable. Deployments must provide real values.
+#
+# Only variables actually interpolated above are declared here.
+# `static/smiski-ui/vite.config.ts` reads these SAME names (plus the
+# code-only `SMISKI_API_VERSION` path segment) into the Custom UI bundle, so
+# the declared egress and the origins the frontend calls cannot drift apart.
 environment:
     variables:
         - key: SMISKI_API_BASE_URL

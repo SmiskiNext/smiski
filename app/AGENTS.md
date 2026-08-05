@@ -1,246 +1,177 @@
-    # AGENTS.md — Smiski Forge app
+# AGENTS.md — Smiski Forge app
 
-Guidance for agents working in `app/`. Keep it verifiable against config and
-code, not prose. Root repo rules live in `../AGENTS.md`; this file owns the
-Forge app only.
+Rules for `app/`. Root repo rules: `../AGENTS.md`.
 
 ## What this is
 
-The Atlassian **Forge Custom UI** app that embeds the Smiski online-meeting
-module into Jira. It renders React UI inside Jira and reaches the backend only
-through Forge Remote → the Caddy API gateway. It never touches Postgres, Kafka,
-or LiveKit-server directly — the sole exception is the LiveKit **client** SDK
-used inside the meeting room for WebRTC media.
-
-This is **Custom UI, not UI Kit.** Any instruction telling you to use
-`@forge/react`, `@forge/ui`, or a fixed UI Kit component list does not apply —
-that is generic Forge boilerplate and is wrong for this repo. The UI is plain
-React 18 + JSX (`<div>` etc.) + Tailwind v4 + Ant Design.
-
-**Status:** meeting reads/mutations go straight from the Custom UI to the real
-`meet` backend over Forge Remote + a generated SDK. `listProjectMeetings`
-(`api/meetings.ts`) still throws `Not implemented: ...` directly because the
-backend has no matching operation yet — see "Jira and backend calls happen
-directly in the browser" below. Meeting settings can be replaced via
-`updateMeetingSettings`/`useUpdateMeetingSettings` (backend `updateSettings`),
-but no UI exposes it yet. Do not assume a code path is wired to the backend —
-check the specific hook/API function first.
+Atlassian **Forge Custom UI** app embedding the Smiski meeting module into Jira.
+**Custom UI, not UI Kit** — ignore any advice to use `@forge/react` /
+`@forge/ui`. Plain React 18 + Tailwind v4 + Ant Design. **There is no Forge
+resolver/function here**: backend calls go over Forge Remote, Jira calls go
+straight from the browser via `@forge/bridge` `requestJira` (bridge v2+), and
+nothing reads `process.env`.
 
 ## Layout
 
-Two pnpm workspace packages (`pnpm-workspace.yaml`):
+`app/` is its **own pnpm workspace root** (`app/pnpm-workspace.yaml`,
+`app/pnpm-lock.yaml`), separate from the repo lockfile. Members: `.`
+(`manifest.yml` + Forge CLI, no code), `static/smiski-ui/` (the single Custom UI
+bundle both modules render — Vite + React + TS + TanStack Query + AntD + LiveKit
+client), and `../sdks/typescript` linked as `workspace:*`.
 
-- **root** (`.`) — the Forge app: `manifest.yml` only, no code. There is no
-  Forge resolver/function in this app (removed — see below); this package exists
-  solely to own the Forge CLI and workspace root.
-- **`static/smiski-ui/`** — the Custom UI frontend: Vite + React 18 + TS +
-  Tailwind v4 + TanStack Query + Ant Design + LiveKit client. This is the _only_
-  UI bundle; both Forge modules render it.
+## Setup gotchas (hit these first)
 
-## Commands
+- `@smiskinext/sdks-jira` is **private on GitHub Packages**. `pnpm install`
+  fails without `~/.npmrc` auth for the `@smiskinext` scope (CI does this in
+  `.github/actions/configure-github-packages`).
+- `@smiskinext/smiski-ts` ships from `dist/`, which is **gitignored**. Build it
+  before typecheck/build: `pnpm --filter @smiskinext/smiski-ts build`.
+- Root `lefthook.yml`'s app hooks are **stale**: `typecheck-app` runs
+  `pnpm exec tsc --noEmit` in `app/` where there is no `tsconfig.json` and no
+  `tsc` binary; `format-app` globs `app/src/**` (doesn't exist) and calls
+  eslint/prettier, which this app doesn't use. Use the scripts below instead.
 
-Run from the app root (`app/`) unless noted.
-
-```bash
-pnpm install   # installs both workspace packages
-pnpm ui:dev    # standalone Vite dev server (no Forge bridge)
-pnpm build     # = pnpm ui:build → static/smiski-ui/dist
-pnpm test      # = vitest run (smiski-ui)
-pnpm lint      # biome check (whole app)
-pnpm format    # biome format --write
-pnpm typecheck # tsc --noEmit at root, then in smiski-ui
-
-pnpm run deploy       # = pnpm build && forge deploy
-pnpm run install:site # = forge install
-pnpm run forge <args> # = forge <args>, e.g. pnpm run forge logs --since 15m
-```
-
-Use `pnpm run deploy`, not `pnpm deploy` — `deploy` is a built-in pnpm 10
-command and would shadow the script. The scripts call the Forge CLI directly, so
-credentials and manifest interpolation variables must already be available in
-the shell environment (or through Forge's normal login/configuration). `deploy`
-rebuilds the UI first because `forge deploy` uploads `static/smiski-ui/dist`
-as-is and never builds it.
-
-Single test / watch (from `static/smiski-ui`):
+## Commands (from `app/`)
 
 ```bash
-pnpm exec vitest run src/domain/meetingPolicy.test.ts
-pnpm exec vitest # watch mode
+pnpm install
+pnpm ui:dev    # standalone Vite, no Forge bridge
+pnpm build     # tsc --noEmit && vite build -> static/smiski-ui/dist
+pnpm test      # vitest run
+pnpm lint      # biome check
+pnpm typecheck # smiski-ui only
+pnpm run deploy       # build + forge deploy
+pnpm run forge <args> # e.g. pnpm run forge logs --since 15m
 ```
 
-`pnpm ui:dev` runs standalone: `App.tsx` detects `import.meta.env.DEV`, skips
-the Forge `view.getContext()` call, and drives the surface via
-`DevSurfaceSwitcher` instead.
+`pnpm run deploy`, never `pnpm deploy` — pnpm 10 has a built-in `deploy` that
+shadows the script. `forge deploy` uploads `dist/` as-is and never builds it.
+Single test, from `static/smiski-ui`:
+`pnpm exec vitest run src/domain/meetingPolicy.test.ts`. There is no
+`vitest.config.ts` — DOM tests opt in per file with a
+`// @vitest-environment jsdom` first-line pragma. Add it to any new `.tsx` test.
+
+### Forge CLI is pinned to 13.1.0 — always run it via pnpm
+
+`@forge/cli` is pinned to the **exact** version `13.1.0`, and every invocation
+must go through `pnpm exec forge` / `pnpm run forge` so it resolves to
+`app/node_modules/.bin/forge`. A bare `forge` picks up whatever is installed
+globally, which is a different binary.
+
+**Do not raise the pin to 13.3.0+ without first changing how egress is
+declared.** CLI 13.3.0 added a `ServerSideLinter` that zips the manifest read as
+**raw bytes** (`readBinaryFile`, no interpolation) and uploads it to the
+`appPreDeploymentCheck` GraphQL API. The server therefore sees the literal
+`${SMISKI_API_BASE_URL}` / `${LIVEKIT_URL}` strings and fails with:
+
+```text
+Invalid URL detected for EGRESS permissions object: ${SMISKI_API_BASE_URL}, ... MANIFEST_INVALID_RULE
+```
+
+The manifest itself is valid — `environment.variables` is a documented feature
+and the 13.1.0 validators report zero errors. Only the new server-side check
+disagrees, because it bypasses interpolation (`readConfig()` does interpolate;
+`readBinaryFile()` does not). 13.0.0–13.2.0 have no server-side linter; 13.3.0
+is the first broken version. Moving off the pin requires replacing the `${...}`
+egress addresses with a `- remote: meet-backend` reference and a concrete or
+wildcard LiveKit origin.
 
 ## Architecture
 
-**Dual-surface single bundle.** `manifest.yml` declares two modules that both
-point at `resource: main` (`static/smiski-ui/dist`): `jira:issuePanel` (key
-`smiski-issue-panel`) and `jira:projectPage` (key `smiski-project-page`).
-`App.tsx` reads `context.moduleKey` and mounts `features/issue-panel/` or
-`features/project-page/`; it also mounts modal roots from `features/shared/`
-when `context.extension.modal.kind` is set. Module keys are centralized in
-`utils/forgeModuleKeys.ts`. Put module-specific work under the matching
-`features/` subtree, not in shared code.
+**Dual-surface, one bundle.** `manifest.yml` points `jira:issuePanel`
+(`smiski-issue-panel`) and `jira:projectPage` (`smiski-project-page`) at the
+same `resource: main`. `App.tsx` branches on `context.moduleKey`
+(`utils/forgeModuleKeys.ts`) to mount `features/issue-panel/`,
+`features/project-page/`, or a `features/shared/` modal root when
+`context.extension.modal.kind` is set. Keep surface work in its own subtree.
 
-**Jira and backend calls happen directly in the browser — there is no
-resolver.** Forge bridge v2+ supports calling Jira REST APIs from Custom UI
-natively (`@forge/bridge`'s `requestJira`), so nothing in this app needs a Forge
-function/resolver hop. Reality today, all in `static/smiski-ui/src/api/`:
+**Two separate iframes, no shared React tree.** Issue Panel → Project Page room
+navigation hands off through `localStorage` (`utils/meetingRoomHandoff.ts`).
+Forms too wide for the panel iframe open as Forge platform modals
+(`@forge/bridge` `Modal`) via `hooks/useIssuePanel*Modal.ts`, which fall back to
+in-page modals under `vite dev`.
 
-- `workspaceUsers.ts`'s `searchWorkspaceUsers` — implemented; queries Jira as
-  the invoking user via `@forge/bridge`'s `requestJira` through the
-  `@smiskinext/sdks-jira` SDK (bridged by `jiraSdkFetch.ts`), so Jira enforces
-  the user's "Browse users" permission.
-- `meetingPermission.ts`'s `getMeetingPermission` — implemented; checks the
-  invoking user's custom `View Meeting`/`Edit Meeting` Jira project permission
-  (declared in `manifest.yml`'s `jira:projectPermission`, per `PERMISSION.md`)
-  via `GET /rest/api/3/mypermissions` as the user, after resolving the real
-  permission keys from `GET /rest/api/3/permissions` — Jira may not echo back
-  the bare manifest `key`. **UI gating only** — the `meet` backend does not yet
-  re-check this; see "Backend permission enforcement (not yet built)" below.
-- `meetings.ts`'s `listProjectMeetings` — stub that throws directly (no resolver
-  involved). The real backend's `list` operation has no project-wide filter
-  (only an exact `issueKey`, `creatorId`, `statuses`, or `search` filter), so
-  the project-page dashboard listing has no backend to call yet.
-- There is **no** resolver-backed `getRoomToken`, `getIssueMeetings`,
-  `scheduleMeeting`, `createInstantMeeting`, `getMeeting`, `updateMeeting`,
-  `cancelMeeting`, `endMeeting`, `updateMeetingSettings`, `joinMeeting`, or
-  `getHostConflict` — all of those go straight from the Custom UI to the real
-  `meet` backend via Forge Remote + the generated SDK (see below); the brain is
-  the backend `meet` service, not this app.
+**Transports** (`static/smiski-ui/src/api/`):
 
-**Backend calls go through Forge Remote + a generated SDK.**
-`api/forgeRemoteFetch.ts` injects a `fetch`-shaped adapter into the
-`@smiskinext/smiski-ts` SDK that routes every call through
-`requestRemote('meet-backend', ...)`. Forge attaches a signed Forge Invocation
-Token (FIT) as `Authorization: Bearer`; the app asserts no tenant/account
-identity itself. The `meet-backend` remote and its `baseUrl`
-(`${SMISKI_API_BASE_URL}`) are declared in `manifest.yml`.
+- `forgeRemoteFetch.ts` — `fetch`-shaped adapter injected into
+  `@smiskinext/smiski-ts` so backend calls go through
+  `requestRemote('meet-backend')`; Forge attaches the FIT and the app asserts no
+  tenant/account identity itself.
+- `jiraSdkFetch.ts` — same trick for `@smiskinext/sdks-jira` over `requestJira`
+  (`workspaceUsers.ts`, `meetingPermission.ts`). `currentUser.ts` / `issues.ts`
+  / `projectMembers.ts` call `requestJira` raw.
+- `meetingEvents.ts` + `sseClient.ts` — the SSE join-request stream uses a **raw
+  `fetch`** to `apiConfig.apiBaseUrl`, bypassing Forge Remote. Same for LiveKit
+  `room.connect`. Both origins need `external.fetch.client` entries.
 
-**Frontend layering** (`static/smiski-ui/src/`):
+**Layering:** `domain/` pure logic + colocated tests · `api/` adapters ·
+`hooks/` TanStack Query — register every cache key in `hooks/queryKeys.ts` so
+mutation invalidation stays in sync · `components/ui/` local Tailwind
+primitives.
 
-- `domain/` — types, enums, and pure logic (e.g. `meetingPolicy.ts` with a
-  colocated `.test.ts`). No side effects.
-- `api/` — backend/Jira adapters. `config.ts` reads Vite env; `meetings.ts` (all
-  real `meet` backend calls: instant/schedule/get/list/update/cancel/ join, over
-  the generated SDK + Forge Remote), `workspaceUsers.ts`/`meetingPermission.ts`
-  (Jira direct via the `@smiskinext/sdks-jira` SDK bridged through
-  `jiraSdkFetch.ts`), `currentUser.ts`/`projectMembers.ts`/`issues.ts` (Jira
-  direct via `@forge/bridge` `requestJira`), `mappers.ts` (DTO↔domain).
-- `hooks/` — TanStack Query hooks. `hooks/queryKeys.ts` centralizes every cache
-  key; always add new keys there so mutation invalidation stays in sync.
-- `context/`, `components/shared/`, `components/ui/` (local Tailwind design
-  system), `features/`, `theme/`, `utils/`, `mocks/` (Jira identity/issue
-  fixtures for `vite dev` only — see "Mock vs backend" below).
+## Wiring status
 
-## Mock vs backend (gotcha)
+`listProjectMeetings` (`api/meetings.ts`) **throws** — the backend's `list` has
+no project-wide filter (only `issueKey`/`creatorId`/`statuses`/`search`), so
+`useProjectMeetings` and the project dashboard have no backend. Everything else
+(instant/schedule/get/update/cancel/end/settings/join/token) is real. Check the
+specific hook before assuming either direction. Meeting persistence is **never**
+mocked and there is no mock/backend switch: `mocks/` is Jira identity/issue data
+only, every consumer gated on `import.meta.env.DEV`, so standalone `vite dev`
+cannot create/list/start meetings or enter a room.
 
-`mocks/db.ts` is **gone** — meeting persistence is never mocked. Meeting hooks
-call the real `meet` backend directly via the generated SDK over Forge Remote
-(`api/meetings.ts`): `useMeeting`, `useMeetingParticipants` (derived from the
-same `getMeeting` query), `useIssueMeetings`, `useCreateInstantMeeting`,
-`useScheduleMeeting`, `useUpdateMeeting`, `useCancelMeeting`, `useEndMeeting`,
-`useUpdateMeetingSettings` (not wired to any UI yet), `useStartMeeting` (joins
-as host), and `useRoomToken`. The one exception is `useProjectMeetings`, which
-calls `listProjectMeetings` — a stub that throws directly (see "Jira and backend
-calls happen directly in the browser" above). Standalone `vite dev` therefore
-cannot list/create/update/cancel/start meetings or enter a room — there is no
-Forge bridge and no Forge Remote binding to reach the backend through.
+## Permissions
 
-The `shouldUseBackendApi()` / `VITE_SMISKI_DATA_SOURCE` switch described in
-`api/README.md` never existed in code — treat that README as aspirational.
+`getMeetingPermission` checks the custom `View Meeting`/`Edit Meeting` project
+permissions (declared as `jira:projectPermission`) via
+`GET /rest/api/3/mypermissions`, resolving real permission keys from
+`GET /rest/api/3/permissions` first — Jira does not echo back the bare manifest
+key, so match on `name`.
 
-What remains in `mocks/` is Jira **identity/issue** data only, and every one of
-its consumers is gated on `import.meta.env.DEV`, so a Forge build never reaches
-it:
+**UI gating only**: `meet` enforces nothing but host ownership on update/delete.
+Backend fix path: enable `appUserToken` (scope `read:app-user-token`) on the
+relevant `endpoint` entries — auth attaches per declared endpoint path, not per
+remote, and only `/api/1/meetings:instant` exists today. The token arrives as
+`x-forge-oauth-user`; use it against the FIT's `apiBaseUrl` claim, not the site
+URL. See `PERMISSION.md` §7.
 
-- `useProjectIssues`, `useProjectMembers` → real Jira via `requestJira` from the
-  browser; mock only under `vite dev`.
-- `useWorkspaceUsers` → `api/workspaceUsers.searchWorkspaceUsers` (direct Jira
-  call, no resolver); mock only under `vite dev`.
-- `useMeetingPermission` → `api/meetingPermission.getMeetingPermission` (direct
-  Jira call, no resolver); mocked (always full access) only under `vite dev`.
-- `CurrentUserContext` → Jira `/myself`; `mocks/users.ts`'s `CURRENT_USER` is
-  the context default and the `vite dev` value. `CurrentUserProvider` wraps the
-  whole app including modal roots (`App.tsx`), so the default never leaks into a
-  Forge render.
+## manifest.yml
 
-## Backend permission enforcement (not yet built)
+- `content.styles: [unsafe-inline]` is required — AntD injects CSS-in-JS.
+- `external.fetch` locks egress to `${SMISKI_API_BASE_URL}` + `${LIVEKIT_URL}`;
+  any new origin must be declared or it's blocked at runtime. These `${...}`
+  placeholders are why the Forge CLI is pinned to 13.1.0 — see the pin note
+  under Commands before touching them or the CLI version.
+- After changing scopes or egress: `pnpm exec forge deploy` **then**
+  `pnpm exec forge install --upgrade` — a tunnel restart is not enough. Run
+  `pnpm exec forge lint` after editing. Forge commands need `app/` as cwd.
 
-`meet` has **no** Jira-permission concept today — only a host-ownership check on
-`update`/`delete` (`hostId.equals(...)`), nothing on `list`/`get`/`join`. Until
-backend enforcement exists, `View Meeting`/`Edit Meeting` is **UI-only** —
-exactly the anti-pattern `PERMISSION.md` §7 warns against (frontend hiding is
-not a security layer). Researched mechanism for the follow-up, so it doesn't
-need re-discovering:
+## Environment variables
 
-- Forge Remote backends **can** call Jira REST APIs directly: enable
-  `appUserToken` (needs the `read:app-user-token` scope) on the relevant
-  `endpoint` entries in `manifest.yml` (currently only `meet-endpoint` /
-  `/api/1/meetings:instant` exists, and has both `appUserToken`/
-  `appSystemToken` disabled — each distinct backend path needs its own
-  `endpoint` entry with matching `route.path`, since auth attaches per declared
-  endpoint, not globally per remote).
-- The token arrives at `meet` in the `x-forge-oauth-user` header; use it as a
-  `Bearer` token against the FIT's `apiBaseUrl` claim (**not** the site URL) to
-  call `GET /rest/api/3/mypermissions` directly from Java
-  (`RestTemplate`/`WebClient`) — mirrors the same `getMeetingPermission` logic
-  already implemented in `static/smiski-ui/src/api/meetingPermission.ts`, just
-  from the backend instead of the browser.
+**One name per value, no `VITE_` prefix.** The Forge CLI interpolates `${...}`
+from its process environment; `vite.config.ts` injects the same names into the
+bundle via `define` (Vite rejects an empty `envPrefix`, hence the
+`DEPLOYMENT_VARIABLES` list). `SMISKI_API_BASE_URL` and `LIVEKIT_URL` must be
+byte-identical in both places or the SSE/LiveKit calls get CSP-blocked.
+`SMISKI_API_VERSION` is bundle-only (path segment, defaults to `1`). No LiveKit
+API key/secret here — the backend mints room tokens. `forge variables set` is
+unused (runtime vars for functions; there are none). Copy `.env.example` →
+`app/.env` and `static/smiski-ui/.env.example` → `.env.local`.
 
-## manifest.yml / egress
+## Deploy
 
-- `permissions.content.styles: [unsafe-inline]` is required — Ant Design injects
-  CSS-in-JS at runtime, which Forge Custom UI blocks by default.
-- `permissions.external.fetch` locks egress to `${SMISKI_API_BASE_URL}` and
-  `${LIVEKIT_URL}`. Any new external origin must be added here or it is blocked
-  at runtime.
-- After changing scopes or egress you MUST `forge deploy` **and then**
-  `forge install --upgrade` — a tunnel restart is not enough.
-- Runtime is `nodejs24.x`, arm64, 256 MB. Env vars `SMISKI_API_BASE_URL` and
-  `LIVEKIT_URL` have TODO placeholder defaults. There is no
-  `LIVEKIT_API_KEY`/`LIVEKIT_API_SECRET` in this app — room tokens come from the
-  backend `meet` service's `join` endpoint, so only the backend needs the
-  LiveKit secret.
+`.github/workflows/forge-deploy.yml`: `development` auto on push to `dev`,
+`staging` manual only. Forge `production` is intentionally unused (it forbids
+`forge tunnel`/`forge logs`). `main` does not deploy. Values come from GitHub
+Environment `vars`/`secrets`, validated before build.
 
 ## Conventions
 
-- **Biome** is the only linter/formatter (`biome.json` extends root
-  `../biome.json`). There is no ESLint or Prettier for app code. Style: 4-space
-  indent, 80 columns, single quotes, semicolons, trailing commas everywhere,
-  operator-linebreak before.
-- The app's `biome.json` turns **off** `useImportExtensions`, so app imports
-  omit the `.ts`/`.tsx` extension (`import x from './foo'`) — the opposite of
-  the root default. Match surrounding files.
-- Unused vars/imports are errors, but Biome ignores `_`-prefixed names — e.g.
-  `listProjectMeetings`'s unimplemented `_filters` param; don't "fix" those
-  away.
-- `@/*` path alias → `static/smiski-ui/src/*` (Vite + tsconfig). Code mixes it
-  with relative imports; follow the local file.
-- Env files: copy `.env.example` → `app/.env` for the Forge CLI, and
-  `static/smiski-ui/.env.example` → `.env.local` for Vite.
-
-## Forge CLI
-
-- Every command except `create`/`version`/`login` must run from the app root
-  (where `manifest.yml` lives).
-- Use `--non-interactive` for `deploy`, `install`, `environments`; do not use it
-  for other commands. Deploy to the development environment unless told
-  otherwise; never `--no-verify` unless asked.
-- Run `forge lint` after editing `manifest.yml`. Use `forge logs` (`-e <env>`,
-  `--since 15m`) to debug a deployed app.
-- Tunnel: redeploy + restart the tunnel after `manifest.yml` changes; code-only
-  changes hot-reload without redeploy.
-
-## Stale-doc warning
-
-`api/README.md` and the `.vi.md` design notes describe an intended end-state (a
-resolver `backendRequest` transport, a mock/backend switch, an `api/` file list
-with `client.ts`/`endpoints.ts`/`participants.ts`/`recordings.ts`) that the
-current code does not implement. When docs and code disagree, trust the code.
-`PERMISSION.md`'s permission _model_ (View/Edit Meeting, the state×permission
-matrix) is accurate and now partially implemented (frontend, per "Backend
-permission enforcement" above) — its §7 backend re-check requirement is the part
-still outstanding.
+- **Biome only** — no ESLint/Prettier here. 4-space, 80 cols, single quotes,
+  trailing commas, operator-linebreak before. App `biome.json` turns
+  `useImportExtensions` **off** — omit `.ts`/`.tsx` in imports, the opposite of
+  the root default.
+- Unused vars are errors, but `_`-prefixed names are exempt (e.g.
+  `listProjectMeetings`'s `_filters`) — don't "fix" them.
+- `@/*` → `static/smiski-ui/src/*`; code mixes it with relative imports.
+- `README.md` still calls backend calls stubbed — outdated, trust the code.

@@ -2,7 +2,7 @@ name: Deploy Forge app
 
 on:
     push:
-        branches: [dev, main]
+        branches: [dev]
         paths:
             - 'app/**'
             - '.github/workflows/forge-deploy.yml'
@@ -20,19 +20,20 @@ on:
 permissions:
     contents: read
 
-# A branch always maps to one Forge environment. Manual runs use the selected
-# input, which is useful when a deployment needs to be retried without a commit.
+# Two Forge environments only. `dev` deploys to development automatically;
+# staging is release-grade and therefore manual (workflow_dispatch) so a
+# release is always a deliberate act. Forge `production` is intentionally
+# unused — it forbids `forge logs` and `forge tunnel`, which staging allows.
 env:
     FORGE_ENVIRONMENT: >-
         ${{ github.event_name == 'workflow_dispatch' && inputs.environment ||
-        github.ref_name == 'dev' && 'development' || 'staging' }}
+        'development' }}
 
 jobs:
     deploy:
         name:
             Deploy to ${{ github.event_name == 'workflow_dispatch' &&
-            inputs.environment || github.ref_name == 'dev' && 'development' ||
-            'staging' }}
+            inputs.environment || 'development' }}
         runs-on: ubuntu-latest
         timeout-minutes: 20
         permissions:
@@ -41,28 +42,24 @@ jobs:
         environment:
             name:
                 ${{ github.event_name == 'workflow_dispatch' &&
-                inputs.environment || github.ref_name == 'dev' && 'development'
-                || 'staging' }}
+                inputs.environment || 'development' }}
         concurrency:
             group:
                 forge-${{ github.event_name == 'workflow_dispatch' &&
-                inputs.environment || github.ref_name == 'dev' && 'development'
-                || 'staging' }}
+                inputs.environment || 'development' }}
             cancel-in-progress: false
         env:
             CI: 'true'
             FORGE_EMAIL: ${{ secrets.FORGE_EMAIL }}
             FORGE_API_TOKEN: ${{ secrets.FORGE_API_TOKEN }}
             JIRA_SITE: ${{ vars.JIRA_SITE }}
+            # One name per value. The Forge CLI interpolates these into
+            # manifest.yml's ${...} placeholders from the process environment,
+            # and vite.config.ts injects the same three into the Custom UI
+            # bundle — so the manifest and the frontend can never disagree.
             SMISKI_API_BASE_URL: ${{ vars.SMISKI_API_BASE_URL }}
+            SMISKI_API_VERSION: ${{ vars.SMISKI_API_VERSION || '1' }}
             LIVEKIT_URL: ${{ vars.LIVEKIT_URL }}
-            LIVEKIT_API_KEY: ${{ secrets.LIVEKIT_API_KEY }}
-            LIVEKIT_API_SECRET: ${{ secrets.LIVEKIT_API_SECRET }}
-            VITE_SMISKI_DATA_SOURCE: backend
-            VITE_SMISKI_API_TRANSPORT: resolver
-            VITE_SMISKI_API_BASE_URL: ${{ vars.SMISKI_API_BASE_URL }}
-            VITE_SMISKI_API_VERSION: ${{ vars.SMISKI_API_VERSION || '1' }}
-            VITE_SMISKI_LIVEKIT_URL: ${{ vars.LIVEKIT_URL }}
         defaults:
             run:
                 working-directory: app
@@ -110,14 +107,15 @@ jobs:
                   set -euo pipefail
 
                   # Fail before building when an environment is not configured.
+                  # LiveKit API credentials are deliberately absent: room tokens
+                  # are minted by the backend `meet` service, so the Forge app
+                  # never holds them.
                   required_values=(
                     FORGE_EMAIL
                     FORGE_API_TOKEN
                     JIRA_SITE
                     SMISKI_API_BASE_URL
                     LIVEKIT_URL
-                    LIVEKIT_API_KEY
-                    LIVEKIT_API_SECRET
                   )
 
                   for name in "${required_values[@]}"; do
@@ -144,33 +142,6 @@ jobs:
                   pnpm exec forge settings set usage-analytics false
                   pwd
                   pnpm exec forge lint
-
-            - name: Sync Forge runtime variables
-              shell: bash
-              run: |
-                  set -euo pipefail
-
-                  # Printing the working directory before every Forge command makes
-                  # the app root explicit in CI logs and avoids monorepo path mistakes.
-                  forge_cli() {
-                    pwd >&2
-                    pnpm exec forge "$@"
-                  }
-
-                  forge_cli variables set \
-                    --environment "$FORGE_ENVIRONMENT" \
-                    SMISKI_API_BASE_URL "$SMISKI_API_BASE_URL"
-                  forge_cli variables set \
-                    --environment "$FORGE_ENVIRONMENT" \
-                    LIVEKIT_URL "$LIVEKIT_URL"
-                  forge_cli variables set \
-                    --encrypt \
-                    --environment "$FORGE_ENVIRONMENT" \
-                    LIVEKIT_API_KEY "$LIVEKIT_API_KEY"
-                  forge_cli variables set \
-                    --encrypt \
-                    --environment "$FORGE_ENVIRONMENT" \
-                    LIVEKIT_API_SECRET "$LIVEKIT_API_SECRET"
 
             - name: Deploy to Forge
               run: |

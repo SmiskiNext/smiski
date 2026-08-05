@@ -24,6 +24,6 @@
     },
     "devDependencies": {
         "@biomejs/biome": "^2.4.15",
-        "@forge/cli": "^13.1.0"
+        "@forge/cli": "13.1.0"
     }
 }

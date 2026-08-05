@@ -1,7 +1,44 @@
 import { fileURLToPath } from 'node:url';
 import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
-import { defineConfig } from 'vite';
+import { defineConfig, loadEnv } from 'vite';
+
+/**
+ * Variables shared verbatim with `app/manifest.yml`.
+ *
+ * The Forge CLI interpolates these same names into the manifest `${...}`
+ * placeholders from its process environment, so a single value per concept
+ * reaches both the manifest and this bundle. `SMISKI_API_BASE_URL` and
+ * `LIVEKIT_URL` MUST stay byte-identical to the manifest's
+ * `permissions.external.fetch` entries — the SSE client and the LiveKit
+ * client call those origins directly, and Forge blocks any origin that is
+ * not declared.
+ */
+const DEPLOYMENT_VARIABLES = [
+    'SMISKI_API_BASE_URL',
+    'SMISKI_API_VERSION',
+    'LIVEKIT_URL',
+] as const;
+
+const PROJECT_ROOT = fileURLToPath(new URL('.', import.meta.url));
+
+/**
+ * Exposes the deployment variables to `import.meta.env`.
+ *
+ * Vite forwards only `VITE_`-prefixed variables and rejects an empty
+ * `envPrefix`, so unprefixed names must be injected through `define`.
+ * Process environment values win over `.env` files, matching how the Forge
+ * CLI resolves manifest placeholders.
+ */
+function defineDeploymentVariables(mode: string): Record<string, string> {
+    const env = loadEnv(mode, PROJECT_ROOT, '');
+    return Object.fromEntries(
+        DEPLOYMENT_VARIABLES.map((key) => [
+            `import.meta.env.${key}`,
+            JSON.stringify(env[key] ?? ''),
+        ]),
+    );
+}
 
 /**
  * Vite config for the Smiski Custom UI bundle.
@@ -12,8 +49,9 @@ import { defineConfig } from 'vite';
  * - `@` alias — resolves to `src/`, mirrored in tsconfig.json `paths`.
  * - Tailwind owns the complete visual layer. Forge/Jira theme information is
  *   translated to app CSS variables in ThemeProvider.
+ * - `define` — mirrors the manifest deployment variables into the bundle.
  */
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
     plugins: [react(), tailwindcss()],
     base: './',
     resolve: {
@@ -21,8 +59,9 @@ export default defineConfig({
             '@': fileURLToPath(new URL('./src', import.meta.url)),
         },
     },
+    define: defineDeploymentVariables(mode),
     build: {
         outDir: 'dist',
         emptyOutDir: true,
     },
-});
+}));

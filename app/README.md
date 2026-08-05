@@ -208,7 +208,18 @@ fixtures.
 
 ### Environment files
 
-Forge CLI and resolver shell variables:
+Both files declare the **same** variable names. The Forge CLI interpolates them
+into `manifest.yml`'s `${...}` placeholders, and `vite.config.ts` injects them
+into the Custom UI bundle — one value per concept, so the manifest's declared
+egress and the origins the frontend calls cannot drift apart.
+
+| Variable              | Meaning                                                     |
+| --------------------- | ----------------------------------------------------------- |
+| `SMISKI_API_BASE_URL` | Caddy API gateway origin. Used by the manifest and bundle.  |
+| `LIVEKIT_URL`         | LiveKit signalling origin. Used by the manifest and bundle. |
+| `SMISKI_API_VERSION`  | API version path segment; defaults to `1` (`/api/1/...`).   |
+
+Forge CLI shell variables:
 
 ```bash
 cp .env.example .env
@@ -218,14 +229,15 @@ set +a
 pnpm exec forge lint
 ```
 
-Custom UI Vite variables:
+Custom UI build variables:
 
 ```bash
 cp static/smiski-ui/.env.example static/smiski-ui/.env.local
 pnpm ui:dev
 ```
 
-Do not commit `.env`, `.env.local`, Forge API tokens, or real LiveKit secrets.
+Do not commit `.env`, `.env.local`, or Forge API tokens. `LIVEKIT_API_KEY` and
+`LIVEKIT_API_SECRET` are **backend** secrets and are deliberately absent here.
 
 ## Available commands
 
@@ -236,9 +248,9 @@ Run commands from the repository root unless stated otherwise.
 | `pnpm ui:dev`       | Start the standalone Vite development server.                           |
 | `pnpm build`        | Type-check and build the Custom UI bundle into `static/smiski-ui/dist`. |
 | `pnpm test`         | Run the Vitest test suite once.                                         |
-| `pnpm lint`         | Lint the resolver and frontend workspaces.                              |
+| `pnpm lint`         | Lint the app with Biome.                                                |
 | `pnpm typecheck`    | Type-check both workspaces without emitting files.                      |
-| `pnpm format`       | Format the repository with Prettier.                                    |
+| `pnpm format`       | Format the app with Biome.                                              |
 | `pnpm format:check` | Verify formatting without modifying files.                              |
 
 To run a single test file:
@@ -267,6 +279,20 @@ pnpm exec forge install --non-interactive --site your-site.atlassian.net --produ
 Use the `--upgrade` option when an existing installation must receive updated
 scopes or egress permissions.
 
+### Continuous deployment
+
+`.github/workflows/forge-deploy.yml` targets two Forge environments:
+
+| Environment   | Trigger                           |
+| ------------- | --------------------------------- |
+| `development` | automatic on push to `dev`        |
+| `staging`     | manual only (`workflow_dispatch`) |
+
+Forge `production` is intentionally unused because it forbids `forge tunnel` and
+`forge logs`; `staging` is the release-grade environment and stays debuggable.
+Per-environment values come from GitHub Environment `vars` and `secrets`, and
+the workflow validates them before building.
+
 ### LiveKit configuration
 
 Room access tokens are minted by the backend `meet` service's `join` operation
@@ -284,12 +310,15 @@ The manifest currently declares:
 - `jira:projectPage` with module key `smiski-project-page`
 - one shared Custom UI resource at `static/smiski-ui/dist`
 - the `read:jira-work` scope for Jira issue search
-- placeholder Caddy API gateway egress origins
-- a LiveKit client WebSocket origin
+- `${SMISKI_API_BASE_URL}` as the Caddy API gateway egress origin, declared once
+  and reused by `remotes[].baseUrl` and both `external.fetch` lists
+- `${LIVEKIT_URL}` as the LiveKit client WebSocket origin
 
-Replace all placeholder gateway origins before deployment to a real environment.
-After adding or changing scopes or external egress permissions, deploy again and
-upgrade the existing Jira installation.
+Both placeholders fall back to a TODO default that only keeps local `forge lint`
+usable; supply real values before deploying. Because `vite.config.ts` injects
+the same two names into the bundle, changing an origin means changing one
+variable, not two. After adding or changing scopes or external egress
+permissions, deploy again and upgrade the existing Jira installation.
 
 ## Testing and quality checks
 
@@ -329,6 +358,4 @@ Before a production release:
 
 ## Additional documentation
 
-- [System architecture (Vietnamese)](architecture.vi.md)
 - [Meeting permission model](PERMISSION.md)
-- [Broader Smiski project notes](DOCS1.md)

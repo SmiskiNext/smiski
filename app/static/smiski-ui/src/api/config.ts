@@ -1,24 +1,32 @@
-export type ApiDataSource = 'mock' | 'backend';
+/**
+ * Runtime configuration read from the deployment variables that
+ * `vite.config.ts` injects into the bundle. The same variable names are
+ * interpolated into `app/manifest.yml` by the Forge CLI, so the origins used
+ * here always match the manifest's declared egress.
+ */
+const DEFAULT_API_VERSION = 1;
 
-function readDataSource(): ApiDataSource {
-    return import.meta.env.VITE_SMISKI_DATA_SOURCE === 'backend'
-        ? 'backend'
-        : 'mock';
+function readOptional(value: string | undefined): string | undefined {
+    const trimmed = value?.trim();
+    return trimmed ? trimmed : undefined;
 }
 
 function readApiVersion(): number {
-    const value = Number(import.meta.env.VITE_SMISKI_API_VERSION ?? 1);
-    return Number.isInteger(value) && value > 0 ? value : 1;
+    const value = Number(
+        readOptional(import.meta.env.SMISKI_API_VERSION) ?? DEFAULT_API_VERSION,
+    );
+    return Number.isInteger(value) && value > 0 ? value : DEFAULT_API_VERSION;
 }
 
 function readApiBaseUrl(): string | undefined {
-    const value = import.meta.env.VITE_SMISKI_API_BASE_URL?.trim();
-    return value ? value.replace(/\/$/, '') : undefined;
+    return readOptional(import.meta.env.SMISKI_API_BASE_URL)?.replace(
+        /\/$/,
+        '',
+    );
 }
 
 export const apiConfig = {
-    dataSource: readDataSource(),
     apiBaseUrl: readApiBaseUrl(),
     apiVersion: readApiVersion(),
-    liveKitUrl: import.meta.env.VITE_SMISKI_LIVEKIT_URL,
+    liveKitUrl: readOptional(import.meta.env.LIVEKIT_URL),
 };

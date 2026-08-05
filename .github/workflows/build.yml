@@ -106,13 +106,16 @@ jobs:
               env:
                   CI: 'true'
 
-            - name: Install Forge CLI
-              run:
-                  npm i -g @forge/cli && forge settings set usage-analytics
-                  false
-
+            # Always the workspace-pinned Forge CLI (app/package.json pins an
+            # exact version), never a global `npm i -g @forge/cli`: an
+            # unpinned global resolves to the latest release, and CLI 13.3.0
+            # uploads the raw, un-interpolated manifest.yml to a server-side
+            # pre-deployment check that rejects the `${...}` placeholders in
+            # permissions.external.fetch. See app/AGENTS.md.
             - name: Forge lint
-              run: forge lint
+              run: |
+                  pnpm exec forge settings set usage-analytics false
+                  pnpm exec forge lint
               working-directory: app
               env:
                   FORGE_EMAIL: ${{ secrets.FORGE_EMAIL }}
