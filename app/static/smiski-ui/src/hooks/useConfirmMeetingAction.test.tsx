@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('@forge/bridge', () => ({
     invoke: vi.fn(),
-    requestRemote: vi.fn(),
+    invokeRemote: vi.fn(),
     Modal: vi.fn(),
 }));
 

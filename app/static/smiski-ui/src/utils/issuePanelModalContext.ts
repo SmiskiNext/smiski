@@ -2,6 +2,11 @@
  * Serializable payloads used to open Issue Panel dialogs in a Forge platform
  * modal. A platform modal owns a separate iframe above Jira, which prevents
  * these dialogs from being clipped to the narrow Issue Panel surface.
+ *
+ * Every payload carries the numeric Jira identifiers the gateway needs to
+ * scope its permission check: the modal iframe's Forge context exposes this
+ * payload rather than the originating issue, so the identifiers must travel
+ * with it — see `api/backendContext.ts`.
  */
 import type { Meeting } from '../domain';
 
@@ -10,12 +15,18 @@ export const ACTIVE_MEETING_WARNING_MODAL_KIND = 'active-meeting-warning';
 export const MEETING_SETTINGS_MODAL_KIND = 'meeting-settings';
 export const CONFIRM_MEETING_ACTION_MODAL_KIND = 'confirm-meeting-action';
 
-export interface MeetingDetailModalContext {
+/** Numeric Jira identifiers carried by every Issue Panel modal payload. */
+export interface ModalBackendContext {
+    issueId?: string;
+    projectId?: string;
+}
+
+export interface MeetingDetailModalContext extends ModalBackendContext {
     kind: typeof MEETING_DETAIL_MODAL_KIND;
     meeting: Meeting;
 }
 
-export interface ActiveMeetingWarningModalContext {
+export interface ActiveMeetingWarningModalContext extends ModalBackendContext {
     kind: typeof ACTIVE_MEETING_WARNING_MODAL_KIND;
     conflictingMeeting: Meeting;
 }
@@ -24,14 +35,14 @@ export interface ActiveMeetingWarningModalResult {
     confirmed: boolean;
 }
 
-export interface MeetingSettingsModalContext {
+export interface MeetingSettingsModalContext extends ModalBackendContext {
     kind: typeof MEETING_SETTINGS_MODAL_KIND;
     meetingId: string;
 }
 
 export type ConfirmableMeetingAction = 'CANCEL' | 'END';
 
-export interface ConfirmMeetingActionModalContext {
+export interface ConfirmMeetingActionModalContext extends ModalBackendContext {
     kind: typeof CONFIRM_MEETING_ACTION_MODAL_KIND;
     action: ConfirmableMeetingAction;
     meeting: Meeting;

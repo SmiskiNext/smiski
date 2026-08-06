@@ -1,19 +1,20 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const requestRemoteMock = vi.fn();
+const invokeRemoteMock = vi.fn();
 vi.mock('@forge/bridge', () => ({
     invoke: vi.fn(),
-    requestRemote: (...args: unknown[]) => requestRemoteMock(...args),
+    invokeRemote: (...args: unknown[]) => invokeRemoteMock(...args),
 }));
 
 import type { MeetingSettings } from '../domain';
 import { MeetingApiError, updateMeetingSettings } from './meetings';
 
-function jsonResponse(status: number, body: unknown): Response {
-    return new Response(JSON.stringify(body), {
+function invokeResult(status: number, body: unknown) {
+    return {
         status,
-        headers: { 'Content-Type': 'application/json' },
-    });
+        headers: { 'content-type': 'application/json' },
+        body,
+    };
 }
 
 const MEETING_ID = '0195e0c2-8f3a-7c21-b9d4-2f1a6e7c8d90';
@@ -29,7 +30,7 @@ const REQUEST: MeetingSettings = {
 
 describe('updateMeetingSettings (SDK updateSettings over Forge Remote)', () => {
     beforeEach(() => {
-        requestRemoteMock.mockReset();
+        invokeRemoteMock.mockReset();
     });
 
     it('returns the settings block from the flat response, not a mismapped Meeting', async () => {
@@ -37,8 +38,8 @@ describe('updateMeetingSettings (SDK updateSettings over Forge Remote)', () => {
         // no nested `settings` — this is the exact shape that used to be
         // routed through `meetingFromBackend` and silently produce a
         // near-empty `Meeting` (id: '', settings: undefined).
-        requestRemoteMock.mockResolvedValue(
-            jsonResponse(200, {
+        invokeRemoteMock.mockResolvedValue(
+            invokeResult(200, {
                 meetingId: '0195e0c2-8f3a-7c21-b9d4-2f1a6e7c8d90',
                 admissionPolicy: 'MANUAL_APPROVAL',
                 maxParticipants: 25,
@@ -55,8 +56,8 @@ describe('updateMeetingSettings (SDK updateSettings over Forge Remote)', () => {
     });
 
     it('sends the full settings replacement body and no client identity headers', async () => {
-        requestRemoteMock.mockResolvedValue(
-            jsonResponse(200, {
+        invokeRemoteMock.mockResolvedValue(
+            invokeResult(200, {
                 meetingId: MEETING_ID,
                 ...REQUEST,
             }),
@@ -64,16 +65,15 @@ describe('updateMeetingSettings (SDK updateSettings over Forge Remote)', () => {
 
         await updateMeetingSettings(MEETING_ID, REQUEST);
 
-        expect(requestRemoteMock).toHaveBeenCalledWith(
-            'meet-backend',
+        expect(invokeRemoteMock).toHaveBeenCalledWith(
             expect.objectContaining({
                 path: `/api/1/meetings/${MEETING_ID}/settings`,
                 method: 'PUT',
             }),
         );
 
-        const [, options] = requestRemoteMock.mock.calls[0];
-        const body = JSON.parse(options.body);
+        const [options] = invokeRemoteMock.mock.calls[0];
+        const body = options.body;
         expect(body).toEqual(REQUEST);
 
         const headerNames = Object.keys(options.headers ?? {}).map((name) =>
@@ -84,8 +84,8 @@ describe('updateMeetingSettings (SDK updateSettings over Forge Remote)', () => {
     });
 
     it('throws a MeetingApiError on a backend rejection (e.g. non-host caller)', async () => {
-        requestRemoteMock.mockResolvedValue(
-            jsonResponse(403, {
+        invokeRemoteMock.mockResolvedValue(
+            invokeResult(403, {
                 code: 'NOT_AUTHORIZED',
                 title: 'Forbidden',
                 detail: 'Only the host may change the meeting settings',
@@ -102,8 +102,8 @@ describe('updateMeetingSettings (SDK updateSettings over Forge Remote)', () => {
     });
 
     it('is a MeetingApiError instance on rejection', async () => {
-        requestRemoteMock.mockResolvedValue(
-            jsonResponse(409, {
+        invokeRemoteMock.mockResolvedValue(
+            invokeResult(409, {
                 code: 'INVALID_STATUS_TRANSITION',
                 title: 'Conflict',
                 detail: 'Cannot change settings on a completed meeting',

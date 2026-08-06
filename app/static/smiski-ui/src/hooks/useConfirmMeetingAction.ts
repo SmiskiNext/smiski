@@ -15,6 +15,7 @@
  */
 import { Modal as ForgeModal } from '@forge/bridge';
 import { useState } from 'react';
+import { getBackendContext } from '../api/backendContext';
 import type { Meeting } from '../domain';
 import {
     CONFIRM_MEETING_ACTION_MODAL_KIND,
@@ -85,6 +86,7 @@ export function useConfirmMeetingAction(
             kind: CONFIRM_MEETING_ACTION_MODAL_KIND,
             action,
             meeting,
+            ...getBackendContext(),
         };
         new ForgeModal({
             context,

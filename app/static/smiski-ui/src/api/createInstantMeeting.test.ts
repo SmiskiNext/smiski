@@ -1,9 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const requestRemoteMock = vi.fn();
+const invokeRemoteMock = vi.fn();
 vi.mock('@forge/bridge', () => ({
     invoke: vi.fn(),
-    requestRemote: (...args: unknown[]) => requestRemoteMock(...args),
+    invokeRemote: (...args: unknown[]) => invokeRemoteMock(...args),
 }));
 
 import { createInstantMeeting } from './meetings';
@@ -14,21 +14,22 @@ const HOST = {
     email: 'host@example.com',
 };
 
-function jsonResponse(status: number, body: unknown): Response {
-    return new Response(JSON.stringify(body), {
+function invokeResult(status: number, body: unknown) {
+    return {
         status,
-        headers: { 'Content-Type': 'application/json' },
-    });
+        headers: { 'content-type': 'application/json' },
+        body,
+    };
 }
 
 describe('createInstantMeeting (SDK createInstant over Forge Remote)', () => {
     beforeEach(() => {
-        requestRemoteMock.mockReset();
+        invokeRemoteMock.mockReset();
     });
 
     it('issues the SDK createInstant call over the adapter and returns the meeting on success', async () => {
-        requestRemoteMock.mockResolvedValue(
-            jsonResponse(201, {
+        invokeRemoteMock.mockResolvedValue(
+            invokeResult(201, {
                 meeting: {
                     id: '0195e0c2-8f3a-7c21-b9d4-2f1a6e7c8d90',
                     hostId: 'acc-host',
@@ -55,8 +56,7 @@ describe('createInstantMeeting (SDK createInstant over Forge Remote)', () => {
             host: HOST,
         });
 
-        expect(requestRemoteMock).toHaveBeenCalledWith(
-            'meet-backend',
+        expect(invokeRemoteMock).toHaveBeenCalledWith(
             expect.objectContaining({
                 path: '/api/1/meetings:instant',
                 method: 'POST',
@@ -72,8 +72,8 @@ describe('createInstantMeeting (SDK createInstant over Forge Remote)', () => {
     });
 
     it('sends a body with nested issueLink, settings, host, zoneId and no client identity headers', async () => {
-        requestRemoteMock.mockResolvedValue(
-            jsonResponse(201, {
+        invokeRemoteMock.mockResolvedValue(
+            invokeResult(201, {
                 meeting: {
                     id: '0195e0c2-8f3a-7c21-b9d4-2f1a6e7c8d91',
                     status: 'RUNNING',
@@ -90,8 +90,8 @@ describe('createInstantMeeting (SDK createInstant over Forge Remote)', () => {
             host: HOST,
         });
 
-        const [, options] = requestRemoteMock.mock.calls[0];
-        const body = JSON.parse(options.body);
+        const [options] = invokeRemoteMock.mock.calls[0];
+        const body = options.body;
         expect(body).toMatchObject({
             title: 'Contract-shaped body',
             issueLink: { issueKey: 'SMISKI-101', projectKey: 'SMISKI' },
@@ -108,11 +108,12 @@ describe('createInstantMeeting (SDK createInstant over Forge Remote)', () => {
         expect(headerNames).not.toContain('x-account-id');
     });
 
-    it('surfaces a backend problem+json rejection as result.error with no mock fallback', async () => {
-        requestRemoteMock.mockResolvedValue(
-            jsonResponse(400, {
+    it('surfaces a backend Problem Details rejection as result.error with no mock fallback', async () => {
+        invokeRemoteMock.mockResolvedValue(
+            invokeResult(400, {
                 code: 'VALIDATION_ERROR',
                 title: 'Validation',
+                status: 400,
                 detail: 'title must not be blank',
                 traceId: 'trace-1',
             }),
@@ -130,12 +131,13 @@ describe('createInstantMeeting (SDK createInstant over Forge Remote)', () => {
             message: 'title must not be blank',
             code: 'VALIDATION_ERROR',
             traceId: 'trace-1',
+            status: 400,
         });
-        expect(requestRemoteMock).toHaveBeenCalledTimes(1);
+        expect(invokeRemoteMock).toHaveBeenCalledTimes(1);
     });
 
     it('surfaces an unreachable backend as result.error with no mock fallback', async () => {
-        requestRemoteMock.mockRejectedValue(new Error('remote unreachable'));
+        invokeRemoteMock.mockRejectedValue(new Error('remote unreachable'));
 
         const result = await createInstantMeeting({
             issueKey: 'SMISKI-101',
@@ -146,6 +148,6 @@ describe('createInstantMeeting (SDK createInstant over Forge Remote)', () => {
 
         expect(result.data).toBeUndefined();
         expect(result.error?.message).toBe('remote unreachable');
-        expect(requestRemoteMock).toHaveBeenCalledTimes(1);
+        expect(invokeRemoteMock).toHaveBeenCalledTimes(1);
     });
 });

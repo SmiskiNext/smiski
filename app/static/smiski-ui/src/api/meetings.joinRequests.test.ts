@@ -1,9 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const requestRemoteMock = vi.fn();
+const invokeRemoteMock = vi.fn();
 vi.mock('@forge/bridge', () => ({
     invoke: vi.fn(),
-    requestRemote: (...args: unknown[]) => requestRemoteMock(...args),
+    invokeRemote: (...args: unknown[]) => invokeRemoteMock(...args),
 }));
 
 import {
@@ -13,11 +13,12 @@ import {
     MeetingApiError,
 } from './meetings';
 
-function jsonResponse(status: number, body: unknown): Response {
-    return new Response(JSON.stringify(body), {
+function invokeResult(status: number, body: unknown) {
+    return {
         status,
-        headers: { 'Content-Type': 'application/json' },
-    });
+        headers: { 'content-type': 'application/json' },
+        body,
+    };
 }
 
 const MEETING_ID = '0195e0c2-8f3a-7c21-b9d4-2f1a6e7c8d90';
@@ -25,12 +26,12 @@ const REQUEST_ID = '0195e0c2-8f3a-7c21-b9d4-2f1a6e7c8d91';
 
 describe('manual-admission meeting clients', () => {
     beforeEach(() => {
-        requestRemoteMock.mockReset();
+        invokeRemoteMock.mockReset();
     });
 
     it('lists and maps a page of pending join requests', async () => {
-        requestRemoteMock.mockResolvedValue(
-            jsonResponse(200, {
+        invokeRemoteMock.mockResolvedValue(
+            invokeResult(200, {
                 results: [
                     {
                         requestId: REQUEST_ID,
@@ -65,8 +66,7 @@ describe('manual-admission meeting clients', () => {
             offset: 2,
             pageSize: 1,
         });
-        expect(requestRemoteMock).toHaveBeenCalledWith(
-            'meet-backend',
+        expect(invokeRemoteMock).toHaveBeenCalledWith(
             expect.objectContaining({
                 path: `/api/1/meetings/${MEETING_ID}/join-requests?offset=2&pageSize=1`,
                 method: 'GET',
@@ -75,8 +75,8 @@ describe('manual-admission meeting clients', () => {
     });
 
     it('accepts pending requests and preserves approved room credentials', async () => {
-        requestRemoteMock.mockResolvedValue(
-            jsonResponse(200, {
+        invokeRemoteMock.mockResolvedValue(
+            invokeResult(200, {
                 results: [
                     {
                         requestId: REQUEST_ID,
@@ -101,20 +101,19 @@ describe('manual-admission meeting clients', () => {
             },
         ]);
 
-        expect(requestRemoteMock).toHaveBeenCalledWith(
-            'meet-backend',
+        expect(invokeRemoteMock).toHaveBeenCalledWith(
             expect.objectContaining({
                 path: `/api/1/meetings/${MEETING_ID}/join-requests:accept`,
                 method: 'POST',
-                body: JSON.stringify({ requestIds: [REQUEST_ID] }),
+                body: { requestIds: [REQUEST_ID] },
             }),
         );
     });
 
     it('declines pending requests and maps per-item failures', async () => {
         const missingRequestId = '0195e0c2-8f3a-7c21-b9d4-2f1a6e7c8d92';
-        requestRemoteMock.mockResolvedValue(
-            jsonResponse(200, {
+        invokeRemoteMock.mockResolvedValue(
+            invokeResult(200, {
                 results: [
                     {
                         requestId: REQUEST_ID,
@@ -153,8 +152,8 @@ describe('manual-admission meeting clients', () => {
     });
 
     it('rejects an unknown decision status instead of guessing its meaning', async () => {
-        requestRemoteMock.mockResolvedValue(
-            jsonResponse(200, {
+        invokeRemoteMock.mockResolvedValue(
+            invokeResult(200, {
                 results: [{ requestId: REQUEST_ID, status: 'PENDING' }],
             }),
         );
@@ -167,8 +166,8 @@ describe('manual-admission meeting clients', () => {
     });
 
     it('surfaces backend authorization failures as MeetingApiError', async () => {
-        requestRemoteMock.mockResolvedValue(
-            jsonResponse(403, {
+        invokeRemoteMock.mockResolvedValue(
+            invokeResult(403, {
                 code: 'NOT_AUTHORIZED',
                 detail: 'Only the host may list pending join requests',
             }),

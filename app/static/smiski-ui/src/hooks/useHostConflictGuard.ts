@@ -21,6 +21,7 @@
  */
 import { Modal as ForgeModal } from '@forge/bridge';
 import { useState } from 'react';
+import { getBackendContext } from '../api/backendContext';
 import { findRunningMeetingHostedByUser } from '../api/meetings';
 import { useCurrentUser } from '../context/CurrentUserContext';
 import type { Meeting } from '../domain';
@@ -62,6 +63,7 @@ export function useHostConflictGuard(
         const context: ActiveMeetingWarningModalContext = {
             kind: ACTIVE_MEETING_WARNING_MODAL_KIND,
             conflictingMeeting,
+            ...getBackendContext(),
         };
         new ForgeModal({
             context,

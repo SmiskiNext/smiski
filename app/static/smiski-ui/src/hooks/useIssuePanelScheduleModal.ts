@@ -4,11 +4,16 @@
  * instead of squeezed inside the narrow Issue Panel iframe. Standalone
  * `vite dev` has no Forge bridge, so it falls back to the local in-page
  * <ScheduleMeetingModal> (isDevOpen/devPayload) instead — see call sites.
+ *
+ * The modal iframe cannot observe the originating issue, so the numeric Jira
+ * identifiers this surface published to `api/backendContext.ts` are copied
+ * into the payload and republished on the other side.
  */
 
 import { Modal as ForgeModal } from '@forge/bridge';
 import { useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
+import { getBackendContext } from '../api/backendContext';
 import type { Meeting } from '../domain';
 import {
     SCHEDULE_MEETING_MODAL_KIND,
@@ -37,6 +42,7 @@ export function useIssuePanelScheduleModal(
         const context: ScheduleMeetingModalContext = {
             kind: SCHEDULE_MEETING_MODAL_KIND,
             ...payload,
+            ...getBackendContext(),
         };
         new ForgeModal({
             context,

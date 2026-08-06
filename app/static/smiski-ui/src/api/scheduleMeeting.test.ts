@@ -1,18 +1,19 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const requestRemoteMock = vi.fn();
+const invokeRemoteMock = vi.fn();
 vi.mock('@forge/bridge', () => ({
     invoke: vi.fn(),
-    requestRemote: (...args: unknown[]) => requestRemoteMock(...args),
+    invokeRemote: (...args: unknown[]) => invokeRemoteMock(...args),
 }));
 
 import { scheduleMeeting } from './meetings';
 
-function jsonResponse(status: number, body: unknown): Response {
-    return new Response(JSON.stringify(body), {
+function invokeResult(status: number, body: unknown) {
+    return {
         status,
-        headers: { 'Content-Type': 'application/json' },
-    });
+        headers: { 'content-type': 'application/json' },
+        body,
+    };
 }
 
 const baseInput = {
@@ -37,12 +38,12 @@ const baseInput = {
 
 describe('scheduleMeeting (SDK schedule over Forge Remote)', () => {
     beforeEach(() => {
-        requestRemoteMock.mockReset();
+        invokeRemoteMock.mockReset();
     });
 
     it('issues the SDK schedule call over the adapter and maps the SCHEDULED response', async () => {
-        requestRemoteMock.mockResolvedValue(
-            jsonResponse(201, {
+        invokeRemoteMock.mockResolvedValue(
+            invokeResult(201, {
                 meeting: {
                     id: '0195e0c2-8f3a-7c21-b9d4-2f1a6e7c8d92',
                     hostId: 'acc-host',
@@ -58,8 +59,7 @@ describe('scheduleMeeting (SDK schedule over Forge Remote)', () => {
 
         const result = await scheduleMeeting(baseInput);
 
-        expect(requestRemoteMock).toHaveBeenCalledWith(
-            'meet-backend',
+        expect(invokeRemoteMock).toHaveBeenCalledWith(
             expect.objectContaining({
                 path: '/api/1/meetings:schedule',
                 method: 'POST',
@@ -75,8 +75,8 @@ describe('scheduleMeeting (SDK schedule over Forge Remote)', () => {
     });
 
     it('sends organizer identity, issueLink, settings, timeRange, zoneId and no host object', async () => {
-        requestRemoteMock.mockResolvedValue(
-            jsonResponse(201, {
+        invokeRemoteMock.mockResolvedValue(
+            invokeResult(201, {
                 meeting: {
                     id: '0195e0c2-8f3a-7c21-b9d4-2f1a6e7c8d93',
                     status: 'SCHEDULED',
@@ -88,8 +88,8 @@ describe('scheduleMeeting (SDK schedule over Forge Remote)', () => {
 
         await scheduleMeeting(baseInput);
 
-        const [, options] = requestRemoteMock.mock.calls[0];
-        const body = JSON.parse(options.body);
+        const [options] = invokeRemoteMock.mock.calls[0];
+        const body = options.body;
         expect(body).toMatchObject({
             title: 'Sprint planning',
             issueLink: { issueKey: 'SMISKI-101', projectKey: 'SMISKI' },
@@ -118,9 +118,9 @@ describe('scheduleMeeting (SDK schedule over Forge Remote)', () => {
         expect(headerNames).not.toContain('x-account-id');
     });
 
-    it('surfaces a backend problem+json rejection as result.error with no mock fallback', async () => {
-        requestRemoteMock.mockResolvedValue(
-            jsonResponse(400, {
+    it('surfaces a backend Problem Details rejection as result.error with no mock fallback', async () => {
+        invokeRemoteMock.mockResolvedValue(
+            invokeResult(400, {
                 code: 'MEETING_START_IN_PAST',
                 title: 'Validation',
                 detail: 'startTime must not be in the past',
@@ -134,16 +134,16 @@ describe('scheduleMeeting (SDK schedule over Forge Remote)', () => {
             message: 'startTime must not be in the past',
             code: 'MEETING_START_IN_PAST',
         });
-        expect(requestRemoteMock).toHaveBeenCalledTimes(1);
+        expect(invokeRemoteMock).toHaveBeenCalledTimes(1);
     });
 
     it('surfaces an unreachable backend as result.error with no mock fallback', async () => {
-        requestRemoteMock.mockRejectedValue(new Error('remote unreachable'));
+        invokeRemoteMock.mockRejectedValue(new Error('remote unreachable'));
 
         const result = await scheduleMeeting(baseInput);
 
         expect(result.data).toBeUndefined();
         expect(result.error?.message).toBe('remote unreachable');
-        expect(requestRemoteMock).toHaveBeenCalledTimes(1);
+        expect(invokeRemoteMock).toHaveBeenCalledTimes(1);
     });
 });

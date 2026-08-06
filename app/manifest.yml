@@ -17,21 +17,30 @@
 # (Forge bridge v2+ supports this without a resolver hop) — see
 # static/smiski-ui/src/api/.
 #
-# Because there is no function, ALL egress is client-side: see the
-# `permissions.external.fetch.client` note below for why `fetch.backend` is
-# absent, and the `endpoint` note for why `appSystemToken` does not reach the
-# gateway under `requestRemote`.
+# Backend calls use `invokeRemote`, which is proxied through the Forge platform
+# and resolves its target through the invoking module's `resolver.endpoint`.
+# The `resolver.endpoint: meet-endpoint` entries on both UI modules below are
+# what bind them to the `endpoint` block. Adding a `resolver.endpoint`
+# reference requires no resolver CODE — the app stays function-free.
+#
+# Egress is still partly client-side: the SSE event stream and LiveKit
+# signalling leave the iframe directly, which is why
+# `permissions.external.fetch.client` below still lists the backend remote.
 
 modules:
     jira:issuePanel:
         - key: smiski-issue-panel
           resource: main
+          resolver:
+              endpoint: meet-endpoint
           title: Smiski Meetings
           icon: https://developer.atlassian.com/platform/forge/images/issue-panel-icon.svg
 
     jira:projectPage:
         - key: smiski-project-page
           resource: main
+          resolver:
+              endpoint: meet-endpoint
           title: Smiski Meetings
           layout: blank
           icon: https://developer.atlassian.com/platform/forge/images/issue-panel-icon.svg
@@ -58,20 +67,22 @@ modules:
 
     # Forge Remote endpoint binding the `meet` backend remote.
     #
-    # This entry only takes effect for module invocations that route THROUGH the
-    # Forge platform — i.e. `invokeRemote` from a module wired via
-    # `resolver.endpoint`, or a trigger. The Custom UI currently calls the
-    # backend with `requestRemote` (static/smiski-ui/src/api/forgeRemoteFetch.ts),
-    # which goes browser → gateway directly and, per the Forge docs, "does not
-    # include OAuth tokens, even if configured on the endpoint". So today only
-    # the FIT reaches the gateway and `appSystemToken` below is inert.
+    # This entry is what `invokeRemote` resolves against: the chain is
+    # UI module → resolver.endpoint → remote. Both UI modules above declare
+    # `resolver.endpoint: meet-endpoint`, so their backend calls are proxied by
+    # the Forge platform, which attaches BOTH the FIT and — because
+    # `appSystemToken` is enabled below — the `x-forge-oauth-system` header.
     #
-    # It is declared enabled anyway because the gateway REQUIRES it: the Go
-    # authorization service reads `x-forge-oauth-system` and fails closed with
-    # "missing system token" (services/gateway/internal/authz/service.go:105)
-    # before calling Jira's permission-check API. Until the transport moves to
-    # `invokeRemote`, every authenticated route is denied — see the
-    # `requestRemote` note in app/AGENTS.md.
+    # The system token is not optional: the Go authorization service reads
+    # `x-forge-oauth-system` and fails closed with "missing system token"
+    # (services/gateway/internal/authz/service.go) before calling Jira's
+    # permission-check API. The app previously called the backend with
+    # `requestRemote`, which goes browser → gateway directly and, per the Forge
+    # docs, "does not include OAuth tokens, even if configured on the
+    # endpoint" — so every authenticated route was denied.
+    #
+    # Editing this block is a BREAKING manifest change: `forge deploy` must be
+    # followed by `forge install --upgrade` and administrators re-consent.
     #
     # `route.path` is intentionally absent: it is only required for backend
     # module endpoints, and UI-module remote paths are supplied per call.
@@ -154,12 +165,13 @@ permissions:
         styles:
             - 'unsafe-inline'
 
-    # Egress is client-side only: this app has NO Forge function or resolver, and
-    # `requestRemote` is not proxied through the platform, so all backend traffic
-    # leaves the Custom UI iframe and needs `connect-src` (fetch.client) rather
-    # than fetch.backend. Covered here:
-    #   - requestRemote      (api/forgeRemoteFetch.ts)
-    #   - the raw-fetch SSE stream (api/meetingEvents.ts, api/sseClient.ts)
+    # Egress declared here is client-side (`connect-src` on the Custom UI
+    # iframe). Backend SDK calls no longer need it — `invokeRemote` is proxied
+    # by the Forge platform — but two paths still leave the iframe directly and
+    # do:
+    #   - the raw-fetch SSE stream (api/meetingEvents.ts, api/sseClient.ts),
+    #     which cannot move to Forge Remote because Forge Remote buffers
+    #     response bodies and cannot deliver `text/event-stream`
     #   - LiveKit signalling (room.connect in the meeting room)
     #
     # The gateway is referenced as `- remote: meet-backend` rather than repeated

@@ -4,12 +4,14 @@
  * of squeezed inside the narrow Issue Panel iframe. Standalone `vite dev` has
  * no Forge bridge, so it falls back to the local in-page
  * <StartInstantMeetingModal> (isDevOpen/devPayload) instead — see call sites.
- * Mirrors `hooks/useIssuePanelScheduleModal.ts`.
+ * Mirrors `hooks/useIssuePanelScheduleModal.ts`, including copying the numeric
+ * Jira identifiers from `api/backendContext.ts` into the modal payload.
  */
 
 import { Modal as ForgeModal } from '@forge/bridge';
 import { useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
+import { getBackendContext } from '../api/backendContext';
 import {
     INSTANT_MEETING_MODAL_KIND,
     type InstantMeetingModalContext,
@@ -36,6 +38,7 @@ export function useIssuePanelInstantModal(
         const context: InstantMeetingModalContext = {
             kind: INSTANT_MEETING_MODAL_KIND,
             ...payload,
+            ...getBackendContext(),
         };
         new ForgeModal({
             context,

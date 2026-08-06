@@ -69,9 +69,11 @@ in-page modals under `vite dev`.
 **Transports** (`static/smiski-ui/src/api/`):
 
 - `forgeRemoteFetch.ts` — `fetch`-shaped adapter injected into
-  `@smiskinext/smiski-ts` so backend calls go through
-  `requestRemote('meet-backend')`; Forge attaches the FIT and the app asserts no
-  tenant/account identity itself.
+  `@smiskinext/smiski-ts` so backend calls go through `invokeRemote`, resolved
+  via the module's `resolver.endpoint`; the Forge platform proxy attaches the
+  FIT **and** the app system token (`x-forge-oauth-system`), which
+  `requestRemote` cannot. The adapter injects `x-issue-id` / `x-project-id` from
+  `api/backendContext.ts` and asserts no tenant/account identity itself.
 - `jiraSdkFetch.ts` — same trick for `@smiskinext/sdks-jira` over `requestJira`
   (`workspaceUsers.ts`, `meetingPermission.ts`). `currentUser.ts` / `issues.ts`
   / `projectMembers.ts` call `requestJira` raw.
