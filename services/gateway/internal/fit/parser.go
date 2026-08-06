@@ -8,13 +8,20 @@ import (
 	"strings"
 )
 
+// Environment holds the Forge deployment environment nested under the FIT
+// "app.environment" claim.
+type Environment struct {
+	ID string `json:"id"`
+}
+
 // App holds the Forge application and installation context nested under the
 // FIT "app" claim.
 type App struct {
-	ID             string `json:"id"`
-	InstallationID string `json:"installationId"`
-	APIBaseURL     string `json:"apiBaseUrl"`
-	AppVersion     string `json:"appVersion"`
+	ID             string      `json:"id"`
+	InstallationID string      `json:"installationId"`
+	APIBaseURL     string      `json:"apiBaseUrl"`
+	AppVersion     string      `json:"appVersion"`
+	Environment    Environment `json:"environment"`
 }
 
 // Context holds the product context nested under the FIT "context" claim.
@@ -36,10 +43,14 @@ type Claims struct {
 }
 
 // ParsedFIT carries the identity derived from a Forge Invocation Token.
+// AppID and EnvironmentID are the bare UUIDs needed to qualify custom
+// permission identifiers sent to Jira.
 type ParsedFIT struct {
-	CloudID   string
-	AccountID string
-	Claims    Claims
+	CloudID       string
+	AccountID     string
+	AppID         string
+	EnvironmentID string
+	Claims        Claims
 }
 
 var (
@@ -84,11 +95,45 @@ func Parse(token string) (*ParsedFIT, error) {
 		return nil, err
 	}
 
+	appID, err := resolveARISegment(claims.App.ID, "app.id")
+	if err != nil {
+		return nil, err
+	}
+
+	environmentID, err := resolveARISegment(claims.App.Environment.ID, "app.environment.id")
+	if err != nil {
+		return nil, err
+	}
+
 	return &ParsedFIT{
-		CloudID:   cloudID,
-		AccountID: extractAccountID(claims.Principal),
-		Claims:    claims,
+		CloudID:       cloudID,
+		AccountID:     extractAccountID(claims.Principal),
+		AppID:         appID,
+		EnvironmentID: environmentID,
+		Claims:        claims,
 	}, nil
+}
+
+// resolveARISegment reads the identifying UUID from an Atlassian Resource
+// Identifier. Atlassian documents the environment ARI both as
+// ari:cloud:ecosystem::environment/{envId} and as
+// ari:cloud:ecosystem::environment/{appId}/{envId}, so the trailing
+// slash-separated segment is taken rather than a fixed positional index.
+func resolveARISegment(ari, claimName string) (string, error) {
+	if ari == "" {
+		return "", fmt.Errorf("%w: %s claim missing", ErrMissingClaims, claimName)
+	}
+
+	segment := ari
+	if idx := strings.LastIndex(ari, "/"); idx != -1 {
+		segment = ari[idx+1:]
+	}
+
+	if segment == "" {
+		return "", fmt.Errorf("%w: %s claim has an empty trailing segment", ErrMissingClaims, claimName)
+	}
+
+	return segment, nil
 }
 
 // resolveCloudID prefers the explicit context.cloudId claim and falls back to

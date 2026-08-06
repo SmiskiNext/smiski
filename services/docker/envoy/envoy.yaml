@@ -175,7 +175,7 @@ static_resources:
                                               ignore_case: true
                                             - exact: x-issue-id
                                               ignore_case: true
-                                            - exact: x-project-key
+                                            - exact: x-project-id
                                               ignore_case: true
                                             - exact: x-forge-oauth-system
                                               ignore_case: true

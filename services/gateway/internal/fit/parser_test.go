@@ -22,6 +22,9 @@ func validClaims() Claims {
 			InstallationID: "ari:cloud:ecosystem::installation/test-installation",
 			APIBaseURL:     "https://api.atlassian.com/ex/jira/" + testCloudID,
 			AppVersion:     "1.0.0",
+			Environment: Environment{
+				ID: "ari:cloud:ecosystem::environment/test-env-id",
+			},
 		},
 		Context:   Context{CloudID: testCloudID},
 		Principal: testPrincipal,
@@ -42,6 +45,14 @@ func TestParse_ValidToken(t *testing.T) {
 
 	if result.AccountID != testAccountID {
 		t.Errorf("expected accountId %q, got %q", testAccountID, result.AccountID)
+	}
+
+	if result.AppID != "test-app-id" {
+		t.Errorf("expected appId %q, got %q", "test-app-id", result.AppID)
+	}
+
+	if result.EnvironmentID != "test-env-id" {
+		t.Errorf("expected environmentId %q, got %q", "test-env-id", result.EnvironmentID)
 	}
 
 	if result.Claims.Principal != testPrincipal {
@@ -117,7 +128,10 @@ func TestParse_NestedAppObjectDecoded(t *testing.T) {
 			"id": "ari:cloud:ecosystem::app/test-app-id",
 			"installationId": "ari:cloud:ecosystem::installation/test",
 			"apiBaseUrl": "https://api.atlassian.com/ex/jira/` + testCloudID + `",
-			"appVersion": "2.0.0"
+			"appVersion": "2.0.0",
+			"environment": {
+				"id": "ari:cloud:ecosystem::environment/test-env-id"
+			}
 		},
 		"context": {"cloudId": "` + testCloudID + `"},
 		"principal": "` + testPrincipal + `",
@@ -138,6 +152,10 @@ func TestParse_NestedAppObjectDecoded(t *testing.T) {
 
 	if result.Claims.App.AppVersion != "2.0.0" {
 		t.Errorf("expected appVersion '2.0.0', got %q", result.Claims.App.AppVersion)
+	}
+
+	if result.Claims.App.Environment.ID == "" {
+		t.Error("expected nested app.environment.id to be decoded")
 	}
 
 	if result.Claims.ExpiresAt != 1700175174 {
@@ -271,6 +289,76 @@ func TestParse_WithBearerPrefix(t *testing.T) {
 
 	if result.CloudID != testCloudID {
 		t.Errorf("expected cloudId %q, got %q", testCloudID, result.CloudID)
+	}
+}
+
+func TestParse_EnvironmentID_SingleSegmentForm(t *testing.T) {
+	claims := validClaims()
+	claims.App.Environment.ID = "ari:cloud:ecosystem::environment/single-env-uuid"
+
+	result, err := Parse(createTestToken(claims))
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	if result.EnvironmentID != "single-env-uuid" {
+		t.Errorf("expected environmentId %q, got %q", "single-env-uuid", result.EnvironmentID)
+	}
+}
+
+func TestParse_EnvironmentID_TwoSegmentForm(t *testing.T) {
+	claims := validClaims()
+	claims.App.Environment.ID = "ari:cloud:ecosystem::environment/app-uuid/env-uuid"
+
+	result, err := Parse(createTestToken(claims))
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	if result.EnvironmentID != "env-uuid" {
+		t.Errorf("expected environmentId %q (trailing segment), got %q", "env-uuid", result.EnvironmentID)
+	}
+}
+
+func TestParse_MissingEnvironmentID(t *testing.T) {
+	claims := validClaims()
+	claims.App.Environment.ID = ""
+
+	_, err := Parse(createTestToken(claims))
+	if err == nil {
+		t.Fatal("expected error for missing app.environment.id, got nil")
+	}
+
+	if !errors.Is(err, ErrMissingClaims) {
+		t.Errorf("expected ErrMissingClaims, got %v", err)
+	}
+}
+
+func TestParse_MissingAppID(t *testing.T) {
+	claims := validClaims()
+	claims.App.ID = ""
+
+	_, err := Parse(createTestToken(claims))
+	if err == nil {
+		t.Fatal("expected error for missing app.id, got nil")
+	}
+
+	if !errors.Is(err, ErrMissingClaims) {
+		t.Errorf("expected ErrMissingClaims, got %v", err)
+	}
+}
+
+func TestParse_EmptyTrailingSegment(t *testing.T) {
+	claims := validClaims()
+	claims.App.Environment.ID = "ari:cloud:ecosystem::environment/"
+
+	_, err := Parse(createTestToken(claims))
+	if err == nil {
+		t.Fatal("expected error for empty trailing segment, got nil")
+	}
+
+	if !errors.Is(err, ErrMissingClaims) {
+		t.Errorf("expected ErrMissingClaims, got %v", err)
 	}
 }
 

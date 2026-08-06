@@ -2,6 +2,7 @@ package authz
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"testing"
 
@@ -172,11 +173,119 @@ func TestCheck_AuthorizationFailed(t *testing.T) {
 	}
 }
 
+func TestCheck_MissingSystemToken(t *testing.T) {
+	mockAuthz := &mockAuthzService{
+		authorizeFunc: func(ctx context.Context, req *AuthzRequest) (*AuthzResult, error) {
+			if req.SystemToken != "" {
+				t.Errorf("expected an empty system token, got %q", req.SystemToken)
+			}
+			return nil, fmt.Errorf("checking jira permissions: %w", ErrMissingSystemToken)
+		},
+	}
+
+	server := NewServer(mockAuthz)
+
+	checkReq := &envoy_service_auth_v3.CheckRequest{
+		Attributes: &envoy_service_auth_v3.AttributeContext{
+			Request: &envoy_service_auth_v3.AttributeContext_Request{
+				Http: &envoy_service_auth_v3.AttributeContext_HttpRequest{
+					Headers: map[string]string{
+						"authorization": "Bearer test-token",
+						"x-issue-id":    "10001",
+					},
+				},
+			},
+		},
+	}
+
+	resp, err := server.Check(context.Background(), checkReq)
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	if resp.Status.Code != int32(codes.Internal) {
+		t.Errorf("expected gRPC status Internal (%d), got %v", int32(codes.Internal), resp.Status.Code)
+	}
+
+	if resp.Status.Message != missingSystemTokenMessage {
+		t.Errorf("expected gRPC status message %q, got %q", missingSystemTokenMessage, resp.Status.Message)
+	}
+
+	deniedResp := resp.GetDeniedResponse()
+	if deniedResp == nil {
+		t.Fatal("expected DeniedResponse, got nil")
+	}
+
+	if deniedResp.Status.Code != 500 {
+		t.Errorf("expected HTTP 500, got %d", deniedResp.Status.Code)
+	}
+
+	var body map[string]string
+	if err := json.Unmarshal([]byte(deniedResp.Body), &body); err != nil {
+		t.Fatalf("expected a JSON body, got %q: %v", deniedResp.Body, err)
+	}
+
+	if body["error"] != configurationErrorCode {
+		t.Errorf("expected error=%q, got %q", configurationErrorCode, body["error"])
+	}
+
+	if body["message"] != missingSystemTokenMessage {
+		t.Errorf("expected message=%q, got %q", missingSystemTokenMessage, body["message"])
+	}
+}
+
+func TestCheck_ProjectIDHeaderReachesAuthzRequest(t *testing.T) {
+	var captured *AuthzRequest
+
+	mockAuthz := &mockAuthzService{
+		authorizeFunc: func(ctx context.Context, req *AuthzRequest) (*AuthzResult, error) {
+			captured = req
+			return &AuthzResult{
+				CloudID:     "abc123",
+				AccountID:   "user456",
+				Permissions: []string{},
+			}, nil
+		},
+	}
+
+	server := NewServer(mockAuthz)
+
+	checkReq := &envoy_service_auth_v3.CheckRequest{
+		Attributes: &envoy_service_auth_v3.AttributeContext{
+			Request: &envoy_service_auth_v3.AttributeContext_Request{
+				Http: &envoy_service_auth_v3.AttributeContext_HttpRequest{
+					Headers: map[string]string{
+						"authorization":        "Bearer test-token",
+						"x-project-id":         "10002",
+						"x-forge-oauth-system": "system-token",
+					},
+				},
+			},
+		},
+	}
+
+	if _, err := server.Check(context.Background(), checkReq); err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	if captured == nil {
+		t.Fatal("expected the authorization service to be called")
+	}
+
+	if captured.ProjectID != "10002" {
+		t.Errorf("expected ProjectID=10002 to be carried from the x-project-id header, got %q", captured.ProjectID)
+	}
+
+	if captured.IssueID != "" {
+		t.Errorf("expected an empty IssueID when no x-issue-id header is sent, got %q", captured.IssueID)
+	}
+}
+
 func TestGetHeader_CaseInsensitive(t *testing.T) {
 	headers := map[string]string{
 		"Authorization": "Bearer token",
 		"x-issue-id":    "10001",
-		"X-Project-Key": "PROJ",
+		"X-Project-Id":  "10002",
 	}
 
 	if val := getHeader(headers, "authorization"); val != "Bearer token" {
@@ -187,8 +296,8 @@ func TestGetHeader_CaseInsensitive(t *testing.T) {
 		t.Errorf("expected to find 'x-issue-id', got %s", val)
 	}
 
-	if val := getHeader(headers, "x-project-key"); val != "PROJ" {
-		t.Errorf("expected to find 'X-Project-Key', got %s", val)
+	if val := getHeader(headers, "x-project-id"); val != "10002" {
+		t.Errorf("expected to find 'X-Project-Id', got %s", val)
 	}
 
 	if val := getHeader(headers, "missing-header"); val != "" {
