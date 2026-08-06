@@ -145,8 +145,17 @@ remotes:
 resources:
     # Single Vite build output shared by both modules.
     # `pnpm --filter smiski-ui build` emits to static/smiski-ui/dist
+    #
+    # `tunnel.port` makes `forge tunnel` bypass `path` and proxy to the Vite dev
+    # server instead, so the app hot-reloads while still rendering inside a real
+    # Jira module with a live Forge bridge. There is no standalone preview: the
+    # UI reads its context from `view.getContext()` and renders an error without
+    # it. Keep the port in sync with `static/smiski-ui/vite.config.ts`, which
+    # pins the same value with `strictPort`.
     - key: main
       path: static/smiski-ui/dist
+      tunnel:
+          port: 5173
 
 permissions:
     scopes:

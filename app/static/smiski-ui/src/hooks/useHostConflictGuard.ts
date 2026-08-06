@@ -12,6 +12,10 @@
  * `StartInstantMeetingButton`'s own reactive `useHostConflict`), either
  * approach works; this one stays consistent across both cases.
  *
+ * The check is advisory: when it cannot be reached, `guard` treats the result
+ * as "no conflict" and runs the action anyway, because an unreachable
+ * conflict check must not block the action the user asked for.
+ *
  * `presentation: 'platform-modal'` pops the confirmation out to a Forge
  * platform modal (for narrow Forge surfaces like the Issue Panel — mirrors
  * `StartInstantMeetingButton`'s existing convention); `'inline'` renders
@@ -44,10 +48,6 @@ export function useHostConflictGuard(
         excludingIssueKey: string | undefined,
         action: () => void,
     ) => {
-        // Standalone `vite dev` has no Forge bridge to reach the resolver
-        // through (see `useHostConflict`'s equivalent fallback) — treat a
-        // failed check as "no conflict" rather than silently swallowing the
-        // action.
         const conflictingMeeting = await findRunningMeetingHostedByUser(
             currentUser.accountId,
             excludingIssueKey,
@@ -56,7 +56,7 @@ export function useHostConflictGuard(
             action();
             return;
         }
-        if (presentation === 'inline' || import.meta.env.DEV) {
+        if (presentation === 'inline') {
             setPending({ conflictingMeeting, action });
             return;
         }

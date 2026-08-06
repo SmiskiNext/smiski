@@ -125,7 +125,6 @@ function expectIdentifiersCarried() {
 
 describe('platform-modal openers carry the published Jira identifiers', () => {
     beforeEach(() => {
-        vi.stubEnv('DEV', false);
         modalOpened.mockReset();
         cancelMutate.mockReset();
         endMutate.mockReset();
@@ -215,7 +214,6 @@ describe('platform-modal openers carry the published Jira identifiers', () => {
 
 describe('a modal payload cannot erase the published identifiers', () => {
     beforeEach(() => {
-        vi.stubEnv('DEV', false);
         modalOpened.mockReset();
         clearBackendContext();
         setBackendContext({ issueId: ISSUE_ID, projectId: PROJECT_ID });

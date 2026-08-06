@@ -1,12 +1,12 @@
 /**
  * useRoomToken — mints a LiveKit room access token for the current user +
  * meeting, via the backend `join` operation (`api/meetings.ts`'s
- * `getRoomToken`, built on `joinMeeting`). Disabled in standalone `vite dev`
- * — there is no Forge bridge to reach outside a real Forge tunnel/deployment,
- * so there is no meaningful mock to fall back to (see `useLiveKitRoom.ts` for
- * how the meeting room degrades gracefully when this is disabled). May
- * already be cached by `useStartMeeting`, which seeds this same query key
- * from its own `join` call so the room screen doesn't re-request a token.
+ * `getRoomToken`, built on `joinMeeting`). Callers pass `enabled` to hold the
+ * request back until the room screen actually wants a token (see
+ * `useLiveKitRoom.ts` for how the meeting room degrades gracefully while it
+ * is disabled). May already be cached by `useStartMeeting`, which seeds this
+ * same query key from its own `join` call so the room screen doesn't
+ * re-request a token.
  */
 import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
@@ -52,7 +52,7 @@ export function useRoomToken(
                 setWaitingForApproval(false);
             }
         },
-        enabled: enabled && Boolean(meetingId) && !import.meta.env.DEV,
+        enabled: enabled && Boolean(meetingId),
         staleTime: Infinity,
         retry: false,
     });

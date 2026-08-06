@@ -1,16 +1,13 @@
 /**
  * Opens the Start-instant-meeting form as a full-screen Forge platform modal
  * (`@forge/bridge`'s Modal) so it renders over the whole product window instead
- * of squeezed inside the narrow Issue Panel iframe. Standalone `vite dev` has
- * no Forge bridge, so it falls back to the local in-page
- * <StartInstantMeetingModal> (isDevOpen/devPayload) instead — see call sites.
+ * of squeezed inside the narrow Issue Panel iframe.
  * Mirrors `hooks/useIssuePanelScheduleModal.ts`, including copying the numeric
  * Jira identifiers from `api/backendContext.ts` into the modal payload.
  */
 
 import { Modal as ForgeModal } from '@forge/bridge';
 import { useQueryClient } from '@tanstack/react-query';
-import { useState } from 'react';
 import { getBackendContext } from '../api/backendContext';
 import {
     INSTANT_MEETING_MODAL_KIND,
@@ -26,15 +23,9 @@ export interface OpenInstantMeetingPayload {
 export function useIssuePanelInstantModal(
     onStarted?: (meetingId: string) => void,
 ) {
-    const [devPayload, setDevPayload] =
-        useState<OpenInstantMeetingPayload | null>(null);
     const queryClient = useQueryClient();
 
     const open = (payload: OpenInstantMeetingPayload) => {
-        if (import.meta.env.DEV) {
-            setDevPayload(payload);
-            return;
-        }
         const context: InstantMeetingModalContext = {
             kind: INSTANT_MEETING_MODAL_KIND,
             ...payload,
@@ -52,10 +43,5 @@ export function useIssuePanelInstantModal(
         }).open();
     };
 
-    return {
-        open,
-        isDevOpen: devPayload !== null,
-        devPayload,
-        closeDev: () => setDevPayload(null),
-    };
+    return { open };
 }

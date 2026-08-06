@@ -9,9 +9,9 @@ export interface ActiveMeetingWarningDialogProps {
 }
 
 /**
- * Shared confirmation content for standalone development and the Forge modal
- * iframe. Keeping the decision UI in one component prevents the two surfaces
- * from drifting apart as the workflow evolves.
+ * Shared confirmation content for the inline dashboard dialog and the Forge
+ * platform modal iframe. Keeping the decision UI in one component prevents the
+ * two surfaces from drifting apart as the workflow evolves.
  */
 export function ActiveMeetingWarningDialog({
     conflictingMeeting,

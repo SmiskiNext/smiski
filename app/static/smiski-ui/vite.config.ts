@@ -41,6 +41,14 @@ function defineDeploymentVariables(mode: string): Record<string, string> {
 }
 
 /**
+ * Port the dev server binds, kept in sync with `app/manifest.yml`'s
+ * `resources[key: main].tunnel.port` so `forge tunnel` proxies the Custom UI
+ * to this server. `strictPort` fails fast instead of drifting to the next free
+ * port, which would leave the tunnel proxying an address nothing listens on.
+ */
+const DEV_SERVER_PORT = 5173;
+
+/**
  * Vite config for the Smiski Custom UI bundle.
  *
  * - `base: './'` — Forge serves the bundle from a relative path, so assets must
@@ -50,6 +58,8 @@ function defineDeploymentVariables(mode: string): Record<string, string> {
  * - Tailwind owns the complete visual layer. Forge/Jira theme information is
  *   translated to app CSS variables in ThemeProvider.
  * - `define` — mirrors the manifest deployment variables into the bundle.
+ * - `server` — pinned for `forge tunnel`; the app renders only inside a real
+ *   Forge module, so this server is reached through the tunnel, never directly.
  */
 export default defineConfig(({ mode }) => ({
     plugins: [react(), tailwindcss()],
@@ -60,6 +70,10 @@ export default defineConfig(({ mode }) => ({
         },
     },
     define: defineDeploymentVariables(mode),
+    server: {
+        port: DEV_SERVER_PORT,
+        strictPort: true,
+    },
     build: {
         outDir: 'dist',
         emptyOutDir: true,

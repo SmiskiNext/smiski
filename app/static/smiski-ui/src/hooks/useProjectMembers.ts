@@ -3,14 +3,12 @@
  * meeting-participant picker (Schedule Meeting, Start Instant Meeting) and
  * the dashboard's "creator" filter.
  *
- * Data source switches by environment, same pattern as `useProjectIssues`:
- * standalone `vite dev` has no Forge bridge, so it reads the mock user
- * directory; a real Forge context calls Jira directly via `requestJira`.
+ * Members always come from Jira directly via `requestJira`, so a Forge context
+ * is required.
  */
 import { useQuery } from '@tanstack/react-query';
 import { getProjectMembers } from '../api/projectMembers';
 import type { ProjectMember } from '../domain';
-import { listProjectMembers } from '../mocks/projectMembers';
 import { queryKeys } from './queryKeys';
 
 export interface UseProjectMembersResult {
@@ -24,10 +22,7 @@ export function useProjectMembers(
 ): UseProjectMembersResult {
     const result = useQuery({
         queryKey: queryKeys.projectMembers(projectKey ?? ''),
-        queryFn: () =>
-            import.meta.env.DEV
-                ? listProjectMembers(projectKey as string)
-                : getProjectMembers(projectKey as string),
+        queryFn: () => getProjectMembers(projectKey as string),
         enabled: Boolean(projectKey),
         staleTime: 30_000,
     });

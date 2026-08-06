@@ -1,7 +1,5 @@
 import { Modal as ForgeModal } from '@forge/bridge';
-import { useState } from 'react';
 import { getBackendContext } from '../../api/backendContext';
-import { ActiveMeetingWarningDialog } from '../../components/shared';
 import { Button, Icon } from '../../components/ui';
 import { useHostConflict } from '../../hooks/useHostConflict';
 import {
@@ -37,7 +35,6 @@ export function StartInstantMeetingButton({
     className,
     onOpenInstantModal,
 }: StartInstantMeetingButtonProps) {
-    const [isConfirmOpen, setConfirmOpen] = useState(false);
     const { conflictingMeeting } = useHostConflict(issueKey);
 
     const openForm = () =>
@@ -49,11 +46,6 @@ export function StartInstantMeetingButton({
             || !shouldWarnBeforeInstant(conflictingMeeting)
         ) {
             openForm();
-            return;
-        }
-
-        if (import.meta.env.DEV) {
-            setConfirmOpen(true);
             return;
         }
 
@@ -72,27 +64,15 @@ export function StartInstantMeetingButton({
     };
 
     return (
-        <>
-            <Button
-                variant='primary'
-                size='sm'
-                className={className}
-                leadingIcon={<Icon name='video' size={15} />}
-                onClick={handleClick}
-                disabled={disabled}
-            >
-                Start instant
-            </Button>
-            {import.meta.env.DEV && isConfirmOpen && conflictingMeeting && (
-                <ActiveMeetingWarningDialog
-                    conflictingMeeting={conflictingMeeting}
-                    onClose={() => setConfirmOpen(false)}
-                    onConfirm={() => {
-                        setConfirmOpen(false);
-                        openForm();
-                    }}
-                />
-            )}
-        </>
+        <Button
+            variant='primary'
+            size='sm'
+            className={className}
+            leadingIcon={<Icon name='video' size={15} />}
+            onClick={handleClick}
+            disabled={disabled}
+        >
+            Start instant
+        </Button>
     );
 }

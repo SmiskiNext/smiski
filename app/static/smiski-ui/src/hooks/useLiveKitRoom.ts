@@ -4,10 +4,9 @@
  * list shaped for `ParticipantVideoTile`/`ParticipantVideoGrid`.
  *
  * `role` is hardcoded to 'PARTICIPANT' for every entry here: LiveKit has no
- * concept of meeting "host" — that lives in the (still-mocked) meeting
- * roster, whose accountIds won't line up with real Jira accountIds during a
- * live trial. The HOST badge simply won't render for real participants;
- * that's an accepted prototype simplification, not a bug.
+ * concept of meeting "host" — that lives in the backend meeting roster, which
+ * this hook does not read. Callers that need the HOST badge resolve it from
+ * that roster instead of from the live LiveKit participant list.
  */
 
 import {

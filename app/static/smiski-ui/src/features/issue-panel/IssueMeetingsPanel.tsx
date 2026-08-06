@@ -10,22 +10,20 @@
  * (`useNavigateToMeetingRoom`) — Issue Panel and Project Page are separate
  * Forge modules/iframes, so this narrow panel never has room to render the
  * meeting itself.
+ *
+ * Every dialog this surface triggers opens as a Forge platform modal over the
+ * whole product window (`hooks/useIssuePanel*Modal.ts`), so the panel itself
+ * renders no dialogs inline.
  */
 import { useState } from 'react';
 import {
-    ActiveMeetingWarningDialog,
-    ConfirmMeetingActionDialog,
     EmptyState,
     ErrorState,
     InlineFeedback,
     LoadingState,
     MeetingActionMenu,
     MeetingCard,
-    MeetingDetailDialog,
-    MeetingSettingsModal,
     NoPermissionState,
-    ScheduleMeetingModal,
-    StartInstantMeetingModal,
 } from '../../components/shared';
 import { Button, Icon } from '../../components/ui';
 import type { CurrentIssueContextValue, MeetingAction } from '../../domain';
@@ -37,7 +35,6 @@ import { useIssuePanelMeetingDetailModal } from '../../hooks/useIssuePanelMeetin
 import { useIssuePanelScheduleModal } from '../../hooks/useIssuePanelScheduleModal';
 import { useIssuePanelSettingsModal } from '../../hooks/useIssuePanelSettingsModal';
 import { useStartMeeting } from '../../hooks/useMeetingMutations';
-import { useMeetingParticipants } from '../../hooks/useMeetingParticipants';
 import { useMeetingPermissions } from '../../hooks/useMeetingPermission';
 import { useNavigateToMeetingRoom } from '../../hooks/useNavigateToMeetingRoom';
 import { IssueMeetingsFilterBar } from './IssueMeetingsFilterBar';
@@ -49,25 +46,16 @@ import { StartInstantMeetingButton } from './StartInstantMeetingButton';
 
 export interface IssueMeetingsPanelProps {
     issue: CurrentIssueContextValue;
-    /** DEV-only: standalone `pnpm ui:dev` has no real Forge modules to
-     * navigate between, so this drives the same surface flip a real
-     * Issue-Panel-to-Project-Page navigation would otherwise cause. */
-    onDevNavigateToProjectPage?: () => void;
 }
 
-export function IssueMeetingsPanel({
-    issue,
-    onDevNavigateToProjectPage,
-}: IssueMeetingsPanelProps) {
+export function IssueMeetingsPanel({ issue }: IssueMeetingsPanelProps) {
     const permissions = useMeetingPermissions(issue.projectKey);
     const { meetings, loading, error } = useIssueMeetings(
         issue.issueKey,
         issue.projectKey,
         permissions.canViewMeeting && !permissions.isLoading,
     );
-    const openMeetingRoom = useNavigateToMeetingRoom(
-        onDevNavigateToProjectPage,
-    );
+    const openMeetingRoom = useNavigateToMeetingRoom();
 
     const [filter, setFilter] = useState<IssueMeetingsFilterValue>({});
     const [feedback, setFeedback] = useState<{
@@ -91,11 +79,6 @@ export function IssueMeetingsPanel({
         'platform-modal',
     );
     const startMeeting = useStartMeeting();
-    const { participants, loading: participantsLoading } =
-        useMeetingParticipants(
-            detailModal.devMeeting?.id,
-            detailModal.devMeeting?.projectKey,
-        );
 
     const visibleMeetings = filterAndSortIssueMeetings(meetings, filter);
 
@@ -232,81 +215,6 @@ export function IssueMeetingsPanel({
                     appearance={feedback.appearance}
                     message={feedback.message}
                     onDismiss={() => setFeedback(null)}
-                />
-            )}
-
-            {import.meta.env.DEV && (
-                <ScheduleMeetingModal
-                    isOpen={scheduleModal.isDevOpen}
-                    issueKey={issue.issueKey}
-                    projectKey={issue.projectKey}
-                    meeting={scheduleModal.devPayload?.meeting}
-                    onClose={scheduleModal.closeDev}
-                    onSubmitted={() => {
-                        showSuccess(
-                            scheduleModal.devPayload?.meeting
-                                ? 'Meeting updated.'
-                                : 'Meeting scheduled.',
-                        );
-                        scheduleModal.closeDev();
-                    }}
-                />
-            )}
-
-            {import.meta.env.DEV && instantModal.isDevOpen && (
-                <StartInstantMeetingModal
-                    isOpen
-                    issueKey={
-                        instantModal.devPayload?.issueKey ?? issue.issueKey
-                    }
-                    projectKey={
-                        instantModal.devPayload?.projectKey ?? issue.projectKey
-                    }
-                    onClose={instantModal.closeDev}
-                    onStarted={(meetingId) => {
-                        instantModal.closeDev();
-                        openMeetingRoom(issue.projectKey, meetingId);
-                    }}
-                />
-            )}
-
-            {import.meta.env.DEV && detailModal.devMeeting && (
-                <MeetingDetailDialog
-                    meeting={detailModal.devMeeting}
-                    participants={participants}
-                    isLoading={participantsLoading}
-                    onClose={detailModal.closeDev}
-                />
-            )}
-
-            {import.meta.env.DEV && settingsModal.devMeetingId && (
-                <MeetingSettingsModal
-                    isOpen
-                    meetingId={settingsModal.devMeetingId}
-                    onClose={settingsModal.closeDev}
-                    onSaved={() => {
-                        settingsModal.closeDev();
-                        showSuccess('Meeting settings saved.');
-                    }}
-                />
-            )}
-
-            {import.meta.env.DEV && hostConflictGuard.conflictingMeeting && (
-                <ActiveMeetingWarningDialog
-                    conflictingMeeting={hostConflictGuard.conflictingMeeting}
-                    onClose={hostConflictGuard.dismiss}
-                    onConfirm={hostConflictGuard.confirm}
-                />
-            )}
-
-            {import.meta.env.DEV && confirmAction.pending && (
-                <ConfirmMeetingActionDialog
-                    action={confirmAction.pending.action}
-                    meeting={confirmAction.pending.meeting}
-                    isLoading={confirmAction.isLoading}
-                    error={confirmAction.error}
-                    onConfirm={confirmAction.confirm}
-                    onClose={confirmAction.dismiss}
                 />
             )}
         </section>

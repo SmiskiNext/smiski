@@ -20,11 +20,14 @@ export interface MeetingRoomProps {
     onLeave: () => void;
 }
 
-// Standalone `pnpm ui:dev` has no Forge bridge to reach `getRoomToken`
-// through, so LiveKit is fully disabled there — see useRoomToken.ts /
-// MeetingRoomShell.tsx's local-state fallback for how the room still renders.
-const isLiveKitEnabled = !import.meta.env.DEV;
-
+/**
+ * Live meeting room for the project page surface: joins the LiveKit room
+ * behind `meetingId` and renders it through `MeetingRoomShell`.
+ *
+ * The displayed roster follows a three-tier precedence — LiveKit's real-time
+ * roster wins once connected, the backend meeting roster comes next, and a
+ * self-only placeholder covers the window before either has loaded.
+ */
 export function MeetingRoom({ meetingId, onLeave }: MeetingRoomProps) {
     const currentUser = useCurrentUser();
     const { meeting, loading } = useMeeting(meetingId);
@@ -39,8 +42,8 @@ export function MeetingRoom({ meetingId, onLeave }: MeetingRoomProps) {
         loading: roomTokenLoading,
         waitingForApproval,
         error: roomTokenError,
-    } = useRoomToken(meetingId, isLiveKitEnabled);
-    const liveKit = useLiveKitRoom({ token, url, enabled: isLiveKitEnabled });
+    } = useRoomToken(meetingId);
+    const liveKit = useLiveKitRoom({ token, url, enabled: true });
     const liveKitError = roomTokenError ?? liveKit.error;
 
     if (loading)
@@ -62,14 +65,14 @@ export function MeetingRoom({ meetingId, onLeave }: MeetingRoomProps) {
             </div>
         );
 
-    if (isLiveKitEnabled && roomTokenLoading)
+    if (roomTokenLoading)
         return (
             <div className='p-6'>
                 <LoadingState label='Requesting access to the meeting…' />
             </div>
         );
 
-    if (isLiveKitEnabled && roomTokenError && !token)
+    if (roomTokenError && !token)
         return (
             <div className='p-6'>
                 <ErrorState
@@ -84,24 +87,20 @@ export function MeetingRoom({ meetingId, onLeave }: MeetingRoomProps) {
             </div>
         );
 
-    // LiveKit's real roster (once connected) takes priority over the mocked
-    // meeting roster, which in turn beats the self-only placeholder — same
-    // three-tier fallback as before LiveKit existed, just with a new top tier.
     const roomParticipants: (
         | Participant
         | (typeof liveKit.participants)[number]
-    )[] =
-        isLiveKitEnabled && liveKit.participants.length
-            ? liveKit.participants
-            : participants.length
-              ? participants
-              : [
-                    {
-                        accountId: currentUser.accountId,
-                        displayName: currentUser.displayName,
-                        role: 'HOST',
-                    },
-                ];
+    )[] = liveKit.participants.length
+        ? liveKit.participants
+        : participants.length
+          ? participants
+          : [
+                {
+                    accountId: currentUser.accountId,
+                    displayName: currentUser.displayName,
+                    role: 'HOST',
+                },
+            ];
 
     const selfAccountId = liveKit.localAccountId ?? currentUser.accountId;
     const isHost = meeting?.hostId === currentUser.accountId;
@@ -133,7 +132,7 @@ export function MeetingRoom({ meetingId, onLeave }: MeetingRoomProps) {
                     {meeting?.issueKey ?? meeting?.projectKey}
                 </span>
             </div>
-            {isLiveKitEnabled && liveKitError && (
+            {liveKitError && (
                 <div className='mb-3'>
                     <ErrorState
                         title="Couldn't connect to the video call"
@@ -153,37 +152,15 @@ export function MeetingRoom({ meetingId, onLeave }: MeetingRoomProps) {
                             setPeoplePanelOpen((value) => !value)
                         }
                         onLeave={handleLeave}
-                        isMicOn={isLiveKitEnabled ? liveKit.isMicOn : undefined}
-                        isCameraOn={
-                            isLiveKitEnabled ? liveKit.isCameraOn : undefined
-                        }
-                        isScreenSharing={
-                            isLiveKitEnabled
-                                ? liveKit.isScreenSharing
-                                : undefined
-                        }
-                        screenShare={
-                            isLiveKitEnabled ? liveKit.screenShare : null
-                        }
-                        onToggleMic={
-                            isLiveKitEnabled ? liveKit.toggleMic : undefined
-                        }
-                        onToggleCamera={
-                            isLiveKitEnabled ? liveKit.toggleCamera : undefined
-                        }
-                        onToggleScreenShare={
-                            isLiveKitEnabled
-                                ? liveKit.toggleScreenShare
-                                : undefined
-                        }
-                        mediaNotice={
-                            isLiveKitEnabled ? liveKit.mediaNotice : undefined
-                        }
-                        connectionState={
-                            isLiveKitEnabled
-                                ? liveKit.connectionState
-                                : undefined
-                        }
+                        isMicOn={liveKit.isMicOn}
+                        isCameraOn={liveKit.isCameraOn}
+                        isScreenSharing={liveKit.isScreenSharing}
+                        screenShare={liveKit.screenShare}
+                        onToggleMic={liveKit.toggleMic}
+                        onToggleCamera={liveKit.toggleCamera}
+                        onToggleScreenShare={liveKit.toggleScreenShare}
+                        mediaNotice={liveKit.mediaNotice}
+                        connectionState={liveKit.connectionState}
                         onOpenSettings={() => setSettingsOpen(true)}
                     />
                 </div>

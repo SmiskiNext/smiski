@@ -1,7 +1,5 @@
 /**
  * Opens meeting details above Jira rather than inside the Issue Panel iframe.
- * Standalone Vite development cannot create Forge platform modals, so callers
- * receive a local fallback meeting to render with the same shared dialog.
  *
  * The dialog loads its participant roster from the backend inside that
  * iframe, so it carries the numeric Jira identifiers published to
@@ -9,7 +7,6 @@
  */
 
 import { Modal as ForgeModal } from '@forge/bridge';
-import { useState } from 'react';
 import { getBackendContext } from '../api/backendContext';
 import type { Meeting } from '../domain';
 import {
@@ -18,14 +15,7 @@ import {
 } from '../utils/issuePanelModalContext';
 
 export function useIssuePanelMeetingDetailModal() {
-    const [devMeeting, setDevMeeting] = useState<Meeting | null>(null);
-
     const open = (meeting: Meeting) => {
-        if (import.meta.env.DEV) {
-            setDevMeeting(meeting);
-            return;
-        }
-
         const context: MeetingDetailModalContext = {
             kind: MEETING_DETAIL_MODAL_KIND,
             meeting,
@@ -34,9 +24,5 @@ export function useIssuePanelMeetingDetailModal() {
         new ForgeModal({ context, size: 'medium' }).open();
     };
 
-    return {
-        open,
-        devMeeting,
-        closeDev: () => setDevMeeting(null),
-    };
+    return { open };
 }
