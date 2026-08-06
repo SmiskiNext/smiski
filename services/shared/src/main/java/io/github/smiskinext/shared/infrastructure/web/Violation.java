@@ -5,8 +5,8 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import org.jspecify.annotations.Nullable;
 
 /**
- * A single field-level validation failure inside the {@code errors} extension member of a
- * {@code application/problem+json} response.
+ * A single field-level validation failure inside the {@code errors} extension member of an
+ * RFC 9457 Problem Details response.
  *
  * <p>{@code field} and {@code code} are stable and locale-independent, letting the client localize
  * on its own. {@code message} carries the server-localized text (resolved via {@code

@@ -180,7 +180,7 @@ class ScheduleMeetingControllerIntegrationTest {
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(requestBody))
                     .andExpect(status().isBadRequest())
-                    .andExpect(content().contentTypeCompatibleWith("application/problem+json"));
+                    .andExpect(content().contentTypeCompatibleWith("application/json"));
 
             assertThat(countTable("meetings")).isEqualTo(meetingsBefore);
         }
@@ -215,7 +215,7 @@ class ScheduleMeetingControllerIntegrationTest {
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(requestBody))
                     .andExpect(status().isBadRequest())
-                    .andExpect(content().contentTypeCompatibleWith("application/problem+json"));
+                    .andExpect(content().contentTypeCompatibleWith("application/json"));
 
             assertThat(countTable("meetings")).isEqualTo(meetingsBefore);
         }
@@ -257,7 +257,7 @@ class ScheduleMeetingControllerIntegrationTest {
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(requestBody))
                     .andExpect(status().isBadRequest())
-                    .andExpect(content().contentTypeCompatibleWith("application/problem+json"));
+                    .andExpect(content().contentTypeCompatibleWith("application/json"));
 
             assertThat(countTable("meetings")).isEqualTo(meetingsBefore);
         }
@@ -295,7 +295,7 @@ class ScheduleMeetingControllerIntegrationTest {
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(requestBody))
                     .andExpect(status().isBadRequest())
-                    .andExpect(content().contentTypeCompatibleWith("application/problem+json"));
+                    .andExpect(content().contentTypeCompatibleWith("application/json"));
 
             assertThat(countTable("meetings")).isEqualTo(meetingsBefore);
         }
@@ -338,7 +338,7 @@ class ScheduleMeetingControllerIntegrationTest {
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(requestBody))
                     .andExpect(status().isBadRequest())
-                    .andExpect(content().contentTypeCompatibleWith("application/problem+json"));
+                    .andExpect(content().contentTypeCompatibleWith("application/json"));
 
             assertThat(countTable("meetings")).isEqualTo(meetingsBefore);
         }
@@ -362,7 +362,7 @@ class ScheduleMeetingControllerIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(requestBody))
                 .andExpect(status().isBadRequest())
-                .andExpect(content().contentTypeCompatibleWith("application/problem+json"))
+                .andExpect(content().contentTypeCompatibleWith("application/json"))
                 .andExpect(jsonPath("$.code").value("MEETING_START_IN_PAST"));
 
         assertThat(countTable("meetings")).isEqualTo(meetingsBefore);
@@ -411,7 +411,7 @@ class ScheduleMeetingControllerIntegrationTest {
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(requestBody))
                     .andExpect(status().isBadRequest())
-                    .andExpect(content().contentTypeCompatibleWith("application/problem+json"))
+                    .andExpect(content().contentTypeCompatibleWith("application/json"))
                     .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"));
 
             assertThat(countTable("meetings")).isEqualTo(meetingsBefore);
@@ -458,7 +458,7 @@ class ScheduleMeetingControllerIntegrationTest {
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(unknownZone))
                     .andExpect(status().isBadRequest())
-                    .andExpect(content().contentTypeCompatibleWith("application/problem+json"))
+                    .andExpect(content().contentTypeCompatibleWith("application/json"))
                     .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"));
 
             assertThat(countTable("meetings")).isEqualTo(meetingsBefore);
@@ -496,7 +496,7 @@ class ScheduleMeetingControllerIntegrationTest {
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(bareOffset))
                     .andExpect(status().isBadRequest())
-                    .andExpect(content().contentTypeCompatibleWith("application/problem+json"))
+                    .andExpect(content().contentTypeCompatibleWith("application/json"))
                     .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"));
 
             assertThat(countTable("meetings")).isEqualTo(meetingsBefore);
@@ -723,7 +723,7 @@ class ScheduleMeetingControllerIntegrationTest {
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(requestBody))
                     .andExpect(status().isBadRequest())
-                    .andExpect(content().contentTypeCompatibleWith("application/problem+json"));
+                    .andExpect(content().contentTypeCompatibleWith("application/json"));
 
             assertThat(countTable("meetings")).isEqualTo(meetingsBefore);
             assertThat(countTable("meeting_invitees")).isEqualTo(inviteesBefore);
@@ -773,7 +773,7 @@ class ScheduleMeetingControllerIntegrationTest {
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(missingAccountId))
                     .andExpect(status().isBadRequest())
-                    .andExpect(content().contentTypeCompatibleWith("application/problem+json"));
+                    .andExpect(content().contentTypeCompatibleWith("application/json"));
 
             assertThat(countTable("meetings")).isEqualTo(meetingsBefore);
             assertThat(countTable("meeting_invitees")).isEqualTo(inviteesBefore);
@@ -813,7 +813,7 @@ class ScheduleMeetingControllerIntegrationTest {
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(missingDisplayName))
                     .andExpect(status().isBadRequest())
-                    .andExpect(content().contentTypeCompatibleWith("application/problem+json"));
+                    .andExpect(content().contentTypeCompatibleWith("application/json"));
 
             assertThat(countTable("meetings")).isEqualTo(meetingsBefore);
             assertThat(countTable("meeting_invitees")).isEqualTo(inviteesBefore);

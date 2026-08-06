@@ -30,7 +30,7 @@ import tools.jackson.databind.jsontype.BasicPolymorphicTypeValidator;
  * <p>The join-request {@link JsonMapper} is built privately and never exposed as a Spring bean: a
  * user-declared {@code JsonMapper} bean would make Boot back off its auto-configured web mapper
  * (which carries the {@code ProblemDetail} mixin that flattens RFC 9457 extension members), so
- * exposing it would corrupt {@code application/problem+json} responses across the service. The
+ * exposing it would corrupt Problem Details responses across the service. The
  * mapper carries a {@link BasicPolymorphicTypeValidator} restricted to the meet domain package so
  * any future default-typing use stays confined to trusted types.
  *

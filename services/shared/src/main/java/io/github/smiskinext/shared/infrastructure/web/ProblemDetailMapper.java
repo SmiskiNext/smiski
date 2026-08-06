@@ -14,8 +14,7 @@ import org.springframework.http.ProblemDetail;
 import org.springframework.stereotype.Component;
 
 /**
- * Builds RFC 9457 ({@code application/problem+json}) {@link ProblemDetail} bodies from application
- * error codes.
+ * Builds RFC 9457 Problem Details {@link ProblemDetail} bodies from application error codes.
  *
  * <p>This is the single place that couples domain-level {@link ErrorCode}s to HTTP semantics:
  *

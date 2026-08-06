@@ -63,7 +63,8 @@ class TenantOpenApiContentTest {
         assertThat(spec).contains("\"405\":");
         assertThat(spec).contains("\"415\":");
         assertThat(spec).contains("\"500\":");
-        assertThat(spec).contains("application/problem+json");
+        assertThat(spec).contains("application/json");
+        assertThat(spec).doesNotContain("application/problem+json");
         assertThat(spec).contains("#/components/schemas/ProblemDetail");
     }
 

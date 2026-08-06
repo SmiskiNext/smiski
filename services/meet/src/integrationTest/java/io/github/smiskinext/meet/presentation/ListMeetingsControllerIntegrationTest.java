@@ -85,7 +85,7 @@ class ListMeetingsControllerIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{}"))
                 .andExpect(status().isBadRequest())
-                .andExpect(content().contentTypeCompatibleWith("application/problem+json"));
+                .andExpect(content().contentTypeCompatibleWith("application/json"));
     }
 
     @Test
@@ -97,7 +97,7 @@ class ListMeetingsControllerIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"pageSize\": 51}"))
                 .andExpect(status().isBadRequest())
-                .andExpect(content().contentTypeCompatibleWith("application/problem+json"))
+                .andExpect(content().contentTypeCompatibleWith("application/json"))
                 .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"));
     }
 
@@ -162,7 +162,7 @@ class ListMeetingsControllerIntegrationTest {
                         .content("{\"pageSize\": 1, \"sort\": \"START_TIME\", \"pageToken\": \""
                                 + token + "\"}"))
                 .andExpect(status().isBadRequest())
-                .andExpect(content().contentTypeCompatibleWith("application/problem+json"))
+                .andExpect(content().contentTypeCompatibleWith("application/json"))
                 .andExpect(jsonPath("$.code").value("INVALID_CURSOR"));
     }
 
@@ -175,7 +175,7 @@ class ListMeetingsControllerIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"pageToken\": \"not-a-real-token\"}"))
                 .andExpect(status().isBadRequest())
-                .andExpect(content().contentTypeCompatibleWith("application/problem+json"))
+                .andExpect(content().contentTypeCompatibleWith("application/json"))
                 .andExpect(jsonPath("$.code").value("INVALID_CURSOR"));
     }
 

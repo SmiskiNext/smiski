@@ -229,7 +229,7 @@ public class MeetingController {
                 description = "Missing account header, page-size validation, or invalid cursor",
                 content =
                         @Content(
-                                mediaType = "application/problem+json",
+                                mediaType = "application/json",
                                 schema = @Schema(implementation = ProblemDetailSchema.class),
                                 examples = {
                                     @ExampleObject(
@@ -265,7 +265,7 @@ public class MeetingController {
         String accountId = AccountContext.getCurrentAccount().orElse(null);
         if (accountId == null) {
             return ResponseEntity.badRequest()
-                    .contentType(org.springframework.http.MediaType.APPLICATION_PROBLEM_JSON)
+                    .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
                     .body(org.springframework.http.ProblemDetail.forStatusAndDetail(
                             org.springframework.http.HttpStatus.BAD_REQUEST,
                             "X-Account-Id header is required"));
@@ -358,7 +358,7 @@ public class MeetingController {
                 description = "Missing account header",
                 content =
                         @Content(
-                                mediaType = "application/problem+json",
+                                mediaType = "application/json",
                                 schema = @Schema(implementation = ProblemDetailSchema.class),
                                 examples = @ExampleObject(name = "missingAccount", value = """
                         {
@@ -374,7 +374,7 @@ public class MeetingController {
                 description = "Meeting not found, soft-deleted, or in another tenant",
                 content =
                         @Content(
-                                mediaType = "application/problem+json",
+                                mediaType = "application/json",
                                 schema = @Schema(implementation = ProblemDetailSchema.class),
                                 examples = @ExampleObject(name = "notFound", value = """
                         {
@@ -392,7 +392,7 @@ public class MeetingController {
         String accountId = AccountContext.getCurrentAccount().orElse(null);
         if (accountId == null) {
             return ResponseEntity.badRequest()
-                    .contentType(org.springframework.http.MediaType.APPLICATION_PROBLEM_JSON)
+                    .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
                     .body(org.springframework.http.ProblemDetail.forStatusAndDetail(
                             org.springframework.http.HttpStatus.BAD_REQUEST,
                             "X-Account-Id header is required"));
@@ -446,7 +446,7 @@ public class MeetingController {
                 description = "Validation error or missing account",
                 content =
                         @Content(
-                                mediaType = "application/problem+json",
+                                mediaType = "application/json",
                                 schema = @Schema(implementation = ProblemDetailSchema.class),
                                 examples = {
                                     @ExampleObject(
@@ -482,7 +482,7 @@ public class MeetingController {
                 description = "Only the host may update the meeting",
                 content =
                         @Content(
-                                mediaType = "application/problem+json",
+                                mediaType = "application/json",
                                 schema = @Schema(implementation = ProblemDetailSchema.class),
                                 examples = @ExampleObject(name = "notOwner", value = """
                         {
@@ -498,7 +498,7 @@ public class MeetingController {
                 description = "Meeting not found",
                 content =
                         @Content(
-                                mediaType = "application/problem+json",
+                                mediaType = "application/json",
                                 schema = @Schema(implementation = ProblemDetailSchema.class),
                                 examples = @ExampleObject(name = "notFound", value = """
                         {
@@ -517,7 +517,7 @@ public class MeetingController {
         String accountId = AccountContext.getCurrentAccount().orElse(null);
         if (accountId == null) {
             return ResponseEntity.badRequest()
-                    .contentType(org.springframework.http.MediaType.APPLICATION_PROBLEM_JSON)
+                    .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
                     .body(org.springframework.http.ProblemDetail.forStatusAndDetail(
                             org.springframework.http.HttpStatus.BAD_REQUEST,
                             "X-Account-Id header is required"));
@@ -561,7 +561,7 @@ public class MeetingController {
                 description = "Validation error or missing account",
                 content =
                         @Content(
-                                mediaType = "application/problem+json",
+                                mediaType = "application/json",
                                 schema = @Schema(implementation = ProblemDetailSchema.class),
                                 examples = {
                                     @ExampleObject(
@@ -597,7 +597,7 @@ public class MeetingController {
                 description = "Only the host may replace the settings",
                 content =
                         @Content(
-                                mediaType = "application/problem+json",
+                                mediaType = "application/json",
                                 schema = @Schema(implementation = ProblemDetailSchema.class),
                                 examples = @ExampleObject(name = "notAuthorized", value = """
                         {
@@ -613,7 +613,7 @@ public class MeetingController {
                 description = "Meeting not found",
                 content =
                         @Content(
-                                mediaType = "application/problem+json",
+                                mediaType = "application/json",
                                 schema = @Schema(implementation = ProblemDetailSchema.class),
                                 examples = @ExampleObject(name = "notFound", value = """
                         {
@@ -632,7 +632,7 @@ public class MeetingController {
         String accountId = AccountContext.getCurrentAccount().orElse(null);
         if (accountId == null) {
             return ResponseEntity.badRequest()
-                    .contentType(org.springframework.http.MediaType.APPLICATION_PROBLEM_JSON)
+                    .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
                     .body(org.springframework.http.ProblemDetail.forStatusAndDetail(
                             org.springframework.http.HttpStatus.BAD_REQUEST,
                             "X-Account-Id header is required"));
@@ -677,7 +677,7 @@ public class MeetingController {
                 description = "Validation error or missing account",
                 content =
                         @Content(
-                                mediaType = "application/problem+json",
+                                mediaType = "application/json",
                                 schema = @Schema(implementation = ProblemDetailSchema.class),
                                 examples = {
                                     @ExampleObject(
@@ -713,7 +713,7 @@ public class MeetingController {
                 description = "Only the host may add invitees",
                 content =
                         @Content(
-                                mediaType = "application/problem+json",
+                                mediaType = "application/json",
                                 schema = @Schema(implementation = ProblemDetailSchema.class),
                                 examples = @ExampleObject(name = "notAuthorized", value = """
                         {
@@ -729,7 +729,7 @@ public class MeetingController {
                 description = "Meeting not found",
                 content =
                         @Content(
-                                mediaType = "application/problem+json",
+                                mediaType = "application/json",
                                 schema = @Schema(implementation = ProblemDetailSchema.class),
                                 examples = @ExampleObject(name = "notFound", value = """
                         {
@@ -745,7 +745,7 @@ public class MeetingController {
                 description = "An account is already an active invitee",
                 content =
                         @Content(
-                                mediaType = "application/problem+json",
+                                mediaType = "application/json",
                                 schema = @Schema(implementation = ProblemDetailSchema.class),
                                 examples = @ExampleObject(name = "alreadyExists", value = """
                         {
@@ -764,7 +764,7 @@ public class MeetingController {
         String accountId = AccountContext.getCurrentAccount().orElse(null);
         if (accountId == null) {
             return ResponseEntity.badRequest()
-                    .contentType(org.springframework.http.MediaType.APPLICATION_PROBLEM_JSON)
+                    .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
                     .body(org.springframework.http.ProblemDetail.forStatusAndDetail(
                             org.springframework.http.HttpStatus.BAD_REQUEST,
                             "X-Account-Id header is required"));
@@ -811,7 +811,7 @@ public class MeetingController {
                 description = "Validation error or missing account",
                 content =
                         @Content(
-                                mediaType = "application/problem+json",
+                                mediaType = "application/json",
                                 schema = @Schema(implementation = ProblemDetailSchema.class),
                                 examples = {
                                     @ExampleObject(
@@ -847,7 +847,7 @@ public class MeetingController {
                 description = "Only the host may remove invitees",
                 content =
                         @Content(
-                                mediaType = "application/problem+json",
+                                mediaType = "application/json",
                                 schema = @Schema(implementation = ProblemDetailSchema.class),
                                 examples = @ExampleObject(name = "notAuthorized", value = """
                         {
@@ -863,7 +863,7 @@ public class MeetingController {
                 description = "Meeting or invitee not found",
                 content =
                         @Content(
-                                mediaType = "application/problem+json",
+                                mediaType = "application/json",
                                 schema = @Schema(implementation = ProblemDetailSchema.class),
                                 examples = {
                                     @ExampleObject(name = "meetingNotFound", value = """
@@ -893,7 +893,7 @@ public class MeetingController {
         String accountId = AccountContext.getCurrentAccount().orElse(null);
         if (accountId == null) {
             return ResponseEntity.badRequest()
-                    .contentType(org.springframework.http.MediaType.APPLICATION_PROBLEM_JSON)
+                    .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
                     .body(org.springframework.http.ProblemDetail.forStatusAndDetail(
                             org.springframework.http.HttpStatus.BAD_REQUEST,
                             "X-Account-Id header is required"));
@@ -963,7 +963,7 @@ public class MeetingController {
                 description = "Validation error or missing account header",
                 content =
                         @Content(
-                                mediaType = "application/problem+json",
+                                mediaType = "application/json",
                                 schema = @Schema(implementation = ProblemDetailSchema.class),
                                 examples = {
                                     @ExampleObject(
@@ -1003,7 +1003,7 @@ public class MeetingController {
         String accountId = AccountContext.getCurrentAccount().orElse(null);
         if (accountId == null) {
             return ResponseEntity.badRequest()
-                    .contentType(org.springframework.http.MediaType.APPLICATION_PROBLEM_JSON)
+                    .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
                     .body(org.springframework.http.ProblemDetail.forStatusAndDetail(
                             org.springframework.http.HttpStatus.BAD_REQUEST,
                             "X-Account-Id header is required"));
@@ -1078,7 +1078,7 @@ public class MeetingController {
                 description = "Validation error, missing account header, or start time in past",
                 content =
                         @Content(
-                                mediaType = "application/problem+json",
+                                mediaType = "application/json",
                                 schema = @Schema(implementation = ProblemDetailSchema.class),
                                 examples = {
                                     @ExampleObject(
@@ -1129,7 +1129,7 @@ public class MeetingController {
         String accountId = AccountContext.getCurrentAccount().orElse(null);
         if (accountId == null) {
             return ResponseEntity.badRequest()
-                    .contentType(org.springframework.http.MediaType.APPLICATION_PROBLEM_JSON)
+                    .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
                     .body(org.springframework.http.ProblemDetail.forStatusAndDetail(
                             org.springframework.http.HttpStatus.BAD_REQUEST,
                             "X-Account-Id header is required"));
@@ -1202,7 +1202,7 @@ public class MeetingController {
                 description = "Missing account header",
                 content =
                         @Content(
-                                mediaType = "application/problem+json",
+                                mediaType = "application/json",
                                 schema = @Schema(implementation = ProblemDetailSchema.class),
                                 examples = @ExampleObject(name = "missingAccount", value = """
                         {
@@ -1218,7 +1218,7 @@ public class MeetingController {
                 description = "Only the host may delete the meeting",
                 content =
                         @Content(
-                                mediaType = "application/problem+json",
+                                mediaType = "application/json",
                                 schema = @Schema(implementation = ProblemDetailSchema.class),
                                 examples = @ExampleObject(name = "notAuthorized", value = """
                         {
@@ -1234,7 +1234,7 @@ public class MeetingController {
                 description = "Meeting not found or already deleted",
                 content =
                         @Content(
-                                mediaType = "application/problem+json",
+                                mediaType = "application/json",
                                 schema = @Schema(implementation = ProblemDetailSchema.class),
                                 examples = @ExampleObject(name = "notFound", value = """
                         {
@@ -1250,7 +1250,7 @@ public class MeetingController {
                 description = "The meeting is running and cannot be deleted",
                 content =
                         @Content(
-                                mediaType = "application/problem+json",
+                                mediaType = "application/json",
                                 schema = @Schema(implementation = ProblemDetailSchema.class),
                                 examples = @ExampleObject(name = "running", value = """
                         {
@@ -1268,7 +1268,7 @@ public class MeetingController {
         String accountId = AccountContext.getCurrentAccount().orElse(null);
         if (accountId == null) {
             return ResponseEntity.badRequest()
-                    .contentType(org.springframework.http.MediaType.APPLICATION_PROBLEM_JSON)
+                    .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
                     .body(org.springframework.http.ProblemDetail.forStatusAndDetail(
                             org.springframework.http.HttpStatus.BAD_REQUEST,
                             "X-Account-Id header is required"));
@@ -1335,7 +1335,7 @@ public class MeetingController {
                 description = "Validation error or missing account header",
                 content =
                         @Content(
-                                mediaType = "application/problem+json",
+                                mediaType = "application/json",
                                 schema = @Schema(implementation = ProblemDetailSchema.class),
                                 examples = {
                                     @ExampleObject(
@@ -1371,7 +1371,7 @@ public class MeetingController {
                 description = "Only the host may delete the meetings",
                 content =
                         @Content(
-                                mediaType = "application/problem+json",
+                                mediaType = "application/json",
                                 schema = @Schema(implementation = ProblemDetailSchema.class),
                                 examples = @ExampleObject(name = "notAuthorized", value = """
                         {
@@ -1387,7 +1387,7 @@ public class MeetingController {
                 description = "A listed meeting was not found or already deleted",
                 content =
                         @Content(
-                                mediaType = "application/problem+json",
+                                mediaType = "application/json",
                                 schema = @Schema(implementation = ProblemDetailSchema.class),
                                 examples = @ExampleObject(name = "notFound", value = """
                         {
@@ -1403,7 +1403,7 @@ public class MeetingController {
                 description = "A listed meeting is running and cannot be deleted",
                 content =
                         @Content(
-                                mediaType = "application/problem+json",
+                                mediaType = "application/json",
                                 schema = @Schema(implementation = ProblemDetailSchema.class),
                                 examples = @ExampleObject(name = "running", value = """
                         {
@@ -1422,7 +1422,7 @@ public class MeetingController {
         String accountId = AccountContext.getCurrentAccount().orElse(null);
         if (accountId == null) {
             return ResponseEntity.badRequest()
-                    .contentType(org.springframework.http.MediaType.APPLICATION_PROBLEM_JSON)
+                    .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
                     .body(org.springframework.http.ProblemDetail.forStatusAndDetail(
                             org.springframework.http.HttpStatus.BAD_REQUEST,
                             "X-Account-Id header is required"));
@@ -1467,7 +1467,7 @@ public class MeetingController {
                 description = "Validation error or missing account header",
                 content =
                         @Content(
-                                mediaType = "application/problem+json",
+                                mediaType = "application/json",
                                 schema = @Schema(implementation = ProblemDetailSchema.class),
                                 examples = {
                                     @ExampleObject(
@@ -1503,7 +1503,7 @@ public class MeetingController {
                 description = "Meeting not found for the current tenant",
                 content =
                         @Content(
-                                mediaType = "application/problem+json",
+                                mediaType = "application/json",
                                 schema = @Schema(implementation = ProblemDetailSchema.class),
                                 examples = @ExampleObject(name = "notFound", value = """
                         {
@@ -1519,7 +1519,7 @@ public class MeetingController {
                 description = "Meeting is at capacity",
                 content =
                         @Content(
-                                mediaType = "application/problem+json",
+                                mediaType = "application/json",
                                 schema = @Schema(implementation = ProblemDetailSchema.class),
                                 examples = @ExampleObject(name = "meetingFull", value = """
                         {
@@ -1538,7 +1538,7 @@ public class MeetingController {
         String accountId = AccountContext.getCurrentAccount().orElse(null);
         if (accountId == null) {
             return ResponseEntity.badRequest()
-                    .contentType(org.springframework.http.MediaType.APPLICATION_PROBLEM_JSON)
+                    .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
                     .body(org.springframework.http.ProblemDetail.forStatusAndDetail(
                             org.springframework.http.HttpStatus.BAD_REQUEST,
                             "X-Account-Id header is required"));
@@ -1587,7 +1587,7 @@ public class MeetingController {
                 description = "Missing account header or pageSize out of range",
                 content =
                         @Content(
-                                mediaType = "application/problem+json",
+                                mediaType = "application/json",
                                 schema = @Schema(implementation = ProblemDetailSchema.class),
                                 examples = {
                                     @ExampleObject(
@@ -1620,7 +1620,7 @@ public class MeetingController {
                 description = "Only the host may list pending join requests",
                 content =
                         @Content(
-                                mediaType = "application/problem+json",
+                                mediaType = "application/json",
                                 schema = @Schema(implementation = ProblemDetailSchema.class),
                                 examples = @ExampleObject(name = "notOwner", value = """
                         {
@@ -1636,7 +1636,7 @@ public class MeetingController {
                 description = "Meeting not found for the current tenant",
                 content =
                         @Content(
-                                mediaType = "application/problem+json",
+                                mediaType = "application/json",
                                 schema = @Schema(implementation = ProblemDetailSchema.class),
                                 examples = @ExampleObject(name = "notFound", value = """
                         {
@@ -1665,7 +1665,7 @@ public class MeetingController {
                             "pageSize must be between 1 and 100");
             problem.setProperty("code", "VALIDATION_ERROR");
             return ResponseEntity.badRequest()
-                    .contentType(org.springframework.http.MediaType.APPLICATION_PROBLEM_JSON)
+                    .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
                     .body(problem);
         }
         Result<ListPendingJoinRequestsResult, MeetingError> result =
@@ -1717,7 +1717,7 @@ public class MeetingController {
                 description = "Missing account header or empty/malformed body",
                 content =
                         @Content(
-                                mediaType = "application/problem+json",
+                                mediaType = "application/json",
                                 schema = @Schema(implementation = ProblemDetailSchema.class),
                                 examples = {
                                     @ExampleObject(
@@ -1753,7 +1753,7 @@ public class MeetingController {
                 description = "Only the host may accept join requests",
                 content =
                         @Content(
-                                mediaType = "application/problem+json",
+                                mediaType = "application/json",
                                 schema = @Schema(implementation = ProblemDetailSchema.class),
                                 examples = @ExampleObject(name = "notOwner", value = """
                         {
@@ -1769,7 +1769,7 @@ public class MeetingController {
                 description = "Meeting not found for the current tenant",
                 content =
                         @Content(
-                                mediaType = "application/problem+json",
+                                mediaType = "application/json",
                                 schema = @Schema(implementation = ProblemDetailSchema.class),
                                 examples = @ExampleObject(name = "notFound", value = """
                         {
@@ -1788,7 +1788,7 @@ public class MeetingController {
         String accountId = AccountContext.getCurrentAccount().orElse(null);
         if (accountId == null) {
             return ResponseEntity.badRequest()
-                    .contentType(org.springframework.http.MediaType.APPLICATION_PROBLEM_JSON)
+                    .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
                     .body(org.springframework.http.ProblemDetail.forStatusAndDetail(
                             org.springframework.http.HttpStatus.BAD_REQUEST,
                             "X-Account-Id header is required"));
@@ -1837,7 +1837,7 @@ public class MeetingController {
                 description = "Missing account header or empty/malformed body",
                 content =
                         @Content(
-                                mediaType = "application/problem+json",
+                                mediaType = "application/json",
                                 schema = @Schema(implementation = ProblemDetailSchema.class),
                                 examples = {
                                     @ExampleObject(
@@ -1873,7 +1873,7 @@ public class MeetingController {
                 description = "Only the host may decline join requests",
                 content =
                         @Content(
-                                mediaType = "application/problem+json",
+                                mediaType = "application/json",
                                 schema = @Schema(implementation = ProblemDetailSchema.class),
                                 examples = @ExampleObject(name = "notOwner", value = """
                         {
@@ -1889,7 +1889,7 @@ public class MeetingController {
                 description = "Meeting not found for the current tenant",
                 content =
                         @Content(
-                                mediaType = "application/problem+json",
+                                mediaType = "application/json",
                                 schema = @Schema(implementation = ProblemDetailSchema.class),
                                 examples = @ExampleObject(name = "notFound", value = """
                         {
@@ -1908,7 +1908,7 @@ public class MeetingController {
         String accountId = AccountContext.getCurrentAccount().orElse(null);
         if (accountId == null) {
             return ResponseEntity.badRequest()
-                    .contentType(org.springframework.http.MediaType.APPLICATION_PROBLEM_JSON)
+                    .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
                     .body(org.springframework.http.ProblemDetail.forStatusAndDetail(
                             org.springframework.http.HttpStatus.BAD_REQUEST,
                             "X-Account-Id header is required"));
@@ -1948,7 +1948,7 @@ public class MeetingController {
                 description = "Missing account header",
                 content =
                         @Content(
-                                mediaType = "application/problem+json",
+                                mediaType = "application/json",
                                 schema = @Schema(implementation = ProblemDetailSchema.class),
                                 examples = @ExampleObject(name = "missingAccount", value = """
                         {
@@ -1964,7 +1964,7 @@ public class MeetingController {
                 description = "The acting account does not own the target invitation",
                 content =
                         @Content(
-                                mediaType = "application/problem+json",
+                                mediaType = "application/json",
                                 schema = @Schema(implementation = ProblemDetailSchema.class),
                                 examples = @ExampleObject(name = "notOwner", value = """
                         {
@@ -1980,7 +1980,7 @@ public class MeetingController {
                 description = "Meeting or invitee not found for the current tenant",
                 content =
                         @Content(
-                                mediaType = "application/problem+json",
+                                mediaType = "application/json",
                                 schema = @Schema(implementation = ProblemDetailSchema.class),
                                 examples = @ExampleObject(name = "notFound", value = """
                         {
@@ -1996,7 +1996,7 @@ public class MeetingController {
                 description = "The current status does not permit accepting",
                 content =
                         @Content(
-                                mediaType = "application/problem+json",
+                                mediaType = "application/json",
                                 schema = @Schema(implementation = ProblemDetailSchema.class),
                                 examples = @ExampleObject(name = "invalidTransition", value = """
                         {
@@ -2051,7 +2051,7 @@ public class MeetingController {
                 description = "Missing account header",
                 content =
                         @Content(
-                                mediaType = "application/problem+json",
+                                mediaType = "application/json",
                                 schema = @Schema(implementation = ProblemDetailSchema.class),
                                 examples = @ExampleObject(name = "missingAccount", value = """
                         {
@@ -2067,7 +2067,7 @@ public class MeetingController {
                 description = "The acting account does not own the target invitation",
                 content =
                         @Content(
-                                mediaType = "application/problem+json",
+                                mediaType = "application/json",
                                 schema = @Schema(implementation = ProblemDetailSchema.class),
                                 examples = @ExampleObject(name = "notOwner", value = """
                         {
@@ -2083,7 +2083,7 @@ public class MeetingController {
                 description = "Meeting or invitee not found for the current tenant",
                 content =
                         @Content(
-                                mediaType = "application/problem+json",
+                                mediaType = "application/json",
                                 schema = @Schema(implementation = ProblemDetailSchema.class),
                                 examples = @ExampleObject(name = "notFound", value = """
                         {
@@ -2099,7 +2099,7 @@ public class MeetingController {
                 description = "The current status does not permit declining",
                 content =
                         @Content(
-                                mediaType = "application/problem+json",
+                                mediaType = "application/json",
                                 schema = @Schema(implementation = ProblemDetailSchema.class),
                                 examples = @ExampleObject(name = "invalidTransition", value = """
                         {
@@ -2154,7 +2154,7 @@ public class MeetingController {
                 description = "Missing account header",
                 content =
                         @Content(
-                                mediaType = "application/problem+json",
+                                mediaType = "application/json",
                                 schema = @Schema(implementation = ProblemDetailSchema.class),
                                 examples = @ExampleObject(name = "missingAccount", value = """
                         {
@@ -2170,7 +2170,7 @@ public class MeetingController {
                 description = "The acting account does not own the target invitation",
                 content =
                         @Content(
-                                mediaType = "application/problem+json",
+                                mediaType = "application/json",
                                 schema = @Schema(implementation = ProblemDetailSchema.class),
                                 examples = @ExampleObject(name = "notOwner", value = """
                         {
@@ -2186,7 +2186,7 @@ public class MeetingController {
                 description = "Meeting or invitee not found for the current tenant",
                 content =
                         @Content(
-                                mediaType = "application/problem+json",
+                                mediaType = "application/json",
                                 schema = @Schema(implementation = ProblemDetailSchema.class),
                                 examples = @ExampleObject(name = "notFound", value = """
                         {
@@ -2202,7 +2202,7 @@ public class MeetingController {
                 description = "The current status does not permit a tentative response",
                 content =
                         @Content(
-                                mediaType = "application/problem+json",
+                                mediaType = "application/json",
                                 schema = @Schema(implementation = ProblemDetailSchema.class),
                                 examples = @ExampleObject(name = "invalidTransition", value = """
                         {
@@ -2280,7 +2280,7 @@ public class MeetingController {
                 description = "Missing account header",
                 content =
                         @Content(
-                                mediaType = "application/problem+json",
+                                mediaType = "application/json",
                                 schema = @Schema(implementation = ProblemDetailSchema.class),
                                 examples = @ExampleObject(name = "missingAccount", value = """
                         {
@@ -2296,7 +2296,7 @@ public class MeetingController {
                 description = "Only the host may cancel the meeting",
                 content =
                         @Content(
-                                mediaType = "application/problem+json",
+                                mediaType = "application/json",
                                 schema = @Schema(implementation = ProblemDetailSchema.class),
                                 examples = @ExampleObject(name = "notAuthorized", value = """
                         {
@@ -2312,7 +2312,7 @@ public class MeetingController {
                 description = "Meeting not found or soft-deleted",
                 content =
                         @Content(
-                                mediaType = "application/problem+json",
+                                mediaType = "application/json",
                                 schema = @Schema(implementation = ProblemDetailSchema.class),
                                 examples = @ExampleObject(name = "notFound", value = """
                         {
@@ -2328,7 +2328,7 @@ public class MeetingController {
                 description = "Meeting status does not allow cancellation",
                 content =
                         @Content(
-                                mediaType = "application/problem+json",
+                                mediaType = "application/json",
                                 schema = @Schema(implementation = ProblemDetailSchema.class),
                                 examples =
                                         @ExampleObject(name = "invalidTransition", value = """
@@ -2408,7 +2408,7 @@ public class MeetingController {
                 description = "Missing account header",
                 content =
                         @Content(
-                                mediaType = "application/problem+json",
+                                mediaType = "application/json",
                                 schema = @Schema(implementation = ProblemDetailSchema.class),
                                 examples = @ExampleObject(name = "missingAccount", value = """
                         {
@@ -2424,7 +2424,7 @@ public class MeetingController {
                 description = "Only the host may end the meeting",
                 content =
                         @Content(
-                                mediaType = "application/problem+json",
+                                mediaType = "application/json",
                                 schema = @Schema(implementation = ProblemDetailSchema.class),
                                 examples = @ExampleObject(name = "notAuthorized", value = """
                         {
@@ -2440,7 +2440,7 @@ public class MeetingController {
                 description = "Meeting not found or soft-deleted",
                 content =
                         @Content(
-                                mediaType = "application/problem+json",
+                                mediaType = "application/json",
                                 schema = @Schema(implementation = ProblemDetailSchema.class),
                                 examples = @ExampleObject(name = "notFound", value = """
                         {
@@ -2456,7 +2456,7 @@ public class MeetingController {
                 description = "Meeting status does not allow completion",
                 content =
                         @Content(
-                                mediaType = "application/problem+json",
+                                mediaType = "application/json",
                                 schema = @Schema(implementation = ProblemDetailSchema.class),
                                 examples =
                                         @ExampleObject(name = "invalidTransition", value = """
@@ -2534,7 +2534,7 @@ public class MeetingController {
                 description = "Missing account header or request validation failure",
                 content =
                         @Content(
-                                mediaType = "application/problem+json",
+                                mediaType = "application/json",
                                 schema = @Schema(implementation = ProblemDetailSchema.class),
                                 examples = {
                                     @ExampleObject(
@@ -2608,7 +2608,7 @@ public class MeetingController {
                         "X-Account-Id header is required");
         problem.setProperty("code", "VALIDATION_ERROR");
         return ResponseEntity.badRequest()
-                .contentType(org.springframework.http.MediaType.APPLICATION_PROBLEM_JSON)
+                .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
                 .body(problem);
     }
 }

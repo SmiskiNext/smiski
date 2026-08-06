@@ -13,8 +13,13 @@ import org.springframework.stereotype.Component;
  * Unwraps a {@link Result} returned by the application layer into a Spring {@link ResponseEntity}.
  *
  * <p>Success values are returned directly as the response body (no envelope). Failures are mapped
- * to an {@code application/problem+json} {@link ProblemDetail} via {@link ProblemDetailMapper},
- * with the HTTP status derived from the error's {@link io.github.smiskinext.shared.domain.ErrorCategory}.
+ * to an RFC 9457 {@link ProblemDetail} via {@link ProblemDetailMapper}, with the HTTP status
+ * derived from the error's {@link io.github.smiskinext.shared.domain.ErrorCategory}.
+ *
+ * <p>Problem bodies are served as {@code application/json} rather than {@code
+ * application/problem+json}: the Forge Remote invocation contract rejects any non-2xx response
+ * whose content type is not {@code application/json}, discarding the body. The body shape is
+ * unchanged.
  *
  * <p>Controllers stay thin and free of {@code try/catch}:
  *
@@ -62,7 +67,7 @@ public class ResultResponder {
     private ResponseEntity<Object> problem(DomainError error) {
         ProblemDetail body = problemDetailMapper.forDomainError(error);
         return ResponseEntity.status(body.getStatus())
-                .contentType(MediaType.APPLICATION_PROBLEM_JSON)
+                .contentType(MediaType.APPLICATION_JSON)
                 .body(body);
     }
 }

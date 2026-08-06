@@ -81,7 +81,7 @@ class GetMeetingControllerIntegrationTest {
                         .header("X-Tenant-ID", TENANT_ID)
                         .header("X-Project-Permissions", "view-meeting,edit-meeting"))
                 .andExpect(status().isBadRequest())
-                .andExpect(content().contentTypeCompatibleWith("application/problem+json"));
+                .andExpect(content().contentTypeCompatibleWith("application/json"));
     }
 
     @Test
@@ -91,7 +91,7 @@ class GetMeetingControllerIntegrationTest {
                         .header("X-Account-Id", MEMBER_ID)
                         .header("X-Tenant-ID", TENANT_ID))
                 .andExpect(status().isNotFound())
-                .andExpect(content().contentTypeCompatibleWith("application/problem+json"))
+                .andExpect(content().contentTypeCompatibleWith("application/json"))
                 .andExpect(jsonPath("$.code").value("MEETING_NOT_FOUND"));
     }
 

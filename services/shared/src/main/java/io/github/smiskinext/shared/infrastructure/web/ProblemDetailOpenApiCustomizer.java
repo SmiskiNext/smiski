@@ -17,13 +17,14 @@ import org.springdoc.core.customizers.GlobalOpenApiCustomizer;
  *
  * <p>These responses correspond to the exceptions handled uniformly by {@link
  * GlobalExceptionHandler} across all services. By attaching them here once, every future controller
- * inherits the documentation without per-endpoint boilerplate.
+ * inherits the documentation without per-endpoint boilerplate. The documented media type matches
+ * what {@link GlobalExceptionHandler} emits at runtime.
  */
 public class ProblemDetailOpenApiCustomizer implements GlobalOpenApiCustomizer {
 
     private static final String PROBLEM_DETAIL_SCHEMA_NAME = "ProblemDetail";
     private static final String VIOLATION_SCHEMA_NAME = "Violation";
-    private static final String PROBLEM_JSON = "application/problem+json";
+    private static final String PROBLEM_MEDIA_TYPE = "application/json";
     private static final List<String> COMMON_ERROR_STATUSES = List.of("405", "415", "500");
 
     @Override
@@ -64,7 +65,7 @@ public class ProblemDetailOpenApiCustomizer implements GlobalOpenApiCustomizer {
                             continue;
                         }
                         Content content = new Content()
-                                .addMediaType(PROBLEM_JSON, new MediaType().schema(ref));
+                                .addMediaType(PROBLEM_MEDIA_TYPE, new MediaType().schema(ref));
                         ApiResponse response = new ApiResponse()
                                 .description(descriptions.get(status))
                                 .content(content);

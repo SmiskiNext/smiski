@@ -57,7 +57,7 @@ class PermissionEnforcementControllerIntegrationTest {
                         .header("X-Account-Id", HOST_ID)
                         .header("X-Tenant-ID", TENANT_ID))
                 .andExpect(status().isForbidden())
-                .andExpect(content().contentTypeCompatibleWith("application/problem+json"))
+                .andExpect(content().contentTypeCompatibleWith("application/json"))
                 .andExpect(jsonPath("$.code").value("NOT_AUTHORIZED"));
     }
 
@@ -72,7 +72,7 @@ class PermissionEnforcementControllerIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(requestBody))
                 .andExpect(status().isForbidden())
-                .andExpect(content().contentTypeCompatibleWith("application/problem+json"))
+                .andExpect(content().contentTypeCompatibleWith("application/json"))
                 .andExpect(jsonPath("$.code").value("NOT_AUTHORIZED"));
     }
 
@@ -95,7 +95,7 @@ class PermissionEnforcementControllerIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(updateBody))
                 .andExpect(status().isForbidden())
-                .andExpect(content().contentTypeCompatibleWith("application/problem+json"));
+                .andExpect(content().contentTypeCompatibleWith("application/json"));
     }
 
     @Test

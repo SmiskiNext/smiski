@@ -84,7 +84,7 @@ class AddMeetingInviteesControllerIntegrationTest {
                                 ]}
                                 """))
                 .andExpect(status().isBadRequest())
-                .andExpect(content().contentTypeCompatibleWith("application/problem+json"));
+                .andExpect(content().contentTypeCompatibleWith("application/json"));
 
         assertThat(activeInviteeCount(meetingId)).isZero();
     }
@@ -226,7 +226,7 @@ class AddMeetingInviteesControllerIntegrationTest {
                                 ]}
                                 """))
                 .andExpect(status().isForbidden())
-                .andExpect(content().contentTypeCompatibleWith("application/problem+json"))
+                .andExpect(content().contentTypeCompatibleWith("application/json"))
                 .andExpect(jsonPath("$.code").value("NOT_AUTHORIZED"));
 
         assertThat(activeInviteeCount(meetingId)).isZero();
@@ -251,7 +251,7 @@ class AddMeetingInviteesControllerIntegrationTest {
                                 ]}
                                 """))
                 .andExpect(status().isConflict())
-                .andExpect(content().contentTypeCompatibleWith("application/problem+json"))
+                .andExpect(content().contentTypeCompatibleWith("application/json"))
                 .andExpect(jsonPath("$.code").value("INVALID_STATUS_TRANSITION"));
 
         assertThat(activeInviteeCount(meetingId)).isZero();

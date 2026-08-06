@@ -101,7 +101,7 @@ class MeetingCreationRollbackIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(requestBody))
                 .andExpect(status().isServiceUnavailable())
-                .andExpect(content().contentTypeCompatibleWith("application/problem+json"))
+                .andExpect(content().contentTypeCompatibleWith("application/json"))
                 .andExpect(jsonPath("$.code").value("LIVEKIT_UNAVAILABLE"));
 
         assertThat(countTable("meetings")).isEqualTo(meetingsBefore);
@@ -152,7 +152,7 @@ class MeetingCreationRollbackIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(requestBody))
                 .andExpect(status().isServiceUnavailable())
-                .andExpect(content().contentTypeCompatibleWith("application/problem+json"));
+                .andExpect(content().contentTypeCompatibleWith("application/json"));
 
         assertThat(countTable("meetings")).isEqualTo(meetingsBefore);
         assertThat(countTable("outbox_event")).isEqualTo(outboxBefore);

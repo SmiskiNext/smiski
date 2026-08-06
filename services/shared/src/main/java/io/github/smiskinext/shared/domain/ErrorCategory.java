@@ -5,7 +5,7 @@ package io.github.smiskinext.shared.domain;
  *
  * <p>Lives in the domain layer so that error codes can declare their semantic category without
  * importing any HTTP or framework type. The infrastructure layer maps each category to a concrete
- * HTTP status when building an {@code application/problem+json} response.
+ * HTTP status when building an RFC 9457 Problem Details response.
  *
  * <p>The mapping to HTTP status is intentionally kept out of this enum to preserve the hexagonal
  * architecture rule that {@code shared.domain} must be usable without Spring on the classpath.

@@ -96,14 +96,14 @@ class DeleteMeetingControllerIntegrationTest {
                         .header("X-Tenant-ID", TENANT_ID)
                         .header("X-Project-Permissions", "edit-meeting"))
                 .andExpect(status().isForbidden())
-                .andExpect(content().contentTypeCompatibleWith("application/problem+json"))
+                .andExpect(content().contentTypeCompatibleWith("application/json"))
                 .andExpect(jsonPath("$.code").value("NOT_AUTHORIZED"));
 
         mockMvc.perform(delete("/api/1/meetings/{id}", meetingId)
                         .header("X-Tenant-ID", TENANT_ID)
                         .header("X-Project-Permissions", "edit-meeting"))
                 .andExpect(status().isBadRequest())
-                .andExpect(content().contentTypeCompatibleWith("application/problem+json"));
+                .andExpect(content().contentTypeCompatibleWith("application/json"));
 
         assertThat(outboxCount(meetingId)).isZero();
     }

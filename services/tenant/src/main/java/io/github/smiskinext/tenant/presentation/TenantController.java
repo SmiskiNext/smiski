@@ -110,7 +110,7 @@ public class TenantController {
                 description = "Bad Request",
                 content =
                         @Content(
-                                mediaType = "application/problem+json",
+                                mediaType = "application/json",
                                 schema = @Schema(implementation = ProblemDetailSchema.class),
                                 examples = {
                                     @ExampleObject(
@@ -207,7 +207,7 @@ public class TenantController {
                 description = "Missing tenant context",
                 content =
                         @Content(
-                                mediaType = "application/problem+json",
+                                mediaType = "application/json",
                                 schema = @Schema(implementation = ProblemDetailSchema.class),
                                 examples =
                                         @ExampleObject(
@@ -226,7 +226,7 @@ public class TenantController {
                 description = "Tenant not found",
                 content =
                         @Content(
-                                mediaType = "application/problem+json",
+                                mediaType = "application/json",
                                 schema = @Schema(implementation = ProblemDetailSchema.class),
                                 examples = @ExampleObject(name = "notFound", value = """
                         {

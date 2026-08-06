@@ -180,7 +180,7 @@ class MeetingControllerIntegrationTest {
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(requestBody))
                     .andExpect(status().isBadRequest())
-                    .andExpect(content().contentTypeCompatibleWith("application/problem+json"));
+                    .andExpect(content().contentTypeCompatibleWith("application/json"));
 
             assertThat(countTable("meetings")).isEqualTo(meetingsBefore);
             assertThat(countTable("meeting_invitees")).isEqualTo(inviteesBefore);
@@ -220,7 +220,7 @@ class MeetingControllerIntegrationTest {
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(requestBody))
                     .andExpect(status().isBadRequest())
-                    .andExpect(content().contentTypeCompatibleWith("application/problem+json"));
+                    .andExpect(content().contentTypeCompatibleWith("application/json"));
 
             assertThat(countTable("meetings")).isEqualTo(meetingsBefore);
             assertThat(countTable("meeting_invitees")).isEqualTo(inviteesBefore);
@@ -267,7 +267,7 @@ class MeetingControllerIntegrationTest {
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(requestBody))
                     .andExpect(status().isBadRequest())
-                    .andExpect(content().contentTypeCompatibleWith("application/problem+json"));
+                    .andExpect(content().contentTypeCompatibleWith("application/json"));
 
             assertThat(countTable("meetings")).isEqualTo(meetingsBefore);
             assertThat(countTable("meeting_invitees")).isEqualTo(inviteesBefore);
@@ -314,7 +314,7 @@ class MeetingControllerIntegrationTest {
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(requestBodyMissingAccountId))
                     .andExpect(status().isBadRequest())
-                    .andExpect(content().contentTypeCompatibleWith("application/problem+json"));
+                    .andExpect(content().contentTypeCompatibleWith("application/json"));
 
             assertThat(countTable("meetings")).isEqualTo(meetingsBefore);
             assertThat(countTable("meeting_invitees")).isEqualTo(inviteesBefore);
@@ -354,7 +354,7 @@ class MeetingControllerIntegrationTest {
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(requestBodyMissingDisplayName))
                     .andExpect(status().isBadRequest())
-                    .andExpect(content().contentTypeCompatibleWith("application/problem+json"));
+                    .andExpect(content().contentTypeCompatibleWith("application/json"));
 
             assertThat(countTable("meetings")).isEqualTo(meetingsBefore);
             assertThat(countTable("meeting_invitees")).isEqualTo(inviteesBefore);
@@ -395,7 +395,7 @@ class MeetingControllerIntegrationTest {
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(requestBody))
                     .andExpect(status().isBadRequest())
-                    .andExpect(content().contentTypeCompatibleWith("application/problem+json"));
+                    .andExpect(content().contentTypeCompatibleWith("application/json"));
 
             assertThat(countTable("meetings")).isEqualTo(meetingsBefore);
         }
@@ -430,7 +430,7 @@ class MeetingControllerIntegrationTest {
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(requestBody))
                     .andExpect(status().isBadRequest())
-                    .andExpect(content().contentTypeCompatibleWith("application/problem+json"));
+                    .andExpect(content().contentTypeCompatibleWith("application/json"));
 
             assertThat(countTable("meetings")).isEqualTo(meetingsBefore);
         }
@@ -470,7 +470,7 @@ class MeetingControllerIntegrationTest {
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(requestBody))
                     .andExpect(status().isBadRequest())
-                    .andExpect(content().contentTypeCompatibleWith("application/problem+json"));
+                    .andExpect(content().contentTypeCompatibleWith("application/json"));
 
             assertThat(countTable("meetings")).isEqualTo(meetingsBefore);
         }
@@ -514,7 +514,7 @@ class MeetingControllerIntegrationTest {
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(requestBody))
                     .andExpect(status().isBadRequest())
-                    .andExpect(content().contentTypeCompatibleWith("application/problem+json"))
+                    .andExpect(content().contentTypeCompatibleWith("application/json"))
                     .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"));
 
             assertThat(countTable("meetings")).isEqualTo(meetingsBefore);
@@ -557,7 +557,7 @@ class MeetingControllerIntegrationTest {
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(unknownZone))
                     .andExpect(status().isBadRequest())
-                    .andExpect(content().contentTypeCompatibleWith("application/problem+json"))
+                    .andExpect(content().contentTypeCompatibleWith("application/json"))
                     .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"));
 
             assertThat(countTable("meetings")).isEqualTo(meetingsBefore);
@@ -594,7 +594,7 @@ class MeetingControllerIntegrationTest {
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(bareOffset))
                     .andExpect(status().isBadRequest())
-                    .andExpect(content().contentTypeCompatibleWith("application/problem+json"))
+                    .andExpect(content().contentTypeCompatibleWith("application/json"))
                     .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"));
 
             assertThat(countTable("meetings")).isEqualTo(meetingsBefore);

@@ -87,7 +87,7 @@ class CancelMeetingControllerIntegrationTest {
                         .header("X-Tenant-ID", TENANT_ID)
                         .header("X-Project-Permissions", "edit-meeting"))
                 .andExpect(status().isForbidden())
-                .andExpect(content().contentTypeCompatibleWith("application/problem+json"))
+                .andExpect(content().contentTypeCompatibleWith("application/json"))
                 .andExpect(jsonPath("$.code").value("NOT_AUTHORIZED"));
 
         assertThat(outboxCount(meetingId)).isZero();
@@ -100,7 +100,7 @@ class CancelMeetingControllerIntegrationTest {
                         .header("X-Tenant-ID", TENANT_ID)
                         .header("X-Project-Permissions", "edit-meeting"))
                 .andExpect(status().isNotFound())
-                .andExpect(content().contentTypeCompatibleWith("application/problem+json"))
+                .andExpect(content().contentTypeCompatibleWith("application/json"))
                 .andExpect(jsonPath("$.code").value("MEETING_NOT_FOUND"));
     }
 
@@ -113,7 +113,7 @@ class CancelMeetingControllerIntegrationTest {
                         .header("X-Tenant-ID", TENANT_ID)
                         .header("X-Project-Permissions", "edit-meeting"))
                 .andExpect(status().isConflict())
-                .andExpect(content().contentTypeCompatibleWith("application/problem+json"))
+                .andExpect(content().contentTypeCompatibleWith("application/json"))
                 .andExpect(jsonPath("$.code").value("INVALID_STATUS_TRANSITION"));
 
         assertThat(outboxCount(meetingId)).isZero();
@@ -127,7 +127,7 @@ class CancelMeetingControllerIntegrationTest {
                         .header("X-Tenant-ID", TENANT_ID)
                         .header("X-Project-Permissions", "edit-meeting"))
                 .andExpect(status().isBadRequest())
-                .andExpect(content().contentTypeCompatibleWith("application/problem+json"))
+                .andExpect(content().contentTypeCompatibleWith("application/json"))
                 .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"));
 
         assertThat(outboxCount(meetingId)).isZero();

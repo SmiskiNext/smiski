@@ -4,7 +4,7 @@ package io.github.smiskinext.shared.domain;
  * Shared contract for domain-level errors returned via {@link Result}.
  *
  * <p>Sealed interfaces (e.g. {@code MeetingError}, {@code RecordError}) implement this interface so
- * that generic infrastructure helpers can build an {@code application/problem+json} body without
+ * that generic infrastructure helpers can build an RFC 9457 Problem Details body without
  * knowing the concrete error type.
  *
  * <p>A domain error is a pure value: it exposes a stable {@link ErrorCode} and the positional

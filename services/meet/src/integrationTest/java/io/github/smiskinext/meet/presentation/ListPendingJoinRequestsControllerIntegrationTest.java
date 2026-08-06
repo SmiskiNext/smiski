@@ -79,7 +79,7 @@ class ListPendingJoinRequestsControllerIntegrationTest {
                         .header("X-Account-Id", "not-the-host")
                         .header("X-Tenant-ID", TENANT_ID))
                 .andExpect(status().isForbidden())
-                .andExpect(content().contentTypeCompatibleWith("application/problem+json"))
+                .andExpect(content().contentTypeCompatibleWith("application/json"))
                 .andExpect(jsonPath("$.code").value("NOT_OWNER"));
     }
 
@@ -92,7 +92,7 @@ class ListPendingJoinRequestsControllerIntegrationTest {
                         .header("X-Account-Id", HOST_ID)
                         .header("X-Tenant-ID", TENANT_ID))
                 .andExpect(status().isNotFound())
-                .andExpect(content().contentTypeCompatibleWith("application/problem+json"))
+                .andExpect(content().contentTypeCompatibleWith("application/json"))
                 .andExpect(jsonPath("$.code").value("MEETING_NOT_FOUND"));
     }
 
@@ -104,7 +104,7 @@ class ListPendingJoinRequestsControllerIntegrationTest {
                         .header("X-Project-Permissions", "view-meeting,edit-meeting")
                         .header("X-Tenant-ID", TENANT_ID))
                 .andExpect(status().isBadRequest())
-                .andExpect(content().contentTypeCompatibleWith("application/problem+json"))
+                .andExpect(content().contentTypeCompatibleWith("application/json"))
                 .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"));
     }
 
@@ -118,7 +118,7 @@ class ListPendingJoinRequestsControllerIntegrationTest {
                         .header("X-Account-Id", HOST_ID)
                         .header("X-Tenant-ID", TENANT_ID))
                 .andExpect(status().isBadRequest())
-                .andExpect(content().contentTypeCompatibleWith("application/problem+json"))
+                .andExpect(content().contentTypeCompatibleWith("application/json"))
                 .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"));
 
         mockMvc.perform(get("/api/1/meetings/{id}/join-requests", meetingId)
@@ -127,7 +127,7 @@ class ListPendingJoinRequestsControllerIntegrationTest {
                         .header("X-Account-Id", HOST_ID)
                         .header("X-Tenant-ID", TENANT_ID))
                 .andExpect(status().isBadRequest())
-                .andExpect(content().contentTypeCompatibleWith("application/problem+json"))
+                .andExpect(content().contentTypeCompatibleWith("application/json"))
                 .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"));
     }
 
