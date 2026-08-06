@@ -12,12 +12,12 @@ archive.
 The system SHALL expose `PUT /api/1/meetings/{id}` for updating a meeting. The
 endpoint SHALL require the `edit-meeting` project permission — if the caller's
 permission context does not contain `edit-meeting`, the endpoint SHALL reject
-the request with `403 application/problem+json` and code `NOT_AUTHORIZED` before
-executing the use case. The acting account SHALL be resolved from the configured
-account header, the tenant SHALL be resolved from the tenant context, and only
-the meeting host SHALL be authorized to update the meeting. A successful update
-SHALL return `200 OK` with the complete meeting snapshot excluding the tenant
-identifier.
+the request with a `403` Problem Details response and code `NOT_AUTHORIZED`
+before executing the use case. The acting account SHALL be resolved from the
+configured account header, the tenant SHALL be resolved from the tenant context,
+and only the meeting host SHALL be authorized to update the meeting. A
+successful update SHALL return `200 OK` with the complete meeting snapshot
+excluding the tenant identifier.
 
 #### Scenario: Host updates a meeting
 
@@ -29,8 +29,8 @@ identifier.
 #### Scenario: Missing edit-meeting permission is rejected
 
 - **WHEN** a caller without `edit-meeting` sends `PUT /api/1/meetings/{id}`
-- **THEN** the response is `403 application/problem+json` with code
-  `NOT_AUTHORIZED` and the meeting is not updated
+- **THEN** the response is `403` Problem Details with code `NOT_AUTHORIZED` and
+  the meeting is not updated
 
 #### Scenario: Non-host update is rejected
 

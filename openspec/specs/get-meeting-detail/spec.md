@@ -15,7 +15,7 @@ participant list in one response body. The endpoint SHALL use the HTTP `GET`
 method, resolve the tenant from the `X-Tenant-ID` header, and require an
 `X-Account-Id` header. The endpoint SHALL require the `view-meeting` project
 permission — if the caller's permission context does not contain `view-meeting`,
-the endpoint SHALL reject the request with `403 application/problem+json` and
+the endpoint SHALL reject the request with a `403` Problem Details response and
 code `NOT_AUTHORIZED` before executing the use case. Any authenticated account
 within the meeting's tenant who has `view-meeting` permission SHALL be permitted
 to read the meeting; access SHALL NOT be restricted to the host. The successful
@@ -33,8 +33,8 @@ wrapping envelope, and SHALL NOT include the tenant identifier.
 #### Scenario: Missing view-meeting permission is rejected
 
 - **WHEN** a caller without `view-meeting` sends `GET /api/1/meetings/{id}`
-- **THEN** the response is `403 application/problem+json` with code
-  `NOT_AUTHORIZED` and no meeting detail is returned
+- **THEN** the response is `403` Problem Details with code `NOT_AUTHORIZED` and
+  no meeting detail is returned
 
 #### Scenario: A non-host tenant member may read the meeting
 

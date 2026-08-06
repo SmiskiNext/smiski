@@ -2,9 +2,9 @@
 
 Defines the cross-service HTTP API contract every backend service must satisfy:
 the versioned URL scheme, RESTful resource and action naming, the shape of
-successful responses, RFC 9457 (`application/problem+json`) error responses, and
-validation-failure semantics. This is the authoritative reference for API design
-reviews and for onboarding new services.
+successful responses, RFC 9457 Problem Details error responses served as
+`application/json`, and validation-failure semantics. This is the authoritative
+reference for API design reviews and for onboarding new services.
 
 ## Requirements
 

@@ -11,7 +11,7 @@ TBD - created by archiving change delete-meeting. Update Purpose after archive.
 The system SHALL expose `DELETE /api/1/meetings/{id}` for soft-deleting a single
 meeting. The endpoint SHALL require the `edit-meeting` project permission — if
 the caller's permission context does not contain `edit-meeting`, the endpoint
-SHALL reject the request with `403 application/problem+json` and code
+SHALL reject the request with a `403` Problem Details response and code
 `NOT_AUTHORIZED` before executing the use case. The acting account SHALL be
 resolved from the configured account header, the tenant SHALL be resolved from
 the tenant context, and only the meeting host SHALL be authorized to delete the
@@ -32,8 +32,8 @@ timestamp and deleting account.
 #### Scenario: Missing edit-meeting permission is rejected
 
 - **WHEN** a caller without `edit-meeting` sends `DELETE /api/1/meetings/{id}`
-- **THEN** the response is `403 application/problem+json` with code
-  `NOT_AUTHORIZED` and the meeting is not deleted
+- **THEN** the response is `403` Problem Details with code `NOT_AUTHORIZED` and
+  the meeting is not deleted
 
 #### Scenario: Non-host deletion is rejected
 
