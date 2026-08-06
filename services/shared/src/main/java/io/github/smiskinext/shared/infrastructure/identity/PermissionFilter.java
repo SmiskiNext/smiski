@@ -9,6 +9,7 @@ import java.util.Arrays;
 import java.util.LinkedHashSet;
 import java.util.Set;
 import java.util.stream.Collectors;
+import org.springframework.http.MediaType;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.authentication.preauth.PreAuthenticatedAuthenticationToken;
@@ -24,7 +25,8 @@ import org.springframework.web.filter.OncePerRequestFilter;
  *
  * <p>When the header is absent and {@code requireHeader} is {@code false}, an empty permission set
  * is bound and the request proceeds. When the header is absent and {@code requireHeader} is
- * {@code true}, the filter rejects the request with {@code 403 application/problem+json}.
+ * {@code true}, the filter rejects the request with a {@code 403} Problem Details body served as
+ * {@code application/json}, matching the media type the rest of the error contract uses.
  *
  * <p>Only active when running in a SERVLET container (not Netty/WebFlux).
  */
@@ -61,7 +63,7 @@ public class PermissionFilter extends OncePerRequestFilter {
                 filterChain.doFilter(request, response);
             } else if (requireHeader) {
                 response.setStatus(HttpServletResponse.SC_FORBIDDEN);
-                response.setContentType("application/problem+json");
+                response.setContentType(MediaType.APPLICATION_JSON_VALUE);
                 response.getWriter().write(FORBIDDEN_BODY);
             } else {
                 PermissionContext.setPermissions(new LinkedHashSet<>());

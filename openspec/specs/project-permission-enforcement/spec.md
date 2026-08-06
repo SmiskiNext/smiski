@@ -17,7 +17,7 @@ be cleared at the end of each request. When the header is absent and
 `app.security.permissions.require-header` is `false` (the default), the filter
 SHALL bind an empty permission set and allow the request to proceed. When the
 header is absent and `app.security.permissions.require-header` is `true`, the
-filter SHALL reject the request with `403 application/problem+json` and code
+filter SHALL reject the request with a `403` Problem Details response and code
 `NOT_AUTHORIZED`.
 
 #### Scenario: Header present is parsed and bound
@@ -38,7 +38,7 @@ filter SHALL reject the request with `403 application/problem+json` and code
 
 - **WHEN** a request arrives without `X-Project-Permissions` and
   `app.security.permissions.require-header` is `true`
-- **THEN** the filter rejects the request with `403 application/problem+json`
+- **THEN** the filter rejects the request with a `403` Problem Details response
   and code `NOT_AUTHORIZED` before it reaches the controller
 
 #### Scenario: Permission context does not leak across requests
@@ -52,15 +52,15 @@ filter SHALL reject the request with `403 application/problem+json` and code
 
 The `meet` service SHALL enforce project-level permissions on each API endpoint
 before executing the use case. An endpoint requiring `view-meeting` SHALL reject
-the request with `403 application/problem+json` and code `NOT_AUTHORIZED` if the
-caller's `PermissionContext` does not contain `view-meeting`. An endpoint
-requiring `edit-meeting` SHALL reject the request with
-`403 application/problem+json` and code `NOT_AUTHORIZED` if the caller's
-`PermissionContext` does not contain `edit-meeting`. Permission checks SHALL run
-after the `X-Account-Id` header check and before any use case is executed. Host-
-ownership checks in the application layer SHALL remain unchanged; a caller must
-therefore satisfy both the project permission and the host-ownership check to
-perform host-only operations.
+the request with a `403` Problem Details response and code `NOT_AUTHORIZED` if
+the caller's `PermissionContext` does not contain `view-meeting`. An endpoint
+requiring `edit-meeting` SHALL reject the request with a `403` Problem Details
+response and code `NOT_AUTHORIZED` if the caller's `PermissionContext` does not
+contain `edit-meeting`. Permission checks SHALL run after the `X-Account-Id`
+header check and before any use case is executed. Host- ownership checks in the
+application layer SHALL remain unchanged; a caller must therefore satisfy both
+the project permission and the host-ownership check to perform host-only
+operations.
 
 **Endpoint permission mapping:**
 
@@ -73,21 +73,22 @@ perform host-only operations.
 #### Scenario: Missing view-meeting is rejected
 
 - **WHEN** a caller with no project permissions sends `GET /meetings/{id}`
-- **THEN** the response is `403 application/problem+json` with code
-  `NOT_AUTHORIZED` and the use case is not invoked
+- **THEN** the response is `403` Problem Details with code `NOT_AUTHORIZED` and
+  the use case is not invoked
 
 #### Scenario: Missing edit-meeting is rejected
 
 - **WHEN** a caller with only `view-meeting` sends `POST /meetings:instant`
-- **THEN** the response is `403 application/problem+json` with code
-  `NOT_AUTHORIZED` and no meeting is created
+- **THEN** the response is `403` Problem Details with code `NOT_AUTHORIZED` and
+  no meeting is created
 
 #### Scenario: Correct permission plus non-host ownership still fails
 
 - **WHEN** a caller has `edit-meeting` but is not the host of the meeting and
   sends `PUT /meetings/{id}`
 - **THEN** the permission check passes but the application layer rejects the
-  request with `403 application/problem+json` with the host-ownership error code
+  request with a `403` Problem Details response carrying the host-ownership
+  error code
 
 #### Scenario: Correct permission plus host ownership succeeds
 

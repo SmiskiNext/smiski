@@ -89,7 +89,7 @@ class HandleJoinRequestsControllerIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"requestIds\": []}"))
                 .andExpect(status().isBadRequest())
-                .andExpect(content().contentTypeCompatibleWith("application/problem+json"))
+                .andExpect(content().contentTypeCompatibleWith("application/json"))
                 .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"));
     }
 
@@ -105,7 +105,7 @@ class HandleJoinRequestsControllerIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"requestIds\": [\"" + requestId + "\"]}"))
                 .andExpect(status().isForbidden())
-                .andExpect(content().contentTypeCompatibleWith("application/problem+json"))
+                .andExpect(content().contentTypeCompatibleWith("application/json"))
                 .andExpect(jsonPath("$.code").value("NOT_OWNER"));
     }
 
@@ -120,7 +120,7 @@ class HandleJoinRequestsControllerIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"requestIds\": [\"" + UUID.randomUUID() + "\"]}"))
                 .andExpect(status().isNotFound())
-                .andExpect(content().contentTypeCompatibleWith("application/problem+json"))
+                .andExpect(content().contentTypeCompatibleWith("application/json"))
                 .andExpect(jsonPath("$.code").value("MEETING_NOT_FOUND"));
     }
 

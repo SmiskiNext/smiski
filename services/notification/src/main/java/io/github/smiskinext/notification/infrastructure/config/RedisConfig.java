@@ -24,8 +24,8 @@ import tools.jackson.databind.json.JsonMapper;
  *
  * <p>The {@link JsonMapper} is built privately and never exposed as a Spring bean: a user-declared
  * {@code JsonMapper} bean would make Boot back off its auto-configured web mapper (which carries the
- * {@code ProblemDetail} mixin that flattens RFC 9457 extension members), corrupting {@code
- * application/problem+json} responses.
+ * {@code ProblemDetail} mixin that flattens RFC 9457 extension members), corrupting Problem
+ * Details responses.
  */
 @Configuration
 @ConditionalOnProperty(name = "spring.data.redis.host")

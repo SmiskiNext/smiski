@@ -28,7 +28,7 @@ export interface SubscribeMeetingEventsOptions {
 function apiUrl(path: string): string {
     if (!apiConfig.apiBaseUrl) {
         throw new Error(
-            'VITE_SMISKI_API_BASE_URL is required for realtime meeting events.',
+            'SMISKI_API_BASE_URL is required for realtime meeting events.',
         );
     }
     return `${apiConfig.apiBaseUrl}/api/${apiConfig.apiVersion}${path}`;

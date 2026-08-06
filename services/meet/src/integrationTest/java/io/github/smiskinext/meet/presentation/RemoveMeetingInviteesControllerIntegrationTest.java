@@ -80,7 +80,7 @@ class RemoveMeetingInviteesControllerIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"inviteeIds\":[\"%s\"]}".formatted(aliceId)))
                 .andExpect(status().isBadRequest())
-                .andExpect(content().contentTypeCompatibleWith("application/problem+json"));
+                .andExpect(content().contentTypeCompatibleWith("application/json"));
 
         assertThat(activeInviteeCount(meetingId)).isEqualTo(2);
     }
@@ -174,7 +174,7 @@ class RemoveMeetingInviteesControllerIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"inviteeIds\":[\"%s\"]}".formatted(aliceId)))
                 .andExpect(status().isForbidden())
-                .andExpect(content().contentTypeCompatibleWith("application/problem+json"))
+                .andExpect(content().contentTypeCompatibleWith("application/json"))
                 .andExpect(jsonPath("$.code").value("NOT_AUTHORIZED"));
 
         assertThat(activeInviteeCount(meetingId)).isEqualTo(2);
@@ -197,7 +197,7 @@ class RemoveMeetingInviteesControllerIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"inviteeIds\":[\"%s\"]}".formatted(aliceId)))
                 .andExpect(status().isConflict())
-                .andExpect(content().contentTypeCompatibleWith("application/problem+json"))
+                .andExpect(content().contentTypeCompatibleWith("application/json"))
                 .andExpect(jsonPath("$.code").value("INVALID_STATUS_TRANSITION"));
 
         assertThat(activeInviteeCount(meetingId)).isEqualTo(2);

@@ -89,7 +89,7 @@ paths:
         '400':
           description: Bad Request
           content:
-            application/problem+json:
+            application/json:
               schema:
                 $ref: '#/components/schemas/Tenant_ProblemDetail'
               examples:
@@ -130,19 +130,19 @@ paths:
         '405':
           description: Method Not Allowed
           content:
-            application/problem+json:
+            application/json:
               schema:
                 $ref: '#/components/schemas/Tenant_ProblemDetail'
         '415':
           description: Unsupported Media Type
           content:
-            application/problem+json:
+            application/json:
               schema:
                 $ref: '#/components/schemas/Tenant_ProblemDetail'
         '500':
           description: Internal Server Error
           content:
-            application/problem+json:
+            application/json:
               schema:
                 $ref: '#/components/schemas/Tenant_ProblemDetail'
     delete:
@@ -181,7 +181,7 @@ paths:
         '400':
           description: Missing tenant context
           content:
-            application/problem+json:
+            application/json:
               schema:
                 $ref: '#/components/schemas/Tenant_ProblemDetail'
               examples:
@@ -197,7 +197,7 @@ paths:
         '404':
           description: Tenant not found
           content:
-            application/problem+json:
+            application/json:
               schema:
                 $ref: '#/components/schemas/Tenant_ProblemDetail'
               examples:
@@ -213,19 +213,19 @@ paths:
         '405':
           description: Method Not Allowed
           content:
-            application/problem+json:
+            application/json:
               schema:
                 $ref: '#/components/schemas/Tenant_ProblemDetail'
         '415':
           description: Unsupported Media Type
           content:
-            application/problem+json:
+            application/json:
               schema:
                 $ref: '#/components/schemas/Tenant_ProblemDetail'
         '500':
           description: Internal Server Error
           content:
-            application/problem+json:
+            application/json:
               schema:
                 $ref: '#/components/schemas/Tenant_ProblemDetail'
     parameters:
@@ -303,7 +303,7 @@ paths:
         '400':
           description: Missing account header
           content:
-            application/problem+json:
+            application/json:
               schema:
                 $ref: '#/components/schemas/Meet_ProblemDetail'
               examples:
@@ -319,7 +319,7 @@ paths:
         '404':
           description: Meeting not found, soft-deleted, or in another tenant
           content:
-            application/problem+json:
+            application/json:
               schema:
                 $ref: '#/components/schemas/Meet_ProblemDetail'
               examples:
@@ -335,19 +335,19 @@ paths:
         '405':
           description: Method Not Allowed
           content:
-            application/problem+json:
+            application/json:
               schema:
                 $ref: '#/components/schemas/Meet_ProblemDetail'
         '415':
           description: Unsupported Media Type
           content:
-            application/problem+json:
+            application/json:
               schema:
                 $ref: '#/components/schemas/Meet_ProblemDetail'
         '500':
           description: Internal Server Error
           content:
-            application/problem+json:
+            application/json:
               schema:
                 $ref: '#/components/schemas/Meet_ProblemDetail'
     put:
@@ -403,7 +403,7 @@ paths:
         '400':
           description: Validation error or missing account
           content:
-            application/problem+json:
+            application/json:
               schema:
                 $ref: '#/components/schemas/Meet_ProblemDetail'
               examples:
@@ -434,7 +434,7 @@ paths:
         '403':
           description: Only the host may update the meeting
           content:
-            application/problem+json:
+            application/json:
               schema:
                 $ref: '#/components/schemas/Meet_ProblemDetail'
               examples:
@@ -450,7 +450,7 @@ paths:
         '404':
           description: Meeting not found
           content:
-            application/problem+json:
+            application/json:
               schema:
                 $ref: '#/components/schemas/Meet_ProblemDetail'
               examples:
@@ -466,19 +466,19 @@ paths:
         '405':
           description: Method Not Allowed
           content:
-            application/problem+json:
+            application/json:
               schema:
                 $ref: '#/components/schemas/Meet_ProblemDetail'
         '415':
           description: Unsupported Media Type
           content:
-            application/problem+json:
+            application/json:
               schema:
                 $ref: '#/components/schemas/Meet_ProblemDetail'
         '500':
           description: Internal Server Error
           content:
-            application/problem+json:
+            application/json:
               schema:
                 $ref: '#/components/schemas/Meet_ProblemDetail'
     delete:
@@ -537,7 +537,7 @@ paths:
         '400':
           description: Missing account header
           content:
-            application/problem+json:
+            application/json:
               schema:
                 $ref: '#/components/schemas/Meet_ProblemDetail'
               examples:
@@ -553,7 +553,7 @@ paths:
         '403':
           description: Only the host may delete the meeting
           content:
-            application/problem+json:
+            application/json:
               schema:
                 $ref: '#/components/schemas/Meet_ProblemDetail'
               examples:
@@ -569,7 +569,7 @@ paths:
         '404':
           description: Meeting not found or already deleted
           content:
-            application/problem+json:
+            application/json:
               schema:
                 $ref: '#/components/schemas/Meet_ProblemDetail'
               examples:
@@ -585,13 +585,13 @@ paths:
         '405':
           description: Method Not Allowed
           content:
-            application/problem+json:
+            application/json:
               schema:
                 $ref: '#/components/schemas/Meet_ProblemDetail'
         '409':
           description: The meeting is running and cannot be deleted
           content:
-            application/problem+json:
+            application/json:
               schema:
                 $ref: '#/components/schemas/Meet_ProblemDetail'
               examples:
@@ -607,13 +607,13 @@ paths:
         '415':
           description: Unsupported Media Type
           content:
-            application/problem+json:
+            application/json:
               schema:
                 $ref: '#/components/schemas/Meet_ProblemDetail'
         '500':
           description: Internal Server Error
           content:
-            application/problem+json:
+            application/json:
               schema:
                 $ref: '#/components/schemas/Meet_ProblemDetail'
     parameters:
@@ -665,7 +665,7 @@ paths:
         '400':
           description: Validation error or missing account
           content:
-            application/problem+json:
+            application/json:
               schema:
                 $ref: '#/components/schemas/Meet_ProblemDetail'
               examples:
@@ -696,7 +696,7 @@ paths:
         '403':
           description: Only the host may replace the settings
           content:
-            application/problem+json:
+            application/json:
               schema:
                 $ref: '#/components/schemas/Meet_ProblemDetail'
               examples:
@@ -712,7 +712,7 @@ paths:
         '404':
           description: Meeting not found
           content:
-            application/problem+json:
+            application/json:
               schema:
                 $ref: '#/components/schemas/Meet_ProblemDetail'
               examples:
@@ -728,19 +728,19 @@ paths:
         '405':
           description: Method Not Allowed
           content:
-            application/problem+json:
+            application/json:
               schema:
                 $ref: '#/components/schemas/Meet_ProblemDetail'
         '415':
           description: Unsupported Media Type
           content:
-            application/problem+json:
+            application/json:
               schema:
                 $ref: '#/components/schemas/Meet_ProblemDetail'
         '500':
           description: Internal Server Error
           content:
-            application/problem+json:
+            application/json:
               schema:
                 $ref: '#/components/schemas/Meet_ProblemDetail'
     parameters:
@@ -780,19 +780,19 @@ paths:
         '405':
           description: Method Not Allowed
           content:
-            application/problem+json:
+            application/json:
               schema:
                 $ref: '#/components/schemas/Meet_ProblemDetail'
         '415':
           description: Unsupported Media Type
           content:
-            application/problem+json:
+            application/json:
               schema:
                 $ref: '#/components/schemas/Meet_ProblemDetail'
         '500':
           description: Internal Server Error
           content:
-            application/problem+json:
+            application/json:
               schema:
                 $ref: '#/components/schemas/Meet_ProblemDetail'
     parameters:
@@ -854,7 +854,7 @@ paths:
         '400':
           description: Missing account header, page-size validation, or invalid cursor
           content:
-            application/problem+json:
+            application/json:
               schema:
                 $ref: '#/components/schemas/Meet_ProblemDetail'
               examples:
@@ -881,19 +881,19 @@ paths:
         '405':
           description: Method Not Allowed
           content:
-            application/problem+json:
+            application/json:
               schema:
                 $ref: '#/components/schemas/Meet_ProblemDetail'
         '415':
           description: Unsupported Media Type
           content:
-            application/problem+json:
+            application/json:
               schema:
                 $ref: '#/components/schemas/Meet_ProblemDetail'
         '500':
           description: Internal Server Error
           content:
-            application/problem+json:
+            application/json:
               schema:
                 $ref: '#/components/schemas/Meet_ProblemDetail'
     parameters:
@@ -965,7 +965,7 @@ paths:
         '400':
           description: Validation error, missing account header, or start time in past
           content:
-            application/problem+json:
+            application/json:
               schema:
                 $ref: '#/components/schemas/Meet_ProblemDetail'
               examples:
@@ -1006,19 +1006,19 @@ paths:
         '405':
           description: Method Not Allowed
           content:
-            application/problem+json:
+            application/json:
               schema:
                 $ref: '#/components/schemas/Meet_ProblemDetail'
         '415':
           description: Unsupported Media Type
           content:
-            application/problem+json:
+            application/json:
               schema:
                 $ref: '#/components/schemas/Meet_ProblemDetail'
         '500':
           description: Internal Server Error
           content:
-            application/problem+json:
+            application/json:
               schema:
                 $ref: '#/components/schemas/Meet_ProblemDetail'
     parameters:
@@ -1089,7 +1089,7 @@ paths:
         '400':
           description: Validation error or missing account header
           content:
-            application/problem+json:
+            application/json:
               schema:
                 $ref: '#/components/schemas/Meet_ProblemDetail'
               examples:
@@ -1120,19 +1120,19 @@ paths:
         '405':
           description: Method Not Allowed
           content:
-            application/problem+json:
+            application/json:
               schema:
                 $ref: '#/components/schemas/Meet_ProblemDetail'
         '415':
           description: Unsupported Media Type
           content:
-            application/problem+json:
+            application/json:
               schema:
                 $ref: '#/components/schemas/Meet_ProblemDetail'
         '500':
           description: Internal Server Error
           content:
-            application/problem+json:
+            application/json:
               schema:
                 $ref: '#/components/schemas/Meet_ProblemDetail'
     parameters:
@@ -1199,7 +1199,7 @@ paths:
         '400':
           description: Validation error or missing account header
           content:
-            application/problem+json:
+            application/json:
               schema:
                 $ref: '#/components/schemas/Meet_ProblemDetail'
               examples:
@@ -1230,7 +1230,7 @@ paths:
         '403':
           description: Only the host may delete the meetings
           content:
-            application/problem+json:
+            application/json:
               schema:
                 $ref: '#/components/schemas/Meet_ProblemDetail'
               examples:
@@ -1246,7 +1246,7 @@ paths:
         '404':
           description: A listed meeting was not found or already deleted
           content:
-            application/problem+json:
+            application/json:
               schema:
                 $ref: '#/components/schemas/Meet_ProblemDetail'
               examples:
@@ -1262,13 +1262,13 @@ paths:
         '405':
           description: Method Not Allowed
           content:
-            application/problem+json:
+            application/json:
               schema:
                 $ref: '#/components/schemas/Meet_ProblemDetail'
         '409':
           description: A listed meeting is running and cannot be deleted
           content:
-            application/problem+json:
+            application/json:
               schema:
                 $ref: '#/components/schemas/Meet_ProblemDetail'
               examples:
@@ -1284,13 +1284,13 @@ paths:
         '415':
           description: Unsupported Media Type
           content:
-            application/problem+json:
+            application/json:
               schema:
                 $ref: '#/components/schemas/Meet_ProblemDetail'
         '500':
           description: Internal Server Error
           content:
-            application/problem+json:
+            application/json:
               schema:
                 $ref: '#/components/schemas/Meet_ProblemDetail'
     parameters:
@@ -1346,7 +1346,7 @@ paths:
         '400':
           description: Validation error or missing account header
           content:
-            application/problem+json:
+            application/json:
               schema:
                 $ref: '#/components/schemas/Meet_ProblemDetail'
               examples:
@@ -1377,7 +1377,7 @@ paths:
         '404':
           description: Meeting not found for the current tenant
           content:
-            application/problem+json:
+            application/json:
               schema:
                 $ref: '#/components/schemas/Meet_ProblemDetail'
               examples:
@@ -1393,13 +1393,13 @@ paths:
         '405':
           description: Method Not Allowed
           content:
-            application/problem+json:
+            application/json:
               schema:
                 $ref: '#/components/schemas/Meet_ProblemDetail'
         '409':
           description: Meeting is at capacity
           content:
-            application/problem+json:
+            application/json:
               schema:
                 $ref: '#/components/schemas/Meet_ProblemDetail'
               examples:
@@ -1415,13 +1415,13 @@ paths:
         '415':
           description: Unsupported Media Type
           content:
-            application/problem+json:
+            application/json:
               schema:
                 $ref: '#/components/schemas/Meet_ProblemDetail'
         '500':
           description: Internal Server Error
           content:
-            application/problem+json:
+            application/json:
               schema:
                 $ref: '#/components/schemas/Meet_ProblemDetail'
     parameters:
@@ -1488,7 +1488,7 @@ paths:
         '400':
           description: Missing account header
           content:
-            application/problem+json:
+            application/json:
               schema:
                 $ref: '#/components/schemas/Meet_ProblemDetail'
               examples:
@@ -1504,7 +1504,7 @@ paths:
         '403':
           description: Only the host may end the meeting
           content:
-            application/problem+json:
+            application/json:
               schema:
                 $ref: '#/components/schemas/Meet_ProblemDetail'
               examples:
@@ -1520,7 +1520,7 @@ paths:
         '404':
           description: Meeting not found or soft-deleted
           content:
-            application/problem+json:
+            application/json:
               schema:
                 $ref: '#/components/schemas/Meet_ProblemDetail'
               examples:
@@ -1536,13 +1536,13 @@ paths:
         '405':
           description: Method Not Allowed
           content:
-            application/problem+json:
+            application/json:
               schema:
                 $ref: '#/components/schemas/Meet_ProblemDetail'
         '409':
           description: Meeting status does not allow completion
           content:
-            application/problem+json:
+            application/json:
               schema:
                 $ref: '#/components/schemas/Meet_ProblemDetail'
               examples:
@@ -1558,7 +1558,7 @@ paths:
         '415':
           description: Unsupported Media Type
           content:
-            application/problem+json:
+            application/json:
               schema:
                 $ref: '#/components/schemas/Meet_ProblemDetail'
         '500':
@@ -1631,7 +1631,7 @@ paths:
         '400':
           description: Missing account header
           content:
-            application/problem+json:
+            application/json:
               schema:
                 $ref: '#/components/schemas/Meet_ProblemDetail'
               examples:
@@ -1647,7 +1647,7 @@ paths:
         '403':
           description: Only the host may cancel the meeting
           content:
-            application/problem+json:
+            application/json:
               schema:
                 $ref: '#/components/schemas/Meet_ProblemDetail'
               examples:
@@ -1663,7 +1663,7 @@ paths:
         '404':
           description: Meeting not found or soft-deleted
           content:
-            application/problem+json:
+            application/json:
               schema:
                 $ref: '#/components/schemas/Meet_ProblemDetail'
               examples:
@@ -1679,13 +1679,13 @@ paths:
         '405':
           description: Method Not Allowed
           content:
-            application/problem+json:
+            application/json:
               schema:
                 $ref: '#/components/schemas/Meet_ProblemDetail'
         '409':
           description: Meeting status does not allow cancellation
           content:
-            application/problem+json:
+            application/json:
               schema:
                 $ref: '#/components/schemas/Meet_ProblemDetail'
               examples:
@@ -1701,7 +1701,7 @@ paths:
         '415':
           description: Unsupported Media Type
           content:
-            application/problem+json:
+            application/json:
               schema:
                 $ref: '#/components/schemas/Meet_ProblemDetail'
         '500':
@@ -1763,7 +1763,7 @@ paths:
         '400':
           description: Missing account header or empty/malformed body
           content:
-            application/problem+json:
+            application/json:
               schema:
                 $ref: '#/components/schemas/Meet_ProblemDetail'
               examples:
@@ -1794,7 +1794,7 @@ paths:
         '403':
           description: Only the host may decline join requests
           content:
-            application/problem+json:
+            application/json:
               schema:
                 $ref: '#/components/schemas/Meet_ProblemDetail'
               examples:
@@ -1810,7 +1810,7 @@ paths:
         '404':
           description: Meeting not found for the current tenant
           content:
-            application/problem+json:
+            application/json:
               schema:
                 $ref: '#/components/schemas/Meet_ProblemDetail'
               examples:
@@ -1826,19 +1826,19 @@ paths:
         '405':
           description: Method Not Allowed
           content:
-            application/problem+json:
+            application/json:
               schema:
                 $ref: '#/components/schemas/Meet_ProblemDetail'
         '415':
           description: Unsupported Media Type
           content:
-            application/problem+json:
+            application/json:
               schema:
                 $ref: '#/components/schemas/Meet_ProblemDetail'
         '500':
           description: Internal Server Error
           content:
-            application/problem+json:
+            application/json:
               schema:
                 $ref: '#/components/schemas/Meet_ProblemDetail'
     parameters:
@@ -1894,7 +1894,7 @@ paths:
         '400':
           description: Missing account header or empty/malformed body
           content:
-            application/problem+json:
+            application/json:
               schema:
                 $ref: '#/components/schemas/Meet_ProblemDetail'
               examples:
@@ -1925,7 +1925,7 @@ paths:
         '403':
           description: Only the host may accept join requests
           content:
-            application/problem+json:
+            application/json:
               schema:
                 $ref: '#/components/schemas/Meet_ProblemDetail'
               examples:
@@ -1941,7 +1941,7 @@ paths:
         '404':
           description: Meeting not found for the current tenant
           content:
-            application/problem+json:
+            application/json:
               schema:
                 $ref: '#/components/schemas/Meet_ProblemDetail'
               examples:
@@ -1957,19 +1957,19 @@ paths:
         '405':
           description: Method Not Allowed
           content:
-            application/problem+json:
+            application/json:
               schema:
                 $ref: '#/components/schemas/Meet_ProblemDetail'
         '415':
           description: Unsupported Media Type
           content:
-            application/problem+json:
+            application/json:
               schema:
                 $ref: '#/components/schemas/Meet_ProblemDetail'
         '500':
           description: Internal Server Error
           content:
-            application/problem+json:
+            application/json:
               schema:
                 $ref: '#/components/schemas/Meet_ProblemDetail'
     parameters:
@@ -2023,7 +2023,7 @@ paths:
         '400':
           description: Validation error or missing account
           content:
-            application/problem+json:
+            application/json:
               schema:
                 $ref: '#/components/schemas/Meet_ProblemDetail'
               examples:
@@ -2054,7 +2054,7 @@ paths:
         '403':
           description: Only the host may add invitees
           content:
-            application/problem+json:
+            application/json:
               schema:
                 $ref: '#/components/schemas/Meet_ProblemDetail'
               examples:
@@ -2070,7 +2070,7 @@ paths:
         '404':
           description: Meeting not found
           content:
-            application/problem+json:
+            application/json:
               schema:
                 $ref: '#/components/schemas/Meet_ProblemDetail'
               examples:
@@ -2086,13 +2086,13 @@ paths:
         '405':
           description: Method Not Allowed
           content:
-            application/problem+json:
+            application/json:
               schema:
                 $ref: '#/components/schemas/Meet_ProblemDetail'
         '409':
           description: An account is already an active invitee
           content:
-            application/problem+json:
+            application/json:
               schema:
                 $ref: '#/components/schemas/Meet_ProblemDetail'
               examples:
@@ -2108,13 +2108,13 @@ paths:
         '415':
           description: Unsupported Media Type
           content:
-            application/problem+json:
+            application/json:
               schema:
                 $ref: '#/components/schemas/Meet_ProblemDetail'
         '500':
           description: Internal Server Error
           content:
-            application/problem+json:
+            application/json:
               schema:
                 $ref: '#/components/schemas/Meet_ProblemDetail'
     parameters:
@@ -2168,7 +2168,7 @@ paths:
         '400':
           description: Validation error or missing account
           content:
-            application/problem+json:
+            application/json:
               schema:
                 $ref: '#/components/schemas/Meet_ProblemDetail'
               examples:
@@ -2199,7 +2199,7 @@ paths:
         '403':
           description: Only the host may remove invitees
           content:
-            application/problem+json:
+            application/json:
               schema:
                 $ref: '#/components/schemas/Meet_ProblemDetail'
               examples:
@@ -2215,7 +2215,7 @@ paths:
         '404':
           description: Meeting or invitee not found
           content:
-            application/problem+json:
+            application/json:
               schema:
                 $ref: '#/components/schemas/Meet_ProblemDetail'
               examples:
@@ -2240,19 +2240,19 @@ paths:
         '405':
           description: Method Not Allowed
           content:
-            application/problem+json:
+            application/json:
               schema:
                 $ref: '#/components/schemas/Meet_ProblemDetail'
         '415':
           description: Unsupported Media Type
           content:
-            application/problem+json:
+            application/json:
               schema:
                 $ref: '#/components/schemas/Meet_ProblemDetail'
         '500':
           description: Internal Server Error
           content:
-            application/problem+json:
+            application/json:
               schema:
                 $ref: '#/components/schemas/Meet_ProblemDetail'
     parameters:
@@ -2305,7 +2305,7 @@ paths:
         '400':
           description: Missing account header
           content:
-            application/problem+json:
+            application/json:
               schema:
                 $ref: '#/components/schemas/Meet_ProblemDetail'
               examples:
@@ -2321,7 +2321,7 @@ paths:
         '403':
           description: The acting account does not own the target invitation
           content:
-            application/problem+json:
+            application/json:
               schema:
                 $ref: '#/components/schemas/Meet_ProblemDetail'
               examples:
@@ -2337,7 +2337,7 @@ paths:
         '404':
           description: Meeting or invitee not found for the current tenant
           content:
-            application/problem+json:
+            application/json:
               schema:
                 $ref: '#/components/schemas/Meet_ProblemDetail'
               examples:
@@ -2353,13 +2353,13 @@ paths:
         '405':
           description: Method Not Allowed
           content:
-            application/problem+json:
+            application/json:
               schema:
                 $ref: '#/components/schemas/Meet_ProblemDetail'
         '409':
           description: The current status does not permit a tentative response
           content:
-            application/problem+json:
+            application/json:
               schema:
                 $ref: '#/components/schemas/Meet_ProblemDetail'
               examples:
@@ -2375,13 +2375,13 @@ paths:
         '415':
           description: Unsupported Media Type
           content:
-            application/problem+json:
+            application/json:
               schema:
                 $ref: '#/components/schemas/Meet_ProblemDetail'
         '500':
           description: Internal Server Error
           content:
-            application/problem+json:
+            application/json:
               schema:
                 $ref: '#/components/schemas/Meet_ProblemDetail'
     parameters:
@@ -2434,7 +2434,7 @@ paths:
         '400':
           description: Missing account header
           content:
-            application/problem+json:
+            application/json:
               schema:
                 $ref: '#/components/schemas/Meet_ProblemDetail'
               examples:
@@ -2450,7 +2450,7 @@ paths:
         '403':
           description: The acting account does not own the target invitation
           content:
-            application/problem+json:
+            application/json:
               schema:
                 $ref: '#/components/schemas/Meet_ProblemDetail'
               examples:
@@ -2466,7 +2466,7 @@ paths:
         '404':
           description: Meeting or invitee not found for the current tenant
           content:
-            application/problem+json:
+            application/json:
               schema:
                 $ref: '#/components/schemas/Meet_ProblemDetail'
               examples:
@@ -2482,13 +2482,13 @@ paths:
         '405':
           description: Method Not Allowed
           content:
-            application/problem+json:
+            application/json:
               schema:
                 $ref: '#/components/schemas/Meet_ProblemDetail'
         '409':
           description: The current status does not permit declining
           content:
-            application/problem+json:
+            application/json:
               schema:
                 $ref: '#/components/schemas/Meet_ProblemDetail'
               examples:
@@ -2504,13 +2504,13 @@ paths:
         '415':
           description: Unsupported Media Type
           content:
-            application/problem+json:
+            application/json:
               schema:
                 $ref: '#/components/schemas/Meet_ProblemDetail'
         '500':
           description: Internal Server Error
           content:
-            application/problem+json:
+            application/json:
               schema:
                 $ref: '#/components/schemas/Meet_ProblemDetail'
     parameters:
@@ -2563,7 +2563,7 @@ paths:
         '400':
           description: Missing account header
           content:
-            application/problem+json:
+            application/json:
               schema:
                 $ref: '#/components/schemas/Meet_ProblemDetail'
               examples:
@@ -2579,7 +2579,7 @@ paths:
         '403':
           description: The acting account does not own the target invitation
           content:
-            application/problem+json:
+            application/json:
               schema:
                 $ref: '#/components/schemas/Meet_ProblemDetail'
               examples:
@@ -2595,7 +2595,7 @@ paths:
         '404':
           description: Meeting or invitee not found for the current tenant
           content:
-            application/problem+json:
+            application/json:
               schema:
                 $ref: '#/components/schemas/Meet_ProblemDetail'
               examples:
@@ -2611,13 +2611,13 @@ paths:
         '405':
           description: Method Not Allowed
           content:
-            application/problem+json:
+            application/json:
               schema:
                 $ref: '#/components/schemas/Meet_ProblemDetail'
         '409':
           description: The current status does not permit accepting
           content:
-            application/problem+json:
+            application/json:
               schema:
                 $ref: '#/components/schemas/Meet_ProblemDetail'
               examples:
@@ -2633,13 +2633,13 @@ paths:
         '415':
           description: Unsupported Media Type
           content:
-            application/problem+json:
+            application/json:
               schema:
                 $ref: '#/components/schemas/Meet_ProblemDetail'
         '500':
           description: Internal Server Error
           content:
-            application/problem+json:
+            application/json:
               schema:
                 $ref: '#/components/schemas/Meet_ProblemDetail'
     parameters:
@@ -2708,7 +2708,7 @@ paths:
         '400':
           description: Missing account header or request validation failure
           content:
-            application/problem+json:
+            application/json:
               schema:
                 $ref: '#/components/schemas/Meet_ProblemDetail'
               examples:
@@ -2753,19 +2753,19 @@ paths:
         '405':
           description: Method Not Allowed
           content:
-            application/problem+json:
+            application/json:
               schema:
                 $ref: '#/components/schemas/Meet_ProblemDetail'
         '415':
           description: Unsupported Media Type
           content:
-            application/problem+json:
+            application/json:
               schema:
                 $ref: '#/components/schemas/Meet_ProblemDetail'
         '500':
           description: Internal Server Error
           content:
-            application/problem+json:
+            application/json:
               schema:
                 $ref: '#/components/schemas/Meet_ProblemDetail'
     parameters:
@@ -2829,7 +2829,7 @@ paths:
         '400':
           description: Missing account header or pageSize out of range
           content:
-            application/problem+json:
+            application/json:
               schema:
                 $ref: '#/components/schemas/Meet_ProblemDetail'
               examples:
@@ -2856,7 +2856,7 @@ paths:
         '403':
           description: Only the host may list pending join requests
           content:
-            application/problem+json:
+            application/json:
               schema:
                 $ref: '#/components/schemas/Meet_ProblemDetail'
               examples:
@@ -2872,7 +2872,7 @@ paths:
         '404':
           description: Meeting not found for the current tenant
           content:
-            application/problem+json:
+            application/json:
               schema:
                 $ref: '#/components/schemas/Meet_ProblemDetail'
               examples:
@@ -2888,19 +2888,19 @@ paths:
         '405':
           description: Method Not Allowed
           content:
-            application/problem+json:
+            application/json:
               schema:
                 $ref: '#/components/schemas/Meet_ProblemDetail'
         '415':
           description: Unsupported Media Type
           content:
-            application/problem+json:
+            application/json:
               schema:
                 $ref: '#/components/schemas/Meet_ProblemDetail'
         '500':
           description: Internal Server Error
           content:
-            application/problem+json:
+            application/json:
               schema:
                 $ref: '#/components/schemas/Meet_ProblemDetail'
     parameters:
@@ -2932,13 +2932,13 @@ paths:
         '405':
           description: Method Not Allowed
           content:
-            application/problem+json:
+            application/json:
               schema:
                 $ref: '#/components/schemas/Notification_ProblemDetail'
         '415':
           description: Unsupported Media Type
           content:
-            application/problem+json:
+            application/json:
               schema:
                 $ref: '#/components/schemas/Notification_ProblemDetail'
         '500':
@@ -2995,13 +2995,13 @@ paths:
         '405':
           description: Method Not Allowed
           content:
-            application/problem+json:
+            application/json:
               schema:
                 $ref: '#/components/schemas/Notification_ProblemDetail'
         '415':
           description: Unsupported Media Type
           content:
-            application/problem+json:
+            application/json:
               schema:
                 $ref: '#/components/schemas/Notification_ProblemDetail'
         '500':
@@ -3051,13 +3051,13 @@ paths:
         '405':
           description: Method Not Allowed
           content:
-            application/problem+json:
+            application/json:
               schema:
                 $ref: '#/components/schemas/Notification_ProblemDetail'
         '415':
           description: Unsupported Media Type
           content:
-            application/problem+json:
+            application/json:
               schema:
                 $ref: '#/components/schemas/Notification_ProblemDetail'
         '500':

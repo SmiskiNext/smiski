@@ -8,7 +8,7 @@ import io.github.smiskinext.shared.domain.ErrorCode;
  *
  * <p>Service-specific codes live in their own enums (e.g. {@code MeetingErrorCode}). This enum
  * holds only infrastructure-level codes surfaced by {@link GlobalExceptionHandler} when translating
- * framework exceptions into {@code application/problem+json} responses.
+ * framework exceptions into RFC 9457 Problem Details responses.
  */
 public enum CommonErrorCode implements ErrorCode {
 

@@ -5,7 +5,7 @@ import io.github.smiskinext.shared.domain.ErrorCode;
 
 /**
  * Machine-readable error codes for the notification bounded context, surfaced as the {@code code}
- * member of {@code application/problem+json} responses.
+ * member of RFC 9457 Problem Details responses.
  */
 public enum NotificationErrorCode implements ErrorCode {
     INVALID_SIGNATURE(ErrorCategory.VALIDATION);

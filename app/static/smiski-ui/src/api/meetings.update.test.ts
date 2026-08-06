@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 // `meetings.ts` imports `@forge/bridge`, which connects to the Custom UI bridge
 // at module load and throws outside Jira. Stub it so the pure payload builder
 // can be imported and tested in the node vitest environment.
-vi.mock('@forge/bridge', () => ({ invoke: vi.fn(), requestRemote: vi.fn() }));
+vi.mock('@forge/bridge', () => ({ invoke: vi.fn(), invokeRemote: vi.fn() }));
 
 import type { Meeting } from '../domain';
 import { buildUpdateMeetingPayload } from './meetings';

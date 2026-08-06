@@ -7,7 +7,7 @@ import { StartInstantMeetingModal } from './StartInstantMeetingModal';
 
 const mutateAsync = vi.fn<() => Promise<CreateInstantMeetingResult>>();
 
-vi.mock('@forge/bridge', () => ({ invoke: vi.fn(), requestRemote: vi.fn() }));
+vi.mock('@forge/bridge', () => ({ invoke: vi.fn(), invokeRemote: vi.fn() }));
 
 vi.mock('../../hooks/useMeetingMutations', () => ({
     useCreateInstantMeeting: () => ({

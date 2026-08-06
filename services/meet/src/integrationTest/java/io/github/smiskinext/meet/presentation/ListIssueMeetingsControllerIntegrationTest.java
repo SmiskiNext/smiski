@@ -104,7 +104,7 @@ class ListIssueMeetingsControllerIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{}"))
                 .andExpect(status().isBadRequest())
-                .andExpect(content().contentTypeCompatibleWith("application/problem+json"))
+                .andExpect(content().contentTypeCompatibleWith("application/json"))
                 .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"))
                 .andExpect(jsonPath("$.detail").value("X-Account-Id header is required"));
     }
@@ -118,7 +118,7 @@ class ListIssueMeetingsControllerIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"pageSize\":0}"))
                 .andExpect(status().isBadRequest())
-                .andExpect(content().contentTypeCompatibleWith("application/problem+json"))
+                .andExpect(content().contentTypeCompatibleWith("application/json"))
                 .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"));
     }
 
@@ -131,7 +131,7 @@ class ListIssueMeetingsControllerIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"pageSize\":51}"))
                 .andExpect(status().isBadRequest())
-                .andExpect(content().contentTypeCompatibleWith("application/problem+json"))
+                .andExpect(content().contentTypeCompatibleWith("application/json"))
                 .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"));
     }
 
@@ -144,7 +144,7 @@ class ListIssueMeetingsControllerIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"offset\":-1}"))
                 .andExpect(status().isBadRequest())
-                .andExpect(content().contentTypeCompatibleWith("application/problem+json"))
+                .andExpect(content().contentTypeCompatibleWith("application/json"))
                 .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"));
     }
 

@@ -115,7 +115,7 @@ class UpdateMeetingControllerIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(infoUpdateBody()))
                 .andExpect(status().isBadRequest())
-                .andExpect(content().contentTypeCompatibleWith("application/problem+json"));
+                .andExpect(content().contentTypeCompatibleWith("application/json"));
     }
 
     @Test
@@ -224,7 +224,7 @@ class UpdateMeetingControllerIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(settingsBody("ALLOW_ALL", 25)))
                 .andExpect(status().isBadRequest())
-                .andExpect(content().contentTypeCompatibleWith("application/problem+json"));
+                .andExpect(content().contentTypeCompatibleWith("application/json"));
     }
 
     @Test

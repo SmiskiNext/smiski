@@ -21,11 +21,11 @@ or `QUERY`) and accept a JSON request body in which every field is optional:
 (string), `sort` (`CREATED_AT` or `START_TIME`), `pageSize` (integer), and
 `pageToken` (opaque string). The endpoint SHALL require the `view-meeting`
 project permission — if the caller's permission context does not contain
-`view-meeting`, the endpoint SHALL reject the request with
-`403 application/problem+json` and code `NOT_AUTHORIZED` before executing the
-use case. When the body is absent or empty, the endpoint SHALL behave as if all
-fields were omitted. The tenant SHALL be resolved from the `X-Tenant-ID` header,
-and the request SHALL require an `X-Account-Id` header.
+`view-meeting`, the endpoint SHALL reject the request with a `403` Problem
+Details response and code `NOT_AUTHORIZED` before executing the use case. When
+the body is absent or empty, the endpoint SHALL behave as if all fields were
+omitted. The tenant SHALL be resolved from the `X-Tenant-ID` header, and the
+request SHALL require an `X-Account-Id` header.
 
 #### Scenario: Empty body returns tenant meetings with defaults
 
@@ -38,8 +38,8 @@ and the request SHALL require an `X-Account-Id` header.
 #### Scenario: Missing view-meeting permission is rejected
 
 - **WHEN** a caller without `view-meeting` sends `POST /api/1/meetings`
-- **THEN** the response is `403 application/problem+json` with code
-  `NOT_AUTHORIZED` and no meeting list is returned
+- **THEN** the response is `403` Problem Details with code `NOT_AUTHORIZED` and
+  no meeting list is returned
 
 ### Requirement: Creator filter
 

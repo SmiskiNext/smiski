@@ -14,14 +14,14 @@ atomically, and publishes an invitee-creation event on success.
 The system SHALL expose `POST /api/1/meetings/{id}/invitees` for adding one or
 more new invitees to a meeting. The endpoint SHALL require the `edit-meeting`
 project permission — if the caller's permission context does not contain
-`edit-meeting`, the endpoint SHALL reject the request with
-`403 application/problem+json` and code `NOT_AUTHORIZED` before executing the
-use case. The acting account SHALL be resolved from the configured account
-header, the tenant SHALL be resolved from the tenant context, and only the
-meeting host SHALL be authorized to add invitees. The request body SHALL use the
-shape `{ "invitees": [ { "email", "accountId", "displayName" } ] }`. A
-successful call SHALL return `200 OK` with the full snapshot of the invitees
-created by that call.
+`edit-meeting`, the endpoint SHALL reject the request with a `403` Problem
+Details response and code `NOT_AUTHORIZED` before executing the use case. The
+acting account SHALL be resolved from the configured account header, the tenant
+SHALL be resolved from the tenant context, and only the meeting host SHALL be
+authorized to add invitees. The request body SHALL use the shape
+`{ "invitees": [ { "email", "accountId", "displayName" } ] }`. A successful call
+SHALL return `200 OK` with the full snapshot of the invitees created by that
+call.
 
 #### Scenario: Host adds new invitees
 
@@ -37,8 +37,8 @@ created by that call.
 
 - **WHEN** a caller without `edit-meeting` sends
   `POST /api/1/meetings/{id}/invitees`
-- **THEN** the response is `403 application/problem+json` with code
-  `NOT_AUTHORIZED` and no invitees are added
+- **THEN** the response is `403` Problem Details with code `NOT_AUTHORIZED` and
+  no invitees are added
 
 #### Scenario: Non-host invitee addition is rejected
 

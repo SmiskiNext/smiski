@@ -9,6 +9,7 @@ import jakarta.servlet.http.HttpServletResponse;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.MediaType;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -33,8 +34,8 @@ import org.springframework.security.web.context.SecurityContextHolderFilter;
  *
  * <p>{@link EnableMethodSecurity} activates AOP-based enforcement of {@code @PreAuthorize}
  * annotations on controller methods. {@code AccessDeniedException} from failing pre-authorize
- * checks is handled by the configured {@code accessDeniedHandler} which returns
- * {@code application/problem+json} consistent with the service error contract.
+ * checks is handled by the configured {@code accessDeniedHandler} which returns a Problem Details
+ * body as {@code application/json}, consistent with the service error contract.
  */
 @Configuration
 @EnableWebSecurity
@@ -64,12 +65,12 @@ public class SecurityConfig {
                         .permitAll())
                 .exceptionHandling(ex -> ex.accessDeniedHandler((request, response, denied) -> {
                             response.setStatus(HttpServletResponse.SC_FORBIDDEN);
-                            response.setContentType("application/problem+json");
+                            response.setContentType(MediaType.APPLICATION_JSON_VALUE);
                             response.getWriter().write(ACCESS_DENIED_BODY);
                         })
                         .authenticationEntryPoint((request, response, authEx) -> {
                             response.setStatus(HttpServletResponse.SC_FORBIDDEN);
-                            response.setContentType("application/problem+json");
+                            response.setContentType(MediaType.APPLICATION_JSON_VALUE);
                             response.getWriter().write(ACCESS_DENIED_BODY);
                         }))
                 .build();

@@ -8,7 +8,7 @@ import org.jspecify.annotations.Nullable;
 /**
  * Schema-only type that drives springdoc generation of the reusable {@code ProblemDetail} OpenAPI
  * component. This class is never instantiated at runtime; it exists solely to declare the RFC 9457
- * {@code application/problem+json} body shape — including the extension members produced by {@link
+ * Problem Details body shape — including the extension members produced by {@link
  * ProblemDetailMapper} — so the generated spec documents the error contract accurately.
  */
 @Schema(name = "ProblemDetail", description = "RFC 9457 Problem Details response body")

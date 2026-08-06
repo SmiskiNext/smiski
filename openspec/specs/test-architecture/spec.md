@@ -18,8 +18,8 @@ pure unit tests that do not load a Spring context or start containers.
 Application use cases SHALL be tested against mocked outbound ports.
 Infrastructure adapters SHALL be tested against real dependencies using
 Testcontainers. Presentation controllers SHALL be tested for HTTP behavior
-including RFC 9457 `application/problem+json` error mapping. Architectural
-constraints SHALL continue to be enforced by ArchUnit.
+including RFC 9457 Problem Details error mapping. Architectural constraints
+SHALL continue to be enforced by ArchUnit.
 
 #### Scenario: Domain unit test runs without Spring or containers
 

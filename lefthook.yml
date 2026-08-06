@@ -26,7 +26,7 @@ pre-commit:
 
         format-go:
             root: services/gateway
-            glob: 'services/gateway/**/*.go'
+            glob: '**/*.go'
             run: >
                 command -v gofmt >/dev/null 2>&1 || { echo "[format-go] gofmt
                 not found, skipping (install via: mise install go)"; exit 0; };
@@ -97,8 +97,8 @@ pre-push:
 
         typecheck-app:
             priority: 3
-            root: app
-            run: pnpm exec tsc --noEmit
+            root: app/static
+            run: pnpm run typecheck
 
         assemble-java:
             priority: 3

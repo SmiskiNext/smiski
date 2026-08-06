@@ -12,12 +12,12 @@ boundary validation of enum request fields.
 ### Requirement: Reusable Problem Details schema in the emitted spec
 
 Each service's emitted OpenAPI document SHALL define a reusable `ProblemDetail`
-schema component describing the RFC 9457 `application/problem+json` body used
-for all error responses. The schema SHALL include the standard members `type`,
-`title`, `status`, and `detail`, plus the extension members `code` (string),
-`traceId` (string), and `errors` (array of field-level violation objects, each
-with `field`, `code`, and optional `message`). Error responses SHALL reference
-this schema via `$ref` rather than redefining the body inline.
+schema component describing the RFC 9457 Problem Details body used for all error
+responses. The schema SHALL include the standard members `type`, `title`,
+`status`, and `detail`, plus the extension members `code` (string), `traceId`
+(string), and `errors` (array of field-level violation objects, each with
+`field`, `code`, and optional `message`). Error responses SHALL reference this
+schema via `$ref` rather than redefining the body inline.
 
 #### Scenario: Problem Details schema present and referenced
 
@@ -38,15 +38,16 @@ this schema via `$ref` rather than redefining the body inline.
 The emitted OpenAPI document SHALL attach the shared error responses produced by
 the shared framework exception handling — `405 Method Not Allowed`,
 `415 Unsupported Media Type`, and `500 Internal Server Error` — to every
-operation, each with `content` type `application/problem+json` referencing the
-`ProblemDetail` schema. This attachment SHALL be applied uniformly across
-services without per-controller declaration.
+operation, each with `content` type `application/json` referencing the
+`ProblemDetail` schema, matching the media type the services emit at runtime.
+This attachment SHALL be applied uniformly across services without
+per-controller declaration.
 
 #### Scenario: Common responses present on an operation
 
 - **WHEN** any operation is generated into a service OpenAPI document
 - **THEN** the operation declares `405`, `415`, and `500` responses whose body
-  is `application/problem+json` referencing the `ProblemDetail` schema
+  is `application/json` referencing the `ProblemDetail` schema
 
 #### Scenario: No per-controller duplication
 
@@ -146,8 +147,8 @@ field SHALL retain its documented default.
 
 - **WHEN** a client submits a tenant registration with an `environmentType`
   value that is not one of the supported values
-- **THEN** the response is `400` `application/problem+json` with `code`
-  `VALIDATION_ERROR` and an `errors` entry for the `environmentType` field
+- **THEN** the response is `400` Problem Details with `code` `VALIDATION_ERROR`
+  and an `errors` entry for the `environmentType` field
 
 #### Scenario: Absent environment type keeps default
 

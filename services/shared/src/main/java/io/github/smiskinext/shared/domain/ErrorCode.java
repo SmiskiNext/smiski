@@ -3,8 +3,7 @@ package io.github.smiskinext.shared.domain;
 import java.util.Locale;
 
 /**
- * Contract for machine-readable error codes used to build {@code application/problem+json}
- * responses.
+ * Contract for machine-readable error codes used to build RFC 9457 Problem Details responses.
  *
  * <p>Each service defines its own enum implementing this interface (e.g. {@code MeetingErrorCode}).
  * Constants are module-namespaced to prevent collisions. {@code CommonErrorCode} (in the shared

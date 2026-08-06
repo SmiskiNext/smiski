@@ -1,5 +1,6 @@
 import { Modal as ForgeModal } from '@forge/bridge';
 import { useState } from 'react';
+import { getBackendContext } from '../../api/backendContext';
 import { ActiveMeetingWarningDialog } from '../../components/shared';
 import { Button, Icon } from '../../components/ui';
 import { useHostConflict } from '../../hooks/useHostConflict';
@@ -59,6 +60,7 @@ export function StartInstantMeetingButton({
         const context: ActiveMeetingWarningModalContext = {
             kind: ACTIVE_MEETING_WARNING_MODAL_KIND,
             conflictingMeeting,
+            ...getBackendContext(),
         };
         new ForgeModal({
             context,

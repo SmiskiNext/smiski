@@ -3,7 +3,7 @@
  *
  * The list/decision APIs use the generated SDK over Forge Remote. Realtime
  * notifications use a browser-native external fetch to the notification
- * service because Forge `requestRemote` buffers response bodies. REST polling
+ * service because Forge Remote buffers response bodies. REST polling
  * stays enabled at a low frequency to reconcile missed or stale events.
  */
 

@@ -18,12 +18,13 @@
         "format": "biome format --write",
         "format:check": "biome format .",
         "typecheck": "pnpm --filter smiski-ui typecheck",
-        "deploy": "pnpm build && forge deploy",
-        "install:site": "forge install",
+        "manifest:render": "./scripts/render-manifest.sh",
+        "deploy": "pnpm build && pnpm manifest:render && forge deploy",
+        "install:site": "pnpm manifest:render && forge install",
         "forge": "forge"
     },
     "devDependencies": {
         "@biomejs/biome": "^2.4.15",
-        "@forge/cli": "^13.1.0"
+        "@forge/cli": "13.1.0"
     }
 }

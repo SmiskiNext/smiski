@@ -3,6 +3,7 @@ package authz
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"log"
 	"strings"
 
@@ -11,6 +12,11 @@ import (
 	envoy_type_v3 "github.com/envoyproxy/go-control-plane/envoy/type/v3"
 	"google.golang.org/genproto/googleapis/rpc/status"
 	"google.golang.org/grpc/codes"
+)
+
+const (
+	configurationErrorCode    = "configuration_error"
+	missingSystemTokenMessage = "Missing system token"
 )
 
 type AuthzServiceInterface interface {
@@ -39,11 +45,11 @@ func (s *Server) Check(ctx context.Context, req *envoy_service_auth_v3.CheckRequ
 
 	authHeader := getHeader(headers, "authorization")
 	issueID := getHeader(headers, "x-issue-id")
-	projectKey := getHeader(headers, "x-project-key")
+	projectID := getHeader(headers, "x-project-id")
 	systemToken := getHeader(headers, "x-forge-oauth-system")
 
-	log.Printf("Check request: issueID=%s, projectKey=%s, hasAuth=%v, hasSystemToken=%v",
-		issueID, projectKey, authHeader != "", systemToken != "")
+	log.Printf("Check request: issueID=%s, projectID=%s, hasAuth=%v, hasSystemToken=%v",
+		issueID, projectID, authHeader != "", systemToken != "")
 
 	if authHeader == "" {
 		return s.buildDeniedResponse(401, "missing_authorization", "Authorization header required"), nil
@@ -53,11 +59,16 @@ func (s *Server) Check(ctx context.Context, req *envoy_service_auth_v3.CheckRequ
 		FITToken:    authHeader,
 		SystemToken: systemToken,
 		IssueID:     issueID,
-		ProjectKey:  projectKey,
+		ProjectID:   projectID,
 	}
 
 	result, err := s.authzService.Authorize(ctx, authzReq)
 	if err != nil {
+		if errors.Is(err, ErrMissingSystemToken) {
+			log.Printf("Authorization misconfigured: %v", err)
+			return s.buildDeniedResponse(500, configurationErrorCode, missingSystemTokenMessage), nil
+		}
+
 		log.Printf("Authorization failed: %v", err)
 		return s.buildDeniedResponse(403, "authorization_failed", err.Error()), nil
 	}
@@ -113,10 +124,7 @@ func (s *Server) buildDeniedResponse(statusCode int32, errorCode, message string
 
 	bodyBytes, _ := json.Marshal(errorBody)
 
-	grpcStatusCode := codes.PermissionDenied
-	if statusCode == 401 {
-		grpcStatusCode = codes.Unauthenticated
-	}
+	grpcStatusCode := grpcCodeForHTTPStatus(statusCode)
 
 	return &envoy_service_auth_v3.CheckResponse{
 		Status: &status.Status{
@@ -140,6 +148,17 @@ func (s *Server) buildDeniedResponse(statusCode int32, errorCode, message string
 				},
 			},
 		},
+	}
+}
+
+func grpcCodeForHTTPStatus(statusCode int32) codes.Code {
+	switch statusCode {
+	case 401:
+		return codes.Unauthenticated
+	case 500:
+		return codes.Internal
+	default:
+		return codes.PermissionDenied
 	}
 }
 

@@ -55,6 +55,11 @@ token from `CheckRequest.Attributes.Request.Http.Headers`.
 - **WHEN** CheckRequest contains `headers["x-issue-id"] = "10001"`
 - **THEN** the service extracts the issueId for the permission check
 
+#### Scenario: Project context header extracted
+
+- **WHEN** CheckRequest contains `headers["x-project-id"] = "10001"`
+- **THEN** the service extracts the projectId for the permission check
+
 #### Scenario: System token extracted
 
 - **WHEN** CheckRequest contains `headers["x-forge-oauth-system"] = "<token>"`
@@ -64,6 +69,14 @@ token from `CheckRequest.Attributes.Request.Http.Headers`.
 
 - **WHEN** CheckRequest does not contain an expected header
 - **THEN** the service treats it as a missing value without panicking
+
+#### Scenario: Non-numeric context identifier rejected
+
+- **WHEN** CheckRequest contains `headers["x-issue-id"] = "SMISKI-101"` or
+  `headers["x-project-id"] = "SMISKI"`
+- **THEN** the service does NOT send that value to the Jira API, logs the
+  rejected value, and treats the permission check as failed rather than silently
+  omitting the context
 
 ### Requirement: Extract cloudId from FIT claims
 
@@ -167,19 +180,29 @@ validated by the gateway.
 
 The authorization service SHALL call `POST /rest/api/3/permissions/check` using
 the app system token from the `x-forge-oauth-system` header to verify user
-permissions.
+permissions. The request body SHALL contain only the members defined by the Jira
+`BulkPermissionsRequestBean` schema — `accountId`, `globalPermissions` and
+`projectPermissions` — because the schema forbids additional properties. The
+permission keys and the issue or project context SHALL be nested inside a
+`projectPermissions` entry. Issue and project identifiers SHALL be sent as
+numbers, not strings.
 
 #### Scenario: Permission check with issueId context
 
 - **WHEN** user requests a resource and `X-Issue-Id: 10001` header is present
 - **THEN** system calls Jira API with body
-  `{"accountId": "<accountId>", "projectPermissions": [{"permissions": ["view-meeting","edit-meeting"], "issues": ["10001"]}]}`
+  `{"accountId": "<accountId>", "projectPermissions": [{"permissions": ["<viewMeetingAri>","<editMeetingAri>"], "issues": [10001]}]}`
 
-#### Scenario: Permission check with projectKey context
+#### Scenario: Permission check with projectId context
 
-- **WHEN** user requests a resource and `X-Project-Key: PROJ` header is present
+- **WHEN** user requests a resource and `X-Project-Id: 10001` header is present
 - **THEN** system calls Jira API with body
-  `{"accountId": "<accountId>", "projectPermissions": [{"permissions": ["view-meeting","edit-meeting"], "projects": ["PROJ"]}]}`
+  `{"accountId": "<accountId>", "projectPermissions": [{"permissions": ["<viewMeetingAri>","<editMeetingAri>"], "projects": [10001]}]}`
+
+#### Scenario: Issue context preferred when both are present
+
+- **WHEN** the request carries both `X-Issue-Id` and `X-Project-Id`
+- **THEN** system sends the `issues` context and omits `projects`
 
 #### Scenario: Missing system token rejected
 
@@ -189,7 +212,7 @@ permissions.
 
 #### Scenario: No context headers provided
 
-- **WHEN** request contains neither `X-Issue-Id` nor `X-Project-Key`
+- **WHEN** request contains neither `X-Issue-Id` nor `X-Project-Id`
 - **THEN** system skips the permission check and returns an empty permissions
   array
 
@@ -213,12 +236,17 @@ extracted from FIT.
 ### Requirement: Verify custom project permission keys
 
 The authorization service SHALL check the custom Jira project permissions
-`view-meeting` and `edit-meeting` declared in the Forge app manifest.
+`view-meeting` and `edit-meeting` declared in the Forge app manifest. Because
+Jira does not accept the bare manifest key, the service SHALL send each key as a
+fully-qualified permission identifier of the form
+`ari:cloud:ecosystem::extension/{appId}/{environmentId}/static/{key}`, derived
+from the FIT `app.id` and `app.environment.id` claims.
 
 #### Scenario: Custom permissions checked
 
 - **WHEN** calling the Jira permissions/check API
-- **THEN** system requests permissions `["view-meeting", "edit-meeting"]`
+- **THEN** system requests the qualified identifiers for `view-meeting` and
+  `edit-meeting`
 
 #### Scenario: Only defined permissions checked
 
@@ -226,37 +254,85 @@ The authorization service SHALL check the custom Jira project permissions
 - **THEN** system does NOT request built-in Jira permissions like
   `BROWSE_PROJECTS` or `EDIT_ISSUES`
 
+#### Scenario: Qualified identifier built from FIT claims
+
+- **WHEN** FIT yields app id `ari:cloud:ecosystem::app/app-uuid` and environment
+  id `ari:cloud:ecosystem::environment/env-uuid`
+- **THEN** the `view-meeting` identifier sent to Jira is
+  `ari:cloud:ecosystem::extension/app-uuid/env-uuid/static/view-meeting`
+
+#### Scenario: Environment identifier read from the trailing segment
+
+- **WHEN** the FIT environment claim is
+  `ari:cloud:ecosystem::environment/app-uuid/env-uuid`
+- **THEN** system uses `env-uuid` as the environment identifier
+
+#### Scenario: Missing app or environment claim rejected
+
+- **WHEN** FIT omits `app.id` or `app.environment.id`
+- **THEN** system does NOT call the Jira API with an incomplete identifier and
+  treats the permission check as failed with a missing-claims error
+
+#### Scenario: Unrecognised permission reported distinctly
+
+- **WHEN** Jira returns HTTP 400 naming an unrecognised permission
+- **THEN** system logs the rejected identifier distinctly from an ordinary
+  permission denial and treats the check as an API failure
+
 ### Requirement: Parse Jira permissions/check response
 
-The authorization service SHALL parse the Jira API response to extract granted
-permissions and SHALL validate the response structure before parsing.
+The authorization service SHALL parse the Jira API response according to the
+`BulkPermissionGrants` schema, in which `globalPermissions` is an array of
+permission identifier strings and `projectPermissions` is an array of entries
+each carrying a singular `permission` identifier together with the `issues` and
+`projects` it grants access to. The response contains only permissions the user
+holds, so the presence of an identifier SHALL be interpreted as a grant. The
+service SHALL map each granted identifier back to its bare manifest key before
+publishing it downstream, and SHALL validate that both required members are
+present before parsing.
 
 #### Scenario: User has all permissions
 
 - **WHEN** Jira returns
-  `{"projectPermissions": [{"permissions": ["view-meeting","edit-meeting"], "projects": ["PROJ"], "hasPermission": true}]}`
+  `{"globalPermissions": [], "projectPermissions": [{"permission": "<viewMeetingAri>", "issues": [10001], "projects": []}, {"permission": "<editMeetingAri>", "issues": [10001], "projects": []}]}`
 - **THEN** system extracts permissions as `["view-meeting", "edit-meeting"]`
 
 #### Scenario: User has partial permissions
 
-- **WHEN** Jira returns separate permission checks where only `view-meeting` is
-  granted
+- **WHEN** Jira returns a single `projectPermissions` entry whose `permission`
+  is the `view-meeting` identifier
 - **THEN** system extracts permissions as `["view-meeting"]`
 
 #### Scenario: User has no permissions
 
-- **WHEN** Jira returns `{"projectPermissions": [{"hasPermission": false}]}`
-- **THEN** system extracts permissions as empty array `[]`
+- **WHEN** Jira returns `{"globalPermissions": [], "projectPermissions": []}`
+- **THEN** system extracts permissions as empty array `[]` and caches that
+  result
+
+#### Scenario: Identifiers mapped back to manifest keys
+
+- **WHEN** Jira returns the qualified identifier
+  `ari:cloud:ecosystem::extension/app-uuid/env-uuid/static/view-meeting`
+- **THEN** the permission published downstream is the bare key `view-meeting`
+
+#### Scenario: Unknown identifier ignored
+
+- **WHEN** Jira returns a granted identifier that does not correspond to a
+  permission the service requested
+- **THEN** system omits it from the published permissions and logs a warning
 
 #### Scenario: Jira API error response handled
 
 - **WHEN** Jira returns HTTP 400 with an error message
-- **THEN** system logs the error and treats it as no permissions granted
+- **THEN** system logs the error and treats it as an API failure
 
 #### Scenario: Malformed response rejected
 
-- **WHEN** Jira returns JSON without the `projectPermissions` field
-- **THEN** system logs an error and treats it as an API failure
+- **WHEN** Jira returns JSON omitting the required `projectPermissions` or
+  `globalPermissions` member
+- **THEN** system treats the response as an API failure that triggers the
+  stale-cache fallback, and does NOT publish an empty permission set as though
+  the call had succeeded
 
 #### Scenario: Unexpected JSON structure logged
 
@@ -294,11 +370,20 @@ and SHALL respect rate limit responses.
 - **WHEN** Jira returns HTTP 429 with `Retry-After: 60` header
 - **THEN** system does NOT retry for at least 60 seconds
 
+#### Scenario: Retry-After bounded by the request deadline
+
+- **WHEN** Jira returns HTTP 429 with a `Retry-After` interval longer than the
+  remaining request deadline
+- **THEN** system abandons the retry and falls back to stale cache rather than
+  waiting past the deadline
+
 ### Requirement: Cache permission check results in Valkey
 
 The authorization service SHALL cache permission check results in Valkey using
-key format `perm:{cloudId}:{accountId}:{issueId}` with a 15-minute TTL,
-serialised as a JSON array.
+key format `perm:{cloudId}:{accountId}:{context}` with a 15-minute TTL,
+serialised as a JSON array. The `{context}` segment SHALL be the issue
+identifier when the check was made for an issue, and the project identifier when
+it was made for a project.
 
 #### Scenario: Permission result cached after Jira API call
 
@@ -306,6 +391,12 @@ serialised as a JSON array.
   user `user123` on issue `10001` in tenant `cloud456`
 - **THEN** system stores the result in Valkey with key
   `perm:cloud456:user123:10001` and TTL 900 seconds
+
+#### Scenario: Issue and project contexts do not collide
+
+- **WHEN** the same user is checked for issue `10001` and for project `10001`
+- **THEN** system uses distinct cache keys so a project result is never served
+  for an issue check
 
 #### Scenario: Cached permission result used on subsequent request
 
@@ -612,9 +703,9 @@ unchanged.
 - **WHEN** client sends `X-Custom-Header: value`
 - **THEN** the backend receives the same `X-Custom-Header: value` header
 
-#### Scenario: X-Issue-Id and X-Project-Key preserved
+#### Scenario: X-Issue-Id and X-Project-Id preserved
 
-- **WHEN** client sends `X-Issue-Id: 10001` and `X-Project-Key: PROJ`
+- **WHEN** client sends `X-Issue-Id: 10001` and `X-Project-Id: 10002`
 - **THEN** the backend receives both headers unchanged
 
 ### Requirement: Handle authorization service errors
@@ -690,38 +781,71 @@ cache hit/miss events for debugging and monitoring.
 
 ### Requirement: Inject issue context headers from Forge context
 
-The Forge UI remote fetch helper SHALL inject `X-Issue-Id` or `X-Project-Key`
+The Forge UI backend transport SHALL inject `X-Issue-Id` or `X-Project-Id`
 headers extracted from the Forge context into all backend requests, so the
 gateway can resolve the authorization context.
+
+Both identifiers SHALL be the numeric Jira identifiers. The gateway rejects a
+non-numeric value as an invalid context identifier, so Jira keys and any
+synthetic identifier derived from a key SHALL NOT be sent.
+
+Every surface that calls the backend SHALL supply these identifiers, including
+surfaces rendered in a separate platform-modal iframe. Where a surface cannot
+observe the identifiers from its own module context, they SHALL be carried in
+the payload that opens the surface.
 
 #### Scenario: X-Issue-Id injected from Forge issue context
 
 - **WHEN** Forge context contains `context.extension.issue.id = "10001"`
 - **THEN** the request includes header `X-Issue-Id: 10001`
 
-#### Scenario: X-Project-Key injected from Forge project context
+#### Scenario: X-Project-Id injected from Forge project context
 
-- **WHEN** Forge context contains `context.extension.project.key = "PROJ"`
-- **THEN** the request includes header `X-Project-Key: PROJ`
+- **WHEN** Forge context contains `context.extension.project.id = "10002"`
+- **THEN** the request includes header `X-Project-Id: 10002`
 
 #### Scenario: Both headers injected when available
 
 - **WHEN** Forge context contains both issue and project
-- **THEN** the request includes both `X-Issue-Id` and `X-Project-Key` headers
+- **THEN** the request includes both `X-Issue-Id` and `X-Project-Id` headers
 
 #### Scenario: No context headers when Forge context unavailable
 
 - **WHEN** Forge context does not contain issue or project
-- **THEN** the request is sent without `X-Issue-Id` or `X-Project-Key` headers
+- **THEN** the request is sent without `X-Issue-Id` or `X-Project-Id` headers
 
 #### Scenario: Numeric issue IDs converted to strings
 
 - **WHEN** Forge context contains `context.extension.issue.id = 10001` (number)
 - **THEN** the request includes header `X-Issue-Id: 10001` (string)
 
+#### Scenario: Project without an identifier omits the header
+
+- **WHEN** Forge context contains a project that exposes only `key` and no `id`
+- **THEN** the request is sent without the `X-Project-Id` header
+
+#### Scenario: Modal surface supplies the identifiers it was opened with
+
+- **WHEN** a form opened as a platform modal issues a backend request
+- **THEN** the request carries the same `X-Issue-Id` and `X-Project-Id` values
+  as the surface that opened it, even though the modal renders in its own iframe
+
+#### Scenario: Project page supplies the project identifier
+
+- **WHEN** the project page surface issues a backend request
+- **THEN** the request carries `X-Project-Id` with the numeric project
+  identifier for the project being viewed
+
+#### Scenario: Key-derived identifiers are never sent
+
+- **WHEN** only a Jira issue key or project key is known and no numeric
+  identifier can be resolved
+- **THEN** the corresponding header is omitted rather than populated with the
+  key or with an identifier synthesized from it
+
 ### Requirement: Preserve existing forgeRemoteFetch behavior
 
-The Forge UI remote fetch helper SHALL maintain existing functionality for path,
+The Forge UI backend transport SHALL maintain existing functionality for path,
 method, headers and body forwarding, and SHALL degrade gracefully when the Forge
 context cannot be read.
 
@@ -742,7 +866,7 @@ context cannot be read.
 
 #### Scenario: Context fetch timeout
 
-- **WHEN** `view.getContext()` times out after 5 seconds
+- **WHEN** reading the Forge context does not complete within its time budget
 - **THEN** the request proceeds without context headers and logs a warning
 
 #### Scenario: Context unavailable in non-Forge environment
@@ -833,3 +957,160 @@ the manifest authentication changes.
 
 - **WHEN** the app is upgraded with `appSystemToken.enabled: true`
 - **THEN** subsequent requests include the `x-forge-oauth-system` header
+
+### Requirement: Extract Forge environment identifier from FIT claims
+
+The authorization service SHALL extract the Forge application identifier and
+environment identifier from the FIT `app.id` and `app.environment.id` claims, so
+custom permission identifiers can be qualified. Both claims are Atlassian
+Resource Identifiers whose trailing slash-separated segment carries the
+identifying UUID.
+
+#### Scenario: Application identifier extracted
+
+- **WHEN** FIT contains `"app": {"id": "ari:cloud:ecosystem::app/app-uuid"}`
+- **THEN** system extracts the application identifier as `app-uuid`
+
+#### Scenario: Environment identifier extracted from single-segment form
+
+- **WHEN** FIT contains
+  `"app": {"environment": {"id": "ari:cloud:ecosystem::environment/env-uuid"}}`
+- **THEN** system extracts the environment identifier as `env-uuid`
+
+#### Scenario: Environment identifier extracted from two-segment form
+
+- **WHEN** FIT contains
+  `"app": {"environment": {"id": "ari:cloud:ecosystem::environment/app-uuid/env-uuid"}}`
+- **THEN** system extracts the environment identifier as `env-uuid`
+
+#### Scenario: Missing environment claim rejected
+
+- **WHEN** FIT omits `app.environment.id`
+- **THEN** system reports a missing-claims error and does not construct a
+  permission identifier
+
+#### Scenario: Empty trailing segment rejected
+
+- **WHEN** the environment claim ends with a trailing separator and yields an
+  empty final segment
+- **THEN** system reports a missing-claims error rather than emitting an
+  identifier containing an empty segment
+
+### Requirement: Allow the project context header through the gateway filter
+
+The gateway SHALL forward the `x-project-id` header to the authorization service
+in the external authorization request, alongside the existing authorization and
+context headers.
+
+#### Scenario: Project context header reaches the authorization service
+
+- **WHEN** a client sends `X-Project-Id: 10002` to an authenticated route
+- **THEN** the authorization service receives `x-project-id` in the CheckRequest
+  headers
+
+#### Scenario: Header absent when not sent
+
+- **WHEN** a client sends no `X-Project-Id` header
+- **THEN** the authorization service receives no `x-project-id` value and treats
+  the project context as absent
+
+### Requirement: Forge UI backend transport uses invokeRemote
+
+The Custom UI SHALL reach the backend through the `invokeRemote` bridge method
+so that the Forge platform attaches the app system token to every backend
+request. The `requestRemote` bridge method SHALL NOT be used for backend calls,
+because it omits OAuth tokens and the gateway's authorization service fails
+closed without the system token.
+
+The transport SHALL preserve the generated SDK integration: the SDK's typing,
+URL building, and response validation remain in effect, and the request path,
+method, headers, and body reach the backend unchanged in meaning.
+
+#### Scenario: Backend request carries the app system token
+
+- **WHEN** the Custom UI issues any backend request
+- **THEN** the request reaching the gateway includes the `x-forge-oauth-system`
+  header, and the authorization service performs the Jira permission check
+  instead of denying the request with a missing-system-token fault
+
+#### Scenario: Request body preserved across the transport
+
+- **WHEN** an operation sends a JSON request body
+- **THEN** the backend receives the same JSON document the SDK produced, with no
+  double-encoding and no dropped members
+
+#### Scenario: Empty-body request omits the body
+
+- **WHEN** an operation sends no request body
+- **THEN** the invocation carries no body rather than an empty string
+
+#### Scenario: Successful response reaches the SDK unchanged
+
+- **WHEN** the backend returns a 2xx response with a JSON representation
+- **THEN** the SDK receives the status, headers, and body it expects, and
+  response validation runs as it does for any other transport
+
+#### Scenario: No-content response handled
+
+- **WHEN** the backend returns `204 No Content`
+- **THEN** the operation resolves successfully with an empty representation and
+  no parse error is raised
+
+#### Scenario: Error response preserves Problem Details members
+
+- **WHEN** the backend returns a non-2xx response carrying an RFC 9457 body
+- **THEN** the `code`, `traceId`, `status`, and `detail` members remain readable
+  by the frontend error mapper rather than being replaced by a generic platform
+  error message
+
+#### Scenario: Transport failure surfaces as an error result
+
+- **WHEN** the invocation fails because the remote is unreachable, times out, or
+  the platform rejects the response
+- **THEN** the failure surfaces through the SDK's error channel with a
+  human-readable message, and the calling screen renders its error state instead
+  of hanging
+
+#### Scenario: Failure reported as a value rather than a rejection
+
+- **WHEN** the bridge reports a failed invocation by resolving with an error
+  payload instead of rejecting
+- **THEN** the transport still treats it as a failure and surfaces it through
+  the SDK's error channel
+
+#### Scenario: Streaming endpoints excluded from the transport
+
+- **WHEN** the app subscribes to a meeting event stream
+- **THEN** the subscription does not use the Forge Remote transport, because
+  Forge Remote buffers response bodies and cannot deliver `text/event-stream`
+
+### Requirement: UI modules reference the backend endpoint resolver
+
+The Forge app manifest SHALL declare `resolver.endpoint` on every UI module that
+calls the backend, referencing the endpoint that binds the backend remote.
+`invokeRemote` resolves its target through the invoking module's resolver
+endpoint rather than through a remote key supplied at call time.
+
+#### Scenario: Issue panel module references the endpoint
+
+- **WHEN** the manifest defines the `jira:issuePanel` module
+- **THEN** the module declares `resolver.endpoint` referencing the endpoint
+  whose `remote` is the backend gateway
+
+#### Scenario: Project page module references the endpoint
+
+- **WHEN** the manifest defines the `jira:projectPage` module
+- **THEN** the module declares `resolver.endpoint` referencing the same endpoint
+
+#### Scenario: Endpoint and remote definitions unchanged
+
+- **WHEN** the resolver reference is added
+- **THEN** the existing endpoint key, its `remote` binding, and its
+  `auth.appSystemToken` setting are unchanged
+
+#### Scenario: Direct-egress permission retained for streaming
+
+- **WHEN** the manifest declares client egress permissions
+- **THEN** the backend remote remains listed under client fetch permissions,
+  because the event streams and LiveKit signalling still leave the iframe
+  directly

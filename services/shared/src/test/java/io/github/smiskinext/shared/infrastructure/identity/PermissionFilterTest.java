@@ -61,7 +61,7 @@ class PermissionFilterTest {
 
         assertThat(response.getStatus()).isEqualTo(403);
         assertThat(filterChainCalled.get()).isFalse();
-        assertThat(response.getContentType()).contains("application/problem+json");
+        assertThat(response.getContentType()).contains("application/json");
         assertThat(response.getContentAsString()).contains("NOT_AUTHORIZED");
     }
 

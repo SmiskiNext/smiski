@@ -14,9 +14,9 @@ meetings linked to the Jira issue identified by the `{issueId}` path variable
 within the caller's tenant. On this endpoint the `POST` method denotes a
 list/search operation and SHALL NOT create a meeting. The endpoint SHALL require
 the `view-meeting` project permission — if the caller's permission context does
-not contain `view-meeting`, the endpoint SHALL reject the request with
-`403 application/problem+json` and code `NOT_AUTHORIZED` before executing the
-use case. The tenant SHALL be resolved from the `X-Tenant-ID` header, and the
+not contain `view-meeting`, the endpoint SHALL reject the request with a `403`
+Problem Details response and code `NOT_AUTHORIZED` before executing the use
+case. The tenant SHALL be resolved from the `X-Tenant-ID` header, and the
 request SHALL require an `X-Account-Id` header used only for authentication
 context, never as a listing filter.
 
@@ -36,15 +36,14 @@ Jira issue id (the numeric `issueId`, not the human-readable issue key).
 
 - **WHEN** a caller without `view-meeting` sends
   `POST /api/1/issues/10102/meetings`
-- **THEN** the response is `403 application/problem+json` with code
-  `NOT_AUTHORIZED` and no meeting list is returned
+- **THEN** the response is `403` Problem Details with code `NOT_AUTHORIZED` and
+  no meeting list is returned
 
 #### Scenario: Missing account header
 
 - **WHEN** the caller sends `POST /api/1/issues/10102/meetings` without the
   `X-Account-Id` header
-- **THEN** the response is `400 application/problem+json` with code
-  `VALIDATION_ERROR`
+- **THEN** the response is `400` Problem Details with code `VALIDATION_ERROR`
 
 #### Scenario: Issue id filter is exact
 
@@ -112,15 +111,13 @@ items is less than `total`.
 
 - **WHEN** a client sends `POST /api/1/issues/10102/meetings` with body
   `{"pageSize":51}`
-- **THEN** the response is `400 application/problem+json` with code
-  `VALIDATION_ERROR`
+- **THEN** the response is `400` Problem Details with code `VALIDATION_ERROR`
 
 #### Scenario: Negative offset is rejected
 
 - **WHEN** a client sends `POST /api/1/issues/10102/meetings` with body
   `{"offset":-1}`
-- **THEN** the response is `400 application/problem+json` with code
-  `VALIDATION_ERROR`
+- **THEN** the response is `400` Problem Details with code `VALIDATION_ERROR`
 
 ### Requirement: Ordering and soft-delete exclusion
 

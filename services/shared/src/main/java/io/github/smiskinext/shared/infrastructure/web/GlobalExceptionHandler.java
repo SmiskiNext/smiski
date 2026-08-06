@@ -9,6 +9,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplicat
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
+import org.springframework.http.MediaType;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -23,14 +24,18 @@ import org.springframework.web.method.annotation.MethodArgumentTypeMismatchExcep
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
 
 /**
- * Translates framework and unhandled exceptions into RFC 9457 ({@code application/problem+json})
- * responses. Business errors are expected to travel through {@link
- * io.github.smiskinext.shared.domain.Result} and be unwrapped by {@link ResultResponder}; this
- * advice covers only exceptions raised by the servlet/validation stack and unexpected failures.
+ * Translates framework and unhandled exceptions into RFC 9457 Problem Details responses. Business
+ * errors are expected to travel through {@link io.github.smiskinext.shared.domain.Result} and be
+ * unwrapped by {@link ResultResponder}; this advice covers only exceptions raised by the
+ * servlet/validation stack and unexpected failures.
  *
  * <p>Extends {@link ResponseEntityExceptionHandler} so Spring's own status mapping is reused, while
  * {@link ProblemDetailMapper} supplies the localized {@code title}/{@code detail} and the {@code
  * code}/{@code traceId}/{@code errors} extension members. Active only in a SERVLET container.
+ *
+ * <p>Problem bodies are served as {@code application/json} rather than {@code
+ * application/problem+json}, matching {@link ResultResponder}, so Forge Remote clients can read the
+ * body of a non-2xx response.
  */
 @RestControllerAdvice
 @ConditionalOnWebApplication(type = Type.SERVLET)
@@ -121,7 +126,7 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     private ResponseEntity<Object> problemResponse(ProblemDetail body) {
         HttpStatus status = HttpStatus.valueOf(body.getStatus());
         return ResponseEntity.status(status)
-                .header(HttpHeaders.CONTENT_TYPE, "application/problem+json")
+                .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
                 .body(body);
     }
 

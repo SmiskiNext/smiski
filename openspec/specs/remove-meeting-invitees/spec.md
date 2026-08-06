@@ -15,7 +15,7 @@ The system SHALL expose `POST /api/1/meetings/{id}/invitees:batchDelete` for
 removing one or more invitees from a meeting by invitee id. The endpoint SHALL
 require the `edit-meeting` project permission — if the caller's permission
 context does not contain `edit-meeting`, the endpoint SHALL reject the request
-with `403 application/problem+json` and code `NOT_AUTHORIZED` before executing
+with a `403` Problem Details response and code `NOT_AUTHORIZED` before executing
 the use case. The acting account SHALL be resolved from the configured account
 header, the tenant SHALL be resolved from the tenant context, and only the
 meeting host SHALL be authorized to remove invitees. The request body SHALL use
@@ -36,8 +36,8 @@ the shape `{ "inviteeIds": [ "<uuid>" ] }`. A successful call SHALL return
 
 - **WHEN** a caller without `edit-meeting` sends
   `POST /api/1/meetings/{id}/invitees:batchDelete`
-- **THEN** the response is `403 application/problem+json` with code
-  `NOT_AUTHORIZED` and no invitees are removed
+- **THEN** the response is `403` Problem Details with code `NOT_AUTHORIZED` and
+  no invitees are removed
 
 #### Scenario: Non-host invitee removal is rejected
 

@@ -5,7 +5,7 @@ import io.github.smiskinext.shared.domain.ErrorCode;
 
 /**
  * Machine-readable error codes for the meeting-management bounded context, surfaced as the
- * {@code code} member of {@code application/problem+json} responses.
+ * {@code code} member of RFC 9457 Problem Details responses.
  */
 public enum MeetingErrorCode implements ErrorCode {
     MEETING_NOT_FOUND(ErrorCategory.NOT_FOUND),

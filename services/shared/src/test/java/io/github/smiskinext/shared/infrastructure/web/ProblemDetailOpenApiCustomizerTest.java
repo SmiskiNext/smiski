@@ -34,8 +34,8 @@ class ProblemDetailOpenApiCustomizerTest {
         assertThat(responses).containsKeys("405", "415", "500");
         for (String status : new String[] {"405", "415", "500"}) {
             var content = responses.get(status).getContent();
-            assertThat(content).containsKey("application/problem+json");
-            var schema = content.get("application/problem+json").getSchema();
+            assertThat(content).containsKey("application/json");
+            var schema = content.get("application/json").getSchema();
             assertThat(schema.get$ref()).isEqualTo("#/components/schemas/ProblemDetail");
         }
     }

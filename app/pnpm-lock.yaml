@@ -12,7 +12,7 @@ importers:
         specifier: ^2.4.15
         version: 2.5.5
       '@forge/cli':
-        specifier: ^13.1.0
+        specifier: 13.1.0
         version: 13.1.0(@types/express@4.17.25)(@types/node@22.20.1)(loader-utils@2.0.4)(typescript@5.9.3)(webpack@5.108.4)
 
   ../sdks/typescript:

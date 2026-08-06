@@ -9,12 +9,17 @@
  *
  * In standalone `vite dev` there is no Forge bridge to talk to, so DEV mode
  * skips straight to a DevSurfaceSwitcher-driven local state instead.
+ *
+ * `surface` stays `'loading'` until the gateway context identifiers are
+ * published, because every surface root issues backend requests as it mounts and
+ * a request without them resolves to an empty permission set.
  */
 
 import { view } from '@forge/bridge';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ConfigProvider, theme } from 'antd';
 import { type ReactNode, useEffect, useState } from 'react';
+import { publishProjectContext, setBackendContext } from './api/backendContext';
 import {
     type DemoSurface,
     DevSurfaceSwitcher,
@@ -114,7 +119,7 @@ export function App() {
         }
 
         view.getContext()
-            .then((context) => {
+            .then(async (context) => {
                 const forgeTheme = context.theme as
                     | { colorMode?: AppColorMode }
                     | undefined;
@@ -125,18 +130,20 @@ export function App() {
                     (modalContext as { kind?: unknown } | undefined)?.kind
                     === SCHEDULE_MEETING_MODAL_KIND
                 ) {
-                    setModalPayload(
-                        modalContext as ScheduleMeetingModalContext,
-                    );
+                    const payload = modalContext as ScheduleMeetingModalContext;
+                    setBackendContext(payload);
+                    setModalPayload(payload);
                     setSurface('modal');
                     return;
                 }
                 if (isInstantMeetingModalContext(modalContext)) {
+                    setBackendContext(modalContext);
                     setModalPayload(modalContext);
                     setSurface('modal');
                     return;
                 }
                 if (isIssuePanelModalContext(modalContext)) {
+                    setBackendContext(modalContext);
                     setModalPayload(modalContext);
                     setSurface('modal');
                     return;
@@ -151,10 +158,20 @@ export function App() {
                             projectKey: extension.project?.key ?? '',
                         });
                     }
+                    setBackendContext({
+                        issueId: extension.issue?.id,
+                        projectId: extension.project?.id,
+                    });
                     setSurface('issuePanel');
                 } else if (context.moduleKey === MODULE_KEY_PROJECT_PAGE) {
                     const extension = context.extension as ProjectPageExtension;
-                    setProjectKey(extension.project?.key ?? 'SMISKI');
+                    const resolvedProjectKey =
+                        extension.project?.key ?? 'SMISKI';
+                    setProjectKey(resolvedProjectKey);
+                    await publishProjectContext(
+                        extension.project?.id,
+                        resolvedProjectKey,
+                    );
                     setSurface('projectPage');
                 } else {
                     setSurface('unknown');

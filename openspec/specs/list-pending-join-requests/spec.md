@@ -52,26 +52,22 @@ receive `403 NOT_OWNER`.
 
 - **WHEN** an authenticated tenant member who is not the meeting host sends
   `GET /meetings/{id}/join-requests`
-- **THEN** the response is `403 application/problem+json` with `code`
-  `NOT_OWNER`
+- **THEN** the response is `403` Problem Details with `code` `NOT_OWNER`
 
 #### Scenario: Meeting not found
 
 - **WHEN** the caller sends `GET /meetings/{id}/join-requests` where `{id}` does
   not correspond to an active meeting in the caller's tenant
-- **THEN** the response is `404 application/problem+json` with `code`
-  `MEETING_NOT_FOUND`
+- **THEN** the response is `404` Problem Details with `code` `MEETING_NOT_FOUND`
 
 #### Scenario: Missing account header
 
 - **WHEN** the caller sends `GET /meetings/{id}/join-requests` without the
   `X-Account-Id` header
-- **THEN** the response is `400 application/problem+json` with `code`
-  `VALIDATION_ERROR`
+- **THEN** the response is `400` Problem Details with `code` `VALIDATION_ERROR`
 
 #### Scenario: Page size out of range
 
 - **WHEN** the host sends `GET /meetings/{id}/join-requests?pageSize=0` or
   `?pageSize=101`
-- **THEN** the response is `400 application/problem+json` with `code`
-  `VALIDATION_ERROR`
+- **THEN** the response is `400` Problem Details with `code` `VALIDATION_ERROR`
