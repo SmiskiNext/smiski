@@ -13,6 +13,7 @@ import type {
     UpdateMeetingInput,
 } from '../api/meetings';
 import {
+    batchDeleteMeetings,
     cancelMeeting,
     createInstantMeeting,
     endMeeting,
@@ -137,6 +138,15 @@ export function useEndMeeting() {
     const invalidate = useInvalidateMeetings();
     return useMutation({
         mutationFn: (meetingId: string) => endMeeting(meetingId),
+        onSuccess: invalidate,
+    });
+}
+
+/** Batch soft-deletes multiple meetings by ID (backend `batchDelete`). */
+export function useBatchDeleteMeetings() {
+    const invalidate = useInvalidateMeetings();
+    return useMutation({
+        mutationFn: (meetingIds: string[]) => batchDeleteMeetings(meetingIds),
         onSuccess: invalidate,
     });
 }

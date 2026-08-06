@@ -1,6 +1,7 @@
 import {
     acceptJoinRequests as acceptJoinRequestsOperation,
     addInvitees,
+    batchDelete as batchDeleteOperation,
     batchDeleteInvitees,
     cancel,
     createInstant,
@@ -12,6 +13,7 @@ import {
     listPendingJoinRequests as listPendingJoinRequestsOperation,
     type MeetAddMeetingInviteesRequest,
     type MeetAddMeetingInviteesResponse,
+    type MeetBatchDeleteMeetingsResponse,
     type MeetCancelMeetingResponse,
     type MeetCreateInstantMeetingRequest,
     type MeetCreateInstantMeetingResponse,
@@ -573,7 +575,7 @@ export async function declinePendingMeetingJoinRequests(
 
 /**
  * Lists meetings across a project for the dashboard table. Filters by
- * projectKey, optional issueKey, creatorId, status, and search query.
+ * exact projectKey plus optional issue, creator, status, and search filters.
  */
 export async function listProjectMeetings(
     filters: MeetingListFilters,
@@ -707,6 +709,22 @@ export async function endMeeting(meetingId: string): Promise<Meeting> {
         }),
     );
     return meetingFromBackend(response);
+}
+
+/**
+ * Soft-deletes a batch of meetings by ID (backend `batchDelete`).
+ */
+export async function batchDeleteMeetings(
+    meetingIds: string[],
+): Promise<Meeting[]> {
+    const response = await unwrap<MeetBatchDeleteMeetingsResponse>(() =>
+        batchDeleteOperation({
+            client: forgeRemoteClient,
+            path: { version: apiConfig.apiVersion },
+            body: { meetingIds },
+        }),
+    );
+    return meetingsFromBackend(response);
 }
 
 /** The joining participant's identity, required by the backend `join` operation. */

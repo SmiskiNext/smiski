@@ -2,7 +2,8 @@
  * useProjectMeetings — meetings across a project for the dashboard table.
  *
  * Defaults to showing only the current user's meetings unless
- * `createdByAccountId` is explicitly provided in filters.
+ * `createdByAccountId` is explicitly provided. `listProjectMeetings` applies
+ * the project, issue, status, creator, and search filters at the backend.
  */
 import { useQuery } from '@tanstack/react-query';
 import type { MeetingListFilters } from '../api/meetings';
