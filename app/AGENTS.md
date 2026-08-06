@@ -88,9 +88,10 @@ primitives.
 
 ## Wiring status
 
-`listProjectMeetings` (`api/meetings.ts`) **throws** — the backend's `list` has
-no project-wide filter (only `issueKey`/`creatorId`/`statuses`/`search`), so
-`useProjectMeetings` and the project dashboard have no backend. Everything else
+Project meeting listing uses the backend's cursor-paginated `list` operation
+with an exact `projectKey` filter. Issue Panel listing uses the dedicated,
+offset-paginated `/issues/{issueId}/meetings` operation. Correctness-sensitive
+conflict checks walk every cursor page. Everything else
 (instant/schedule/get/update/cancel/end/settings/join/token) is real. Check the
 specific hook before assuming either direction. Meeting persistence is **never**
 mocked and there is no mock/backend switch: `mocks/` is Jira identity/issue data

@@ -1,8 +1,8 @@
 import {
     acceptJoinRequests as acceptJoinRequestsOperation,
     addInvitees,
-    batchDelete as batchDeleteOperation,
     batchDeleteInvitees,
+    batchDelete as batchDeleteOperation,
     cancel,
     createInstant,
     declineJoinRequests as declineJoinRequestsOperation,
@@ -10,6 +10,7 @@ import {
     get,
     join,
     list,
+    listIssueMeetings as listIssueMeetingsOperation,
     listPendingJoinRequests as listPendingJoinRequestsOperation,
     type MeetAddMeetingInviteesRequest,
     type MeetAddMeetingInviteesResponse,
@@ -19,8 +20,10 @@ import {
     type MeetCreateInstantMeetingResponse,
     type MeetEndMeetingResponse,
     type MeetGetMeetingResponse,
+    type MeetIssueMeetingListPage,
     type MeetJoinDecisionResponse,
     type MeetJoinMeetingResponse,
+    type MeetListMeetingsRequest,
     type MeetListPendingJoinRequestsResponse,
     type MeetMeetingListPage,
     type MeetProblemDetail,
@@ -148,13 +151,56 @@ export interface UpdateMeetingInput {
 }
 
 /** Filters for the project-page dashboard listing. */
-export interface MeetingListFilters {
-    projectKey: string;
+export interface MeetingSearchFilters {
+    projectKey?: string;
     issueKey?: string;
     createdByAccountId?: string;
     status?: MeetingStatus;
     search?: string;
+    sort?: MeetingListSort;
 }
+
+export interface MeetingListFilters extends MeetingSearchFilters {
+    projectKey: string;
+}
+
+export type MeetingListSort = NonNullable<MeetListMeetingsRequest['sort']>;
+
+export interface CursorPageParams {
+    pageSize?: number;
+    pageToken?: string;
+}
+
+export interface ProjectMeetingListParams
+    extends MeetingListFilters,
+        CursorPageParams {}
+
+interface MeetingSearchPageParams
+    extends MeetingSearchFilters,
+        CursorPageParams {}
+
+export interface MeetingCursorPage {
+    meetings: Meeting[];
+    size: number;
+    hasNext: boolean;
+    nextPageToken?: string;
+}
+
+export interface OffsetPageParams {
+    offset?: number;
+    pageSize?: number;
+}
+
+export interface MeetingOffsetPage {
+    meetings: Meeting[];
+    total: number;
+    offset: number;
+    pageSize: number;
+    hasNext: boolean;
+}
+
+export const DEFAULT_MEETING_PAGE_SIZE = 20;
+export const MAX_MEETING_PAGE_SIZE = 50;
 
 /**
  * Backend problem mapped for the create/schedule modals. Carries at least a
@@ -475,16 +521,27 @@ export async function removeMeetingInvitees(
     return meetingInviteesFromBackend(response);
 }
 
-/** Lists meetings linked to a Jira issue (backend `list`, exact `issueKey` filter). */
-export async function listIssueMeetings(issueKey: string): Promise<Meeting[]> {
-    const response = await unwrap<MeetMeetingListPage>(() =>
-        list({
+/** Lists one offset-paginated page linked to a Jira issue id. */
+export async function listIssueMeetings(
+    issueId: string,
+    params: OffsetPageParams = {},
+): Promise<MeetingOffsetPage> {
+    const response = await unwrap<MeetIssueMeetingListPage>(() =>
+        listIssueMeetingsOperation({
             client: forgeRemoteClient,
-            path: { version: apiConfig.apiVersion },
-            body: { issueKey },
+            path: { version: apiConfig.apiVersion, issueId },
+            body: params,
         }),
     );
-    return meetingsFromBackend(response);
+    const meetings = meetingsFromBackend(response);
+    const offset = response.meta?.offset ?? params.offset ?? 0;
+    const pageSize =
+        response.meta?.pageSize ?? params.pageSize ?? DEFAULT_MEETING_PAGE_SIZE;
+    const total = response.meta?.total ?? offset + meetings.length;
+    const hasNext =
+        meetings.length > 0
+        && (response.meta?.hasNext ?? offset + meetings.length < total);
+    return { meetings, total, offset, pageSize, hasNext };
 }
 
 /** Lists a page of PENDING join requests for the meeting host. */
@@ -573,27 +630,89 @@ export async function declinePendingMeetingJoinRequests(
     return joinRequestDecisionsFromBackend(response);
 }
 
-/**
- * Lists meetings across a project for the dashboard table. Filters by
- * exact projectKey plus optional issue, creator, status, and search filters.
- */
-export async function listProjectMeetings(
-    filters: MeetingListFilters,
-): Promise<Meeting[]> {
+async function listMeetingsPage(
+    params: MeetingSearchPageParams,
+): Promise<MeetingCursorPage> {
     const response = await unwrap<MeetMeetingListPage>(() =>
         list({
             client: forgeRemoteClient,
             path: { version: apiConfig.apiVersion },
             body: {
-                projectKey: filters.projectKey,
-                issueKey: filters.issueKey,
-                creatorId: filters.createdByAccountId,
-                statuses: filters.status ? [filters.status] : undefined,
-                search: filters.search,
+                projectKey: params.projectKey,
+                issueKey: params.issueKey,
+                creatorId: params.createdByAccountId,
+                statuses: params.status ? [params.status] : undefined,
+                search: params.search,
+                sort: params.sort,
+                pageSize: params.pageSize,
+                pageToken: params.pageToken,
             },
         }),
     );
-    return meetingsFromBackend(response);
+    const meetings = meetingsFromBackend(response);
+    const hasNext = response.meta?.hasNext ?? false;
+    const nextPageToken = response.meta?.nextPageToken;
+    if (hasNext && !nextPageToken) {
+        throw new MeetingApiError({
+            message:
+                'The meeting backend returned an invalid pagination response.',
+            code: 'INVALID_PAGINATION_RESPONSE',
+        });
+    }
+    return {
+        meetings,
+        size: response.meta?.size ?? meetings.length,
+        hasNext,
+        nextPageToken,
+    };
+}
+
+/** Lists one cursor-paginated project page with server-side filtering/sort. */
+export function listProjectMeetings(
+    params: ProjectMeetingListParams,
+): Promise<MeetingCursorPage> {
+    return listMeetingsPage(params);
+}
+
+/**
+ * Loads every cursor page for correctness-sensitive checks such as scheduling
+ * and host conflicts. Repeated cursors are rejected instead of looping.
+ */
+export async function listAllMeetings(
+    filters: MeetingSearchFilters,
+): Promise<Meeting[]> {
+    const meetings: Meeting[] = [];
+    const seenTokens = new Set<string>();
+    let pageToken: string | undefined;
+
+    do {
+        const page = await listMeetingsPage({
+            ...filters,
+            pageSize: MAX_MEETING_PAGE_SIZE,
+            pageToken,
+        });
+        meetings.push(...page.meetings);
+        if (!page.hasNext) return meetings;
+
+        const nextPageToken = page.nextPageToken;
+        if (!nextPageToken) {
+            throw new MeetingApiError({
+                message:
+                    'The meeting backend returned an invalid pagination response.',
+                code: 'INVALID_PAGINATION_RESPONSE',
+            });
+        }
+        if (seenTokens.has(nextPageToken)) {
+            throw new MeetingApiError({
+                message: 'The meeting backend returned a repeated page cursor.',
+                code: 'INVALID_PAGINATION_RESPONSE',
+            });
+        }
+        seenTokens.add(nextPageToken);
+        pageToken = nextPageToken;
+    } while (pageToken);
+
+    return meetings;
 }
 
 /**
@@ -834,24 +953,17 @@ export async function getRoomToken(
 
 /**
  * Any RUNNING meeting hosted by `accountId`, optionally excluding one issue.
- * Backs the "confirm before starting a second concurrent meeting" prompt
- * (UC-01 alt flow). Calls the SDK `list` operation directly (`creatorId` +
- * `statuses: ['RUNNING']`) rather than a resolver — the real backend already
- * supports this filter combination, unlike the project-wide listing above.
- * `list` has no "exclude an issue" filter, so that's applied client-side.
+ * Every cursor page is checked so a conflict cannot be missed after page 1.
+ * The backend has no "exclude an issue" filter, so that part stays client-side.
  */
 export async function findRunningMeetingHostedByUser(
     accountId: string,
     excludingIssueKey?: string,
 ): Promise<Meeting | null> {
-    const response = await unwrap<MeetMeetingListPage>(() =>
-        list({
-            client: forgeRemoteClient,
-            path: { version: apiConfig.apiVersion },
-            body: { creatorId: accountId, statuses: ['RUNNING'] },
-        }),
-    );
-    const running = meetingsFromBackend(response);
+    const running = await listAllMeetings({
+        createdByAccountId: accountId,
+        status: 'RUNNING',
+    });
     return (
         running.find((meeting) => meeting.issueKey !== excludingIssueKey)
         ?? null

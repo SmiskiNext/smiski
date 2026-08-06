@@ -3,10 +3,10 @@
  * actions, search/filter, and one unified list covering every meeting status
  * for this issue (replaces the old split Current/Upcoming/History sections).
  *
- * Data comes from `useIssueMeetings` → the real `meet` backend's `list`
- * operation (SDK over Forge Remote, see `api/meetings.ts`'s
- * `listIssueMeetings`). There is no mock db — meeting persistence is never
- * mocked. Join navigates to the Project Page's meeting room
+ * Data comes from `useIssueMeetings` → the real `meet` backend's dedicated,
+ * offset-paginated issue listing (SDK over Forge Remote). There is no mock db
+ * — meeting persistence is never mocked. Joining a meeting or creating an
+ * instant one navigates to the Project Page's meeting room
  * (`useNavigateToMeetingRoom`) — Issue Panel and Project Page are separate
  * Forge modules/iframes, so this narrow panel never has room to render the
  * meeting itself.
@@ -61,11 +61,12 @@ export interface IssueMeetingsPanelProps {
 
 export function IssueMeetingsPanel({ issue }: IssueMeetingsPanelProps) {
     const permissions = useMeetingPermissions(issue.projectKey);
-    const { meetings, loading, error } = useIssueMeetings(
-        issue.issueKey,
+    const issueMeetings = useIssueMeetings(
+        issue.issueId,
         issue.projectKey,
         permissions.canViewMeeting && !permissions.isLoading,
     );
+    const { meetings, loading, error } = issueMeetings;
     const openMeetingRoom = useNavigateToMeetingRoom();
 
     const [filter, setFilter] = useState<IssueMeetingsFilterValue>({});
@@ -187,6 +188,32 @@ export function IssueMeetingsPanel({ issue }: IssueMeetingsPanelProps) {
                                 }
                             />
                         ))}
+                    </div>
+                )}
+                {!loading && !error && meetings.length > 0 && (
+                    <div className='mt-3 space-y-2'>
+                        <div className='flex items-center justify-between gap-3'>
+                            <span className='text-xs tabular-nums text-[var(--text-faint)]'>
+                                Loaded {meetings.length} of{' '}
+                                {issueMeetings.total}
+                            </span>
+                            {issueMeetings.hasMore && (
+                                <Button
+                                    size='sm'
+                                    variant='secondary'
+                                    isLoading={issueMeetings.loadingMore}
+                                    disabled={issueMeetings.loadingMore}
+                                    onClick={issueMeetings.loadMore}
+                                >
+                                    Load more
+                                </Button>
+                            )}
+                        </div>
+                        {issueMeetings.loadMoreError && (
+                            <p className='text-xs text-red-600 dark:text-red-300'>
+                                {issueMeetings.loadMoreError.message}
+                            </p>
+                        )}
                     </div>
                 )}
             </div>

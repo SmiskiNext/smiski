@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import {
     EmptyState,
     ErrorState,
@@ -21,12 +21,15 @@ export interface MeetingListTableProps {
     permissions: MeetingPermissions;
     isLoading: boolean;
     error: Error | null;
+    pageNumber: number;
+    hasPreviousPage: boolean;
+    hasNextPage: boolean;
+    onPreviousPage: () => void;
+    onNextPage: () => void;
     onSelect: (meeting: Meeting) => void;
     onAction: (action: MeetingAction, meeting: Meeting) => void;
     onBatchDeleteSuccess?: () => void;
 }
-
-type SortKey = 'title' | 'issueKey' | 'status' | 'scheduledAt';
 
 function ActionsCell({
     meeting,
@@ -79,25 +82,30 @@ function ActionsCell({
 }
 
 const columns: Array<{
-    key: SortKey | 'select' | 'host' | 'participants' | 'actions';
+    key:
+        | 'select'
+        | 'title'
+        | 'issueKey'
+        | 'status'
+        | 'host'
+        | 'scheduledAt'
+        | 'participants'
+        | 'actions';
     label: string;
-    sortable?: boolean;
     className?: string;
 }> = [
     { key: 'select', label: '', className: 'w-10 pl-4 sm:pl-6' },
-    { key: 'title', label: 'Meeting', sortable: true, className: 'w-[36%]' },
+    { key: 'title', label: 'Meeting', className: 'w-[36%]' },
     {
         key: 'issueKey',
         label: 'Issue',
-        sortable: true,
         className: 'hidden w-[16%] sm:table-cell',
     },
-    { key: 'status', label: 'Status', sortable: true, className: 'w-28' },
+    { key: 'status', label: 'Status', className: 'w-28' },
     { key: 'host', label: 'Host', className: 'hidden w-32 xl:table-cell' },
     {
         key: 'scheduledAt',
         label: 'Schedule / Started',
-        sortable: true,
         className: 'hidden w-40 lg:table-cell',
     },
     {
@@ -116,20 +124,20 @@ function meetingTime(meeting: Meeting): string {
     return value ? new Date(value).toLocaleString() : '—';
 }
 
-const PAGE_SIZE = 20;
-
 export function MeetingListTable({
     meetings,
     permissions,
     isLoading,
     error,
+    pageNumber,
+    hasPreviousPage,
+    hasNextPage,
+    onPreviousPage,
+    onNextPage,
     onSelect,
     onAction,
     onBatchDeleteSuccess,
 }: MeetingListTableProps) {
-    const [sortKey, setSortKey] = useState<SortKey>('scheduledAt');
-    const [sortOrder, setSortOrder] = useState<'ASC' | 'DESC'>('DESC');
-    const [page, setPage] = useState(1);
     const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const [batchDeleteError, setBatchDeleteError] = useState<string | null>(
@@ -138,36 +146,19 @@ export function MeetingListTable({
 
     const batchDeleteMutation = useBatchDeleteMeetings();
 
-    const sortedMeetings = useMemo(
-        () =>
-            [...meetings].sort((a, b) => {
-                const result = String(a[sortKey] ?? '').localeCompare(
-                    String(b[sortKey] ?? ''),
-                );
-                return sortOrder === 'ASC' ? result : -result;
-            }),
-        [meetings, sortKey, sortOrder],
-    );
-    const pageCount = Math.max(1, Math.ceil(sortedMeetings.length / PAGE_SIZE));
-    const currentPage = Math.min(page, pageCount);
-    const pagedMeetings = sortedMeetings.slice(
-        (currentPage - 1) * PAGE_SIZE,
-        currentPage * PAGE_SIZE,
-    );
-
     const isAllPageSelected =
-        pagedMeetings.length > 0
-        && pagedMeetings.every((m) => selectedIds.has(m.id));
+        meetings.length > 0
+        && meetings.every((meeting) => selectedIds.has(meeting.id));
 
     const toggleSelectAllPage = () => {
         const next = new Set(selectedIds);
         if (isAllPageSelected) {
-            for (const m of pagedMeetings) {
-                next.delete(m.id);
+            for (const meeting of meetings) {
+                next.delete(meeting.id);
             }
         } else {
-            for (const m of pagedMeetings) {
-                next.add(m.id);
+            for (const meeting of meetings) {
+                next.add(meeting.id);
             }
         }
         setSelectedIds(next);
@@ -209,16 +200,6 @@ export function MeetingListTable({
         }
     };
 
-    const changeSort = (key: SortKey) => {
-        setPage(1);
-        if (sortKey === key)
-            setSortOrder((order) => (order === 'ASC' ? 'DESC' : 'ASC'));
-        else {
-            setSortKey(key);
-            setSortOrder('ASC');
-        }
-    };
-
     return (
         <section>
             <div className='flex h-10 items-center justify-between border-b px-4 sm:px-6'>
@@ -255,7 +236,7 @@ export function MeetingListTable({
                             All meetings
                         </h2>
                         <span className='text-xs tabular-nums text-[var(--text-faint)]'>
-                            {meetings.length} total
+                            {meetings.length} on this page
                         </span>
                     </>
                 )}
@@ -304,39 +285,14 @@ export function MeetingListTable({
                                             key={column.key}
                                             className={`h-9 border-b bg-[var(--surface-soft)] px-3 text-[10px] font-semibold tracking-wide text-[var(--text-faint)] uppercase ${column.className ?? ''}`}
                                         >
-                                            {column.sortable ? (
-                                                <button
-                                                    type='button'
-                                                    className='inline-flex items-center gap-1 hover:text-[var(--text)]'
-                                                    onClick={() =>
-                                                        changeSort(
-                                                            column.key as SortKey,
-                                                        )
-                                                    }
-                                                >
-                                                    {column.label}
-                                                    {sortKey === column.key && (
-                                                        <Icon
-                                                            name={
-                                                                sortOrder
-                                                                === 'ASC'
-                                                                    ? 'chevronUp'
-                                                                    : 'chevronDown'
-                                                            }
-                                                            size={12}
-                                                        />
-                                                    )}
-                                                </button>
-                                            ) : (
-                                                column.label
-                                            )}
+                                            {column.label}
                                         </th>
                                     );
                                 })}
                             </tr>
                         </thead>
                         <tbody>
-                            {pagedMeetings.map((meeting) => {
+                            {meetings.map((meeting) => {
                                 const isSelected = selectedIds.has(meeting.id);
                                 return (
                                     <tr
@@ -356,6 +312,9 @@ export function MeetingListTable({
                                         <td
                                             className='border-b px-3 py-2.5 pl-4 sm:pl-6'
                                             onClick={(e) => e.stopPropagation()}
+                                            onKeyDown={(e) =>
+                                                e.stopPropagation()
+                                            }
                                         >
                                             <input
                                                 type='checkbox'
@@ -415,19 +374,17 @@ export function MeetingListTable({
                             })}
                         </tbody>
                     </table>
-                    {pageCount > 1 && (
+                    {(hasPreviousPage || hasNextPage) && (
                         <div className='flex items-center justify-between border-t px-4 py-2.5 sm:px-6'>
                             <span className='text-xs text-[var(--text-faint)]'>
-                                Page {currentPage} of {pageCount}
+                                Page {pageNumber}
                             </span>
                             <div className='flex items-center gap-1.5'>
                                 <Button
                                     size='sm'
                                     variant='secondary'
-                                    disabled={currentPage === 1}
-                                    onClick={() =>
-                                        setPage((p) => Math.max(1, p - 1))
-                                    }
+                                    disabled={!hasPreviousPage}
+                                    onClick={onPreviousPage}
                                     leadingIcon={
                                         <Icon
                                             name='chevronDown'
@@ -441,12 +398,8 @@ export function MeetingListTable({
                                 <Button
                                     size='sm'
                                     variant='secondary'
-                                    disabled={currentPage === pageCount}
-                                    onClick={() =>
-                                        setPage((p) =>
-                                            Math.min(pageCount, p + 1),
-                                        )
-                                    }
+                                    disabled={!hasNextPage}
+                                    onClick={onNextPage}
                                 >
                                     Next
                                     <Icon

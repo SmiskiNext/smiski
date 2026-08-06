@@ -2,7 +2,7 @@
  * Centralized React Query key factories — keeps cache invalidation in
  * mutation hooks in sync with the query hooks that read the same data.
  */
-import type { MeetingListFilters } from '../api/meetings';
+import type { ProjectMeetingListParams } from '../api/meetings';
 import type { PendingJoinRequestsPageParams } from '../domain';
 import { BUILD_VERSION } from '../utils/buildVersion';
 
@@ -28,9 +28,8 @@ export const queryKeys = {
      */
     meetingPermissions: (projectKey: string, accountId: string) =>
         [MEETING_PERMISSIONS_ROOT, projectKey, accountId] as const,
-    issueMeetings: (issueKey: string) =>
-        ['meetings', 'issue', issueKey] as const,
-    projectMeetings: (filters: Partial<MeetingListFilters>) =>
+    issueMeetings: (issueId: string) => ['meetings', 'issue', issueId] as const,
+    projectMeetings: (filters: Partial<ProjectMeetingListParams>) =>
         ['meetings', 'project', filters] as const,
     projectIssues: (projectKey: string, query?: string) =>
         ['issues', 'project', projectKey, query ?? ''] as const,

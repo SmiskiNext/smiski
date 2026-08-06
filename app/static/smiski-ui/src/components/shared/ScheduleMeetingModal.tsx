@@ -21,7 +21,7 @@
 import { Alert, Form, Input, Select } from 'antd';
 import { useState } from 'react';
 import type { CreateMeetingSettingsInput } from '../../api/meetings';
-import { listProjectMeetings } from '../../api/meetings';
+import { listAllMeetings } from '../../api/meetings';
 import type { WorkspaceUser } from '../../api/workspaceUsers';
 import { useCurrentUser } from '../../context/CurrentUserContext';
 import type { Meeting } from '../../domain';
@@ -129,7 +129,9 @@ async function hasOwnScheduleConflict(
     excludingMeetingId?: string,
 ): Promise<boolean> {
     if (!projectKey) return false;
-    const ownMeetings = await listProjectMeetings({
+    // Standalone `vite dev` has no Forge bridge to reach the resolver
+    // through — fail open (no conflict) rather than blocking the form.
+    const ownMeetings = await listAllMeetings({
         projectKey,
         createdByAccountId: organizerAccountId,
     }).catch(() => []);

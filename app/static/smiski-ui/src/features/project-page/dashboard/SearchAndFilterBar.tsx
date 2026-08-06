@@ -1,3 +1,4 @@
+import type { MeetingListSort } from '../../../api/meetings';
 import { MEETING_STATUS_FILTER_OPTIONS } from '../../../components/shared';
 import { Button, Icon, SelectDropdown } from '../../../components/ui';
 import type { MeetingStatus } from '../../../domain';
@@ -9,6 +10,7 @@ export interface MeetingFilterValue {
     issueKey?: string;
     createdByAccountId?: string;
     status?: MeetingStatus;
+    sort?: MeetingListSort;
 }
 
 export interface SearchAndFilterBarProps {
@@ -18,6 +20,13 @@ export interface SearchAndFilterBarProps {
 }
 
 const compactControl = 'field-control h-8 rounded py-1 text-sm shadow-none';
+
+export const DEFAULT_PROJECT_MEETING_SORT: MeetingListSort = 'START_TIME';
+
+const SORT_OPTIONS: Array<{ value: MeetingListSort; label: string }> = [
+    { value: 'START_TIME', label: 'Latest start' },
+    { value: 'CREATED_AT', label: 'Newest created' },
+];
 
 export function SearchAndFilterBar({
     projectKey,
@@ -55,7 +64,8 @@ export function SearchAndFilterBar({
         value.search
             || value.issueKey
             || value.createdByAccountId
-            || value.status,
+            || value.status
+            || (value.sort && value.sort !== DEFAULT_PROJECT_MEETING_SORT),
     );
 
     return (
@@ -117,12 +127,26 @@ export function SearchAndFilterBar({
                     })
                 }
             />
+            <SelectDropdown
+                className='w-40'
+                ariaLabel='Sort meetings'
+                value={value.sort ?? DEFAULT_PROJECT_MEETING_SORT}
+                options={SORT_OPTIONS}
+                onChange={(sort) =>
+                    onChange({
+                        ...value,
+                        sort: sort as MeetingListSort,
+                    })
+                }
+            />
             {hasActiveFilters && (
                 <Button
                     size='sm'
                     variant='ghost'
                     className='h-8 min-h-0 rounded'
-                    onClick={() => onChange({})}
+                    onClick={() =>
+                        onChange({ sort: DEFAULT_PROJECT_MEETING_SORT })
+                    }
                 >
                     Clear
                 </Button>

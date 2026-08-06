@@ -1,31 +1,32 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const requestRemoteMock = vi.fn();
+const invokeRemoteMock = vi.fn();
 vi.mock('@forge/bridge', () => ({
     invoke: vi.fn(),
-    requestRemote: (...args: unknown[]) => requestRemoteMock(...args),
+    invokeRemote: (...args: unknown[]) => invokeRemoteMock(...args),
 }));
 
 import { batchDeleteMeetings, MeetingApiError } from './meetings';
 
-function jsonResponse(status: number, body: unknown): Response {
-    return new Response(JSON.stringify(body), {
+function invokeResult(status: number, body: unknown) {
+    return {
         status,
-        headers: { 'Content-Type': 'application/json' },
-    });
+        headers: { 'content-type': 'application/json' },
+        body,
+    };
 }
 
 describe('batchDeleteMeetings (SDK batchDelete operation over Forge Remote)', () => {
     beforeEach(() => {
-        requestRemoteMock.mockReset();
+        invokeRemoteMock.mockReset();
     });
 
     it('sends meetingIds payload to POST /api/1/meetings:batchDelete', async () => {
         const id1 = '0195e0c2-8f3a-7c21-b9d4-2f1a6e7c8d90';
         const id2 = '0195e0c2-8f3a-7c21-b9d4-2f1a6e7c8d91';
 
-        requestRemoteMock.mockResolvedValue(
-            jsonResponse(200, {
+        invokeRemoteMock.mockResolvedValue(
+            invokeResult(200, {
                 meetings: [
                     {
                         id: id1,
@@ -43,17 +44,13 @@ describe('batchDeleteMeetings (SDK batchDelete operation over Forge Remote)', ()
 
         const deletedMeetings = await batchDeleteMeetings([id1, id2]);
 
-        expect(requestRemoteMock).toHaveBeenCalledWith(
-            'meet-backend',
+        expect(invokeRemoteMock).toHaveBeenCalledWith(
             expect.objectContaining({
                 path: '/api/1/meetings:batchDelete',
                 method: 'POST',
+                body: { meetingIds: [id1, id2] },
             }),
         );
-
-        const [, options] = requestRemoteMock.mock.calls[0];
-        const body = JSON.parse(options.body);
-        expect(body).toEqual({ meetingIds: [id1, id2] });
 
         expect(deletedMeetings).toHaveLength(2);
         expect(deletedMeetings[0].id).toBe(id1);
@@ -61,8 +58,8 @@ describe('batchDeleteMeetings (SDK batchDelete operation over Forge Remote)', ()
     });
 
     it('throws MeetingApiError on backend error response', async () => {
-        requestRemoteMock.mockResolvedValue(
-            jsonResponse(403, {
+        invokeRemoteMock.mockResolvedValue(
+            invokeResult(403, {
                 code: 'NOT_AUTHORIZED',
                 title: 'Forbidden',
                 detail: 'Only the host or project admin may delete meetings',

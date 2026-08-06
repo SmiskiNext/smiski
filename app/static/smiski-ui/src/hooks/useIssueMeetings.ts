@@ -1,15 +1,10 @@
 /**
- * useIssueMeetings — meetings bound to the current Issue (UC02/UC07), via the
- * backend `list` operation filtered by exact `issueKey`.
- *
- * The `list` response's meeting-summary shape carries no host display name
- * (only `hostId`), so `hostName`/`creatorName` are resolved against the Jira
- * project directory client-side — same approach `useMeetingParticipants` uses
- * for participants (`resolveParticipantDisplayNames`).
+ * Offset-paginated meetings linked to one Jira issue. Pages are accumulated
+ * for the compact Issue Panel and exposed through an explicit load-more API.
  */
-import { useQuery } from '@tanstack/react-query';
+import { useInfiniteQuery } from '@tanstack/react-query';
 import { useMemo } from 'react';
-import { listIssueMeetings } from '../api/meetings';
+import { DEFAULT_MEETING_PAGE_SIZE, listIssueMeetings } from '../api/meetings';
 import { useCurrentUser } from '../context/CurrentUserContext';
 import type { Meeting } from '../domain';
 import { resolveMeetingHostNames } from '../domain';
@@ -18,39 +13,65 @@ import { useProjectMembers } from './useProjectMembers';
 
 export interface UseIssueMeetingsResult {
     meetings: Meeting[];
+    total: number;
     loading: boolean;
+    loadingMore: boolean;
+    hasMore: boolean;
     error: Error | null;
+    loadMoreError: Error | null;
+    loadMore: () => void;
     refresh: () => void;
 }
 
 export function useIssueMeetings(
-    issueKey?: string,
+    issueId?: string,
     projectKey?: string,
     enabled = true,
 ): UseIssueMeetingsResult {
     const currentUser = useCurrentUser();
     const projectMembers = useProjectMembers(projectKey);
-    const query = useQuery({
-        queryKey: issueKey
-            ? queryKeys.issueMeetings(issueKey)
+    const query = useInfiniteQuery({
+        queryKey: issueId
+            ? queryKeys.issueMeetings(issueId)
             : ['meetings', 'issue', 'none'],
-        queryFn: () => listIssueMeetings(issueKey as string),
-        enabled: Boolean(issueKey) && enabled,
+        queryFn: ({ pageParam }) =>
+            listIssueMeetings(issueId as string, {
+                offset: pageParam,
+                pageSize: DEFAULT_MEETING_PAGE_SIZE,
+            }),
+        initialPageParam: 0,
+        getNextPageParam: (lastPage) =>
+            lastPage.hasNext
+                ? lastPage.offset + lastPage.meetings.length
+                : undefined,
+        enabled: Boolean(issueId) && enabled,
     });
 
+    const pages = query.data?.pages ?? [];
     const meetings = useMemo(
         () =>
-            resolveMeetingHostNames(query.data ?? [], [
-                currentUser,
-                ...projectMembers.members,
-            ]),
-        [query.data, currentUser, projectMembers.members],
+            resolveMeetingHostNames(
+                pages.flatMap((page) => page.meetings),
+                [currentUser, ...projectMembers.members],
+            ),
+        [pages, currentUser, projectMembers.members],
     );
 
     return {
         meetings,
+        total: pages[0]?.total ?? meetings.length,
         loading: query.isLoading,
-        error: query.error as Error | null,
-        refresh: () => query.refetch(),
+        loadingMore: query.isFetchingNextPage,
+        hasMore: query.hasNextPage,
+        error: pages.length === 0 ? (query.error as Error | null) : null,
+        loadMoreError: pages.length > 0 ? (query.error as Error | null) : null,
+        loadMore: () => {
+            if (query.hasNextPage && !query.isFetchingNextPage) {
+                void query.fetchNextPage();
+            }
+        },
+        refresh: () => {
+            void query.refetch();
+        },
     };
 }
