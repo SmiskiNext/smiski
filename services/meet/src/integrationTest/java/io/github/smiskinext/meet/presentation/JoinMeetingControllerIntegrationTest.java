@@ -7,6 +7,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import io.github.smiskinext.meet.config.TestcontainersConfiguration;
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -145,6 +146,134 @@ class JoinMeetingControllerIntegrationTest {
         assertThat(outboxRows)
                 .extracting(row -> row.get("event_type").toString())
                 .contains("io.github.smiskinext.meet.join.created.v1");
+    }
+
+    @Test
+    void acceptedInviteeJoinsManualApprovalMeeting_returns200ApprovedWithToken() throws Exception {
+        UUID meetingId = insertMeeting("MANUAL_APPROVAL", 50);
+        insertInvitee(meetingId, "invitee-1", "invitee@example.com", "ACCEPTED");
+
+        String requestBody = """
+                {"displayName": "Invitee User", "deviceId": "device-1"}
+                """;
+
+        mockMvc.perform(post("/api/1/meetings/{id}:join", meetingId)
+                        .header("X-Project-Permissions", "view-meeting,edit-meeting")
+                        .header("X-Account-Id", "invitee-1")
+                        .header("X-Tenant-ID", TENANT_ID)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(requestBody))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("APPROVED"))
+                .andExpect(jsonPath("$.token").isNotEmpty())
+                .andExpect(jsonPath("$.roomName").value("meeting-" + meetingId));
+
+        List<Map<String, Object>> outboxRows = jdbcTemplate.queryForList(
+                "SELECT event_type FROM outbox_event WHERE aggregate_id = ?::uuid",
+                meetingId.toString());
+        assertThat(outboxRows)
+                .extracting(row -> row.get("event_type").toString())
+                .doesNotContain("io.github.smiskinext.meet.join.created.v1");
+    }
+
+    @Test
+    void hostJoinsManualApprovalMeeting_returns200ApprovedWithToken() throws Exception {
+        UUID meetingId = insertMeeting("MANUAL_APPROVAL", 50);
+
+        String requestBody = """
+                {"displayName": "Host User", "deviceId": "device-1"}
+                """;
+
+        mockMvc.perform(post("/api/1/meetings/{id}:join", meetingId)
+                        .header("X-Project-Permissions", "view-meeting,edit-meeting")
+                        .header("X-Account-Id", "host")
+                        .header("X-Tenant-ID", TENANT_ID)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(requestBody))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("APPROVED"))
+                .andExpect(jsonPath("$.token").isNotEmpty())
+                .andExpect(jsonPath("$.roomName").value("meeting-" + meetingId));
+    }
+
+    @Test
+    void needsActionInviteeJoinsManualApprovalMeeting_returns200Pending() throws Exception {
+        UUID meetingId = insertMeeting("MANUAL_APPROVAL", 50);
+        insertInvitee(meetingId, "invitee-1", "invitee@example.com", "NEEDS_ACTION");
+
+        String requestBody = """
+                {"displayName": "Invitee User", "deviceId": "device-1"}
+                """;
+
+        mockMvc.perform(post("/api/1/meetings/{id}:join", meetingId)
+                        .header("X-Project-Permissions", "view-meeting,edit-meeting")
+                        .header("X-Account-Id", "invitee-1")
+                        .header("X-Tenant-ID", TENANT_ID)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(requestBody))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("PENDING"))
+                .andExpect(jsonPath("$.requestId").isNotEmpty())
+                .andExpect(jsonPath("$.token").doesNotExist());
+
+        List<Map<String, Object>> outboxRows = jdbcTemplate.queryForList(
+                "SELECT event_type FROM outbox_event WHERE aggregate_id = ?::uuid",
+                meetingId.toString());
+        assertThat(outboxRows)
+                .extracting(row -> row.get("event_type").toString())
+                .contains("io.github.smiskinext.meet.join.created.v1");
+    }
+
+    @Test
+    void removedAcceptedInviteeJoinsManualApprovalMeeting_returns200Pending() throws Exception {
+        UUID meetingId = insertMeeting("MANUAL_APPROVAL", 50);
+        insertInvitee(meetingId, "invitee-1", "invitee@example.com", "ACCEPTED", true);
+
+        String requestBody = """
+                {"displayName": "Invitee User", "deviceId": "device-1"}
+                """;
+
+        mockMvc.perform(post("/api/1/meetings/{id}:join", meetingId)
+                        .header("X-Project-Permissions", "view-meeting,edit-meeting")
+                        .header("X-Account-Id", "invitee-1")
+                        .header("X-Tenant-ID", TENANT_ID)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(requestBody))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("PENDING"))
+                .andExpect(jsonPath("$.requestId").isNotEmpty())
+                .andExpect(jsonPath("$.token").doesNotExist());
+
+        List<Map<String, Object>> outboxRows = jdbcTemplate.queryForList(
+                "SELECT event_type FROM outbox_event WHERE aggregate_id = ?::uuid",
+                meetingId.toString());
+        assertThat(outboxRows)
+                .extracting(row -> row.get("event_type").toString())
+                .contains("io.github.smiskinext.meet.join.created.v1");
+    }
+
+    private void insertInvitee(UUID meetingId, String accountId, String email, String status) {
+        insertInvitee(meetingId, accountId, email, status, false);
+    }
+
+    private void insertInvitee(
+            UUID meetingId, String accountId, String email, String status, boolean removed) {
+        jdbcTemplate.update(
+                """
+                INSERT INTO meeting_invitees (
+                    tenant_id, id, meeting_id, inviter_id, account_id, email,
+                    display_name, role, rsvp, status, invited_at, responded_at, removed_at
+                ) VALUES (?, ?, ?, 'host', ?, ?, 'Invitee User', 'REQ_PARTICIPANT',
+                    TRUE, ?, NOW(), ?, ?)
+                """,
+                TENANT_ID,
+                UUID.randomUUID(),
+                meetingId,
+                accountId,
+                email,
+                status,
+                status.equals("NEEDS_ACTION") ? null : java.sql.Timestamp.from(Instant.now()),
+                removed ? java.sql.Timestamp.from(Instant.now()) : null);
     }
 
     private UUID insertMeeting(String admissionPolicy, int maxParticipants) {

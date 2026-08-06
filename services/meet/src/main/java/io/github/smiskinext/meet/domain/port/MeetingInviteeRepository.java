@@ -36,7 +36,7 @@ public interface MeetingInviteeRepository {
     List<MeetingInvitee> findByMeetingId(UUID meetingId);
 
     /**
-     * Returns an invitee by meeting and registered account identity.
+     * Returns an active (non-removed) invitee by meeting and registered account identity.
      */
     Optional<MeetingInvitee> findByMeetingIdAndAccountId(UUID meetingId, AccountId accountId);
 
