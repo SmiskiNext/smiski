@@ -97,7 +97,7 @@ pre-push:
 
         typecheck-app:
             priority: 3
-            root: app
+            root: app/static
             run: pnpm exec tsc --noEmit
 
         assemble-java:
