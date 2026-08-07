@@ -110,6 +110,11 @@ public class MeetingRepositoryAdapter implements MeetingRepository {
     }
 
     @Override
+    public Optional<Meeting> findActiveById(UUID id) {
+        return jpaRepository.findActiveById(id).map(MeetingPersistenceMapper::toDomain);
+    }
+
+    @Override
     public Optional<Meeting> findActiveByIdWithLock(UUID id) {
         return jpaRepository.findActiveByIdWithLock(id).map(MeetingPersistenceMapper::toDomain);
     }

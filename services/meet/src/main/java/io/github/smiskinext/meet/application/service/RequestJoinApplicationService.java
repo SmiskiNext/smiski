@@ -30,32 +30,40 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.Optional;
 import java.util.UUID;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Handles joining a meeting under both admission policies.
  *
- * <p>{@code ALLOW_ALL} admits the caller immediately: capacity is enforced while holding a
- * pessimistic lock on the meeting row so concurrent joins cannot exceed {@code maxParticipants} and
- * a LiveKit token is issued. No participation log is recorded here; recording the participation
- * session is deferred to the {@code participant_joined} webhook (the source of truth), which avoids
- * orphan logs for callers who obtain a token but never connect.
+ * <p>{@code ALLOW_ALL} admits the caller immediately: capacity is enforced via a 3-phase approach
+ * (optimistic pre-check → token generation → pessimistic final verification) to minimize lock hold
+ * time. The optimistic pre-check performs a dirty read of meeting existence and capacity without
+ * locking, failing fast when the meeting is obviously full. Token generation occurs outside any
+ * lock. The pessimistic final verification re-checks capacity under a short lock immediately before
+ * returning the token, failing with {@code MeetingFull} if capacity was exhausted during token
+ * generation. A race condition (optimistic check passes but final verification fails) is logged for
+ * observability. No participation log is recorded here; recording the participation session is
+ * deferred to the {@code participant_joined} webhook (the source of truth), which avoids orphan
+ * logs for callers who obtain a token but never connect.
  *
  * <p>{@code MANUAL_APPROVAL} resolves immediate-admission eligibility first: the host and
- * already-responding invitees (ACCEPTED or TENTATIVE) bypass the queue through the same
+ * already-responding invitees (ACCEPTED or TENTATIVE) bypass the queue through the same 3-phase
  * immediate-admission logic as {@code ALLOW_ALL}, and when a bypassing caller has a pre-existing
- * pending request for the same device, that request is reconciled to APPROVED, its terminal outcome
- * is persisted, and a join-approved event is published. Every other caller creates a pending
- * {@link JoinRequest} in Redis with a fixed TTL, registers a {@code JoinRequestCreated} event
- * drained through the transactional outbox, and returns without issuing a token. A repeated join
- * from the same device while a pending request exists is idempotent and returns the existing
- * request.
+ * pending request for the same device, that request is reconciled to APPROVED under the final
+ * verification lock, its terminal outcome is persisted, and a join-approved event is published.
+ * Every other caller creates a pending {@link JoinRequest} in Redis with a fixed TTL without
+ * acquiring any database lock, registers a {@code JoinRequestCreated} event drained through the
+ * transactional outbox, and returns without issuing a token. A repeated join from the same device
+ * while a pending request exists is idempotent and returns the existing request.
  */
 @Service
 @Transactional
 public class RequestJoinApplicationService implements RequestJoinUseCase {
 
+    private static final Logger log = LoggerFactory.getLogger(RequestJoinApplicationService.class);
     private static final Duration JOIN_REQUEST_TTL = Duration.ofMinutes(5);
 
     private final MeetingRepository meetingRepository;
@@ -86,7 +94,8 @@ public class RequestJoinApplicationService implements RequestJoinUseCase {
     @Override
     public Result<RequestJoinResult, MeetingError> execute(RequestJoinCommand command) {
         UUID meetingId = UUID.fromString(command.meetingId());
-        Optional<Meeting> meetingLookup = meetingRepository.findActiveByIdWithLock(meetingId);
+
+        Optional<Meeting> meetingLookup = meetingRepository.findActiveById(meetingId);
         if (meetingLookup.isEmpty()) {
             return Result.failure(new MeetingError.MeetingNotFound(meetingId));
         }
@@ -96,10 +105,11 @@ public class RequestJoinApplicationService implements RequestJoinUseCase {
             return issueAdmissionToken(command, meeting).map(Admission::toApprovedResult);
         }
 
+        Optional<MeetingInvitee> invitee = findInviteeUnlessHost(command, meeting);
         boolean eligibleForBypass = JoinAdmissionSupport.isEligibleForImmediateAdmission(
-                meeting, command.accountId(), findInviteeUnlessHost(command, meeting));
+                meeting, command.accountId(), invitee);
         return eligibleForBypass
-                ? admitBypassingCaller(command, meeting)
+                ? admitBypassingCaller(command, meeting, invitee)
                 : createPendingRequest(command, meeting);
     }
 
@@ -118,7 +128,7 @@ public class RequestJoinApplicationService implements RequestJoinUseCase {
     }
 
     private Result<RequestJoinResult, MeetingError> admitBypassingCaller(
-            RequestJoinCommand command, Meeting meeting) {
+            RequestJoinCommand command, Meeting meeting, Optional<MeetingInvitee> invitee) {
         Result<Admission, MeetingError> admission = issueAdmissionToken(command, meeting);
         if (admission instanceof Result.Success<Admission, MeetingError>(Admission granted)) {
             reconcileSupersededRequest(command, granted);
@@ -130,11 +140,16 @@ public class RequestJoinApplicationService implements RequestJoinUseCase {
             RequestJoinCommand command, Meeting meeting) {
         MeetingId meetingId = meeting.getId();
         int limit = meeting.getSettings().maxParticipants();
+
+        // Phase 1: Optimistic pre-check (no lock, dirty read)
+        // Fail fast when capacity is obviously full without acquiring lock
         long activeCount = participationLogRepository.countActiveByMeetingId(meetingId.value());
         if (activeCount >= limit) {
             return Result.failure(new MeetingError.MeetingFull(meetingId.value(), limit));
         }
 
+        // Phase 2: Token generation (no lock)
+        // Expensive JWT signing happens outside lock to minimize lock hold time
         AccountId accountId = AccountId.of(command.accountId());
         LiveKitRoomName roomName = LiveKitRoomName.fromMeetingId(meetingId);
         LiveKitIdentity identity = LiveKitIdentity.fromAccount(accountId, command.deviceId());
@@ -154,6 +169,20 @@ public class RequestJoinApplicationService implements RequestJoinUseCase {
             return Result.failure(error);
         }
         String token = ((Result.Success<String, MeetingError>) tokenResult).value();
+
+        // Phase 3: Final verification (short lock, authoritative check)
+        // Re-check capacity under lock to catch races between phase 1 and 3
+        // Lock is acquired via findActiveByIdWithLock; the returned object is discarded
+        if (meetingRepository.findActiveByIdWithLock(meetingId.value()).isEmpty()) {
+            return Result.failure(new MeetingError.MeetingNotFound(meetingId.value()));
+        }
+
+        long finalActiveCount =
+                participationLogRepository.countActiveByMeetingId(meetingId.value());
+        if (finalActiveCount >= limit) {
+            log.warn("Capacity race detected for meeting {}", meetingId.value());
+            return Result.failure(new MeetingError.MeetingFull(meetingId.value(), limit));
+        }
 
         return Result.success(new Admission(meetingId, token, roomName.value()));
     }

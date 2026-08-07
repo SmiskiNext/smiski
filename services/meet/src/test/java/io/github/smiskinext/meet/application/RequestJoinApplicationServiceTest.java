@@ -95,6 +95,7 @@ class RequestJoinApplicationServiceTest {
     @Test
     void allowAllAdmitsCallerWithTokenCarryingAvatarAndRole() {
         stubMeeting(AdmissionPolicy.ALLOW_ALL, 50);
+        stubMeetingForFinalVerification(AdmissionPolicy.ALLOW_ALL, 50);
         when(participationLogRepository.countActiveByMeetingId(MEETING_ID)).thenReturn(3L);
         when(liveKitPort.generateToken(any())).thenReturn(Result.success("mock-token"));
 
@@ -135,7 +136,7 @@ class RequestJoinApplicationServiceTest {
 
     @Test
     void unknownMeetingReturnsNotFound() {
-        when(meetingRepository.findActiveByIdWithLock(MEETING_ID)).thenReturn(Optional.empty());
+        when(meetingRepository.findActiveById(MEETING_ID)).thenReturn(Optional.empty());
 
         Result<RequestJoinResult, MeetingError> result = service.execute(command());
 
@@ -211,6 +212,7 @@ class RequestJoinApplicationServiceTest {
     @Test
     void hostJoinsManualApprovalMeetingReturnsApproved() {
         stubMeeting(AdmissionPolicy.MANUAL_APPROVAL, 50);
+        stubMeetingForFinalVerification(AdmissionPolicy.MANUAL_APPROVAL, 50);
         when(participationLogRepository.countActiveByMeetingId(MEETING_ID)).thenReturn(0L);
         when(liveKitPort.generateToken(any())).thenReturn(Result.success("host-token"));
         when(joinRequestRepository.findByDeviceId(MEETING_ID, "device-1"))
@@ -240,6 +242,7 @@ class RequestJoinApplicationServiceTest {
     @Test
     void acceptedInviteeJoinsManualApprovalMeetingReturnsApproved() {
         stubMeeting(AdmissionPolicy.MANUAL_APPROVAL, 50);
+        stubMeetingForFinalVerification(AdmissionPolicy.MANUAL_APPROVAL, 50);
         when(participationLogRepository.countActiveByMeetingId(MEETING_ID)).thenReturn(0L);
         when(liveKitPort.generateToken(any())).thenReturn(Result.success("invitee-token"));
         when(joinRequestRepository.findByDeviceId(MEETING_ID, "device-1"))
@@ -265,6 +268,7 @@ class RequestJoinApplicationServiceTest {
     @Test
     void tentativeInviteeJoinsManualApprovalMeetingReturnsApproved() {
         stubMeeting(AdmissionPolicy.MANUAL_APPROVAL, 50);
+        stubMeetingForFinalVerification(AdmissionPolicy.MANUAL_APPROVAL, 50);
         when(participationLogRepository.countActiveByMeetingId(MEETING_ID)).thenReturn(0L);
         when(liveKitPort.generateToken(any())).thenReturn(Result.success("invitee-token"));
         when(joinRequestRepository.findByDeviceId(MEETING_ID, "device-1"))
@@ -374,8 +378,26 @@ class RequestJoinApplicationServiceTest {
     }
 
     @Test
+    void optimisticCheckPassesButFinalCheckFailsReturnsMeetingFull() {
+        stubMeeting(AdmissionPolicy.ALLOW_ALL, 5);
+        stubMeetingForFinalVerification(AdmissionPolicy.ALLOW_ALL, 5);
+        when(participationLogRepository.countActiveByMeetingId(MEETING_ID))
+                .thenReturn(3L)
+                .thenReturn(5L);
+        when(liveKitPort.generateToken(any())).thenReturn(Result.success("mock-token"));
+
+        Result<RequestJoinResult, MeetingError> result = service.execute(command());
+
+        assertThat(result.isFailure()).isTrue();
+        MeetingError error = ((Result.Failure<RequestJoinResult, MeetingError>) result).error();
+        assertThat(error).isInstanceOf(MeetingError.MeetingFull.class);
+        verify(liveKitPort).generateToken(any());
+    }
+
+    @Test
     void eligibleCallerWithPendingRequestReconcilesItToApproved() {
         stubMeeting(AdmissionPolicy.MANUAL_APPROVAL, 50);
+        stubMeetingForFinalVerification(AdmissionPolicy.MANUAL_APPROVAL, 50);
         when(participationLogRepository.countActiveByMeetingId(MEETING_ID)).thenReturn(0L);
         when(liveKitPort.generateToken(any())).thenReturn(Result.success("reconcile-token"));
 
@@ -435,6 +457,7 @@ class RequestJoinApplicationServiceTest {
     @Test
     void eligibleCallerWithNoPendingRequestPublishesNoEvent() {
         stubMeeting(AdmissionPolicy.MANUAL_APPROVAL, 50);
+        stubMeetingForFinalVerification(AdmissionPolicy.MANUAL_APPROVAL, 50);
         when(participationLogRepository.countActiveByMeetingId(MEETING_ID)).thenReturn(0L);
         when(liveKitPort.generateToken(any())).thenReturn(Result.success("token"));
         when(joinRequestRepository.findByDeviceId(MEETING_ID, "device-1"))
@@ -488,11 +511,13 @@ class RequestJoinApplicationServiceTest {
         verify(joinRequestResultStore, never()).save(any());
         verify(eventPublisher, never()).publishEventsOf(any());
         verify(joinRequestRepository, never()).removeFromQueue(any(), any());
+        verify(meetingRepository, never()).findActiveByIdWithLock(any());
     }
 
     @Test
     void eligibleCallerWithDeniedRequestIsAdmittedAndLeavesItUntouched() {
         stubMeeting(AdmissionPolicy.MANUAL_APPROVAL, 50);
+        stubMeetingForFinalVerification(AdmissionPolicy.MANUAL_APPROVAL, 50);
         when(participationLogRepository.countActiveByMeetingId(MEETING_ID)).thenReturn(0L);
         when(liveKitPort.generateToken(any())).thenReturn(Result.success("bypass-token"));
 
@@ -527,6 +552,42 @@ class RequestJoinApplicationServiceTest {
         verify(joinRequestResultStore, never()).save(any());
         verify(eventPublisher, never()).publishEventsOf(any());
         verify(joinRequestRepository, never()).removeFromQueue(any(), any());
+    }
+
+    private void stubMeetingForFinalVerification(AdmissionPolicy policy, int maxParticipants) {
+        stubMeetingForFinalVerification(policy, maxParticipants, HOST_ACCOUNT);
+    }
+
+    private void stubMeetingForFinalVerification(
+            AdmissionPolicy policy, int maxParticipants, String hostAccount) {
+        MeetingSettings settings =
+                new MeetingSettings(policy, maxParticipants, true, true, true, true);
+        Meeting meeting = Meeting.reconstitute(
+                TenantId.of(TENANT_ID),
+                MeetingId.of(MEETING_ID),
+                AccountId.of(hostAccount),
+                ShortCode.of("abc123def0"),
+                io.github.smiskinext.meet.domain.model.valueobject.MeetingTitle.of("Sprint"),
+                "desc",
+                JiraIssueLink.of("10001", "PROJ-1", "PROJ"),
+                null,
+                null,
+                MeetingType.INSTANT,
+                io.github.smiskinext.meet.domain.model.MeetingStatus.RUNNING,
+                settings,
+                MeetingTimeZone.of("UTC"),
+                Email.of("host@example.com"),
+                InviteeDisplayName.of("Host User"),
+                UUID.randomUUID().toString(),
+                0,
+                Instant.now(),
+                Instant.now(),
+                null,
+                null,
+                null,
+                null);
+        when(meetingRepository.findActiveByIdWithLock(eq(MEETING_ID)))
+                .thenReturn(Optional.of(meeting));
     }
 
     private RequestJoinCommand command() {
@@ -582,7 +643,6 @@ class RequestJoinApplicationServiceTest {
                 null,
                 null,
                 null);
-        when(meetingRepository.findActiveByIdWithLock(eq(MEETING_ID)))
-                .thenReturn(Optional.of(meeting));
+        when(meetingRepository.findActiveById(eq(MEETING_ID))).thenReturn(Optional.of(meeting));
     }
 }
