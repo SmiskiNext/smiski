@@ -1,13 +1,13 @@
 /**
  * useProjectMeetings — meetings across a project for the dashboard table.
  *
- * `listProjectMeetings` is an unimplemented stub — the real `meet` backend's
- * `list` operation has no project-wide filter yet (only an exact `issueKey`
- * filter), see `api/meetings.ts`.
+ * Defaults to showing only the current user's meetings unless
+ * `createdByAccountId` is explicitly provided in filters.
  */
 import { useQuery } from '@tanstack/react-query';
 import type { MeetingListFilters } from '../api/meetings';
 import { listProjectMeetings } from '../api/meetings';
+import { useCurrentUser } from '../context/CurrentUserContext';
 import type { Meeting } from '../domain';
 import { queryKeys } from './queryKeys';
 
@@ -22,9 +22,16 @@ export function useProjectMeetings(
     filters: MeetingListFilters,
     enabled = true,
 ): UseProjectMeetingsResult {
+    const currentUser = useCurrentUser();
+
+    const effectiveFilters = {
+        ...filters,
+        createdByAccountId: filters.createdByAccountId ?? currentUser.accountId,
+    };
+
     const query = useQuery({
-        queryKey: queryKeys.projectMeetings(filters),
-        queryFn: () => listProjectMeetings(filters),
+        queryKey: queryKeys.projectMeetings(effectiveFilters),
+        queryFn: () => listProjectMeetings(effectiveFilters),
         enabled,
     });
 

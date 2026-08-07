@@ -557,19 +557,26 @@ export async function declinePendingMeetingJoinRequests(
 }
 
 /**
- * Lists meetings across a project for the dashboard table. Unimplemented: the
- * real backend's `list` operation has no `projectKey` filter yet (only
- * `issueKey`/`creatorId`/`statuses`/`search`), so there is no SDK call this
- * can make yet.
+ * Lists meetings across a project for the dashboard table. Filters by
+ * projectKey, optional issueKey, creatorId, status, and search query.
  */
 export async function listProjectMeetings(
-    _filters: MeetingListFilters,
+    filters: MeetingListFilters,
 ): Promise<Meeting[]> {
-    throw new MeetingApiError({
-        message:
-            'Not implemented: the meet backend has no project-wide meeting '
-            + 'listing filter yet.',
-    });
+    const response = await unwrap<MeetMeetingListPage>(() =>
+        list({
+            client: forgeRemoteClient,
+            path: { version: apiConfig.apiVersion },
+            body: {
+                projectKey: filters.projectKey,
+                issueKey: filters.issueKey,
+                creatorId: filters.createdByAccountId,
+                statuses: filters.status ? [filters.status] : undefined,
+                search: filters.search,
+            },
+        }),
+    );
+    return meetingsFromBackend(response);
 }
 
 /**
