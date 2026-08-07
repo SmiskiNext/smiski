@@ -61,7 +61,7 @@ describe('getAvailableMeetingActions', () => {
         ).toEqual(['VIEW_DETAIL']);
         expect(
             getAvailableMeetingActions(meeting('SCHEDULED'), edit, HOST),
-        ).toEqual(['VIEW_DETAIL', 'EDIT', 'START', 'CANCEL', 'SETTINGS']);
+        ).toEqual(['VIEW_DETAIL', 'EDIT', 'START', 'CANCEL']);
     });
 
     it('gates running meeting actions', () => {
@@ -91,7 +91,7 @@ describe('getAvailableMeetingActions', () => {
     // Meeting.updateSettings), not "any Edit Meeting permission holder" — a
     // non-host Edit-Meeting user must not see actions the backend will
     // reject with 403.
-    it('hides EDIT/CANCEL/SETTINGS from a non-host Edit Meeting user, keeps START', () => {
+    it('hides EDIT/CANCEL from a non-host Edit Meeting user, keeps START', () => {
         expect(
             getAvailableMeetingActions(meeting('SCHEDULED'), edit, NON_HOST),
         ).toEqual(['VIEW_DETAIL', 'START']);

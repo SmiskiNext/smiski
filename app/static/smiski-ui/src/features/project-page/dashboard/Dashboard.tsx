@@ -17,6 +17,7 @@ import { useStartMeeting } from '../../../hooks/useMeetingMutations';
 import { useMeetingPermissions } from '../../../hooks/useMeetingPermission';
 import { useProjectMeetings } from '../../../hooks/useProjectMeetings';
 import { DashboardHeader } from './DashboardHeader';
+import { EditMeetingModal } from './EditMeetingModal';
 import { MeetingDetailPanel } from './MeetingDetailPanel';
 import { MeetingListTable } from './MeetingListTable';
 import {
@@ -35,7 +36,9 @@ export function Dashboard({ projectKey, onOpenRoom }: DashboardProps) {
         id: string;
         focus: 'details' | 'history';
     } | null>(null);
-    const [editingMeeting, setEditingMeeting] = useState<Meeting | null>(null);
+    const [editingMeetingId, setEditingMeetingId] = useState<string | null>(
+        null,
+    );
     const [settingsMeetingId, setSettingsMeetingId] = useState<string | null>(
         null,
     );
@@ -60,7 +63,7 @@ export function Dashboard({ projectKey, onOpenRoom }: DashboardProps) {
     const handleAction = (action: MeetingAction, meeting: Meeting) => {
         switch (action) {
             case 'EDIT':
-                setEditingMeeting(meeting);
+                setEditingMeetingId(meeting.id);
                 break;
             case 'CANCEL':
                 confirmAction.request('CANCEL', meeting);
@@ -160,13 +163,15 @@ export function Dashboard({ projectKey, onOpenRoom }: DashboardProps) {
                 onClose={() => setStartOpen(false)}
                 onStarted={onOpenRoom}
             />
-            {editingMeeting && (
-                <ScheduleMeetingModal
+            {editingMeetingId && (
+                <EditMeetingModal
                     isOpen
-                    meeting={editingMeeting}
-                    issueKey={editingMeeting.issueKey}
-                    onClose={() => setEditingMeeting(null)}
-                    onSubmitted={() => showSuccess('Meeting updated.')}
+                    meetingId={editingMeetingId}
+                    onClose={() => setEditingMeetingId(null)}
+                    onSaved={() => {
+                        setEditingMeetingId(null);
+                        showSuccess('Meeting updated.');
+                    }}
                 />
             )}
             {settingsMeetingId && (

@@ -1,12 +1,16 @@
 import { useEffect, useRef, useState } from 'react';
-import {
-    LoadingState,
-    MeetingInviteeManager,
-    MeetingStatusTag,
-} from '../../../components/shared';
+import { LoadingState, MeetingStatusTag } from '../../../components/shared';
 import { Avatar, Button, Icon } from '../../../components/ui';
 import { useMeeting } from '../../../hooks/useMeeting';
+import { useMeetingInvitees } from '../../../hooks/useMeetingInvitees';
 import { useMeetingParticipants } from '../../../hooks/useMeetingParticipants';
+
+const STATUS_LABELS = {
+    NEEDS_ACTION: 'Awaiting response',
+    ACCEPTED: 'Accepted',
+    DECLINED: 'Declined',
+    TENTATIVE: 'Tentative',
+} as const;
 
 export interface MeetingDetailPanelProps {
     meetingId: string;
@@ -20,6 +24,7 @@ export function MeetingDetailPanel({
     onClose,
 }: MeetingDetailPanelProps) {
     const { meeting, loading: meetingLoading } = useMeeting(meetingId);
+    const { invitees } = useMeetingInvitees(meetingId);
     const { participants, loading: participantsLoading } =
         useMeetingParticipants(meetingId, meeting?.projectKey);
     const [isVisible, setIsVisible] = useState(false);
@@ -125,7 +130,45 @@ export function MeetingDetailPanel({
                                 </dd>
                             </div>
                         </dl>
-                        <MeetingInviteeManager meeting={meeting} />
+                        <section>
+                            <h3 className='mb-3 flex items-center gap-2 text-xs font-semibold text-[var(--text)]'>
+                                <Icon name='people' size={15} />
+                                Invitees{' '}
+                                <span className='text-[var(--text-faint)]'>
+                                    {invitees.length}
+                                </span>
+                            </h3>
+                            {invitees.length ? (
+                                <ul className='divide-y border'>
+                                    {invitees.map((invitee) => (
+                                        <li
+                                            key={invitee.id}
+                                            className='flex items-center gap-3 px-3 py-2.5'
+                                        >
+                                            <Avatar
+                                                name={invitee.displayName}
+                                                size='sm'
+                                            />
+                                            <div className='min-w-0 flex-1'>
+                                                <p className='truncate text-sm font-medium text-[var(--text)]'>
+                                                    {invitee.displayName}
+                                                </p>
+                                                <p className='truncate text-xs text-[var(--text-faint)]'>
+                                                    {invitee.email}
+                                                </p>
+                                            </div>
+                                            <span className='shrink-0 rounded-full bg-slate-100 px-2 py-1 text-[10px] font-semibold text-slate-700 dark:bg-slate-800 dark:text-slate-200'>
+                                                {STATUS_LABELS[invitee.status]}
+                                            </span>
+                                        </li>
+                                    ))}
+                                </ul>
+                            ) : (
+                                <p className='text-sm text-[var(--text-muted)]'>
+                                    No invitees yet.
+                                </p>
+                            )}
+                        </section>
                         <section>
                             <h3 className='mb-3 flex items-center gap-2 text-xs font-semibold text-[var(--text)]'>
                                 <Icon name='people' size={15} />

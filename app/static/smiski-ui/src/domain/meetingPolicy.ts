@@ -42,7 +42,9 @@ export function resolveMeetingPermissions(
  * no host restriction backend-side (`RequestJoinApplicationService` admits
  * any caller under the meeting's admission policy), so those stay gated on
  * `canEditMeeting`/`canViewMeeting` alone. `SETTINGS` (backend
- * `updateSettings`) is available on SCHEDULED and RUNNING — the domain
+ * `updateSettings`) is available only on RUNNING — for SCHEDULED meetings,
+ * settings are merged into the EDIT action via the unified EditMeetingModal
+ * on project page (issue panel still uses separate modals). The domain
  * method rejects COMPLETED/CANCELED.
  */
 export function getAvailableMeetingActions(
@@ -59,7 +61,7 @@ export function getAvailableMeetingActions(
             const actions: MeetingAction[] = ['VIEW_DETAIL'];
             if (isHost) actions.push('EDIT');
             actions.push('START');
-            if (isHost) actions.push('CANCEL', 'SETTINGS');
+            if (isHost) actions.push('CANCEL');
             return actions;
         }
         case 'RUNNING': {
