@@ -1,0 +1,126 @@
+# Prometheus scrape configuration for the `observability` compose profile —
+# LOAD-TEST OVERLAY.
+#
+# This is services/docker/observability/prometheus.yml plus the three targets
+# the measurement harness needs. The development stack's jobs are carried over
+# unchanged, so the test stack collects a superset of what the development
+# stack does and nothing has to be re-derived when reading results.
+#
+# Added here:
+#   1. livekit          — participants, tracks, packet loss, jitter and RTT,
+#                         the server-side half of TC-02 and TC-03
+#   2. livekit-redis     — the SECOND cache instance, so TC-05's memory
+#                         threshold can be applied to the intended one
+#   3. coturn           — relay traffic and session counts for TC-01
+#
+# Targets are compose service names resolved on the stack network, so this file
+# only works from inside the stack. Nothing here is published to the host
+# except Prometheus itself.
+#
+# Validate without starting the stack:
+#   docker run --rm -v "$(pwd)/services/test/observability:/w:ro" \
+#       --entrypoint promtool prom/prometheus:v3.13.2 check config /w/prometheus.yml
+
+global:
+    scrape_interval: 15s
+    evaluation_interval: 15s
+
+scrape_configs:
+    # Actuator serves metrics on the application port. Exposure is restricted
+    # to health,prometheus in each service's application.yaml, and AOT freezes
+    # that decision at build time — a service image built before this change
+    # reports as a down target rather than failing the stack.
+    - job_name: spring-services
+      metrics_path: /actuator/prometheus
+      static_configs:
+          - targets:
+                - tenant:8080
+                - meet:8080
+                - notification:8080
+
+    # Envoy publishes Prometheus text on its admin port, not on the ingress
+    # listener, and under /stats/prometheus rather than /metrics.
+    - job_name: envoy
+      metrics_path: /stats/prometheus
+      static_configs:
+          - targets:
+                - envoy:9901
+
+    # One exporter per database: postgres-exporter reads a single
+    # DATA_SOURCE_NAME, so three instances beat one instance per connection.
+    - job_name: postgres
+      static_configs:
+          - targets:
+                - tenant-postgres-exporter:9187
+                - meet-postgres-exporter:9187
+                - notification-postgres-exporter:9187
+
+    - job_name: valkey
+      static_configs:
+          - targets:
+                - valkey-exporter:9121
+
+    # Alloy's own pipeline health. The per-container CPU and memory metrics it
+    # collects arrive by remote write instead, because Alloy scrapes its
+    # built-in cAdvisor exporter in-process and pushes the result.
+    - job_name: alloy
+      static_configs:
+          - targets:
+                - alloy:12345
+
+    # ── added by the load-test overlay ──────────────────────────────────────
+
+    # LiveKit serves /metrics on the port set by `prometheus.port` in the
+    # livekit_server_config entry in compose.yaml. The development stack leaves
+    # that unset, so LiveKit publishes nothing and this job would find no
+    # listener there; the two are a pair and must be changed together.
+    #
+    # The port is written literally rather than as ${LIVEKIT_PROMETHEUS_PORT}.
+    # Prometheus does NOT expand environment variables in its configuration
+    # file, and this is a silent failure rather than a loud one: measured
+    # against prom/prometheus:v3.13.2, `promtool check config` reports SUCCESS
+    # on the interpolated form while the running server resolves the target to
+    # the literal string and reports
+    # `too many colons in address livekit-server:${LIVEKIT_PROMETHEUS_PORT:-6789}`.
+    # So changing the port in .env means changing it HERE too — compose.yaml
+    # interpolates its half, this file cannot.
+    #
+    # This is the server-side view of media quality — livekit_packet_loss_percent,
+    # livekit_jitter_us and livekit_rtt_ms — and is deliberately collected
+    # alongside the browser's own RTCStatsReport rather than instead of it: the
+    # SFU sees every participant but only its own legs of each connection.
+    - job_name: livekit
+      static_configs:
+          - targets:
+                - livekit-server:6789
+
+    # The second Redis. TC-05 sets a memory threshold on "the Redis container"
+    # while the stack runs two — `valkey` for the application and gateway
+    # cache, and `livekit-redis` for LiveKit's internal state. The development
+    # stack instruments only the first, so without this exporter the threshold
+    # could be reported against the wrong instance. They are separate jobs, not
+    # two targets of one job, so a query cannot accidentally aggregate them.
+    - job_name: livekit-redis
+      static_configs:
+          - targets:
+                - livekit-redis-exporter:9121
+
+    # Coturn's built-in exporter, enabled by the --prometheus flag in
+    # compose.yaml. Verified against coturn/coturn:4.7 rather than assumed: the
+    # container logs "prometheus collector started successfully" and serves
+    # turn_* and stun_* series on 9641/metrics, so this is a real target and not
+    # a permanently down one.
+    #
+    # Supplies the relay-side view of TC-01 — session counts and relayed
+    # traffic volume — which is what distinguishes media actually flowing
+    # through the TURN server from a client that merely negotiated a relay
+    # candidate.
+    - job_name: coturn
+      static_configs:
+          - targets:
+                - coturn:9641
+
+    # kafka has no job: apache/kafka:4.1.0 bundles no JMX exporter, so it is
+    # left out deliberately rather than declared as a permanently down target.
+    # gateway has none either — the Go service carries no instrumentation yet.
+    # TC-04's integration evidence comes from the outbox_events table instead.
