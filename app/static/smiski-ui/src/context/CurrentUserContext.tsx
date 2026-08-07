@@ -6,6 +6,12 @@
  * from Jira's `/myself` endpoint, so a Forge context is required. The provider
  * renders children only once an identity is resolved, which is what lets
  * `useCurrentUser` expose a non-optional `ProjectMember`.
+ *
+ * The identity is one of the few reads persisted across iframes
+ * (`hooks/queryPersistence.ts`): every platform modal opens in its own iframe
+ * and would otherwise re-ask `/myself` for an answer that cannot have changed
+ * mid-session. `gcTime` matches the persister's `maxAge` so the entry is not
+ * collected — and thereby dropped from storage — while still restorable.
  */
 
 import { useQuery } from '@tanstack/react-query';
@@ -19,6 +25,7 @@ import {
 import { getCurrentJiraUser } from '../api/currentUser';
 import type { ProjectMember } from '../domain';
 import { queryKeys } from '../hooks/queryKeys';
+import { PERSISTED_QUERY_GC_TIME_MS } from '../hooks/queryPersistence';
 
 const CurrentUserContext = createContext<ProjectMember | undefined>(undefined);
 
@@ -38,6 +45,7 @@ export function CurrentUserProvider({
         queryFn: getCurrentJiraUser,
         enabled: !user,
         staleTime: Number.POSITIVE_INFINITY,
+        gcTime: PERSISTED_QUERY_GC_TIME_MS,
         retry: false,
     });
 

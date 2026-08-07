@@ -12,10 +12,17 @@
  * a request without them resolves to an empty permission set. A module whose
  * Forge context lacks the identifiers its surface needs resolves to `'unknown'`
  * rather than a placeholder issue or project key.
+ *
+ * The query cache is persisted rather than held only in memory. Each Forge
+ * module and each platform modal renders in its own iframe, so an in-memory
+ * cache starts empty every time one opens and `staleTime` never gets the chance
+ * to prevent a refetch. `hooks/queryPersistence.ts` explains what is persisted
+ * and why the rest deliberately is not.
  */
 
 import { view } from '@forge/bridge';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { QueryClient } from '@tanstack/react-query';
+import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
 import { ConfigProvider, theme } from 'antd';
 import { type ReactNode, useEffect, useState } from 'react';
 import { publishProjectContext, setBackendContext } from './api/backendContext';
@@ -26,6 +33,7 @@ import { ProjectPageRoot } from './features/project-page/ProjectPageRoot';
 import { InstantMeetingModalRoot } from './features/shared/InstantMeetingModalRoot';
 import { IssuePanelModalRoot } from './features/shared/IssuePanelModalRoot';
 import { ScheduleMeetingModalRoot } from './features/shared/ScheduleMeetingModalRoot';
+import { persistOptions } from './hooks/queryPersistence';
 import {
     type AppColorMode,
     ThemeProvider,
@@ -173,7 +181,10 @@ export function App() {
     }, []);
 
     return (
-        <QueryClientProvider client={queryClient}>
+        <PersistQueryClientProvider
+            client={queryClient}
+            persistOptions={persistOptions}
+        >
             <AntThemeProvider colorMode={colorMode}>
                 <ThemeProvider colorMode={colorMode}>
                     <CurrentUserProvider>
@@ -215,6 +226,6 @@ export function App() {
                     </CurrentUserProvider>
                 </ThemeProvider>
             </AntThemeProvider>
-        </QueryClientProvider>
+        </PersistQueryClientProvider>
     );
 }

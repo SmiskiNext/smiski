@@ -41,6 +41,28 @@ function defineDeploymentVariables(mode: string): Record<string, string> {
 }
 
 /**
+ * Identifies the built bundle for the persisted query cache.
+ *
+ * `src/hooks/queryPersistence.ts` tags persisted `localStorage` data with this
+ * value and discards anything carrying a different one, so a redeployed bundle
+ * never restores a cache whose shape predates it. It also scopes the cached
+ * Jira permission-key resolution, which is only invalidated by a redeploy.
+ *
+ * `SMISKI_BUILD_ID` from the environment wins so CI can pin a commit SHA and
+ * keep a build reproducible; the build timestamp is the fallback, which changes
+ * on every local build and is therefore never staler than the code.
+ *
+ * Deliberately kept out of {@link DEPLOYMENT_VARIABLES}: those must stay
+ * byte-identical to the manifest's declared egress, and this value reaches only
+ * the bundle.
+ */
+function defineBuildId(mode: string): Record<string, string> {
+    const env = loadEnv(mode, PROJECT_ROOT, '');
+    const buildId = env.SMISKI_BUILD_ID?.trim() || new Date().toISOString();
+    return { 'import.meta.env.SMISKI_BUILD_ID': JSON.stringify(buildId) };
+}
+
+/**
  * Port the dev server binds, kept in sync with `app/manifest.yml`'s
  * `resources[key: main].tunnel.port` so `forge tunnel` proxies the Custom UI
  * to this server. `strictPort` fails fast instead of drifting to the next free
@@ -57,7 +79,8 @@ const DEV_SERVER_PORT = 5173;
  * - `@` alias — resolves to `src/`, mirrored in tsconfig.json `paths`.
  * - Tailwind owns the complete visual layer. Forge/Jira theme information is
  *   translated to app CSS variables in ThemeProvider.
- * - `define` — mirrors the manifest deployment variables into the bundle.
+ * - `define` — mirrors the manifest deployment variables into the bundle, plus
+ *   the build identifier the persisted query cache is tagged with.
  * - `server` — pinned for `forge tunnel`; the app renders only inside a real
  *   Forge module, so this server is reached through the tunnel, never directly.
  */
@@ -69,7 +92,10 @@ export default defineConfig(({ mode }) => ({
             '@': fileURLToPath(new URL('./src', import.meta.url)),
         },
     },
-    define: defineDeploymentVariables(mode),
+    define: {
+        ...defineDeploymentVariables(mode),
+        ...defineBuildId(mode),
+    },
     server: {
         port: DEV_SERVER_PORT,
         strictPort: true,
