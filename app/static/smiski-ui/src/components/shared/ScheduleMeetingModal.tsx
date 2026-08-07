@@ -383,6 +383,7 @@ export function ScheduleMeetingModal({
                     <WorkspaceUserPicker
                         value={invitees}
                         onChange={setInvitees}
+                        requireEmail={true}
                     />
                 </Form.Item>
             )}
