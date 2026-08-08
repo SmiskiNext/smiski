@@ -48,6 +48,7 @@ export interface StartInstantMeetingModalProps {
 interface InstantMeetingFormValues extends CreateMeetingSettingsInput {
     issueKey?: string;
     title: string;
+    description?: string;
 }
 
 /**
@@ -97,6 +98,7 @@ export function StartInstantMeetingModal({
             issueKey: resolvedIssueKey,
             projectKey,
             title: values.title.trim(),
+            description: values.description?.trim(),
             zoneId: resolveUserTimeZone(currentUser.timeZone),
             invitees: invitees.map((user) => ({
                 accountId: user.accountId,
@@ -184,8 +186,18 @@ export function StartInstantMeetingModal({
                     placeholder='e.g. Investigate deployment failure'
                 />
             </Form.Item>
+            <Form.Item label='Description' name='description'>
+                <Input.TextArea
+                    rows={4}
+                    placeholder='Add context or an agenda…'
+                />
+            </Form.Item>
             <Form.Item label='Invitees'>
-                <WorkspaceUserPicker value={invitees} onChange={setInvitees} />
+                <WorkspaceUserPicker
+                    value={invitees}
+                    onChange={setInvitees}
+                    requireEmail={true}
+                />
             </Form.Item>
             <AdvancedMeetingSettingsFields />
             {formError && (

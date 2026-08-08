@@ -75,7 +75,7 @@ export function useConfirmMeetingAction(
     };
 
     const request = (action: ConfirmableMeetingAction, meeting: Meeting) => {
-        if (presentation === 'inline' || import.meta.env.DEV) {
+        if (presentation === 'inline') {
             cancelMeeting.reset();
             endMeeting.reset();
             setPending({ action, meeting });
@@ -97,7 +97,7 @@ export function useConfirmMeetingAction(
         }).open();
     };
 
-    /** Only used by the 'inline'/dev-fallback dialog — keeps it open on error. */
+    /** Only used by the 'inline' dialog — keeps it open on error. */
     const confirm = () => {
         if (!pending) return;
         const { action, meeting } = pending;

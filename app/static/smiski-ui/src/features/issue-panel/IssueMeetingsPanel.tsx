@@ -6,38 +6,37 @@
  * Data comes from `useIssueMeetings` → the real `meet` backend's `list`
  * operation (SDK over Forge Remote, see `api/meetings.ts`'s
  * `listIssueMeetings`). There is no mock db — meeting persistence is never
- * mocked. Join/Start navigate to the Project Page's meeting room
+ * mocked. Join navigates to the Project Page's meeting room
  * (`useNavigateToMeetingRoom`) — Issue Panel and Project Page are separate
  * Forge modules/iframes, so this narrow panel never has room to render the
  * meeting itself.
+ *
+ * This surface is deliberately limited to creating meetings (instant and
+ * scheduled), listing them, viewing detail/history, and joining a running one.
+ * Meeting management (edit, cancel, start, end, settings) lives on the project
+ * page, so `HIDDEN_PANEL_ACTIONS` suppresses those entries from the shared
+ * action menu.
+ *
+ * Every dialog this surface triggers opens as a Forge platform modal over the
+ * whole product window (`hooks/useIssuePanel*Modal.ts`), so the panel itself
+ * renders no dialogs inline.
  */
 import { useState } from 'react';
 import {
-    ActiveMeetingWarningDialog,
-    ConfirmMeetingActionDialog,
     EmptyState,
     ErrorState,
     InlineFeedback,
     LoadingState,
     MeetingActionMenu,
     MeetingCard,
-    MeetingDetailDialog,
-    MeetingSettingsModal,
     NoPermissionState,
-    ScheduleMeetingModal,
-    StartInstantMeetingModal,
 } from '../../components/shared';
 import { Button, Icon } from '../../components/ui';
 import type { CurrentIssueContextValue, MeetingAction } from '../../domain';
-import { useConfirmMeetingAction } from '../../hooks/useConfirmMeetingAction';
-import { useHostConflictGuard } from '../../hooks/useHostConflictGuard';
 import { useIssueMeetings } from '../../hooks/useIssueMeetings';
 import { useIssuePanelInstantModal } from '../../hooks/useIssuePanelInstantModal';
 import { useIssuePanelMeetingDetailModal } from '../../hooks/useIssuePanelMeetingDetailModal';
 import { useIssuePanelScheduleModal } from '../../hooks/useIssuePanelScheduleModal';
-import { useIssuePanelSettingsModal } from '../../hooks/useIssuePanelSettingsModal';
-import { useStartMeeting } from '../../hooks/useMeetingMutations';
-import { useMeetingParticipants } from '../../hooks/useMeetingParticipants';
 import { useMeetingPermissions } from '../../hooks/useMeetingPermission';
 import { useNavigateToMeetingRoom } from '../../hooks/useNavigateToMeetingRoom';
 import { IssueMeetingsFilterBar } from './IssueMeetingsFilterBar';
@@ -47,27 +46,27 @@ import {
 } from './issueMeetingsFilter';
 import { StartInstantMeetingButton } from './StartInstantMeetingButton';
 
+/** Management actions the issue panel never offers; see the module doc. */
+const HIDDEN_PANEL_ACTIONS: MeetingAction[] = [
+    'EDIT',
+    'CANCEL',
+    'START',
+    'END',
+    'SETTINGS',
+];
+
 export interface IssueMeetingsPanelProps {
     issue: CurrentIssueContextValue;
-    /** DEV-only: standalone `pnpm ui:dev` has no real Forge modules to
-     * navigate between, so this drives the same surface flip a real
-     * Issue-Panel-to-Project-Page navigation would otherwise cause. */
-    onDevNavigateToProjectPage?: () => void;
 }
 
-export function IssueMeetingsPanel({
-    issue,
-    onDevNavigateToProjectPage,
-}: IssueMeetingsPanelProps) {
+export function IssueMeetingsPanel({ issue }: IssueMeetingsPanelProps) {
     const permissions = useMeetingPermissions(issue.projectKey);
     const { meetings, loading, error } = useIssueMeetings(
         issue.issueKey,
         issue.projectKey,
         permissions.canViewMeeting && !permissions.isLoading,
     );
-    const openMeetingRoom = useNavigateToMeetingRoom(
-        onDevNavigateToProjectPage,
-    );
+    const openMeetingRoom = useNavigateToMeetingRoom();
 
     const [filter, setFilter] = useState<IssueMeetingsFilterValue>({});
     const [feedback, setFeedback] = useState<{
@@ -84,18 +83,6 @@ export function IssueMeetingsPanel({
         openMeetingRoom(issue.projectKey, meetingId),
     );
     const detailModal = useIssuePanelMeetingDetailModal();
-    const settingsModal = useIssuePanelSettingsModal();
-    const hostConflictGuard = useHostConflictGuard('platform-modal');
-    const confirmAction = useConfirmMeetingAction(
-        setFeedback,
-        'platform-modal',
-    );
-    const startMeeting = useStartMeeting();
-    const { participants, loading: participantsLoading } =
-        useMeetingParticipants(
-            detailModal.devMeeting?.id,
-            detailModal.devMeeting?.projectKey,
-        );
 
     const visibleMeetings = filterAndSortIssueMeetings(meetings, filter);
 
@@ -103,32 +90,8 @@ export function IssueMeetingsPanel({
         const meeting = meetings.find((m) => m.id === meetingId);
         if (!meeting) return;
         switch (action) {
-            case 'EDIT':
-                scheduleModal.open({
-                    issueKey: issue.issueKey,
-                    projectKey: issue.projectKey,
-                    meeting,
-                });
-                break;
-            case 'CANCEL':
-                confirmAction.request('CANCEL', meeting);
-                break;
-            case 'START':
-                hostConflictGuard.guard(meeting.issueKey, () => {
-                    startMeeting.mutate(meeting.id, {
-                        onSuccess: (_result, meetingId) =>
-                            openMeetingRoom(issue.projectKey, meetingId),
-                    });
-                });
-                break;
             case 'JOIN':
                 openMeetingRoom(issue.projectKey, meeting.id);
-                break;
-            case 'END':
-                confirmAction.request('END', meeting);
-                break;
-            case 'SETTINGS':
-                settingsModal.open(meeting.id);
                 break;
             case 'VIEW_DETAIL':
             case 'VIEW_HISTORY':
@@ -218,6 +181,7 @@ export function IssueMeetingsPanel({
                                         meetingId={meeting.id}
                                         meeting={meeting}
                                         permissions={permissions}
+                                        hiddenActions={HIDDEN_PANEL_ACTIONS}
                                         onAction={handleAction}
                                     />
                                 }
@@ -232,81 +196,6 @@ export function IssueMeetingsPanel({
                     appearance={feedback.appearance}
                     message={feedback.message}
                     onDismiss={() => setFeedback(null)}
-                />
-            )}
-
-            {import.meta.env.DEV && (
-                <ScheduleMeetingModal
-                    isOpen={scheduleModal.isDevOpen}
-                    issueKey={issue.issueKey}
-                    projectKey={issue.projectKey}
-                    meeting={scheduleModal.devPayload?.meeting}
-                    onClose={scheduleModal.closeDev}
-                    onSubmitted={() => {
-                        showSuccess(
-                            scheduleModal.devPayload?.meeting
-                                ? 'Meeting updated.'
-                                : 'Meeting scheduled.',
-                        );
-                        scheduleModal.closeDev();
-                    }}
-                />
-            )}
-
-            {import.meta.env.DEV && instantModal.isDevOpen && (
-                <StartInstantMeetingModal
-                    isOpen
-                    issueKey={
-                        instantModal.devPayload?.issueKey ?? issue.issueKey
-                    }
-                    projectKey={
-                        instantModal.devPayload?.projectKey ?? issue.projectKey
-                    }
-                    onClose={instantModal.closeDev}
-                    onStarted={(meetingId) => {
-                        instantModal.closeDev();
-                        openMeetingRoom(issue.projectKey, meetingId);
-                    }}
-                />
-            )}
-
-            {import.meta.env.DEV && detailModal.devMeeting && (
-                <MeetingDetailDialog
-                    meeting={detailModal.devMeeting}
-                    participants={participants}
-                    isLoading={participantsLoading}
-                    onClose={detailModal.closeDev}
-                />
-            )}
-
-            {import.meta.env.DEV && settingsModal.devMeetingId && (
-                <MeetingSettingsModal
-                    isOpen
-                    meetingId={settingsModal.devMeetingId}
-                    onClose={settingsModal.closeDev}
-                    onSaved={() => {
-                        settingsModal.closeDev();
-                        showSuccess('Meeting settings saved.');
-                    }}
-                />
-            )}
-
-            {import.meta.env.DEV && hostConflictGuard.conflictingMeeting && (
-                <ActiveMeetingWarningDialog
-                    conflictingMeeting={hostConflictGuard.conflictingMeeting}
-                    onClose={hostConflictGuard.dismiss}
-                    onConfirm={hostConflictGuard.confirm}
-                />
-            )}
-
-            {import.meta.env.DEV && confirmAction.pending && (
-                <ConfirmMeetingActionDialog
-                    action={confirmAction.pending.action}
-                    meeting={confirmAction.pending.meeting}
-                    isLoading={confirmAction.isLoading}
-                    error={confirmAction.error}
-                    onConfirm={confirmAction.confirm}
-                    onClose={confirmAction.dismiss}
                 />
             )}
         </section>

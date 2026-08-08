@@ -10,6 +10,7 @@ import io.github.smiskinext.meet.application.result.AddMeetingInviteesResult;
 import io.github.smiskinext.meet.application.service.AddMeetingInviteesApplicationService;
 import io.github.smiskinext.meet.domain.MeetingError;
 import io.github.smiskinext.meet.domain.event.MeetingInvitationsCreatedEvent;
+import io.github.smiskinext.meet.domain.model.CancelReason;
 import io.github.smiskinext.meet.domain.model.InviteeRole;
 import io.github.smiskinext.meet.domain.model.Meeting;
 import io.github.smiskinext.meet.domain.model.MeetingInvitee;
@@ -123,9 +124,59 @@ class AddMeetingInviteesApplicationServiceTest {
     }
 
     @Test
-    void nonScheduledStatusIsRejectedWithoutChangeOrEvent() {
+    void scheduledMeetingAcceptsInviteeCreation() {
+        Meeting meeting = scheduledMeeting();
+        stubMeeting(meeting);
+        stubActiveInvitees(List.of());
+
+        Result<AddMeetingInviteesResult, MeetingError> result =
+                service.execute(command(meeting, invitee("bob@test.com", "bob", "Bob")));
+
+        assertThat(result.isSuccess()).isTrue();
+        assertThat(success(result).invitees()).hasSize(1);
+        verify(inviteeRepository).saveAll(anyList());
+        verify(meetingRepository).save(any());
+    }
+
+    @Test
+    void runningMeetingAcceptsInviteeCreation() {
         Meeting meeting = scheduledMeeting();
         meeting.start();
+        meeting.clearDomainEvents();
+        stubMeeting(meeting);
+        stubActiveInvitees(List.of());
+
+        Result<AddMeetingInviteesResult, MeetingError> result =
+                service.execute(command(meeting, invitee("bob@test.com", "bob", "Bob")));
+
+        assertThat(result.isSuccess()).isTrue();
+        assertThat(success(result).invitees()).hasSize(1);
+        List<DomainEvent> events = capturedEvents(meeting);
+        assertThat(events).hasSize(1);
+        assertThat(events.getFirst()).isInstanceOf(MeetingInvitationsCreatedEvent.class);
+    }
+
+    @Test
+    void completedMeetingRejectsInviteeCreation() {
+        Meeting meeting = scheduledMeeting();
+        meeting.start();
+        meeting.complete();
+        meeting.clearDomainEvents();
+        stubMeeting(meeting);
+
+        Result<AddMeetingInviteesResult, MeetingError> result =
+                service.execute(command(meeting, invitee("bob@test.com", "bob", "Bob")));
+
+        assertThat(failure(result)).isInstanceOf(MeetingError.InvalidStatusTransition.class);
+        verify(inviteeRepository, never()).saveAll(anyList());
+        verify(meetingRepository, never()).save(any());
+        verifyNoInteractions(eventPublisher);
+    }
+
+    @Test
+    void canceledMeetingRejectsInviteeCreation() {
+        Meeting meeting = scheduledMeeting();
+        meeting.cancel(CancelReason.HOST_CANCELED);
         meeting.clearDomainEvents();
         stubMeeting(meeting);
 

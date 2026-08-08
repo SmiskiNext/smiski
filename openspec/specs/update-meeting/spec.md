@@ -42,12 +42,13 @@ excluding the tenant identifier.
 ### Requirement: Status-aware mutable fields
 
 The system SHALL allow the host to update `title`, `description`, and
-`issueLink` when the meeting status is `SCHEDULED` or `RUNNING`. The system
-SHALL allow `zoneId` and `timeRange` updates only when the meeting status is
-`SCHEDULED`. The system SHALL reject every update to a meeting with status
-`COMPLETED` or `CANCELED`. Settings are no longer part of this endpoint; they
-are replaced through `PUT /api/1/meetings/{id}/settings` (see the
-`update-meeting-settings` capability).
+`issueLink` in any meeting status (`SCHEDULED`, `RUNNING`, `COMPLETED`, or
+`CANCELED`). The system SHALL allow `zoneId` and `timeRange` updates only when
+the meeting status is `SCHEDULED`, and SHALL reject any attempt to change
+`zoneId` or `timeRange` when the status is `RUNNING`, `COMPLETED`, or
+`CANCELED`. Settings are not part of this endpoint; they are replaced through
+`PUT /api/1/meetings/{id}/settings` (see the `update-meeting-settings`
+capability).
 
 #### Scenario: Scheduled meeting accepts all mutable information fields
 
@@ -68,15 +69,31 @@ are replaced through `PUT /api/1/meetings/{id}/settings` (see the
 - **THEN** the update is rejected, no field from that request is persisted, and
   no update event is published
 
-#### Scenario: Completed meeting rejects updates
+#### Scenario: Completed meeting accepts information fields
 
-- **WHEN** the host attempts to update any field on a `COMPLETED` meeting
-- **THEN** the update is rejected and the meeting remains unchanged
+- **WHEN** the host updates title, description, or issue link on a `COMPLETED`
+  meeting
+- **THEN** those changes are persisted and the meeting remains `COMPLETED`
 
-#### Scenario: Canceled meeting rejects updates
+#### Scenario: Completed meeting rejects scheduled fields
 
-- **WHEN** the host attempts to update any field on a `CANCELED` meeting
-- **THEN** the update is rejected and the meeting remains unchanged
+- **WHEN** the host attempts to change `zoneId` or `timeRange` on a `COMPLETED`
+  meeting
+- **THEN** the update is rejected, no field from that request is persisted, and
+  no update event is published
+
+#### Scenario: Canceled meeting accepts information fields
+
+- **WHEN** the host updates title, description, or issue link on a `CANCELED`
+  meeting
+- **THEN** those changes are persisted and the meeting remains `CANCELED`
+
+#### Scenario: Canceled meeting rejects scheduled fields
+
+- **WHEN** the host attempts to change `zoneId` or `timeRange` on a `CANCELED`
+  meeting
+- **THEN** the update is rejected, no field from that request is persisted, and
+  no update event is published
 
 ### Requirement: Input validation for updated values
 

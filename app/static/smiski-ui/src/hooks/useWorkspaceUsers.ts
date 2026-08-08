@@ -2,12 +2,10 @@
  * useWorkspaceUsers — Jira site (workspace) users for the invite picker, with a
  * server-side typeahead.
  *
- * Data source switches by environment, same pattern as `useProjectIssues` /
- * `useProjectMembers`: standalone `vite dev` has no Forge bridge, so it reads
- * the mock directory; a real Forge context calls Jira directly via
- * `api/workspaceUsers.searchWorkspaceUsers`. The search term is debounced
- * (250ms, mirroring `IssuePicker`) so
- * each keystroke does not hit Jira, and results are cached per debounced term.
+ * Users always come from Jira directly via
+ * `api/workspaceUsers.searchWorkspaceUsers`, so a Forge context is required.
+ * The search term is debounced (250ms, mirroring `IssuePicker`) so each
+ * keystroke does not hit Jira, and results are cached per debounced term.
  */
 import { useQuery } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
@@ -15,7 +13,6 @@ import {
     searchWorkspaceUsers,
     type WorkspaceUser,
 } from '../api/workspaceUsers';
-import { searchMockWorkspaceUsers } from '../mocks/workspaceUsers';
 import { queryKeys } from './queryKeys';
 
 const DEBOUNCE_MS = 250;
@@ -39,10 +36,7 @@ export function useWorkspaceUsers(
 
     const result = useQuery({
         queryKey: queryKeys.workspaceUsers(debouncedQuery),
-        queryFn: () =>
-            import.meta.env.DEV
-                ? searchMockWorkspaceUsers(debouncedQuery)
-                : searchWorkspaceUsers(debouncedQuery),
+        queryFn: () => searchWorkspaceUsers(debouncedQuery),
         enabled,
         staleTime: 30_000,
     });

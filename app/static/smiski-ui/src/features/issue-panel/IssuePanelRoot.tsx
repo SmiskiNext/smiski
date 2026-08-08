@@ -12,13 +12,9 @@ import { IssueMeetingsPanel } from './IssueMeetingsPanel';
 
 export interface IssuePanelRootProps {
     issue: CurrentIssueContextValue;
-    onDevNavigateToProjectPage?: () => void;
 }
 
-export function IssuePanelRoot({
-    issue,
-    onDevNavigateToProjectPage,
-}: IssuePanelRootProps) {
+export function IssuePanelRoot({ issue }: IssuePanelRootProps) {
     return (
         <main className='mx-auto flex w-full max-w-md flex-col bg-[var(--app-bg)]'>
             <header className='flex items-center justify-between border-b bg-[var(--surface)] px-3 py-3 sm:px-4'>
@@ -30,10 +26,7 @@ export function IssuePanelRoot({
                 </span>
             </header>
             <div className='flex flex-col px-3 py-4 sm:px-4'>
-                <IssueMeetingsPanel
-                    issue={issue}
-                    onDevNavigateToProjectPage={onDevNavigateToProjectPage}
-                />
+                <IssueMeetingsPanel issue={issue} />
             </div>
         </main>
     );

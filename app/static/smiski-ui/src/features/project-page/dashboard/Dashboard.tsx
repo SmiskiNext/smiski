@@ -5,7 +5,6 @@ import {
     ErrorState,
     InlineFeedback,
     LoadingState,
-    MeetingSettingsModal,
     NoPermissionState,
     ScheduleMeetingModal,
     StartInstantMeetingModal,
@@ -17,6 +16,7 @@ import { useStartMeeting } from '../../../hooks/useMeetingMutations';
 import { useMeetingPermissions } from '../../../hooks/useMeetingPermission';
 import { useProjectMeetings } from '../../../hooks/useProjectMeetings';
 import { DashboardHeader } from './DashboardHeader';
+import { EditMeetingModal } from './EditMeetingModal';
 import { MeetingDetailPanel } from './MeetingDetailPanel';
 import { MeetingListTable } from './MeetingListTable';
 import {
@@ -35,8 +35,7 @@ export function Dashboard({ projectKey, onOpenRoom }: DashboardProps) {
         id: string;
         focus: 'details' | 'history';
     } | null>(null);
-    const [editingMeeting, setEditingMeeting] = useState<Meeting | null>(null);
-    const [settingsMeetingId, setSettingsMeetingId] = useState<string | null>(
+    const [editingMeetingId, setEditingMeetingId] = useState<string | null>(
         null,
     );
     const [isScheduleOpen, setScheduleOpen] = useState(false);
@@ -60,7 +59,7 @@ export function Dashboard({ projectKey, onOpenRoom }: DashboardProps) {
     const handleAction = (action: MeetingAction, meeting: Meeting) => {
         switch (action) {
             case 'EDIT':
-                setEditingMeeting(meeting);
+                setEditingMeetingId(meeting.id);
                 break;
             case 'CANCEL':
                 confirmAction.request('CANCEL', meeting);
@@ -78,9 +77,6 @@ export function Dashboard({ projectKey, onOpenRoom }: DashboardProps) {
                 break;
             case 'END':
                 confirmAction.request('END', meeting);
-                break;
-            case 'SETTINGS':
-                setSettingsMeetingId(meeting.id);
                 break;
             case 'VIEW_HISTORY':
                 setSelectedMeeting({ id: meeting.id, focus: 'history' });
@@ -160,23 +156,14 @@ export function Dashboard({ projectKey, onOpenRoom }: DashboardProps) {
                 onClose={() => setStartOpen(false)}
                 onStarted={onOpenRoom}
             />
-            {editingMeeting && (
-                <ScheduleMeetingModal
+            {editingMeetingId && (
+                <EditMeetingModal
                     isOpen
-                    meeting={editingMeeting}
-                    issueKey={editingMeeting.issueKey}
-                    onClose={() => setEditingMeeting(null)}
-                    onSubmitted={() => showSuccess('Meeting updated.')}
-                />
-            )}
-            {settingsMeetingId && (
-                <MeetingSettingsModal
-                    isOpen
-                    meetingId={settingsMeetingId}
-                    onClose={() => setSettingsMeetingId(null)}
+                    meetingId={editingMeetingId}
+                    onClose={() => setEditingMeetingId(null)}
                     onSaved={() => {
-                        setSettingsMeetingId(null);
-                        showSuccess('Meeting settings saved.');
+                        setEditingMeetingId(null);
+                        showSuccess('Meeting updated.');
                     }}
                 />
             )}

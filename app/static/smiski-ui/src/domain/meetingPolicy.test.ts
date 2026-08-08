@@ -58,10 +58,10 @@ describe('getAvailableMeetingActions', () => {
     it('gates scheduled meeting actions', () => {
         expect(
             getAvailableMeetingActions(meeting('SCHEDULED'), viewOnly, HOST),
-        ).toEqual(['VIEW_DETAIL']);
+        ).toEqual(['JOIN', 'VIEW_DETAIL']);
         expect(
             getAvailableMeetingActions(meeting('SCHEDULED'), edit, HOST),
-        ).toEqual(['VIEW_DETAIL', 'EDIT', 'START', 'CANCEL', 'SETTINGS']);
+        ).toEqual(['VIEW_DETAIL', 'EDIT', 'START', 'CANCEL']);
     });
 
     it('gates running meeting actions', () => {
@@ -70,36 +70,44 @@ describe('getAvailableMeetingActions', () => {
         ).toEqual(['JOIN', 'VIEW_DETAIL']);
         expect(
             getAvailableMeetingActions(meeting('RUNNING'), edit, HOST),
-        ).toEqual(['JOIN', 'VIEW_DETAIL', 'END', 'SETTINGS']);
+        ).toEqual(['JOIN', 'VIEW_DETAIL', 'EDIT', 'END']);
     });
 
     it.each(['COMPLETED', 'CANCELED'] as const)(
-        'only exposes details and history for %s meetings',
+        'exposes EDIT to host with Edit Meeting on %s meetings',
         (status) => {
             expect(
                 getAvailableMeetingActions(meeting(status), viewOnly, HOST),
             ).toEqual(['VIEW_DETAIL', 'VIEW_HISTORY']);
             expect(
                 getAvailableMeetingActions(meeting(status), edit, HOST),
-            ).toEqual(['VIEW_DETAIL', 'VIEW_HISTORY']);
+            ).toEqual(['VIEW_DETAIL', 'VIEW_HISTORY', 'EDIT']);
         },
     );
 
-    // The backend enforces EDIT/CANCEL/END/SETTINGS as host-only
+    // The backend enforces EDIT/CANCEL/END as host-only
     // (`hostId.equals(actor)` in CancelMeetingApplicationService /
-    // EndMeetingApplicationService / UpdateMeetingApplicationService /
-    // Meeting.updateSettings), not "any Edit Meeting permission holder" — a
-    // non-host Edit-Meeting user must not see actions the backend will
-    // reject with 403.
-    it('hides EDIT/CANCEL/SETTINGS from a non-host Edit Meeting user, keeps START', () => {
+    // EndMeetingApplicationService / UpdateMeetingApplicationService), not
+    // "any Edit Meeting permission holder" — a non-host Edit-Meeting user
+    // must not see actions the backend will reject with 403.
+    it('hides EDIT/CANCEL from a non-host Edit Meeting user, keeps START', () => {
         expect(
             getAvailableMeetingActions(meeting('SCHEDULED'), edit, NON_HOST),
         ).toEqual(['VIEW_DETAIL', 'START']);
     });
 
-    it('hides END/SETTINGS from a non-host Edit Meeting user, keeps JOIN', () => {
+    it('hides EDIT/END from a non-host Edit Meeting user, keeps JOIN', () => {
         expect(
             getAvailableMeetingActions(meeting('RUNNING'), edit, NON_HOST),
         ).toEqual(['JOIN', 'VIEW_DETAIL']);
+    });
+
+    it('hides EDIT from a non-host Edit Meeting user on terminal meetings', () => {
+        expect(
+            getAvailableMeetingActions(meeting('COMPLETED'), edit, NON_HOST),
+        ).toEqual(['VIEW_DETAIL', 'VIEW_HISTORY']);
+        expect(
+            getAvailableMeetingActions(meeting('CANCELED'), edit, NON_HOST),
+        ).toEqual(['VIEW_DETAIL', 'VIEW_HISTORY']);
     });
 });

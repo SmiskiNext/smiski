@@ -2,15 +2,12 @@
  * useProjectIssues — real Jira issues for the current project, used to bind a
  * meeting to an issue when creating/scheduling one.
  *
- * Data source switches by environment: standalone `vite dev` has no Forge
- * bridge, so it reads the mock issue list; a real Forge context (tunnel or
- * deployed) calls Jira directly via `requestJira`. Both share the same
- * signature, so this is the only place that knows the difference.
+ * Issues always come from Jira directly via `requestJira`, so a Forge context
+ * (tunnel or deployed) is required.
  */
 import { useQuery } from '@tanstack/react-query';
 import { getProjectIssues } from '../api/issues';
 import type { JiraIssue } from '../domain';
-import { listProjectIssues } from '../mocks/issues';
 import { queryKeys } from './queryKeys';
 
 export interface UseProjectIssuesResult {
@@ -26,10 +23,7 @@ export function useProjectIssues(
 ): UseProjectIssuesResult {
     const result = useQuery({
         queryKey: queryKeys.projectIssues(projectKey, query),
-        queryFn: () =>
-            import.meta.env.DEV
-                ? listProjectIssues(projectKey, query)
-                : getProjectIssues(projectKey, query),
+        queryFn: () => getProjectIssues(projectKey, query),
         enabled: enabled && Boolean(projectKey),
         staleTime: 30_000,
     });

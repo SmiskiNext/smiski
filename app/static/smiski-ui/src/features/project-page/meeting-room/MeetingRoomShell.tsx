@@ -1,13 +1,20 @@
 import { useEffect, useState } from 'react';
 import { cn, Icon } from '../../../components/ui';
-import type { Meeting, Participant } from '../../../domain';
+import {
+    type LayoutMode,
+    type Meeting,
+    type Participant,
+    resolveMeetingLayout,
+} from '../../../domain';
 import type {
     LiveKitConnectionState,
     LiveMeetingParticipant,
     ScreenShareFeed,
 } from '../../../hooks/useLiveKitRoom';
+import { MeetingLayoutMenu } from './MeetingLayoutMenu';
 import { ParticipantFilmstrip } from './ParticipantFilmstrip';
-import { ParticipantVideoGrid } from './ParticipantVideoGrid';
+import { ParticipantVideoGrid, tileMediaProps } from './ParticipantVideoGrid';
+import { ParticipantVideoTile } from './ParticipantVideoTile';
 import { ScreenShareStage } from './ScreenShareStage';
 
 export interface MeetingRoomShellProps {
@@ -18,34 +25,47 @@ export interface MeetingRoomShellProps {
     onTogglePeoplePanel: () => void;
     onLeave?: () => void;
     /**
-     * Real media state/handlers (from `useLiveKitRoom`) when connected to a
-     * live LiveKit room. Omitted (undefined) in standalone `pnpm ui:dev` — the
-     * component falls back to local `useState` so the controls stay visually
-     * testable without a Forge bridge.
+     * Real media state/handlers, supplied by the caller from
+     * `useLiveKitRoom`'s live room connection.
      */
-    isMicOn?: boolean;
-    isCameraOn?: boolean;
-    isScreenSharing?: boolean;
+    isMicOn: boolean;
+    isCameraOn: boolean;
+    isScreenSharing: boolean;
     /**
-     * Set while anyone in the room is presenting. Switches the video area from
-     * the equal-sized grid to a stage + filmstrip layout.
+     * Set while anyone in the room is presenting, `null` when nobody is. One
+     * of the inputs `resolveMeetingLayout` weighs when choosing between the
+     * equal grid and a stage + filmstrip.
      */
-    screenShare?: ScreenShareFeed | null;
-    onToggleMic?: () => void;
-    onToggleCamera?: () => void;
-    onToggleScreenShare?: () => void;
+    screenShare: ScreenShareFeed | null;
+    onToggleMic: () => void;
+    onToggleCamera: () => void;
+    onToggleScreenShare: () => void;
+    /** Chosen arrangement, persisted per user by the caller. */
+    layoutMode: LayoutMode;
+    onLayoutModeChange: (mode: LayoutMode) => void;
+    /**
+     * Participant held on the stage regardless of who is speaking or
+     * presenting, or `null` when nothing is pinned. Session-only — the caller
+     * neither persists it nor lets it outlive the pinned participant.
+     */
+    pinnedAccountId: string | null;
+    onTogglePin: (accountId: string) => void;
+    /** Loudest participant right now, or `null` while the room is silent. */
+    activeSpeakerId: string | null;
     /**
      * User-facing note about a media-permission change — a failed
      * screen-share toggle, or the host revoking mic/camera/screen-share
-     * access mid-session (see `useLiveKitRoom`'s `mediaNotice`).
+     * access mid-session (see `useLiveKitRoom`'s `mediaNotice`). `null` when
+     * there is nothing to report.
      */
-    mediaNotice?: string | null;
+    mediaNotice: string | null;
     /** Surfaces `useLiveKitRoom`'s connection state for debugging/trial visibility. */
-    connectionState?: LiveKitConnectionState;
+    connectionState: LiveKitConnectionState;
     /**
-     * Opens `MeetingSettingsModal` for this meeting. Rendered only when
-     * provided *and* `meeting.hostId === selfAccountId` — non-hosts never
-     * see the button.
+     * Opens `MeetingSettingsModal` for this meeting. Shown to everyone in the
+     * room, not just the host: the modal carries a personal notification
+     * preference alongside the host-only room settings, and gates the host
+     * section itself.
      */
     onOpenSettings?: () => void;
 }
@@ -89,7 +109,8 @@ function ControlButton({
         | 'screen'
         | 'people'
         | 'phoneOff'
-        | 'settings';
+        | 'settings'
+        | 'layout';
     active?: boolean;
     danger?: boolean;
     disabled?: boolean;
@@ -134,6 +155,14 @@ function ControlButton({
     );
 }
 
+/**
+ * Presentational meeting room: header, video area and the media control bar.
+ * All media state and handlers come from the caller's live LiveKit room.
+ *
+ * Host-configured media permissions gate the mic/camera/screen-share buttons,
+ * but each gate defaults to allowed when `meeting.settings` is absent — a
+ * meeting summary without settings must not lock the controls out.
+ */
 export function MeetingRoomShell({
     meeting,
     participants,
@@ -141,9 +170,9 @@ export function MeetingRoomShell({
     isPeoplePanelOpen,
     onTogglePeoplePanel,
     onLeave,
-    isMicOn: isMicOnProp,
-    isCameraOn: isCameraOnProp,
-    isScreenSharing: isScreenSharingProp,
+    isMicOn,
+    isCameraOn,
+    isScreenSharing,
     screenShare,
     onToggleMic,
     onToggleCamera,
@@ -151,26 +180,28 @@ export function MeetingRoomShell({
     mediaNotice,
     connectionState,
     onOpenSettings,
+    layoutMode,
+    onLayoutModeChange,
+    pinnedAccountId,
+    onTogglePin,
+    activeSpeakerId,
 }: MeetingRoomShellProps) {
-    const [localMicOn, setLocalMicOn] = useState(true);
-    const [localCameraOn, setLocalCameraOn] = useState(true);
-    const [localScreenSharing, setLocalScreenSharing] = useState(false);
-    const isMicOn = isMicOnProp ?? localMicOn;
-    const isCameraOn = isCameraOnProp ?? localCameraOn;
-    const isScreenSharing = isScreenSharingProp ?? localScreenSharing;
-    const handleToggleMic =
-        onToggleMic ?? (() => setLocalMicOn((value) => !value));
-    const handleToggleCamera =
-        onToggleCamera ?? (() => setLocalCameraOn((value) => !value));
-    const handleToggleScreenShare =
-        onToggleScreenShare ?? (() => setLocalScreenSharing((value) => !value));
-    // Undefined settings (standalone dev, or a list-summary source) means we
-    // can't gate — default to allowed rather than locking the button out.
     const canShareScreen = meeting?.settings?.allowScreenShare ?? true;
     const canUseMic = meeting?.settings?.allowMicrophone ?? true;
     const canUseCamera = meeting?.settings?.allowVideo ?? true;
-    const isHost = Boolean(meeting) && meeting?.hostId === selfAccountId;
     const elapsed = useElapsedTime(meeting?.startedAt);
+    const layout = resolveMeetingLayout({
+        mode: layoutMode,
+        participants,
+        selfAccountId,
+        pinnedAccountId,
+        hasScreenShare: screenShare !== null,
+        activeSpeakerId,
+    });
+    // Lifted out of the JSX so the discriminant narrowing below survives into
+    // the pin callback: TypeScript drops narrowings of a property access (but
+    // not of a `const` binding) inside a closure.
+    const stageSubject = layout.arrangement === 'stage' ? layout.subject : null;
     return (
         <section className='overflow-hidden rounded-3xl border border-slate-700 bg-slate-950 shadow-panel'>
             <header className='flex items-center justify-between gap-4 border-b border-white/8 px-4 py-3.5 sm:px-5'>
@@ -211,22 +242,52 @@ export function MeetingRoomShell({
                     </span>
                 </div>
             </header>
-            {screenShare ? (
+            {layout.arrangement === 'stage' && stageSubject ? (
                 <div className='flex h-80 flex-col gap-3 bg-slate-900 p-3 sm:p-4 lg:h-120 lg:flex-row'>
                     <div className='min-h-0 min-w-0 flex-1'>
-                        <ScreenShareStage feed={screenShare} />
+                        {stageSubject.kind === 'screenShare' ? (
+                            screenShare && (
+                                <ScreenShareStage feed={screenShare} />
+                            )
+                        ) : (
+                            <ParticipantVideoTile
+                                participant={stageSubject.participant}
+                                {...tileMediaProps(
+                                    stageSubject.participant,
+                                    selfAccountId,
+                                    isMicOn,
+                                    activeSpeakerId,
+                                )}
+                                isPinned={
+                                    stageSubject.participant.accountId
+                                    === pinnedAccountId
+                                }
+                                onTogglePin={() =>
+                                    onTogglePin(
+                                        stageSubject.participant.accountId,
+                                    )
+                                }
+                            />
+                        )}
                     </div>
                     <ParticipantFilmstrip
-                        participants={participants}
+                        cells={layout.cells}
                         selfAccountId={selfAccountId}
                         isSelfMicOn={isMicOn}
+                        activeSpeakerId={activeSpeakerId}
+                        pinnedAccountId={pinnedAccountId}
+                        onTogglePin={onTogglePin}
                     />
                 </div>
             ) : (
                 <ParticipantVideoGrid
-                    participants={participants}
+                    cells={layout.cells}
                     selfAccountId={selfAccountId}
                     isSelfMicOn={isMicOn}
+                    screenShare={screenShare}
+                    activeSpeakerId={activeSpeakerId}
+                    pinnedAccountId={pinnedAccountId}
+                    onTogglePin={onTogglePin}
                 />
             )}
             <footer className='border-t border-white/8 bg-slate-950 px-3 py-4'>
@@ -247,7 +308,7 @@ export function MeetingRoomShell({
                                 ? 'The host has disabled the microphone for this meeting'
                                 : undefined
                         }
-                        onClick={handleToggleMic}
+                        onClick={onToggleMic}
                     />
                     <ControlButton
                         label={
@@ -265,7 +326,7 @@ export function MeetingRoomShell({
                                 ? 'The host has disabled video for this meeting'
                                 : undefined
                         }
-                        onClick={handleToggleCamera}
+                        onClick={onToggleCamera}
                     />
                     <ControlButton
                         label={
@@ -283,9 +344,13 @@ export function MeetingRoomShell({
                                 ? 'The host has disabled screen sharing for this meeting'
                                 : undefined
                         }
-                        onClick={handleToggleScreenShare}
+                        onClick={onToggleScreenShare}
                     />
-                    {isHost && onOpenSettings && (
+                    <MeetingLayoutMenu
+                        mode={layoutMode}
+                        onModeChange={onLayoutModeChange}
+                    />
+                    {onOpenSettings && (
                         <ControlButton
                             label='Settings'
                             icon='settings'

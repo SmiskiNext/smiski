@@ -52,7 +52,8 @@ public class RemoveMeetingInviteesApplicationService implements RemoveMeetingInv
             return Result.failure(new MeetingError.NotAuthorized(
                     actingAccount.value(), meeting.getHostId().value()));
         }
-        if (meeting.getStatus() != MeetingStatus.SCHEDULED) {
+        if (meeting.getStatus() == MeetingStatus.COMPLETED
+                || meeting.getStatus() == MeetingStatus.CANCELED) {
             return Result.failure(new MeetingError.InvalidStatusTransition(
                     meeting.getStatus(), MeetingStatus.SCHEDULED));
         }

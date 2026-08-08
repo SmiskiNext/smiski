@@ -1,6 +1,8 @@
 import type { LucideIcon } from 'lucide-react';
 import {
     AlertTriangle,
+    Bell,
+    BellOff,
     Calendar,
     Check,
     ChevronDown,
@@ -10,11 +12,14 @@ import {
     ExternalLink,
     History,
     Info,
+    LayoutGrid,
     Mic,
     MicOff,
     MoreHorizontal,
     Pencil,
     PhoneOff,
+    Pin,
+    PinOff,
     Play,
     Plus,
     ScreenShare,
@@ -32,6 +37,8 @@ import type { SVGProps } from 'react';
 
 export type IconName =
     | 'alert'
+    | 'bell'
+    | 'bellOff'
     | 'calendar'
     | 'camera'
     | 'cameraOff'
@@ -43,11 +50,14 @@ export type IconName =
     | 'external'
     | 'history'
     | 'info'
+    | 'layout'
     | 'mic'
     | 'micOff'
     | 'more'
     | 'people'
     | 'phoneOff'
+    | 'pin'
+    | 'pinOff'
     | 'play'
     | 'plus'
     | 'record'
@@ -62,6 +72,8 @@ export type IconName =
 
 const icons: Record<IconName, LucideIcon> = {
     alert: AlertTriangle,
+    bell: Bell,
+    bellOff: BellOff,
     calendar: Calendar,
     camera: Video,
     cameraOff: VideoOff,
@@ -73,11 +85,14 @@ const icons: Record<IconName, LucideIcon> = {
     external: ExternalLink,
     history: History,
     info: Info,
+    layout: LayoutGrid,
     mic: Mic,
     micOff: MicOff,
     more: MoreHorizontal,
     people: Users,
     phoneOff: PhoneOff,
+    pin: Pin,
+    pinOff: PinOff,
     play: Play,
     plus: Plus,
     record: Circle,

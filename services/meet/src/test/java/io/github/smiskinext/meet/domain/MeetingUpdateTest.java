@@ -112,7 +112,34 @@ class MeetingUpdateTest {
     }
 
     @Test
-    void terminalMeetingsRejectInfoUpdatesWithoutEvents() {
+    void terminalMeetingsAcceptInformationFields() {
+        for (MeetingStatus status :
+                new MeetingStatus[] {MeetingStatus.COMPLETED, MeetingStatus.CANCELED}) {
+            Meeting meeting = reconstituted(status);
+
+            Result<Void, MeetingError> result = meeting.updateInfo(
+                    AccountId.of("host"),
+                    MeetingTitle.of("Corrected"),
+                    "Corrected description",
+                    JiraIssueLink.of("ISS-9", "PROJ-9", "PROJ"),
+                    meeting.getTimeZone(),
+                    meeting.getTimeRange().orElseThrow(),
+                    List.of());
+
+            assertThat(result.isSuccess()).isTrue();
+            assertThat(meeting.getStatus()).isEqualTo(status);
+            assertThat(meeting.getTitle().value()).isEqualTo("Corrected");
+            assertThat(meeting.getDescription()).isEqualTo("Corrected description");
+            assertThat(meeting.getIssueLink())
+                    .isEqualTo(JiraIssueLink.of("ISS-9", "PROJ-9", "PROJ"));
+            assertThat(meeting.getDomainEvents())
+                    .singleElement()
+                    .isInstanceOf(MeetingInfoUpdatedEvent.class);
+        }
+    }
+
+    @Test
+    void terminalMeetingsRejectScheduledFieldChangesWithoutEvents() {
         for (MeetingStatus status :
                 new MeetingStatus[] {MeetingStatus.COMPLETED, MeetingStatus.CANCELED}) {
             Meeting meeting = reconstituted(status);
@@ -122,14 +149,84 @@ class MeetingUpdateTest {
                     MeetingTitle.of("Rejected"),
                     meeting.getDescription(),
                     meeting.getIssueLink(),
-                    meeting.getTimeZone(),
+                    MeetingTimeZone.of("UTC"),
                     meeting.getTimeRange().orElseThrow(),
                     List.of());
 
             assertThat(result.isFailure()).isTrue();
+            assertThat(((Result.Failure<Void, MeetingError>) result).error())
+                    .isInstanceOf(MeetingError.InvalidStatusTransition.class);
             assertThat(meeting.getTitle().value()).isEqualTo("Title");
+            assertThat(meeting.getTimeZone()).isEqualTo(MeetingTimeZone.of("Asia/Ho_Chi_Minh"));
             assertThat(meeting.getDomainEvents()).isEmpty();
         }
+    }
+
+    @Test
+    void terminalMeetingsRejectTimeRangeChangesWithoutEvents() {
+        Instant newStart = Instant.now().plus(5, ChronoUnit.HOURS);
+        for (MeetingStatus status :
+                new MeetingStatus[] {MeetingStatus.COMPLETED, MeetingStatus.CANCELED}) {
+            Meeting meeting = reconstituted(status);
+            MeetingTimeRange originalRange = meeting.getTimeRange().orElseThrow();
+
+            Result<Void, MeetingError> result = meeting.updateInfo(
+                    AccountId.of("host"),
+                    meeting.getTitle(),
+                    meeting.getDescription(),
+                    meeting.getIssueLink(),
+                    meeting.getTimeZone(),
+                    MeetingTimeRange.of(newStart, newStart.plus(1, ChronoUnit.HOURS)),
+                    List.of());
+
+            assertThat(result.isFailure()).isTrue();
+            assertThat(((Result.Failure<Void, MeetingError>) result).error())
+                    .isInstanceOf(MeetingError.InvalidStatusTransition.class);
+            assertThat(meeting.getTimeRange()).contains(originalRange);
+            assertThat(meeting.getDomainEvents()).isEmpty();
+        }
+    }
+
+    @Test
+    void runningMeetingRejectsTimeRangeChangeWithoutEvents() {
+        Meeting meeting = reconstituted(MeetingStatus.RUNNING);
+        MeetingTimeRange originalRange = meeting.getTimeRange().orElseThrow();
+        Instant newStart = Instant.now().plus(5, ChronoUnit.HOURS);
+
+        Result<Void, MeetingError> result = meeting.updateInfo(
+                AccountId.of("host"),
+                meeting.getTitle(),
+                meeting.getDescription(),
+                meeting.getIssueLink(),
+                meeting.getTimeZone(),
+                MeetingTimeRange.of(newStart, newStart.plus(1, ChronoUnit.HOURS)),
+                List.of());
+
+        assertThat(result.isFailure()).isTrue();
+        assertThat(((Result.Failure<Void, MeetingError>) result).error())
+                .isInstanceOf(MeetingError.InvalidStatusTransition.class);
+        assertThat(meeting.getTimeRange()).contains(originalRange);
+        assertThat(meeting.getDomainEvents()).isEmpty();
+    }
+
+    @Test
+    void terminalMeetingIssueLinkOnlyChangeIsAccepted() {
+        Meeting meeting = reconstituted(MeetingStatus.COMPLETED);
+
+        Result<Void, MeetingError> result = meeting.updateInfo(
+                AccountId.of("host"),
+                meeting.getTitle(),
+                meeting.getDescription(),
+                JiraIssueLink.of("ISS-42", "PROJ-42", "PROJ"),
+                meeting.getTimeZone(),
+                meeting.getTimeRange().orElseThrow(),
+                List.of());
+
+        assertThat(result.isSuccess()).isTrue();
+        assertThat(meeting.getIssueLink()).isEqualTo(JiraIssueLink.of("ISS-42", "PROJ-42", "PROJ"));
+        assertThat(meeting.getDomainEvents())
+                .singleElement()
+                .isInstanceOf(MeetingInfoUpdatedEvent.class);
     }
 
     @Test

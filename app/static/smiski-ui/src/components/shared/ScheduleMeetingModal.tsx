@@ -118,6 +118,9 @@ function wallTimeParts(iso?: string): { date: string; time: string } {
  * at the same instant, scoped to meetings *this user scheduled* (not every
  * meeting in the project) — the business rule only guards against one person
  * double-booking their own calendar.
+ *
+ * The check is advisory: an unreachable lookup reports "no conflict" so a
+ * backend failure cannot block the form.
  */
 async function hasOwnScheduleConflict(
     projectKey: string,
@@ -126,8 +129,6 @@ async function hasOwnScheduleConflict(
     excludingMeetingId?: string,
 ): Promise<boolean> {
     if (!projectKey) return false;
-    // Standalone `vite dev` has no Forge bridge to reach the resolver
-    // through — fail open (no conflict) rather than blocking the form.
     const ownMeetings = await listProjectMeetings({
         projectKey,
         createdByAccountId: organizerAccountId,
@@ -382,6 +383,7 @@ export function ScheduleMeetingModal({
                     <WorkspaceUserPicker
                         value={invitees}
                         onChange={setInvitees}
+                        requireEmail={true}
                     />
                 </Form.Item>
             )}

@@ -8,6 +8,7 @@ export * from './issue';
 export * from './joinRequest';
 export * from './meeting';
 export * from './meetingInvitee';
+export * from './meetingLayout';
 export * from './meetingPolicy';
 export * from './participant';
 export * from './projectMember';

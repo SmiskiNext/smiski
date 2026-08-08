@@ -233,10 +233,36 @@ class AddMeetingInviteesControllerIntegrationTest {
     }
 
     @Test
-    void nonScheduledMeetingReturns409AndPersistsNothing() throws Exception {
+    void runningMeetingReturns200AndPersistsInvitees() throws Exception {
         UUID meetingId = createScheduledMeeting();
         jdbcTemplate.update(
                 "UPDATE meetings SET status = 'RUNNING' WHERE tenant_id = ? AND id = ?",
+                TENANT_ID,
+                meetingId);
+
+        mockMvc.perform(post("/api/1/meetings/{id}/invitees", meetingId)
+                        .header("X-Project-Permissions", "view-meeting,edit-meeting")
+                        .header("X-Account-Id", HOST_ID)
+                        .header("X-Tenant-ID", TENANT_ID)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"invitees":[
+                                  {"email":"alice@test.com","accountId":"alice","displayName":"Alice"}
+                                ]}
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.invitees.length()").value(1))
+                .andExpect(jsonPath("$.invitees[0].accountId").value("alice"))
+                .andExpect(jsonPath("$.invitees[0].status").value("NEEDS_ACTION"));
+
+        assertThat(activeInviteeCount(meetingId)).isEqualTo(1);
+    }
+
+    @Test
+    void canceledMeetingReturns409AndPersistsNothing() throws Exception {
+        UUID meetingId = createScheduledMeeting();
+        jdbcTemplate.update(
+                "UPDATE meetings SET status = 'CANCELED' WHERE tenant_id = ? AND id = ?",
                 TENANT_ID,
                 meetingId);
 

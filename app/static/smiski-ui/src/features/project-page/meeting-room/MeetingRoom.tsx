@@ -1,37 +1,92 @@
 import { useState } from 'react';
 import {
+    EmptyState,
     ErrorState,
     LoadingState,
     MeetingSettingsModal,
+    ParticipantPresenceToasts,
 } from '../../../components/shared';
 import { Button, Icon } from '../../../components/ui';
 import { useCurrentUser } from '../../../context/CurrentUserContext';
-import type { Participant } from '../../../domain';
+import {
+    type LayoutMode,
+    type Participant,
+    reconcilePinnedAccountId,
+} from '../../../domain';
 import { useLiveKitRoom } from '../../../hooks/useLiveKitRoom';
 import { useMeeting } from '../../../hooks/useMeeting';
 import { useMeetingParticipants } from '../../../hooks/useMeetingParticipants';
+import { useParticipantPresenceNotifications } from '../../../hooks/useParticipantPresenceNotifications';
 import { useRoomToken } from '../../../hooks/useRoomToken';
+import {
+    readMeetingLayoutMode,
+    writeMeetingLayoutMode,
+} from '../../../utils/meetingLayoutPreference';
 import { MeetingRoomShell } from './MeetingRoomShell';
 import { ParticipantListPlaceholder } from './ParticipantListPlaceholder';
 import { PendingJoinRequestsPanel } from './PendingJoinRequestsPanel';
+
+const MEETING_START_POLL_INTERVAL_MS = 60000;
 
 export interface MeetingRoomProps {
     meetingId: string;
     onLeave: () => void;
 }
 
-// Standalone `pnpm ui:dev` has no Forge bridge to reach `getRoomToken`
-// through, so LiveKit is fully disabled there — see useRoomToken.ts /
-// MeetingRoomShell.tsx's local-state fallback for how the room still renders.
-const isLiveKitEnabled = !import.meta.env.DEV;
-
+/**
+ * Live meeting room for the project page surface: joins the LiveKit room
+ * behind `meetingId` and renders it through `MeetingRoomShell`.
+ *
+ * The displayed roster follows a three-tier precedence — LiveKit's real-time
+ * roster wins once connected, the backend meeting roster comes next, and a
+ * self-only placeholder covers the window before either has loaded.
+ *
+ * A meeting that has not started yet gets a waiting room rather than the room
+ * shell, and its room-token request stays held back until then: the backend
+ * `join` operation does not gate on meeting status, so asking early would
+ * either drop the user into an empty room or raise a premature host-approval
+ * request. Polling the meeting detail swaps the waiting room for the real one
+ * once the host starts it.
+ */
 export function MeetingRoom({ meetingId, onLeave }: MeetingRoomProps) {
     const currentUser = useCurrentUser();
-    const { meeting, loading } = useMeeting(meetingId);
+    const { meeting, loading, error } = useMeeting(meetingId, {
+        pollWhileScheduledMs: MEETING_START_POLL_INTERVAL_MS,
+    });
     const { participants, loading: participantsLoading } =
         useMeetingParticipants(meetingId, meeting?.projectKey);
     const [isPeoplePanelOpen, setPeoplePanelOpen] = useState(false);
     const [isSettingsOpen, setSettingsOpen] = useState(false);
+    const [layoutMode, setLayoutMode] = useState<LayoutMode>(
+        readMeetingLayoutMode,
+    );
+    // Session-only, unlike the layout mode: a pin names one participant in one
+    // call, so restoring it into a later meeting they are not in would only
+    // resolve straight back to unpinned.
+    const [pinnedAccountId, setPinnedAccountId] = useState<string | null>(null);
+
+    const handleLayoutModeChange = (mode: LayoutMode) => {
+        setLayoutMode(mode);
+        writeMeetingLayoutMode(mode);
+    };
+
+    const handleTogglePin = (accountId: string) => {
+        setPinnedAccountId((current) =>
+            current === accountId ? null : accountId,
+        );
+    };
+
+    const hasStarted = meeting?.status === 'RUNNING';
+    const isTerminal =
+        meeting?.status === 'COMPLETED' || meeting?.status === 'CANCELED';
+
+    const {
+        toasts: presenceToasts,
+        enabled: notificationsEnabled,
+        setEnabled: setNotificationsEnabled,
+        enqueue: enqueuePresenceToast,
+        dismiss: dismissPresenceToast,
+    } = useParticipantPresenceNotifications();
 
     const {
         token,
@@ -39,14 +94,69 @@ export function MeetingRoom({ meetingId, onLeave }: MeetingRoomProps) {
         loading: roomTokenLoading,
         waitingForApproval,
         error: roomTokenError,
-    } = useRoomToken(meetingId, isLiveKitEnabled);
-    const liveKit = useLiveKitRoom({ token, url, enabled: isLiveKitEnabled });
+    } = useRoomToken(meetingId, hasStarted);
+    const liveKit = useLiveKitRoom({
+        token,
+        url,
+        enabled: true,
+        onParticipantPresence: enqueuePresenceToast,
+    });
     const liveKitError = roomTokenError ?? liveKit.error;
 
     if (loading)
         return (
             <div className='p-6'>
                 <LoadingState label='Loading meeting room…' />
+            </div>
+        );
+
+    if (!meeting)
+        return (
+            <div className='p-6'>
+                <ErrorState
+                    title="Couldn't load the meeting"
+                    message={error?.message}
+                />
+                <div className='mt-4 text-center'>
+                    <Button size='sm' variant='ghost' onClick={onLeave}>
+                        Back to meetings
+                    </Button>
+                </div>
+            </div>
+        );
+
+    if (isTerminal)
+        return (
+            <div className='p-6'>
+                <EmptyState
+                    header={
+                        meeting.status === 'CANCELED'
+                            ? 'This meeting was canceled'
+                            : 'This meeting has ended'
+                    }
+                    description={
+                        meeting.status === 'CANCELED'
+                            ? 'The host canceled this meeting.'
+                            : 'This meeting has already ended.'
+                    }
+                    primaryAction={
+                        <Button size='sm' variant='secondary' onClick={onLeave}>
+                            Back to meetings
+                        </Button>
+                    }
+                />
+            </div>
+        );
+
+    if (!hasStarted)
+        return (
+            <div className='p-6'>
+                <LoadingState label='Waiting for the meeting to start…' />
+                <div className='mt-4 text-center'>
+                    <Button size='sm' variant='ghost' onClick={onLeave}>
+                        Leave
+                    </Button>
+                </div>
             </div>
         );
 
@@ -62,14 +172,14 @@ export function MeetingRoom({ meetingId, onLeave }: MeetingRoomProps) {
             </div>
         );
 
-    if (isLiveKitEnabled && roomTokenLoading)
+    if (roomTokenLoading)
         return (
             <div className='p-6'>
                 <LoadingState label='Requesting access to the meeting…' />
             </div>
         );
 
-    if (isLiveKitEnabled && roomTokenError && !token)
+    if (roomTokenError && !token)
         return (
             <div className='p-6'>
                 <ErrorState
@@ -84,24 +194,29 @@ export function MeetingRoom({ meetingId, onLeave }: MeetingRoomProps) {
             </div>
         );
 
-    // LiveKit's real roster (once connected) takes priority over the mocked
-    // meeting roster, which in turn beats the self-only placeholder — same
-    // three-tier fallback as before LiveKit existed, just with a new top tier.
     const roomParticipants: (
         | Participant
         | (typeof liveKit.participants)[number]
-    )[] =
-        isLiveKitEnabled && liveKit.participants.length
-            ? liveKit.participants
-            : participants.length
-              ? participants
-              : [
-                    {
-                        accountId: currentUser.accountId,
-                        displayName: currentUser.displayName,
-                        role: 'HOST',
-                    },
-                ];
+    )[] = liveKit.participants.length
+        ? liveKit.participants
+        : participants.length
+          ? participants
+          : [
+                {
+                    accountId: currentUser.accountId,
+                    displayName: currentUser.displayName,
+                    role: 'HOST',
+                },
+            ];
+
+    // Reconciled on the way down rather than in an effect: the early returns
+    // above rule out another hook here, and a pinned participant who has left
+    // must stop reading as pinned in the same render that drops them from the
+    // roster — not one render later.
+    const effectivePinnedAccountId = reconcilePinnedAccountId(
+        pinnedAccountId,
+        roomParticipants,
+    );
 
     const selfAccountId = liveKit.localAccountId ?? currentUser.accountId;
     const isHost = meeting?.hostId === currentUser.accountId;
@@ -133,7 +248,7 @@ export function MeetingRoom({ meetingId, onLeave }: MeetingRoomProps) {
                     {meeting?.issueKey ?? meeting?.projectKey}
                 </span>
             </div>
-            {isLiveKitEnabled && liveKitError && (
+            {liveKitError && (
                 <div className='mb-3'>
                     <ErrorState
                         title="Couldn't connect to the video call"
@@ -153,37 +268,20 @@ export function MeetingRoom({ meetingId, onLeave }: MeetingRoomProps) {
                             setPeoplePanelOpen((value) => !value)
                         }
                         onLeave={handleLeave}
-                        isMicOn={isLiveKitEnabled ? liveKit.isMicOn : undefined}
-                        isCameraOn={
-                            isLiveKitEnabled ? liveKit.isCameraOn : undefined
-                        }
-                        isScreenSharing={
-                            isLiveKitEnabled
-                                ? liveKit.isScreenSharing
-                                : undefined
-                        }
-                        screenShare={
-                            isLiveKitEnabled ? liveKit.screenShare : null
-                        }
-                        onToggleMic={
-                            isLiveKitEnabled ? liveKit.toggleMic : undefined
-                        }
-                        onToggleCamera={
-                            isLiveKitEnabled ? liveKit.toggleCamera : undefined
-                        }
-                        onToggleScreenShare={
-                            isLiveKitEnabled
-                                ? liveKit.toggleScreenShare
-                                : undefined
-                        }
-                        mediaNotice={
-                            isLiveKitEnabled ? liveKit.mediaNotice : undefined
-                        }
-                        connectionState={
-                            isLiveKitEnabled
-                                ? liveKit.connectionState
-                                : undefined
-                        }
+                        isMicOn={liveKit.isMicOn}
+                        isCameraOn={liveKit.isCameraOn}
+                        isScreenSharing={liveKit.isScreenSharing}
+                        screenShare={liveKit.screenShare}
+                        onToggleMic={liveKit.toggleMic}
+                        onToggleCamera={liveKit.toggleCamera}
+                        onToggleScreenShare={liveKit.toggleScreenShare}
+                        layoutMode={layoutMode}
+                        onLayoutModeChange={handleLayoutModeChange}
+                        pinnedAccountId={effectivePinnedAccountId}
+                        onTogglePin={handleTogglePin}
+                        activeSpeakerId={liveKit.activeSpeakerId}
+                        mediaNotice={liveKit.mediaNotice}
+                        connectionState={liveKit.connectionState}
                         onOpenSettings={() => setSettingsOpen(true)}
                     />
                 </div>
@@ -203,6 +301,14 @@ export function MeetingRoom({ meetingId, onLeave }: MeetingRoomProps) {
                 meetingId={meetingId}
                 onClose={() => setSettingsOpen(false)}
                 onSaved={() => setSettingsOpen(false)}
+                showNotificationPreferences
+                isHost={isHost}
+                notificationsEnabled={notificationsEnabled}
+                onNotificationsEnabledChange={setNotificationsEnabled}
+            />
+            <ParticipantPresenceToasts
+                toasts={presenceToasts}
+                onDismiss={dismissPresenceToast}
             />
         </div>
     );

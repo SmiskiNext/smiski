@@ -36,12 +36,9 @@ function useInvalidateMeetings() {
 
 /**
  * Create an instant meeting against the real `meet` backend (via the generated
- * SDK over Forge Remote). Unlike schedule/update/cancel/start/end below, this
- * flow does NOT fall back to the in-memory mock. The mutation resolves with the
- * SDK-native `{ data, error }` result rather than throwing, so cache
- * invalidation runs only when `result.data` is present and the modal branches
- * on `result.error` (BREAKING; standalone `vite dev` cannot create instant
- * meetings).
+ * SDK over Forge Remote). The mutation resolves with the SDK-native
+ * `{ data, error }` result rather than throwing, so cache invalidation runs
+ * only when `result.data` is present and the modal branches on `result.error`.
  */
 export function useCreateInstantMeeting() {
     const invalidate = useInvalidateMeetings();
@@ -56,11 +53,9 @@ export function useCreateInstantMeeting() {
 
 /**
  * Create a scheduled meeting against the real `meet` backend (via the generated
- * SDK over Forge Remote). Like the instant flow, this does NOT fall back to the
- * in-memory mock and resolves with the SDK-native `{ data, error }` result, so
- * invalidation runs only when `result.data` is present (BREAKING; standalone
- * `vite dev` cannot create scheduled meetings). The edit branch below stays on
- * the mock.
+ * SDK over Forge Remote). Like the instant flow, it resolves with the
+ * SDK-native `{ data, error }` result, so invalidation runs only when
+ * `result.data` is present.
  */
 export function useScheduleMeeting() {
     const invalidate = useInvalidateMeetings();

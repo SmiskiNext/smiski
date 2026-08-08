@@ -4,8 +4,8 @@
 
 Defines the endpoint for adding one or more new invitees to an existing meeting.
 Only the meeting host may add invitees, and only while the meeting is in
-`SCHEDULED` status. The endpoint validates inputs, rejects duplicates
-atomically, and publishes an invitee-creation event on success.
+`SCHEDULED` or `RUNNING` status. The endpoint validates inputs, rejects
+duplicates atomically, and publishes an invitee-creation event on success.
 
 ## Requirements
 
@@ -49,20 +49,26 @@ call.
 
 ### Requirement: Status-gated invitee creation
 
-The system SHALL allow invitee creation only when the meeting status is
-`SCHEDULED`. The system SHALL reject invitee creation for meetings whose status
-is `RUNNING`, `COMPLETED`, or `CANCELED` with an invalid-status Problem Details
-response, and SHALL not create any invitee or publish any event.
+The system SHALL allow invitee creation when the meeting status is `SCHEDULED`
+or `RUNNING`. The system SHALL reject invitee creation for meetings whose status
+is `COMPLETED` or `CANCELED` with an invalid-status Problem Details response,
+and SHALL not create any invitee or publish any event.
 
 #### Scenario: Scheduled meeting accepts invitee creation
 
 - **WHEN** the host adds invitees to a `SCHEDULED` meeting
 - **THEN** the invitees are created and persisted
 
-#### Scenario: Non-scheduled meeting rejects invitee creation
+#### Scenario: Running meeting accepts invitee creation
 
-- **WHEN** the host attempts to add invitees to a `RUNNING`, `COMPLETED`, or
-  `CANCELED` meeting
+- **WHEN** the host adds invitees to a `RUNNING` meeting
+- **THEN** the invitees are created and persisted and the meeting remains
+  `RUNNING`
+
+#### Scenario: Completed or canceled meeting rejects invitee creation
+
+- **WHEN** the host attempts to add invitees to a `COMPLETED` or `CANCELED`
+  meeting
 - **THEN** the request is rejected with an invalid-status Problem Details
   response, no invitee is created, and no event is published
 

@@ -4,7 +4,9 @@
  * The list/decision APIs use the generated SDK over Forge Remote. Realtime
  * notifications use a browser-native external fetch to the notification
  * service because Forge Remote buffers response bodies. REST polling
- * stays enabled at a low frequency to reconcile missed or stale events.
+ * stays enabled at a low frequency to reconcile missed or stale events, so an
+ * unavailable stream degrades to polling instead of surfacing as an unhandled
+ * rejection.
  */
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -55,9 +57,9 @@ export function usePendingJoinRequests(
     );
 
     useEffect(() => {
-        if (!meetingId || !enabled || !realtime || import.meta.env.DEV) return;
+        if (!meetingId || !enabled || !realtime) return;
         const controller = new AbortController();
-        void subscribeToMeetingJoinRequests(meetingId, {
+        subscribeToMeetingJoinRequests(meetingId, {
             signal: controller.signal,
             onJoinRequest: (request) => {
                 queryClient.setQueryData<PendingJoinRequestsPage>(
@@ -68,7 +70,7 @@ export function usePendingJoinRequests(
                             : page,
                 );
             },
-        });
+        }).catch(() => undefined);
         return () => controller.abort();
     }, [enabled, meetingId, queryClient, queryKey, realtime]);
 

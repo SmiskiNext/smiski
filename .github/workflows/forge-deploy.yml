@@ -132,13 +132,6 @@ jobs:
                   pnpm test
                   pnpm build
 
-            # manifest.yml ships a placeholder baseUrl. Forge's server-side
-            # pre-deployment check rejects unresolved ${...} in egress-reachable
-            # fields, so the real origin is substituted into the file on disk
-            # before any Forge command reads it. See app/scripts/render-manifest.sh.
-            - name: Render manifest
-              run: pnpm manifest:render
-
             - name: Forge lint
               shell: bash
               run: |

@@ -4,10 +4,9 @@
  * list shaped for `ParticipantVideoTile`/`ParticipantVideoGrid`.
  *
  * `role` is hardcoded to 'PARTICIPANT' for every entry here: LiveKit has no
- * concept of meeting "host" — that lives in the (still-mocked) meeting
- * roster, whose accountIds won't line up with real Jira accountIds during a
- * live trial. The HOST badge simply won't render for real participants;
- * that's an accepted prototype simplification, not a bug.
+ * concept of meeting "host" — that lives in the backend meeting roster, which
+ * this hook does not read. Callers that need the HOST badge resolve it from
+ * that roster instead of from the live LiveKit participant list.
  */
 
 import {
@@ -18,7 +17,9 @@ import {
     type RemoteVideoTrack,
     Room,
     RoomEvent,
+    type RoomOptions,
     Track,
+    VideoPreset,
 } from 'livekit-client';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { ParticipantRole } from '../domain';
@@ -30,9 +31,57 @@ export interface LiveMeetingParticipant {
     isLocal: boolean;
     isMicOn: boolean;
     isCameraOn: boolean;
+    /** True while LiveKit's audio-level detection marks this participant as talking. */
+    isSpeaking: boolean;
     videoTrack: LocalVideoTrack | RemoteVideoTrack | null;
     audioTrack: LocalAudioTrack | RemoteAudioTrack | null;
 }
+
+/**
+ * Streaming profile applied to every published track in the room.
+ *
+ * `adaptiveStream` (subscriber-side quality matching) and `dynacast`
+ * (publisher-side pausing of unconsumed simulcast layers) only pay off when
+ * the publisher actually offers layers to choose from, so the two simulcast
+ * layers below are what make the pair effective: the SFU can serve a 180p
+ * thumbnail to a filmstrip tile instead of the full 720p stream.
+ *
+ * `videoSimulcastLayers` is typed as `VideoPreset` instances rather than plain
+ * `{ width, height, encoding }` objects — the class carries a derived
+ * `aspectRatio`/`resolution`, so a literal does not satisfy it.
+ *
+ * `red` (redundant audio data) trades roughly 5% bandwidth for far fewer
+ * dropout artifacts, and `dtx` claws that back by not transmitting during
+ * silence — worth pairing in a meeting where most participants are muted
+ * listeners.
+ */
+const ROOM_OPTIONS: RoomOptions = {
+    adaptiveStream: true,
+    dynacast: true,
+    publishDefaults: {
+        videoCodec: 'vp8',
+        videoEncoding: { maxBitrate: 1_500_000, maxFramerate: 30 },
+        videoSimulcastLayers: [
+            new VideoPreset({
+                width: 640,
+                height: 360,
+                maxBitrate: 500_000,
+                maxFramerate: 20,
+            }),
+            new VideoPreset({
+                width: 320,
+                height: 180,
+                maxBitrate: 150_000,
+                maxFramerate: 15,
+            }),
+        ],
+        screenShareEncoding: { maxBitrate: 3_000_000, maxFramerate: 30 },
+        red: true,
+        dtx: true,
+    },
+    stopLocalTrackOnUnpublish: true,
+    disconnectOnPageLeave: true,
+};
 
 /**
  * The one screen-share track currently being presented in the room, if any.
@@ -56,10 +105,30 @@ export type LiveKitConnectionState =
     | 'disconnected'
     | 'error';
 
+/**
+ * Another participant arriving in or leaving the room, as reported by
+ * LiveKit's `ParticipantConnected`/`ParticipantDisconnected` events.
+ *
+ * Never describes the local user: LiveKit raises neither event for the local
+ * participant, and `ParticipantConnected` only covers participants who join
+ * after the local user — so a room that is already busy on entry produces no
+ * events at all.
+ */
+export interface ParticipantPresenceEvent {
+    kind: 'joined' | 'left';
+    displayName: string;
+}
+
 export interface UseLiveKitRoomOptions {
     token: string | null;
     url: string | null;
     enabled: boolean;
+    /**
+     * Notified whenever another participant joins or leaves. Held in a ref, so
+     * passing a new function identity on every render never re-runs the
+     * connect effect (which would tear the room down and rejoin it).
+     */
+    onParticipantPresence?: (event: ParticipantPresenceEvent) => void;
 }
 
 export interface UseLiveKitRoomResult {
@@ -72,6 +141,12 @@ export interface UseLiveKitRoomResult {
     isMicOn: boolean;
     isCameraOn: boolean;
     isScreenSharing: boolean;
+    /**
+     * Identity of the participant LiveKit currently ranks loudest, or `null`
+     * while the room is silent. Drives the spotlight layout's subject when
+     * nothing is pinned and nobody is presenting.
+     */
+    activeSpeakerId: string | null;
     /**
      * User-facing note about a media-permission change: either the most
      * recent `toggleScreenShare()` call being rejected (disabled by the
@@ -99,6 +174,7 @@ function toParticipant(
         isLocal,
         isMicOn: participant.isMicrophoneEnabled,
         isCameraOn: participant.isCameraEnabled,
+        isSpeaking: participant.isSpeaking,
         videoTrack:
             (videoPub?.track as LocalVideoTrack | RemoteVideoTrack | undefined)
             ?? null,
@@ -179,8 +255,13 @@ export function useLiveKitRoom({
     token,
     url,
     enabled,
+    onParticipantPresence,
 }: UseLiveKitRoomOptions): UseLiveKitRoomResult {
     const roomRef = useRef<Room | null>(null);
+    const onParticipantPresenceRef = useRef(onParticipantPresence);
+    useEffect(() => {
+        onParticipantPresenceRef.current = onParticipantPresence;
+    }, [onParticipantPresence]);
     const [connectionState, setConnectionState] =
         useState<LiveKitConnectionState>('idle');
     const [error, setError] = useState<Error | null>(null);
@@ -194,6 +275,7 @@ export function useLiveKitRoom({
     // mutation doesn't re-render, so a render-time read leaves the "Share
     // screen" button stuck on its previous state.
     const [isScreenSharing, setIsScreenSharing] = useState(false);
+    const [activeSpeakerId, setActiveSpeakerId] = useState<string | null>(null);
     const [mediaNotice, setMediaNotice] = useState<string | null>(null);
 
     const snapshot = useCallback(() => {
@@ -237,18 +319,42 @@ export function useLiveKitRoom({
     useEffect(() => {
         if (!enabled || !token || !url) return;
 
-        const room = new Room({ adaptiveStream: true, dynacast: true });
+        const room = new Room(ROOM_OPTIONS);
         roomRef.current = room;
         let cancelled = false;
 
-        room.on(RoomEvent.ParticipantConnected, snapshot)
-            .on(RoomEvent.ParticipantDisconnected, snapshot)
+        const notifyPresence = (
+            kind: ParticipantPresenceEvent['kind'],
+            participant: LKParticipant,
+        ) => {
+            onParticipantPresenceRef.current?.({
+                kind,
+                displayName: participant.name || participant.identity,
+            });
+        };
+
+        room.on(RoomEvent.ParticipantConnected, (participant) => {
+            snapshot();
+            notifyPresence('joined', participant);
+        })
+            .on(RoomEvent.ParticipantDisconnected, (participant) => {
+                snapshot();
+                notifyPresence('left', participant);
+            })
             .on(RoomEvent.TrackSubscribed, snapshot)
             .on(RoomEvent.TrackUnsubscribed, snapshot)
             .on(RoomEvent.TrackMuted, snapshot)
             .on(RoomEvent.TrackUnmuted, snapshot)
             .on(RoomEvent.LocalTrackPublished, snapshot)
             .on(RoomEvent.LocalTrackUnpublished, snapshot)
+            // LiveKit reports speakers loudest-first, so the head of the list
+            // is the active speaker. `snapshot()` runs alongside it because
+            // each participant's `isSpeaking` flag changed too, and the tiles
+            // read that off the participant list rather than off this id.
+            .on(RoomEvent.ActiveSpeakersChanged, (speakers) => {
+                setActiveSpeakerId(speakers[0]?.identity ?? null);
+                snapshot();
+            })
             .on(
                 RoomEvent.ParticipantPermissionsChanged,
                 (prevPermissions, participant) => {
@@ -430,6 +536,7 @@ export function useLiveKitRoom({
         isMicOn: local?.isMicOn ?? false,
         isCameraOn: local?.isCameraOn ?? false,
         isScreenSharing,
+        activeSpeakerId,
         mediaNotice,
         toggleMic,
         toggleCamera,

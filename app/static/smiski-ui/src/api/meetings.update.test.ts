@@ -88,4 +88,39 @@ describe('buildUpdateMeetingPayload (MeetUpdateMeetingRequest body)', () => {
 
         expect(payload.zoneId).toBeTruthy();
     });
+
+    it('uses the selected issue link when provided', () => {
+        const payload = buildUpdateMeetingPayload({
+            title: 'New title',
+            description: '',
+            startTime: '2026-08-01T02:30:00.000Z',
+            detail: DETAIL,
+            selectedIssue: {
+                issueId: 'issue-SMISKI-202',
+                issueKey: 'SMISKI-202',
+                projectKey: 'SMISKI',
+            },
+        });
+
+        expect(payload.issueLink).toEqual({
+            issueId: 'issue-SMISKI-202',
+            issueKey: 'SMISKI-202',
+            projectKey: 'SMISKI',
+        });
+    });
+
+    it('preserves the current issue link when selectedIssue is omitted', () => {
+        const payload = buildUpdateMeetingPayload({
+            title: 'New title',
+            description: '',
+            startTime: '2026-08-01T02:30:00.000Z',
+            detail: DETAIL,
+        });
+
+        expect(payload.issueLink).toEqual({
+            issueId: 'issue-SMISKI-101',
+            issueKey: 'SMISKI-101',
+            projectKey: 'SMISKI',
+        });
+    });
 });
