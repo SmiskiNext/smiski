@@ -17,7 +17,9 @@ import {
     type RemoteVideoTrack,
     Room,
     RoomEvent,
+    type RoomOptions,
     Track,
+    VideoPreset,
 } from 'livekit-client';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { ParticipantRole } from '../domain';
@@ -29,9 +31,57 @@ export interface LiveMeetingParticipant {
     isLocal: boolean;
     isMicOn: boolean;
     isCameraOn: boolean;
+    /** True while LiveKit's audio-level detection marks this participant as talking. */
+    isSpeaking: boolean;
     videoTrack: LocalVideoTrack | RemoteVideoTrack | null;
     audioTrack: LocalAudioTrack | RemoteAudioTrack | null;
 }
+
+/**
+ * Streaming profile applied to every published track in the room.
+ *
+ * `adaptiveStream` (subscriber-side quality matching) and `dynacast`
+ * (publisher-side pausing of unconsumed simulcast layers) only pay off when
+ * the publisher actually offers layers to choose from, so the two simulcast
+ * layers below are what make the pair effective: the SFU can serve a 180p
+ * thumbnail to a filmstrip tile instead of the full 720p stream.
+ *
+ * `videoSimulcastLayers` is typed as `VideoPreset` instances rather than plain
+ * `{ width, height, encoding }` objects — the class carries a derived
+ * `aspectRatio`/`resolution`, so a literal does not satisfy it.
+ *
+ * `red` (redundant audio data) trades roughly 5% bandwidth for far fewer
+ * dropout artifacts, and `dtx` claws that back by not transmitting during
+ * silence — worth pairing in a meeting where most participants are muted
+ * listeners.
+ */
+const ROOM_OPTIONS: RoomOptions = {
+    adaptiveStream: true,
+    dynacast: true,
+    publishDefaults: {
+        videoCodec: 'vp8',
+        videoEncoding: { maxBitrate: 1_500_000, maxFramerate: 30 },
+        videoSimulcastLayers: [
+            new VideoPreset({
+                width: 640,
+                height: 360,
+                maxBitrate: 500_000,
+                maxFramerate: 20,
+            }),
+            new VideoPreset({
+                width: 320,
+                height: 180,
+                maxBitrate: 150_000,
+                maxFramerate: 15,
+            }),
+        ],
+        screenShareEncoding: { maxBitrate: 3_000_000, maxFramerate: 30 },
+        red: true,
+        dtx: true,
+    },
+    stopLocalTrackOnUnpublish: true,
+    disconnectOnPageLeave: true,
+};
 
 /**
  * The one screen-share track currently being presented in the room, if any.
@@ -92,6 +142,12 @@ export interface UseLiveKitRoomResult {
     isCameraOn: boolean;
     isScreenSharing: boolean;
     /**
+     * Identity of the participant LiveKit currently ranks loudest, or `null`
+     * while the room is silent. Drives the spotlight layout's subject when
+     * nothing is pinned and nobody is presenting.
+     */
+    activeSpeakerId: string | null;
+    /**
      * User-facing note about a media-permission change: either the most
      * recent `toggleScreenShare()` call being rejected (disabled by the
      * host, or the OS share picker was cancelled), or the host revoking
@@ -118,6 +174,7 @@ function toParticipant(
         isLocal,
         isMicOn: participant.isMicrophoneEnabled,
         isCameraOn: participant.isCameraEnabled,
+        isSpeaking: participant.isSpeaking,
         videoTrack:
             (videoPub?.track as LocalVideoTrack | RemoteVideoTrack | undefined)
             ?? null,
@@ -218,6 +275,7 @@ export function useLiveKitRoom({
     // mutation doesn't re-render, so a render-time read leaves the "Share
     // screen" button stuck on its previous state.
     const [isScreenSharing, setIsScreenSharing] = useState(false);
+    const [activeSpeakerId, setActiveSpeakerId] = useState<string | null>(null);
     const [mediaNotice, setMediaNotice] = useState<string | null>(null);
 
     const snapshot = useCallback(() => {
@@ -261,7 +319,7 @@ export function useLiveKitRoom({
     useEffect(() => {
         if (!enabled || !token || !url) return;
 
-        const room = new Room({ adaptiveStream: true, dynacast: true });
+        const room = new Room(ROOM_OPTIONS);
         roomRef.current = room;
         let cancelled = false;
 
@@ -289,6 +347,14 @@ export function useLiveKitRoom({
             .on(RoomEvent.TrackUnmuted, snapshot)
             .on(RoomEvent.LocalTrackPublished, snapshot)
             .on(RoomEvent.LocalTrackUnpublished, snapshot)
+            // LiveKit reports speakers loudest-first, so the head of the list
+            // is the active speaker. `snapshot()` runs alongside it because
+            // each participant's `isSpeaking` flag changed too, and the tiles
+            // read that off the participant list rather than off this id.
+            .on(RoomEvent.ActiveSpeakersChanged, (speakers) => {
+                setActiveSpeakerId(speakers[0]?.identity ?? null);
+                snapshot();
+            })
             .on(
                 RoomEvent.ParticipantPermissionsChanged,
                 (prevPermissions, participant) => {
@@ -470,6 +536,7 @@ export function useLiveKitRoom({
         isMicOn: local?.isMicOn ?? false,
         isCameraOn: local?.isCameraOn ?? false,
         isScreenSharing,
+        activeSpeakerId,
         mediaNotice,
         toggleMic,
         toggleCamera,

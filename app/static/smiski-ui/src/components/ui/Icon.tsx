@@ -12,11 +12,14 @@ import {
     ExternalLink,
     History,
     Info,
+    LayoutGrid,
     Mic,
     MicOff,
     MoreHorizontal,
     Pencil,
     PhoneOff,
+    Pin,
+    PinOff,
     Play,
     Plus,
     ScreenShare,
@@ -47,11 +50,14 @@ export type IconName =
     | 'external'
     | 'history'
     | 'info'
+    | 'layout'
     | 'mic'
     | 'micOff'
     | 'more'
     | 'people'
     | 'phoneOff'
+    | 'pin'
+    | 'pinOff'
     | 'play'
     | 'plus'
     | 'record'
@@ -79,11 +85,14 @@ const icons: Record<IconName, LucideIcon> = {
     external: ExternalLink,
     history: History,
     info: Info,
+    layout: LayoutGrid,
     mic: Mic,
     micOff: MicOff,
     more: MoreHorizontal,
     people: Users,
     phoneOff: PhoneOff,
+    pin: Pin,
+    pinOff: PinOff,
     play: Play,
     plus: Plus,
     record: Circle,

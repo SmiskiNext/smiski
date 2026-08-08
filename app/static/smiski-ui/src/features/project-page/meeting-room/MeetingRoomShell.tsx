@@ -1,13 +1,20 @@
 import { useEffect, useState } from 'react';
 import { cn, Icon } from '../../../components/ui';
-import type { Meeting, Participant } from '../../../domain';
+import {
+    type LayoutMode,
+    type Meeting,
+    type Participant,
+    resolveMeetingLayout,
+} from '../../../domain';
 import type {
     LiveKitConnectionState,
     LiveMeetingParticipant,
     ScreenShareFeed,
 } from '../../../hooks/useLiveKitRoom';
+import { MeetingLayoutMenu } from './MeetingLayoutMenu';
 import { ParticipantFilmstrip } from './ParticipantFilmstrip';
-import { ParticipantVideoGrid } from './ParticipantVideoGrid';
+import { ParticipantVideoGrid, tileMediaProps } from './ParticipantVideoGrid';
+import { ParticipantVideoTile } from './ParticipantVideoTile';
 import { ScreenShareStage } from './ScreenShareStage';
 
 export interface MeetingRoomShellProps {
@@ -25,14 +32,26 @@ export interface MeetingRoomShellProps {
     isCameraOn: boolean;
     isScreenSharing: boolean;
     /**
-     * Set while anyone in the room is presenting, `null` when nobody is.
-     * Switches the video area from the equal-sized grid to a stage +
-     * filmstrip layout.
+     * Set while anyone in the room is presenting, `null` when nobody is. One
+     * of the inputs `resolveMeetingLayout` weighs when choosing between the
+     * equal grid and a stage + filmstrip.
      */
     screenShare: ScreenShareFeed | null;
     onToggleMic: () => void;
     onToggleCamera: () => void;
     onToggleScreenShare: () => void;
+    /** Chosen arrangement, persisted per user by the caller. */
+    layoutMode: LayoutMode;
+    onLayoutModeChange: (mode: LayoutMode) => void;
+    /**
+     * Participant held on the stage regardless of who is speaking or
+     * presenting, or `null` when nothing is pinned. Session-only — the caller
+     * neither persists it nor lets it outlive the pinned participant.
+     */
+    pinnedAccountId: string | null;
+    onTogglePin: (accountId: string) => void;
+    /** Loudest participant right now, or `null` while the room is silent. */
+    activeSpeakerId: string | null;
     /**
      * User-facing note about a media-permission change — a failed
      * screen-share toggle, or the host revoking mic/camera/screen-share
@@ -90,7 +109,8 @@ function ControlButton({
         | 'screen'
         | 'people'
         | 'phoneOff'
-        | 'settings';
+        | 'settings'
+        | 'layout';
     active?: boolean;
     danger?: boolean;
     disabled?: boolean;
@@ -160,11 +180,28 @@ export function MeetingRoomShell({
     mediaNotice,
     connectionState,
     onOpenSettings,
+    layoutMode,
+    onLayoutModeChange,
+    pinnedAccountId,
+    onTogglePin,
+    activeSpeakerId,
 }: MeetingRoomShellProps) {
     const canShareScreen = meeting?.settings?.allowScreenShare ?? true;
     const canUseMic = meeting?.settings?.allowMicrophone ?? true;
     const canUseCamera = meeting?.settings?.allowVideo ?? true;
     const elapsed = useElapsedTime(meeting?.startedAt);
+    const layout = resolveMeetingLayout({
+        mode: layoutMode,
+        participants,
+        selfAccountId,
+        pinnedAccountId,
+        hasScreenShare: screenShare !== null,
+        activeSpeakerId,
+    });
+    // Lifted out of the JSX so the discriminant narrowing below survives into
+    // the pin callback: TypeScript drops narrowings of a property access (but
+    // not of a `const` binding) inside a closure.
+    const stageSubject = layout.arrangement === 'stage' ? layout.subject : null;
     return (
         <section className='overflow-hidden rounded-3xl border border-slate-700 bg-slate-950 shadow-panel'>
             <header className='flex items-center justify-between gap-4 border-b border-white/8 px-4 py-3.5 sm:px-5'>
@@ -205,22 +242,52 @@ export function MeetingRoomShell({
                     </span>
                 </div>
             </header>
-            {screenShare ? (
+            {layout.arrangement === 'stage' && stageSubject ? (
                 <div className='flex h-80 flex-col gap-3 bg-slate-900 p-3 sm:p-4 lg:h-120 lg:flex-row'>
                     <div className='min-h-0 min-w-0 flex-1'>
-                        <ScreenShareStage feed={screenShare} />
+                        {stageSubject.kind === 'screenShare' ? (
+                            screenShare && (
+                                <ScreenShareStage feed={screenShare} />
+                            )
+                        ) : (
+                            <ParticipantVideoTile
+                                participant={stageSubject.participant}
+                                {...tileMediaProps(
+                                    stageSubject.participant,
+                                    selfAccountId,
+                                    isMicOn,
+                                    activeSpeakerId,
+                                )}
+                                isPinned={
+                                    stageSubject.participant.accountId
+                                    === pinnedAccountId
+                                }
+                                onTogglePin={() =>
+                                    onTogglePin(
+                                        stageSubject.participant.accountId,
+                                    )
+                                }
+                            />
+                        )}
                     </div>
                     <ParticipantFilmstrip
-                        participants={participants}
+                        cells={layout.cells}
                         selfAccountId={selfAccountId}
                         isSelfMicOn={isMicOn}
+                        activeSpeakerId={activeSpeakerId}
+                        pinnedAccountId={pinnedAccountId}
+                        onTogglePin={onTogglePin}
                     />
                 </div>
             ) : (
                 <ParticipantVideoGrid
-                    participants={participants}
+                    cells={layout.cells}
                     selfAccountId={selfAccountId}
                     isSelfMicOn={isMicOn}
+                    screenShare={screenShare}
+                    activeSpeakerId={activeSpeakerId}
+                    pinnedAccountId={pinnedAccountId}
+                    onTogglePin={onTogglePin}
                 />
             )}
             <footer className='border-t border-white/8 bg-slate-950 px-3 py-4'>
@@ -278,6 +345,10 @@ export function MeetingRoomShell({
                                 : undefined
                         }
                         onClick={onToggleScreenShare}
+                    />
+                    <MeetingLayoutMenu
+                        mode={layoutMode}
+                        onModeChange={onLayoutModeChange}
                     />
                     {onOpenSettings && (
                         <ControlButton

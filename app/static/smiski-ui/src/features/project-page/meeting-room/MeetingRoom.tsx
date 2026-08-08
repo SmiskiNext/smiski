@@ -8,12 +8,20 @@ import {
 } from '../../../components/shared';
 import { Button, Icon } from '../../../components/ui';
 import { useCurrentUser } from '../../../context/CurrentUserContext';
-import type { Participant } from '../../../domain';
+import {
+    type LayoutMode,
+    type Participant,
+    reconcilePinnedAccountId,
+} from '../../../domain';
 import { useLiveKitRoom } from '../../../hooks/useLiveKitRoom';
 import { useMeeting } from '../../../hooks/useMeeting';
 import { useMeetingParticipants } from '../../../hooks/useMeetingParticipants';
 import { useParticipantPresenceNotifications } from '../../../hooks/useParticipantPresenceNotifications';
 import { useRoomToken } from '../../../hooks/useRoomToken';
+import {
+    readMeetingLayoutMode,
+    writeMeetingLayoutMode,
+} from '../../../utils/meetingLayoutPreference';
 import { MeetingRoomShell } from './MeetingRoomShell';
 import { ParticipantListPlaceholder } from './ParticipantListPlaceholder';
 import { PendingJoinRequestsPanel } from './PendingJoinRequestsPanel';
@@ -49,6 +57,24 @@ export function MeetingRoom({ meetingId, onLeave }: MeetingRoomProps) {
         useMeetingParticipants(meetingId, meeting?.projectKey);
     const [isPeoplePanelOpen, setPeoplePanelOpen] = useState(false);
     const [isSettingsOpen, setSettingsOpen] = useState(false);
+    const [layoutMode, setLayoutMode] = useState<LayoutMode>(
+        readMeetingLayoutMode,
+    );
+    // Session-only, unlike the layout mode: a pin names one participant in one
+    // call, so restoring it into a later meeting they are not in would only
+    // resolve straight back to unpinned.
+    const [pinnedAccountId, setPinnedAccountId] = useState<string | null>(null);
+
+    const handleLayoutModeChange = (mode: LayoutMode) => {
+        setLayoutMode(mode);
+        writeMeetingLayoutMode(mode);
+    };
+
+    const handleTogglePin = (accountId: string) => {
+        setPinnedAccountId((current) =>
+            current === accountId ? null : accountId,
+        );
+    };
 
     const hasStarted = meeting?.status === 'RUNNING';
     const isTerminal =
@@ -183,6 +209,15 @@ export function MeetingRoom({ meetingId, onLeave }: MeetingRoomProps) {
                 },
             ];
 
+    // Reconciled on the way down rather than in an effect: the early returns
+    // above rule out another hook here, and a pinned participant who has left
+    // must stop reading as pinned in the same render that drops them from the
+    // roster — not one render later.
+    const effectivePinnedAccountId = reconcilePinnedAccountId(
+        pinnedAccountId,
+        roomParticipants,
+    );
+
     const selfAccountId = liveKit.localAccountId ?? currentUser.accountId;
     const isHost = meeting?.hostId === currentUser.accountId;
 
@@ -240,6 +275,11 @@ export function MeetingRoom({ meetingId, onLeave }: MeetingRoomProps) {
                         onToggleMic={liveKit.toggleMic}
                         onToggleCamera={liveKit.toggleCamera}
                         onToggleScreenShare={liveKit.toggleScreenShare}
+                        layoutMode={layoutMode}
+                        onLayoutModeChange={handleLayoutModeChange}
+                        pinnedAccountId={effectivePinnedAccountId}
+                        onTogglePin={handleTogglePin}
+                        activeSpeakerId={liveKit.activeSpeakerId}
                         mediaNotice={liveKit.mediaNotice}
                         connectionState={liveKit.connectionState}
                         onOpenSettings={() => setSettingsOpen(true)}

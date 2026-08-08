@@ -105,6 +105,7 @@ const IDLE_LIVEKIT: UseLiveKitRoomResult = {
     isMicOn: false,
     isCameraOn: false,
     isScreenSharing: false,
+    activeSpeakerId: null,
     mediaNotice: null,
     toggleMic: vi.fn(),
     toggleCamera: vi.fn(),
