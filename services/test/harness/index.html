@@ -1,0 +1,143 @@
+<!doctype html>
+<!--
+    Browser QoS harness for TC-01 and TC-02.
+
+    Deliberately NOT part of the Forge app. app/static/smiski-ui builds its Room
+    inside a Jira iframe with no way to inject an rtcConfig, and the relay-only
+    toggle below is exactly an rtcConfig override, so measuring here is what
+    keeps the production application source untouched.
+
+    Plain HTML with a vendored UMD bundle: no build step, no bundler, no npm
+    install. nginx serves this directory as static files.
+
+    Three things the operator must know before reading any export:
+
+      1. The LiveKit WebSocket URL is NOT returned by any API response. The join
+         endpoint answers with a token and a room name only, so the URL is typed
+         in here and defaults to ws://localhost:7880.
+
+      2. Relay-only proves nothing on its own. A connection can succeed over a
+         direct path and still be recorded as a session, so the export carries
+         the negotiated candidate type and the run is only relay evidence when
+         that column reads "relay".
+
+      3. Screen share is timestamped here because `lk load-test` cannot publish
+         one — it hardcodes a camera track source. This is the manual leg of
+         TC-03, and the recorded interval is what lets it be correlated with
+         server-side metrics.
+-->
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>Smiski QoS harness</title>
+        <link rel="stylesheet" href="./harness.css" />
+    </head>
+    <body>
+        <header>
+            <h1>Smiski QoS harness</h1>
+            <p class="subtitle">
+                TC-01 relay traversal and TC-02 media quality. Local
+                measurement only.
+            </p>
+        </header>
+
+        <main>
+            <section class="panel">
+                <h2>Connection</h2>
+
+                <label for="serverUrl">LiveKit WebSocket URL</label>
+                <input
+                    id="serverUrl"
+                    type="text"
+                    value="ws://localhost:7880"
+                    spellcheck="false"
+                />
+                <p class="hint">
+                    No API response carries this. The join endpoint returns a
+                    token and a room name only.
+                </p>
+
+                <label for="token">Access token</label>
+                <textarea
+                    id="token"
+                    rows="4"
+                    spellcheck="false"
+                    placeholder="Paste the token field from POST /api/1/meetings/{id}:join"
+                ></textarea>
+                <p class="hint">
+                    This is the LiveKit token from the join response, not the
+                    Forge Invocation Token used to call the gateway.
+                </p>
+
+                <label class="checkbox">
+                    <input id="relayOnly" type="checkbox" />
+                    <span>
+                        Relay only &mdash; sets
+                        <code>iceTransportPolicy: 'relay'</code>
+                    </span>
+                </label>
+                <p class="hint">
+                    Required for TC-01. Verify the candidate type below reads
+                    <code>relay</code>; a successful connection alone is not
+                    proof of relay.
+                </p>
+
+                <label class="checkbox">
+                    <input id="publishMedia" type="checkbox" checked />
+                    <span>Publish camera and microphone on connect</span>
+                </label>
+
+                <div class="actions">
+                    <button id="connect" type="button">Connect</button>
+                    <button id="disconnect" type="button" disabled>
+                        Disconnect
+                    </button>
+                    <button id="screenShare" type="button" disabled>
+                        Start screen share
+                    </button>
+                    <button id="export" type="button" disabled>
+                        Export CSV
+                    </button>
+                </div>
+
+                <p id="status" class="status" role="status">Idle.</p>
+            </section>
+
+            <section class="panel">
+                <h2>Live readings</h2>
+                <dl class="readings">
+                    <dt>Call setup time</dt>
+                    <dd id="setupTime">&mdash;</dd>
+                    <dt>Candidate type (local / remote)</dt>
+                    <dd id="candidateType">&mdash;</dd>
+                    <dt>Round-trip time</dt>
+                    <dd id="rtt">&mdash;</dd>
+                    <dt>Jitter</dt>
+                    <dd id="jitter">&mdash;</dd>
+                    <dt>Packet loss</dt>
+                    <dd id="packetLoss">&mdash;</dd>
+                    <dt>Frames dropped</dt>
+                    <dd id="framesDropped">&mdash;</dd>
+                    <dt>Bitrate down / up</dt>
+                    <dd id="bitrate">&mdash;</dd>
+                    <dt>Samples collected</dt>
+                    <dd id="sampleCount">0</dd>
+                </dl>
+            </section>
+
+            <section class="panel">
+                <h2>Video</h2>
+                <div id="videoGrid" class="video-grid"></div>
+            </section>
+
+            <section class="panel">
+                <h2>Event log</h2>
+                <pre id="log" class="log"></pre>
+            </section>
+        </main>
+
+        <script src="./vendor/livekit-client.umd.js"></script>
+        <script src="./harness.js"></script>
+    </body>
+</html>

@@ -1,0 +1,27 @@
+# Generated key material for the load-test stack.
+#
+# `smiski test keygen` writes an RSA keypair and the JWKS Envoy verifies Forge
+# Invocation Tokens against. The private key signs tokens that this stack
+# accepts as authentic, so it must never be committed. The public JWKS is not
+# secret, but is generated rather than authored and is ignored alongside it so
+# the whole directory can be regenerated at any time.
+keys/
+
+*.pem
+*.key
+jwks.json
+
+# Measurement artifacts written by `smiski test loadtest` and `smiski test
+# collect`. Every file under it is a result rather than source, and results are
+# reproduced by re-running the harness, not by reading them out of git.
+results/
+
+# Bytecode cache CPython writes beside mock-jira/server.py.
+#
+# The mock is bind-mounted read-write into a python:3.13-alpine container, so
+# the interpreter creates this directory as ROOT on the host the first time it
+# imports anything from that path. It is generated, it is not readable as
+# source, and it reappears on every stack start — hence an ignore rule rather
+# than a one-off deletion.
+__pycache__/
+*.py[cod]

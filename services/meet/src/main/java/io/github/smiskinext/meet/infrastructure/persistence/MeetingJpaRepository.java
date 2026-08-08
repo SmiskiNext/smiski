@@ -26,6 +26,10 @@ public interface MeetingJpaRepository
     @Query("select meeting from MeetingJpaEntity meeting where meeting.id = :id")
     Optional<MeetingJpaEntity> findByIdWithLock(@Param("id") UUID id);
 
+    @Query("select meeting from MeetingJpaEntity meeting"
+            + " where meeting.id = :id and meeting.deletedAt is null")
+    Optional<MeetingJpaEntity> findActiveById(@Param("id") UUID id);
+
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select meeting from MeetingJpaEntity meeting"
             + " where meeting.id = :id and meeting.deletedAt is null")

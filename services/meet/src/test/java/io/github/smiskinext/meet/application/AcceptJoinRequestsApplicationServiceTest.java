@@ -3,6 +3,7 @@ package io.github.smiskinext.meet.application;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -47,6 +48,7 @@ import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.InOrder;
 
 class AcceptJoinRequestsApplicationServiceTest {
 
@@ -82,6 +84,7 @@ class AcceptJoinRequestsApplicationServiceTest {
 
     @Test
     void acceptSinglePendingRequestApprovesWithTokenPersistsAndDequeues() {
+        stubMeetingForTokenGeneration();
         stubMeeting(50);
         when(participationLogRepository.countActiveByMeetingId(MEETING_ID)).thenReturn(3L);
         when(liveKitPort.generateToken(any())).thenReturn(Result.success("mock-token"));
@@ -112,6 +115,7 @@ class AcceptJoinRequestsApplicationServiceTest {
 
     @Test
     void acceptBatchExceedingCapacityApprovesOnlyFittingRequests() {
+        stubMeetingForTokenGeneration();
         stubMeeting(3);
         when(participationLogRepository.countActiveByMeetingId(MEETING_ID)).thenReturn(1L);
         when(liveKitPort.generateToken(any())).thenReturn(Result.success("mock-token"));
@@ -132,12 +136,13 @@ class AcceptJoinRequestsApplicationServiceTest {
         assertThat(approved).isEqualTo(2L);
         assertThat(items.get(2).status()).isEqualTo(JoinDecisionStatus.FAILED);
         assertThat(items.get(2).reason()).isEqualTo(MeetingErrorCode.MEETING_FULL.code());
-        verify(liveKitPort, times(2)).generateToken(any());
+        verify(liveKitPort, times(3)).generateToken(any());
         verify(joinRequestRepository, times(2)).removeFromQueue(eq(MEETING_ID), any());
     }
 
     @Test
     void acceptBatchWithUnknownTerminalAndExpiredIdsFailsOnlyThoseItems() {
+        stubMeetingForTokenGeneration();
         stubMeeting(50);
         when(participationLogRepository.countActiveByMeetingId(MEETING_ID)).thenReturn(0L);
         when(liveKitPort.generateToken(any())).thenReturn(Result.success("mock-token"));
@@ -178,21 +183,48 @@ class AcceptJoinRequestsApplicationServiceTest {
     }
 
     @Test
-    void nonHostCallerIsRejected() {
+    void allTokensAreGeneratedBeforeLockIsAcquired() {
+        stubMeetingForTokenGeneration();
         stubMeeting(50);
+        when(participationLogRepository.countActiveByMeetingId(MEETING_ID)).thenReturn(0L);
+        when(liveKitPort.generateToken(any())).thenReturn(Result.success("mock-token"));
+
+        JoinRequest first = pending("account-1", "device-1");
+        JoinRequest second = pending("account-2", "device-2");
+        stubFind(first, second);
+
+        service.execute(command(first.getId().value(), second.getId().value()));
+
+        InOrder inOrder = inOrder(meetingRepository, liveKitPort);
+        inOrder.verify(meetingRepository).findActiveById(MEETING_ID);
+        inOrder.verify(liveKitPort, times(2)).generateToken(any());
+        inOrder.verify(meetingRepository).findActiveByIdWithLock(MEETING_ID);
+        inOrder.verifyNoMoreInteractions();
+    }
+
+    @Test
+    void nonHostCallerIsRejectedBeforeAnyTokenIsGenerated() {
+        stubMeetingForTokenGeneration();
+        JoinRequest request = pending("account-1", "device-1");
+        when(joinRequestRepository.findById(request.getId().value()))
+                .thenReturn(Optional.of(request));
 
         Result<AcceptJoinRequestsResult, MeetingError> result =
                 service.execute(new AcceptJoinRequestsCommand(
-                        MEETING_ID, TENANT_ID, "someone-else", List.of(UUID.randomUUID())));
+                        MEETING_ID,
+                        TENANT_ID,
+                        "someone-else",
+                        List.of(request.getId().value())));
 
         assertThat(result.isFailure()).isTrue();
         assertThat(failure(result)).isInstanceOf(MeetingError.NotOwner.class);
         verify(liveKitPort, never()).generateToken(any());
+        verify(meetingRepository, never()).findActiveByIdWithLock(any());
     }
 
     @Test
     void unknownMeetingIsRejected() {
-        when(meetingRepository.findActiveByIdWithLock(MEETING_ID)).thenReturn(Optional.empty());
+        when(meetingRepository.findActiveById(MEETING_ID)).thenReturn(Optional.empty());
 
         Result<AcceptJoinRequestsResult, MeetingError> result =
                 service.execute(command(UUID.randomUUID()));
@@ -269,5 +301,35 @@ class AcceptJoinRequestsApplicationServiceTest {
                 null);
         when(meetingRepository.findActiveByIdWithLock(eq(MEETING_ID)))
                 .thenReturn(Optional.of(meeting));
+    }
+
+    private void stubMeetingForTokenGeneration() {
+        MeetingSettings settings =
+                new MeetingSettings(AdmissionPolicy.MANUAL_APPROVAL, 50, true, true, true, true);
+        Meeting meeting = Meeting.reconstitute(
+                TenantId.of(TENANT_ID),
+                MeetingId.of(MEETING_ID),
+                AccountId.of(HOST_ID),
+                io.github.smiskinext.meet.domain.model.valueobject.ShortCode.of("abc123def0"),
+                MeetingTitle.of("Sprint"),
+                "desc",
+                JiraIssueLink.of("10001", "PROJ-1", "PROJ"),
+                null,
+                null,
+                MeetingType.INSTANT,
+                MeetingStatus.RUNNING,
+                settings,
+                MeetingTimeZone.of("UTC"),
+                Email.of("host@example.com"),
+                InviteeDisplayName.of("Host User"),
+                UUID.randomUUID().toString(),
+                0,
+                Instant.now(),
+                Instant.now(),
+                null,
+                null,
+                null,
+                null);
+        when(meetingRepository.findActiveById(eq(MEETING_ID))).thenReturn(Optional.of(meeting));
     }
 }

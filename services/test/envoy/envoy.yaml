@@ -1,0 +1,316 @@
+# Envoy API gateway for the Smiski backend services — LOAD-TEST OVERLAY.
+#
+# This is services/docker/envoy/envoy.yaml with exactly ONE behavioural change:
+# the Forge Invocation Token (FIT) is verified against a LOCAL key set instead
+# of Atlassian's remote JWKS. Everything else — the filter chain, its order, the
+# route table, the per-route authentication bypasses, every cluster that is
+# still referenced — is identical to the development stack, so measurement runs
+# through the same code path production does.
+#
+# Why a local key set. Atlassian signs the real FIT and it cannot be minted
+# locally, so no scripted caller could authenticate at all. Verified
+# experimentally against Envoy v1.36 using this repository's own
+# extract_claims.lua: no token -> 401, a bad signature -> 401, and a locally
+# signed token -> 200 with x-fit-cloud-id / x-fit-account-id derived from the
+# VERIFIED claims even when the client sent spoofed values for both. Swapping
+# the JWKS source is therefore sufficient; the anti-spoofing property that makes
+# the measurement trustworthy is preserved.
+#
+# Three consequences, none of them optional:
+#   1. local_jwks.filename is read at STARTUP and also at `--mode validate`
+#      time. A missing file fails validation with `Invalid path`, so
+#      `smiski test keygen` must run before either.
+#   2. The path must resolve INSIDE the container, so compose.yaml bind-mounts
+#      services/test/keys at /etc/envoy/keys.
+#   3. forge_jwks_cluster is deleted below. It existed only to fetch the remote
+#      JWKS, and Envoy rejects a cluster that nothing routes to.
+#
+# > SECURITY: this file makes the stack accept any token signed by the
+# > generated key. It is local-only by construction and strictly wider than the
+# > development stack's own local-only warning. Never expose it to a network.
+#
+# Request pipeline on the :8080 listener:
+#   1. jwt_authn  — verifies the Forge Invocation Token (FIT) signature,
+#                   issuer, audience and expiry against the LOCAL key set,
+#                   and publishes the claims as `fit_payload` metadata.
+#   2. lua        — derives x-fit-cloud-id / x-fit-account-id from those
+#                   claims (see lua/extract_claims.lua, inherited unmodified
+#                   from services/docker/ — the overlay adds no copy of it).
+#   3. ext_authz  — calls the gateway gRPC service, which checks the caller's
+#                   Jira project permissions and returns the identity headers
+#                   trusted by the backend services. In this stack the gateway
+#                   resolves those permissions from mock-jira, not Atlassian.
+#   4. router     — forwards to the tenant / meet / notification clusters.
+#
+# The webhook routes and the meeting event-stream routes bypass steps 1 and 3.
+# Webhook callers are external systems that cannot present a FIT and verify
+# their own signatures instead. The event streams are opened by a plain browser
+# fetch that cannot attach a FIT, which leaves them unauthenticated — this stack
+# is therefore restricted to local development. See services/docker/AGENTS.md.
+#
+# The admin interface on :9901 exposes stats, the config dump and the
+# /ready endpoint used for health checking.
+#
+# Validate without starting the stack (keys must exist first):
+#   docker run --rm \
+#       -v "$(pwd)/services/test/envoy:/etc/envoy:ro" \
+#       -v "$(pwd)/services/docker/envoy/lua:/etc/envoy/lua:ro" \
+#       -v "$(pwd)/services/test/keys:/etc/envoy/keys:ro" \
+#       envoyproxy/envoy:v1.36-latest --mode validate -c /etc/envoy/envoy.yaml
+
+admin:
+    address:
+        socket_address:
+            address: 0.0.0.0
+            port_value: 9901
+
+static_resources:
+    listeners:
+        - name: ingress_http
+          address:
+              socket_address:
+                  address: 0.0.0.0
+                  port_value: 8080
+          filter_chains:
+              - filters:
+                    - name: envoy.filters.network.http_connection_manager
+                      typed_config:
+                          '@type': type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager
+                          stat_prefix: ingress_http
+                          codec_type: AUTO
+                          use_remote_address: true
+                          # Notification closes host event streams at
+                          # app.sse.host-stream-timeout-ms (default 300s) and heartbeats
+                          # every app.sse.heartbeat-interval-seconds (default 15s). Envoy's
+                          # 300s default sits exactly on the application's own deadline, so
+                          # it is raised to leave the upstream service in control of when a
+                          # stream ends.
+                          stream_idle_timeout: 360s
+                          route_config:
+                              name: smiski_routes
+                              virtual_hosts:
+                                  - name: smiski_backend
+                                    domains: ['*']
+                                    # The Spring images ship no shell, so compose
+                                    # cannot health-check them and starts them with
+                                    # depends_on: service_started. Retrying
+                                    # connection-level failures absorbs the window
+                                    # where a container listens but has not finished
+                                    # booting. Only failures where no response has
+                                    # begun are retried, so a stream is never replayed.
+                                    retry_policy:
+                                        retry_on: connect-failure,refused-stream,unavailable
+                                        num_retries: 3
+                                    # First match wins. The webhook and event-stream routes
+                                    # precede `/api/1/meetings` because notification owns two
+                                    # paths inside meet's path space, and because external
+                                    # callers of the webhooks can never present a FIT.
+                                    #
+                                    # Routes that bypass authentication must disable BOTH
+                                    # jwt_authn and ext_authz: ext_authz is declared at the
+                                    # http_filters level, so it runs for every route, and the
+                                    # gateway returns 401 for a request with no Authorization
+                                    # header. With failure_mode_allow: false there is no
+                                    # fallthrough, so disabling jwt_authn alone still fails.
+                                    routes:
+                                        - name: livekit_webhook_route
+                                          match:
+                                              path: /api/1/webhooks/livekit
+                                          route:
+                                              cluster: meet_cluster
+                                          typed_per_filter_config:
+                                              envoy.filters.http.jwt_authn:
+                                                  '@type': type.googleapis.com/envoy.extensions.filters.http.jwt_authn.v3.PerRouteConfig
+                                                  disabled: true
+                                              envoy.filters.http.ext_authz:
+                                                  '@type': type.googleapis.com/envoy.extensions.filters.http.ext_authz.v3.ExtAuthzPerRoute
+                                                  disabled: true
+                                        - name: resend_inbound_webhook_route
+                                          match:
+                                              path: /api/1/webhooks/resend/inbound
+                                          route:
+                                              cluster: notification_cluster
+                                          typed_per_filter_config:
+                                              envoy.filters.http.jwt_authn:
+                                                  '@type': type.googleapis.com/envoy.extensions.filters.http.jwt_authn.v3.PerRouteConfig
+                                                  disabled: true
+                                              envoy.filters.http.ext_authz:
+                                                  '@type': type.googleapis.com/envoy.extensions.filters.http.ext_authz.v3.ExtAuthzPerRoute
+                                                  disabled: true
+                                        # Anchored at both ends and limited to single path
+                                        # segments so only /meetings/{id}/events and
+                                        # /meetings/{id}/join-requests/{requestId}/events match.
+                                        # timeout: 0s disables the 15s per-route response
+                                        # timeout that would otherwise sever every stream.
+                                        - name: meeting_events_stream_route
+                                          match:
+                                              safe_regex:
+                                                  regex: ^/api/1/meetings/[^/]+(/join-requests/[^/]+)?/events$
+                                          route:
+                                              cluster: notification_cluster
+                                              timeout: 0s
+                                          typed_per_filter_config:
+                                              envoy.filters.http.jwt_authn:
+                                                  '@type': type.googleapis.com/envoy.extensions.filters.http.jwt_authn.v3.PerRouteConfig
+                                                  disabled: true
+                                              envoy.filters.http.ext_authz:
+                                                  '@type': type.googleapis.com/envoy.extensions.filters.http.ext_authz.v3.ExtAuthzPerRoute
+                                                  disabled: true
+                                        - name: issue_meetings_route
+                                          match:
+                                              prefix: /api/1/issues
+                                          route:
+                                              cluster: meet_cluster
+                                        - name: tenant_route
+                                          match:
+                                              prefix: /api/1/tenants
+                                          route:
+                                              cluster: tenant_cluster
+                                        - name: meet_route
+                                          match:
+                                              prefix: /api/1/meetings
+                                          route:
+                                              cluster: meet_cluster
+                          http_filters:
+                              - name: envoy.filters.http.jwt_authn
+                                typed_config:
+                                    '@type': type.googleapis.com/envoy.extensions.filters.http.jwt_authn.v3.JwtAuthentication
+                                    providers:
+                                        forge_fit:
+                                            issuer: forge/invocation-token
+                                            audiences:
+                                                - ari:cloud:ecosystem::app/5e00d851-2813-4c0b-b447-c4fd5ba7b150
+                                            forward: true
+                                            payload_in_metadata: fit_payload
+                                            # THE ONLY BEHAVIOURAL CHANGE IN
+                                            # THIS FILE. The development stack
+                                            # fetches Atlassian's JWKS over
+                                            # HTTPS through forge_jwks_cluster;
+                                            # this reads a locally generated key
+                                            # set from disk instead.
+                                            #
+                                            # issuer, audiences, forward and
+                                            # payload_in_metadata above are
+                                            # deliberately unchanged, so a token
+                                            # accepted here carries the same
+                                            # issuer and audience a real FIT
+                                            # must, and the Lua filter below
+                                            # still reads its claims from the
+                                            # same metadata key.
+                                            #
+                                            # The file is mounted read-only by
+                                            # compose.yaml and produced by
+                                            # `smiski test keygen`. It is absent
+                                            # from a fresh clone, and Envoy
+                                            # fails validation with
+                                            # `Invalid path` rather than
+                                            # starting and rejecting every
+                                            # request at runtime.
+                                            local_jwks:
+                                                filename: /etc/envoy/keys/jwks.json
+                                    rules:
+                                        - match:
+                                              prefix: /api/
+                                          requires:
+                                              provider_name: forge_fit
+                              - name: envoy.filters.http.lua
+                                typed_config:
+                                    '@type': type.googleapis.com/envoy.extensions.filters.http.lua.v3.Lua
+                                    default_source_code:
+                                        filename: /etc/envoy/lua/extract_claims.lua
+                              - name: envoy.filters.http.ext_authz
+                                typed_config:
+                                    '@type': type.googleapis.com/envoy.extensions.filters.http.ext_authz.v3.ExtAuthz
+                                    transport_api_version: V3
+                                    grpc_service:
+                                        envoy_grpc:
+                                            cluster_name: gateway_grpc_cluster
+                                        timeout: 2s
+                                    failure_mode_allow: false
+                                    allowed_headers:
+                                        patterns:
+                                            - exact: authorization
+                                              ignore_case: true
+                                            - exact: x-issue-id
+                                              ignore_case: true
+                                            - exact: x-project-id
+                                              ignore_case: true
+                                            - exact: x-forge-oauth-system
+                                              ignore_case: true
+                                            - exact: x-fit-cloud-id
+                                              ignore_case: true
+                                            - exact: x-fit-account-id
+                                              ignore_case: true
+                              - name: envoy.filters.http.router
+                                typed_config:
+                                    '@type': type.googleapis.com/envoy.extensions.filters.http.router.v3.Router
+
+    clusters:
+        # forge_jwks_cluster is deliberately ABSENT. The development stack
+        # declares it here to reach Atlassian's JWKS endpoint over TLS; with
+        # local_jwks reading from disk nothing references it, and it was the
+        # only outbound internet dependency in the request path. Removing it
+        # means a host with no route to the internet serves this stack
+        # identically to one that has.
+        #
+        # Every cluster below is byte-identical to the development stack.
+        - name: gateway_grpc_cluster
+          type: STRICT_DNS
+          lb_policy: ROUND_ROBIN
+          connect_timeout: 2s
+          typed_extension_protocol_options:
+              envoy.extensions.upstreams.http.v3.HttpProtocolOptions:
+                  '@type': type.googleapis.com/envoy.extensions.upstreams.http.v3.HttpProtocolOptions
+                  explicit_http_config:
+                      http2_protocol_options: {}
+          load_assignment:
+              cluster_name: gateway_grpc_cluster
+              endpoints:
+                  - lb_endpoints:
+                        - endpoint:
+                              address:
+                                  socket_address:
+                                      address: gateway
+                                      port_value: 9001
+
+        - name: tenant_cluster
+          type: STRICT_DNS
+          lb_policy: ROUND_ROBIN
+          connect_timeout: 5s
+          load_assignment:
+              cluster_name: tenant_cluster
+              endpoints:
+                  - lb_endpoints:
+                        - endpoint:
+                              address:
+                                  socket_address:
+                                      address: tenant
+                                      port_value: 8080
+
+        - name: meet_cluster
+          type: STRICT_DNS
+          lb_policy: ROUND_ROBIN
+          connect_timeout: 5s
+          load_assignment:
+              cluster_name: meet_cluster
+              endpoints:
+                  - lb_endpoints:
+                        - endpoint:
+                              address:
+                                  socket_address:
+                                      address: meet
+                                      port_value: 8080
+
+        - name: notification_cluster
+          type: STRICT_DNS
+          lb_policy: ROUND_ROBIN
+          connect_timeout: 5s
+          load_assignment:
+              cluster_name: notification_cluster
+              endpoints:
+                  - lb_endpoints:
+                        - endpoint:
+                              address:
+                                  socket_address:
+                                      address: notification
+                                      port_value: 8080

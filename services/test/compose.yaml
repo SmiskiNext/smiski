@@ -1,0 +1,388 @@
+# Load-test overlay for the Smiski backend.
+#
+# This file deliberately contains NO copied service definitions. It composes
+# services/docker/compose.yaml by reference and patches only what the
+# measurement harness adds, so the test stack tracks the development stack
+# automatically instead of drifting from a 510-line duplicate.
+# services/docker/ is read-only for this change.
+#
+# Path resolution differs by file, and the difference is load-bearing:
+#   - relative paths written HERE resolve against services/test/
+#   - relative paths inside the INCLUDED file resolve against services/docker/
+# So the inherited envoy, loki, alloy, grafana and prometheus mounts keep
+# reading services/docker/, which is why the duplicated copies of those assets
+# under services/test/ could be deleted without breaking the inherited stack.
+#
+# `name: smiski-test` prefixes every volume, network and config separately from
+# the development stack (smiski-test_valkey-data vs docker_valkey-data), so the
+# two never share data.
+#
+# BOTH .env files are loaded: services/docker/.env AND services/test/.env. On a
+# key defined in both, services/test/.env wins; a key defined only in the
+# development .env still resolves here. Measured, not assumed. See .env.example.
+#
+# Java service images are NOT built here — build them exactly as the development
+# stack requires before starting this one.
+#
+# HOST PORTS ARE INHERITED UNCHANGED and are hardcoded in the included file
+# (30000, 9901, 8281-8284, 9094, 7880-7882, and the observability ports). The
+# two stacks therefore cannot be started simultaneously as written; run one at a
+# time, or add `ports: !override` entries here.
+#
+# Validate with the profile enabled, or half this file goes unchecked:
+#   COMPOSE_PROFILES=observability docker compose -f services/test/compose.yaml config
+# A profile-gated service is not validated while its profile is inactive.
+# Measured: pointing livekit-redis-exporter's depends_on at a nonexistent
+# service still exits 0 for a plain `config`, and only fails once the
+# observability profile is selected.
+#
+# THE NETWORK IS PINNED to 10.77.0.0/24 and livekit-server holds a static
+# address on it. That is load bearing for TC-01, not tidiness: without it the
+# media server advertises the host LAN address while sending from its container
+# address, and coturn silently discards every connectivity check. See the
+# livekit-server override and networks: below.
+
+name: smiski-test
+
+include:
+    - ../docker/compose.yaml
+
+services:
+    # Verifies Forge Invocation Tokens against a LOCAL key set instead of
+    # Atlassian's remote JWKS, so a scripted caller can authenticate at all.
+    #
+    # Two mounts, and the distinction between them is load bearing:
+    #   - envoy.yaml is replaced, because it is mounted at the SAME container
+    #     path the included file uses. Compose merges `volumes:` by TARGET, so
+    #     this entry displaces the development stack's without !override, while
+    #     the inherited lua/ mount survives untouched — the overlay keeps no
+    #     copy of extract_claims.lua and reads services/docker/envoy/lua
+    #     directly.
+    #   - keys/ is added, because nothing mounts that target. local_jwks reads
+    #     a filesystem path, so the key material must exist inside the
+    #     container; a host path alone would fail with `Invalid path`.
+    #
+    # Read-only: Envoy only ever reads the public key set. The private key sits
+    # in the same gitignored directory and is deliberately never referenced by
+    # Envoy — only `smiski test token` reads it, on the host.
+    #
+    # Run `smiski test keygen` BEFORE starting or validating this stack. Envoy
+    # reads the JWKS at startup and at `--mode validate` time, and a missing
+    # file is a hard failure rather than a degraded mode.
+    envoy:
+        volumes:
+            - ./envoy/envoy.yaml:/etc/envoy/envoy.yaml:ro
+            - ./keys:/etc/envoy/keys:ro
+
+    # Redirects the gateway's Jira permission lookups into the stack.
+    #
+    # JIRA_API_BASE is already an environment variable in the included file
+    # (defaulting to https://api.atlassian.com), so this needs no change to
+    # services/docker/ and no change to the Go source. On a cache miss the
+    # gateway would otherwise call Atlassian with a 2 second timeout, which by
+    # itself exceeds TC-04's 500 ms threshold.
+    #
+    # The value is HARDCODED rather than written as
+    # ${JIRA_API_BASE:-http://mock-jira:8080}. Measured: services/docker/.env
+    # already sets JIRA_API_BASE=https://api.atlassian.com, and BOTH .env files
+    # are loaded, so the `:-` default is dead — the interpolated form resolved
+    # to Atlassian and the gateway logged
+    # `JiraAPIBase=https://api.atlassian.com` while the mock sat idle. A `:-`
+    # default only fills an UNSET variable, and this one is never unset.
+    # Redirecting the mock therefore means editing this line, not the .env.
+    #
+    # The failure was silent in the worst way: permission lookups still
+    # "worked", falling back to an empty permission set after a 2 second
+    # timeout, so the only symptom was latency in exactly the number TC-04
+    # measures.
+    #
+    # depends_on keeps the gateway from starting against a mock that is not yet
+    # listening, which would otherwise show up as a burst of failed permission
+    # lookups at the start of a run rather than as a startup error.
+    gateway:
+        environment:
+            JIRA_API_BASE: http://mock-jira:8080
+        depends_on:
+            mock-jira:
+                condition: service_healthy
+
+    # Fixed-response stand-in for the Jira Cloud bulk permission check.
+    #
+    # Runs the stdlib HTTP server on a pinned python image with the source bind
+    # mounted, so there is no image to build and no dependency to install — the
+    # harness stays runnable on a host with only a container runtime.
+    #
+    # It grants every permission it is asked for, ECHOING the identifiers from
+    # the request. That is required, not incidental: the gateway builds
+    # permission ARIs from the caller's own app and environment claims and
+    # discards any grant that does not match, so fixed ARIs would be silently
+    # dropped for any other token and present as an empty permission header
+    # rather than an error. See mock-jira/server.py.
+    #
+    # No host port: only the gateway reads it, over the stack network.
+    mock-jira:
+        image: python:3.13-alpine
+        command: ['python', '/app/server.py']
+        working_dir: /app
+        volumes:
+            - ./mock-jira:/app:ro
+        healthcheck:
+            test:
+                [
+                    'CMD',
+                    'python',
+                    '-c',
+                    'import urllib.request;
+                    urllib.request.urlopen("http://127.0.0.1:8080/healthz").read()',
+                ]
+            interval: 5s
+            timeout: 3s
+            retries: 10
+            start_period: 5s
+
+    # TURN relay, so media still connects when TC-01 blocks all UDP.
+    #
+    # Standalone rather than LiveKit's embedded `turn:` block: that needs a
+    # CA-signed certificate matching its `domain`, unavailable locally, and
+    # would give no separate container for the per-container resource
+    # measurement the assignment asks for.
+    #
+    # TCP on 3478 only, and both halves of that matter:
+    #   - not UDP, because TC-01 blocks every UDP port and TURN/UDP would be
+    #     dropped along with the media path it exists to rescue
+    #   - not TLS, because LiveKit rejects self-signed certificates and a
+    #     locally trusted CA adds setup cost without changing what TC-01 proves
+    # --no-udp and --no-tls/--no-dtls make that explicit, so the server cannot
+    # quietly satisfy an allocation over a transport the test means to exclude.
+    #
+    # THE SECRET MUST MATCH what LiveKit advertises in rtc.turn_servers below.
+    # Both read TURN_SHARED_SECRET with the same default for exactly that
+    # reason. A mismatch does not fail at startup — it surfaces at join time as
+    # a TURN allocation failure, which reads like a relay outage rather than a
+    # configuration error.
+    #
+    # --no-cli disables the telnet admin interface, which otherwise listens on
+    # 5766 with a well-known default password.
+    #
+    # No healthcheck: the image ships a shell but no curl, wget or nc, so there
+    # is nothing to probe with. Readiness is observed from the prometheus
+    # listener or from a client allocation instead.
+    coturn:
+        image: coturn/coturn:4.7
+        command:
+            - '-n'
+            - '--realm=${TURN_REALM:-smiski.test}'
+            - '--listening-port=${TURN_PORT:-3478}'
+            - '--use-auth-secret'
+            - '--static-auth-secret=${TURN_SHARED_SECRET:-change-me-turn-shared-secret}'
+            - '--no-udp'
+            - '--no-tls'
+            - '--no-dtls'
+            - '--no-cli'
+            - '--prometheus'
+            - '--log-file=stdout'
+        ports:
+            - '${TURN_PORT:-3478}:${TURN_PORT:-3478}/tcp'
+
+    # Serves the browser QoS harness page for TC-01 and TC-02.
+    #
+    # A SEPARATE static page, not the Forge app. app/static/smiski-ui builds its
+    # Room with no way to inject rtcConfig, and the relay-only toggle IS an
+    # rtcConfig override, so measuring here is what keeps the production
+    # application source untouched — which the specification requires.
+    #
+    # Plain nginx over a bind mount: the page is hand-written HTML plus a
+    # vendored UMD build of livekit-client, so there is no build step, no
+    # bundler, and no node_modules to install. Verified byte-identical to the
+    # livekit-client 2.20.1 bundle app/ already depends on, so the harness
+    # measures the same client the application uses.
+    #
+    # The mount is written HERE rather than inherited, which matters: relative
+    # paths inside the INCLUDED file resolve against services/docker/, so a path
+    # written there would silently read the wrong directory. This file resolves
+    # against services/test/, so ./harness is correct.
+    #
+    # HARNESS_PORT is safe to interpolate with a `:-` default: unlike
+    # JIRA_API_BASE it is absent from services/docker/.env, so the default
+    # actually applies. Checked, not assumed.
+    #
+    # The page needs a HOST port because a browser loads it, and the browser
+    # also needs to reach livekit-server directly on 7880 — WebRTC signalling is
+    # a WebSocket the page opens itself, not something Envoy proxies.
+    harness:
+        image: nginx:1.29-alpine
+        ports:
+            - '${HARNESS_PORT:-8090}:80'
+        volumes:
+            - ./harness:/usr/share/nginx/html:ro
+        depends_on:
+            livekit-server:
+                condition: service_healthy
+
+    # Pins the media server to a known address and drops the inherited
+    # --node-ip argument, so relay traversal works at all.
+    #
+    # THE DEFECT THIS FIXES. services/docker/compose.yaml starts LiveKit with
+    # `--node-ip ${SMISKI_HOST_IP}`, so it advertises the host LAN address in
+    # its ICE candidates while its real egress toward coturn is its container
+    # address. Coturn installs the peer permission for the address LiveKit
+    # ADVERTISED, so the connectivity check — arriving from the container
+    # address — comes from an unpermitted source and is discarded. Measured
+    # before this override: `requestsSent: 8, responsesReceived: 0,
+    # state: failed`, with no error logged by either side. The only symptom is
+    # a candidate pair that never completes.
+    #
+    # command: !override is REQUIRED, not cosmetic. Measured on
+    # livekit-server v1.9.12: the CLI flag beats the configuration file, so with
+    # both present `--node-ip 192.168.0.104` wins over an `rtc.node_ip` of
+    # 10.99.99.99 and the configured value is ignored entirely. Only with the
+    # flag removed does configuration take effect. The list is replaced rather
+    # than merged because Compose appends to `command:` otherwise, which would
+    # leave the flag in place.
+    #
+    # The inherited `SMISKI_HOST_IP` environment entry is deliberately left
+    # alone: it is still what the included file's `:?` guard checks, and LiveKit
+    # ignores it as an environment variable.
+    #
+    # The address itself is set in the livekit_server_config entry below, as
+    # rtc.node_ip, next to the rest of the media configuration — not restated as
+    # a command-line argument that would then have to track upstream changes.
+    #
+    # CONSEQUENCE WORTH KNOWING. The pinned address is reachable from inside
+    # the stack but not from the host, so a browser can no longer form a direct
+    # candidate pair with the media server. Every harness connection is relayed
+    # through coturn whether or not the relay-only toggle is set. That is what
+    # makes TC-01 pass, and it means a run WITHOUT relay-only is not evidence of
+    # direct connectivity — see AGENTS.md.
+    livekit-server:
+        command: !override
+            - '--config'
+            - '/etc/livekit/livekit.yaml'
+        networks:
+            default:
+                ipv4_address: 10.77.0.10
+
+    # Points Prometheus at THIS directory's scrape configuration.
+    #
+    # Required, and its absence is silent. Relative paths inside the included
+    # file resolve against services/docker/, so the inherited mount reads
+    # services/docker/observability/prometheus.yml and the overlay written here
+    # is simply never used. Measured before this override existed: the stack
+    # started cleanly, `docker compose config` exited zero, `promtool check
+    # config` exited zero against the overlay file, and Prometheus served the
+    # development stack's six jobs with livekit, livekit-redis and coturn
+    # absent from /targets entirely — no error anywhere, just missing series.
+    #
+    # Volumes merge by TARGET, so naming the same container path replaces the
+    # inherited entry without !override, and the prometheus-data volume is
+    # inherited untouched.
+    prometheus:
+        volumes:
+            - ./observability/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+
+    # The development stack instruments only `valkey`, the application cache,
+    # and states that livekit-redis is "not instrumented". TC-05 sets a memory
+    # threshold on "the Redis container" while the stack runs two, so this adds
+    # the missing exporter and the two appear as separate scrape targets.
+    #
+    # Mirrors the shape of `valkey-exporter`, minus REDIS_PASSWORD: the
+    # livekit-redis service runs redis:8-alpine with no password configured, so
+    # forwarding an empty credential would only add noise.
+    livekit-redis-exporter:
+        image: oliver006/redis_exporter:v1.88.0-alpine
+        profiles: [observability]
+        environment:
+            REDIS_ADDR: redis://livekit-redis:6379
+        depends_on:
+            livekit-redis:
+                condition: service_healthy
+
+networks:
+    # Pinned so livekit-server can be given a static address, which is what
+    # makes relay traversal work — see the livekit-server override above.
+    #
+    # The development stack declares no network at all and lets Compose create
+    # the implicit `default` bridge with a daemon-assigned subnet. An including
+    # file may declare ipam for that same implicit network and assign
+    # ipv4_address to an inherited service; measured, not assumed.
+    #
+    # 10.77.0.0/24 is chosen to sit outside the 172.17-172.31 range Docker
+    # allocates from by default, so it does not collide with another stack on a
+    # developer machine. A collision here surfaces at startup as an address
+    # conflict — a loud failure — rather than as the silent misrouting this
+    # whole override exists to fix.
+    #
+    # ip_range confines DYNAMIC allocation to the upper half, and it is required
+    # rather than tidy. Docker assigns dynamic addresses upward from the start of
+    # the subnet, so without it a static .10 races the ~20 other containers in
+    # this stack for the same address. Measured: notification-postgres took
+    # 10.77.0.10 first and livekit-server then failed to start with
+    # `failed to set up container networking: Address already in use`. Loud, but
+    # dependent on startup order, so the static address is kept out of the
+    # dynamic pool entirely instead of relying on being low enough or high
+    # enough.
+    default:
+        ipam:
+            config:
+                - subnet: 10.77.0.0/24
+                  ip_range: 10.77.0.128/25
+
+configs:
+    # A top-level config entry is replaced wholly by the including file, not
+    # merged key by key, so this restates the development stack's content and
+    # adds the two blocks the harness needs. Keep it in sync when the
+    # development stack changes its LiveKit configuration.
+    #
+    # Added here:
+    #   1. a Prometheus listener, so LiveKit publishes participant, track,
+    #      packet-loss, jitter and round-trip-time series that TC-02/TC-03 read
+    #   2. rtc.turn_servers, advertising the external Coturn container to
+    #      clients over TCP
+    #
+    # `prometheus.port` is the current spelling. The flat `prometheus_port` key
+    # named in the design still works on livekit-server v1.9.12 but logs
+    # "prometheus_port is deprecated, please switch prometheus.port instead" on
+    # every start; both serve the same /metrics on the same port.
+    #
+    # turn_servers is what advertises an EXTERNAL TURN server to clients. It is
+    # not the `turn:` block, which configures LiveKit's own embedded TURN and
+    # would need a CA-signed certificate this stack cannot produce locally.
+    # protocol: tcp because TC-01 blocks all UDP — TURN over UDP/3478 would be
+    # dropped along with the media path it is meant to rescue.
+    # `secret` pairs with Coturn's `use-auth-secret`: LiveKit derives the
+    # time-limited credential itself, so no static username is stored. The
+    # server rejects unknown keys outright, so this shape is schema-checked.
+    # node_ip pairs with the livekit-server override above and with the pinned
+    # subnet: the address advertised in ICE candidates must be the one LiveKit
+    # actually sends from, or coturn's peer permission is installed for an
+    # address no packet ever arrives from. It is written literally because the
+    # network declaration above pins it literally; the two are a pair and must
+    # be changed together.
+    livekit_server_config:
+        content: |
+            port: 7880
+            prometheus:
+                port: ${LIVEKIT_PROMETHEUS_PORT:-6789}
+            bind_addresses:
+                - 0.0.0.0
+            rtc:
+                tcp_port: 7881
+                use_external_ip: false
+                udp_port: 7882
+                node_ip: 10.77.0.10
+                turn_servers:
+                    - host: ${TURN_HOST:-coturn}
+                      port: ${TURN_PORT:-3478}
+                      protocol: tcp
+                      secret: ${TURN_SHARED_SECRET:-change-me-turn-shared-secret}
+                      ttl: ${TURN_CREDENTIAL_TTL:-86400}
+            redis:
+                address: livekit-redis:6379
+            keys:
+                ${LIVEKIT_API_KEY:-smiski-livekit-key}: ${LIVEKIT_API_SECRET:-change-me-livekit-secret-must-be-at-least-32-chars}
+            webhook:
+                api_key: ${LIVEKIT_API_KEY:-smiski-livekit-key}
+                urls:
+                    - ${LIVEKIT_WEBHOOK_URL:-http://meet:8080/api/1/webhooks/livekit}
+            logging:
+                level: info
