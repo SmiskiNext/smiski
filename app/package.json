@@ -2,7 +2,7 @@
     "name": "@smiski/jira-forge-app",
     "version": "0.0.0",
     "description": "Smiski — embedded online-meeting module for Jira (Atlassian Forge, Custom UI)",
-    "license": "Apache-2.0",
+    "license": "AGPL-3.0-only",
     "private": true,
     "type": "commonjs",
     "packageManager": "pnpm@10.0.0",
