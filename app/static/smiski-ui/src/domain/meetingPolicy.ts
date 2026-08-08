@@ -42,6 +42,12 @@ export function resolveMeetingPermissions(
  * the project page (no separate `SETTINGS` action). The domain-layer
  * `updateInfo` accepts info changes in all statuses and rejects time/zone
  * changes off-SCHEDULED; `updateSettings` rejects COMPLETED/CANCELED.
+ *
+ * `JOIN` is also offered on `SCHEDULED` meetings, but only to users without
+ * `Edit Meeting`: they cannot start the meeting, so `JOIN` is their only way
+ * in — it opens the meeting room's waiting room, which holds the room-token
+ * request back until the host starts the meeting. Users who can edit keep
+ * `START` instead, since starting it is the more direct action for them.
  */
 export function getAvailableMeetingActions(
     meeting: Meeting,
@@ -53,7 +59,7 @@ export function getAvailableMeetingActions(
 
     switch (meeting.status) {
         case 'SCHEDULED': {
-            if (!permissions.canEditMeeting) return ['VIEW_DETAIL'];
+            if (!permissions.canEditMeeting) return ['JOIN', 'VIEW_DETAIL'];
             const actions: MeetingAction[] = ['VIEW_DETAIL'];
             if (isHost) actions.push('EDIT');
             actions.push('START');

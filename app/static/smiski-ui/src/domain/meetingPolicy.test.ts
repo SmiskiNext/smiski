@@ -58,7 +58,7 @@ describe('getAvailableMeetingActions', () => {
     it('gates scheduled meeting actions', () => {
         expect(
             getAvailableMeetingActions(meeting('SCHEDULED'), viewOnly, HOST),
-        ).toEqual(['VIEW_DETAIL']);
+        ).toEqual(['JOIN', 'VIEW_DETAIL']);
         expect(
             getAvailableMeetingActions(meeting('SCHEDULED'), edit, HOST),
         ).toEqual(['VIEW_DETAIL', 'EDIT', 'START', 'CANCEL']);
