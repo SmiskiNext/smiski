@@ -181,12 +181,36 @@ class RemoveMeetingInviteesControllerIntegrationTest {
     }
 
     @Test
-    void nonScheduledMeetingReturns409AndRemovesNothing() throws Exception {
+    void runningMeetingReturns200AndRemovesInvitees() throws Exception {
         UUID meetingId = createScheduledMeeting();
         addInvitees(meetingId);
         UUID aliceId = firstInviteeId(meetingId, "alice");
         jdbcTemplate.update(
                 "UPDATE meetings SET status = 'RUNNING' WHERE tenant_id = ? AND id = ?",
+                TENANT_ID,
+                meetingId);
+
+        mockMvc.perform(post("/api/1/meetings/{id}/invitees:batchDelete", meetingId)
+                        .header("X-Project-Permissions", "view-meeting,edit-meeting")
+                        .header("X-Account-Id", HOST_ID)
+                        .header("X-Tenant-ID", TENANT_ID)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"inviteeIds\":[\"%s\"]}".formatted(aliceId)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.invitees.length()").value(1))
+                .andExpect(jsonPath("$.invitees[0].id").value(aliceId.toString()))
+                .andExpect(jsonPath("$.invitees[0].accountId").value("alice"));
+
+        assertThat(activeInviteeCount(meetingId)).isEqualTo(1);
+    }
+
+    @Test
+    void canceledMeetingReturns409AndRemovesNothing() throws Exception {
+        UUID meetingId = createScheduledMeeting();
+        addInvitees(meetingId);
+        UUID aliceId = firstInviteeId(meetingId, "alice");
+        jdbcTemplate.update(
+                "UPDATE meetings SET status = 'CANCELED' WHERE tenant_id = ? AND id = ?",
                 TENANT_ID,
                 meetingId);
 
