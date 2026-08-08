@@ -4,6 +4,7 @@ import {
     ErrorState,
     LoadingState,
     MeetingSettingsModal,
+    ParticipantPresenceToasts,
 } from '../../../components/shared';
 import { Button, Icon } from '../../../components/ui';
 import { useCurrentUser } from '../../../context/CurrentUserContext';
@@ -11,12 +12,13 @@ import type { Participant } from '../../../domain';
 import { useLiveKitRoom } from '../../../hooks/useLiveKitRoom';
 import { useMeeting } from '../../../hooks/useMeeting';
 import { useMeetingParticipants } from '../../../hooks/useMeetingParticipants';
+import { useParticipantPresenceNotifications } from '../../../hooks/useParticipantPresenceNotifications';
 import { useRoomToken } from '../../../hooks/useRoomToken';
 import { MeetingRoomShell } from './MeetingRoomShell';
 import { ParticipantListPlaceholder } from './ParticipantListPlaceholder';
 import { PendingJoinRequestsPanel } from './PendingJoinRequestsPanel';
 
-const MEETING_START_POLL_INTERVAL_MS = 5000;
+const MEETING_START_POLL_INTERVAL_MS = 60000;
 
 export interface MeetingRoomProps {
     meetingId: string;
@@ -53,13 +55,26 @@ export function MeetingRoom({ meetingId, onLeave }: MeetingRoomProps) {
         meeting?.status === 'COMPLETED' || meeting?.status === 'CANCELED';
 
     const {
+        toasts: presenceToasts,
+        enabled: notificationsEnabled,
+        setEnabled: setNotificationsEnabled,
+        enqueue: enqueuePresenceToast,
+        dismiss: dismissPresenceToast,
+    } = useParticipantPresenceNotifications();
+
+    const {
         token,
         url,
         loading: roomTokenLoading,
         waitingForApproval,
         error: roomTokenError,
     } = useRoomToken(meetingId, hasStarted);
-    const liveKit = useLiveKitRoom({ token, url, enabled: true });
+    const liveKit = useLiveKitRoom({
+        token,
+        url,
+        enabled: true,
+        onParticipantPresence: enqueuePresenceToast,
+    });
     const liveKitError = roomTokenError ?? liveKit.error;
 
     if (loading)
@@ -246,6 +261,14 @@ export function MeetingRoom({ meetingId, onLeave }: MeetingRoomProps) {
                 meetingId={meetingId}
                 onClose={() => setSettingsOpen(false)}
                 onSaved={() => setSettingsOpen(false)}
+                showNotificationPreferences
+                isHost={isHost}
+                notificationsEnabled={notificationsEnabled}
+                onNotificationsEnabledChange={setNotificationsEnabled}
+            />
+            <ParticipantPresenceToasts
+                toasts={presenceToasts}
+                onDismiss={dismissPresenceToast}
             />
         </div>
     );

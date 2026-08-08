@@ -43,9 +43,10 @@ export interface MeetingRoomShellProps {
     /** Surfaces `useLiveKitRoom`'s connection state for debugging/trial visibility. */
     connectionState: LiveKitConnectionState;
     /**
-     * Opens `MeetingSettingsModal` for this meeting. Rendered only when
-     * provided *and* `meeting.hostId === selfAccountId` — non-hosts never
-     * see the button.
+     * Opens `MeetingSettingsModal` for this meeting. Shown to everyone in the
+     * room, not just the host: the modal carries a personal notification
+     * preference alongside the host-only room settings, and gates the host
+     * section itself.
      */
     onOpenSettings?: () => void;
 }
@@ -163,7 +164,6 @@ export function MeetingRoomShell({
     const canShareScreen = meeting?.settings?.allowScreenShare ?? true;
     const canUseMic = meeting?.settings?.allowMicrophone ?? true;
     const canUseCamera = meeting?.settings?.allowVideo ?? true;
-    const isHost = Boolean(meeting) && meeting?.hostId === selfAccountId;
     const elapsed = useElapsedTime(meeting?.startedAt);
     return (
         <section className='overflow-hidden rounded-3xl border border-slate-700 bg-slate-950 shadow-panel'>
@@ -279,7 +279,7 @@ export function MeetingRoomShell({
                         }
                         onClick={onToggleScreenShare}
                     />
-                    {isHost && onOpenSettings && (
+                    {onOpenSettings && (
                         <ControlButton
                             label='Settings'
                             icon='settings'

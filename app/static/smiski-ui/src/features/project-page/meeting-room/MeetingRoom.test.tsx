@@ -40,6 +40,9 @@ vi.mock('../../../context/CurrentUserContext', () => ({
 // Keeps the real state components (the assertions target their output) while
 // dropping `MeetingSettingsModal`, the one barrel export that pulls in Ant
 // Design and is never reachable from the states under test.
+// `ParticipantPresenceToasts` is stubbed for the same reason its modal sibling
+// is: the room renders it unconditionally, and the presence toasts are covered
+// by their own test.
 vi.mock('../../../components/shared', async () => {
     const { EmptyState } = await import(
         '../../../components/shared/EmptyState'
@@ -55,6 +58,7 @@ vi.mock('../../../components/shared', async () => {
         ErrorState,
         LoadingState,
         MeetingSettingsModal: () => null,
+        ParticipantPresenceToasts: () => null,
     };
 });
 

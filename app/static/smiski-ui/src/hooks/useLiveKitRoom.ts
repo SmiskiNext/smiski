@@ -55,10 +55,30 @@ export type LiveKitConnectionState =
     | 'disconnected'
     | 'error';
 
+/**
+ * Another participant arriving in or leaving the room, as reported by
+ * LiveKit's `ParticipantConnected`/`ParticipantDisconnected` events.
+ *
+ * Never describes the local user: LiveKit raises neither event for the local
+ * participant, and `ParticipantConnected` only covers participants who join
+ * after the local user — so a room that is already busy on entry produces no
+ * events at all.
+ */
+export interface ParticipantPresenceEvent {
+    kind: 'joined' | 'left';
+    displayName: string;
+}
+
 export interface UseLiveKitRoomOptions {
     token: string | null;
     url: string | null;
     enabled: boolean;
+    /**
+     * Notified whenever another participant joins or leaves. Held in a ref, so
+     * passing a new function identity on every render never re-runs the
+     * connect effect (which would tear the room down and rejoin it).
+     */
+    onParticipantPresence?: (event: ParticipantPresenceEvent) => void;
 }
 
 export interface UseLiveKitRoomResult {
@@ -178,8 +198,13 @@ export function useLiveKitRoom({
     token,
     url,
     enabled,
+    onParticipantPresence,
 }: UseLiveKitRoomOptions): UseLiveKitRoomResult {
     const roomRef = useRef<Room | null>(null);
+    const onParticipantPresenceRef = useRef(onParticipantPresence);
+    useEffect(() => {
+        onParticipantPresenceRef.current = onParticipantPresence;
+    }, [onParticipantPresence]);
     const [connectionState, setConnectionState] =
         useState<LiveKitConnectionState>('idle');
     const [error, setError] = useState<Error | null>(null);
@@ -240,8 +265,24 @@ export function useLiveKitRoom({
         roomRef.current = room;
         let cancelled = false;
 
-        room.on(RoomEvent.ParticipantConnected, snapshot)
-            .on(RoomEvent.ParticipantDisconnected, snapshot)
+        const notifyPresence = (
+            kind: ParticipantPresenceEvent['kind'],
+            participant: LKParticipant,
+        ) => {
+            onParticipantPresenceRef.current?.({
+                kind,
+                displayName: participant.name || participant.identity,
+            });
+        };
+
+        room.on(RoomEvent.ParticipantConnected, (participant) => {
+            snapshot();
+            notifyPresence('joined', participant);
+        })
+            .on(RoomEvent.ParticipantDisconnected, (participant) => {
+                snapshot();
+                notifyPresence('left', participant);
+            })
             .on(RoomEvent.TrackSubscribed, snapshot)
             .on(RoomEvent.TrackUnsubscribed, snapshot)
             .on(RoomEvent.TrackMuted, snapshot)

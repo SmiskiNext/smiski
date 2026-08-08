@@ -1,6 +1,8 @@
 import type { LucideIcon } from 'lucide-react';
 import {
     AlertTriangle,
+    Bell,
+    BellOff,
     Calendar,
     Check,
     ChevronDown,
@@ -32,6 +34,8 @@ import type { SVGProps } from 'react';
 
 export type IconName =
     | 'alert'
+    | 'bell'
+    | 'bellOff'
     | 'calendar'
     | 'camera'
     | 'cameraOff'
@@ -62,6 +66,8 @@ export type IconName =
 
 const icons: Record<IconName, LucideIcon> = {
     alert: AlertTriangle,
+    bell: Bell,
+    bellOff: BellOff,
     calendar: Calendar,
     camera: Video,
     cameraOff: VideoOff,
