@@ -12,8 +12,8 @@ importers:
         specifier: ^2.4.15
         version: 2.5.5
       '@forge/cli':
-        specifier: 13.1.0
-        version: 13.1.0(@types/express@4.17.25)(@types/node@22.20.1)(loader-utils@2.0.4)(typescript@5.9.3)(webpack@5.108.4)
+        specifier: 13.2.0
+        version: 13.2.0(@types/express@4.17.25)(@types/node@22.20.1)(loader-utils@2.0.4)(typescript@5.9.3)(webpack@5.108.4)
 
   ../sdks/typescript:
     dependencies:
@@ -605,8 +605,8 @@ packages:
       typescript:
         optional: true
 
-  '@forge/bundler@7.0.1':
-    resolution: {integrity: sha512-+2LBff9qawGfbK6xmeiqE4Pa59pHmkKPpZT91VAIBfdvPxVqjkXHcPbE2eOJGDTYlMFl6AbmM+pgPg60I4scjw==}
+  '@forge/bundler@7.0.2':
+    resolution: {integrity: sha512-6ifdfPJI1B6pQ3YTpW/c2jNJGmLNhZmsTR3mGEb+oLG2B3mm2uc4cpQx9QddJJBmggOu+27DQvgD+PaeLAayaQ==}
     engines: {node: '>=12.13.1'}
     peerDependencies:
       typescript: '>=5.0.0'
@@ -614,16 +614,16 @@ packages:
       typescript:
         optional: true
 
-  '@forge/cli-shared@9.1.0':
-    resolution: {integrity: sha512-+34gQHBAQSbCGqlj7fa9ckxCrUg9WH01mkjlSC/joN5sC67NGLGartb4xdGM7GRZmEuQF2txEqnqPgZnWiJK8g==}
+  '@forge/cli-shared@9.2.0':
+    resolution: {integrity: sha512-lBEOp8nPh0M9KCnqPLYv8IpjyIWK31vdAgnUh60HvN7nqp8+CNX8d+QBOQe6MPxRFt6gzC6UJ51QvE9h1jZITw==}
     peerDependencies:
       typescript: '>=5.0.0'
     peerDependenciesMeta:
       typescript:
         optional: true
 
-  '@forge/cli@13.1.0':
-    resolution: {integrity: sha512-yDgeXKIL7Cb14Afsn906xVy1S/pnOAkpukFmEwnnSJgUeASxER4+Koch+Y46AasSNQDZ0qZsewo4SUepfWp1qQ==}
+  '@forge/cli@13.2.0':
+    resolution: {integrity: sha512-g3U2O7/l3wRM23H89NGhcGETxCaadTiDd4wiK70kX+BHbncj6god7WcItQH/37hZtxFu6ZDdTRSFMbMfTMROlw==}
     engines: {node: '>=20.18.1 <22.23.1 || >22.23.1 <24.17.0 || >24.17.0'}
     hasBin: true
     peerDependencies:
@@ -632,8 +632,8 @@ packages:
       typescript:
         optional: true
 
-  '@forge/csp@6.1.0':
-    resolution: {integrity: sha512-SqBZ5X4pO+6U6FRd/MAUG+b68mqQwRLFDQjxjyGCxgXVCFJgc7JJTpkLPsxtr3GHjy5Al69LzktdKMDcx2jMmg==}
+  '@forge/csp@6.2.0':
+    resolution: {integrity: sha512-TE3AgQZZPHl7KTBbtWkylrvWLFciTexyjQTwYhoxpB0bPw760TG6DbLUai9VMlgYL44UAQCyEQzfvM91URVlxA==}
     peerDependencies:
       cheerio: ^1.2.0
       typescript: '>=5.0.0'
@@ -659,16 +659,8 @@ packages:
       typescript:
         optional: true
 
-  '@forge/lint@6.0.1':
-    resolution: {integrity: sha512-Z2LzxCCVopHjZvXOJBC+NnOXG90JXgV4ADDmnvRjuhNZEZJ41mU5LLDIagC2Epbq9y2avEwuBOPtRe9P9oTkrA==}
-    peerDependencies:
-      typescript: '>=5.0.0'
-    peerDependenciesMeta:
-      typescript:
-        optional: true
-
-  '@forge/manifest@13.1.0':
-    resolution: {integrity: sha512-/i4rzJjrGwLTjBEWDKOFwWj6UL+YXeioka6dIqTdRSfW3lXkjdzVs690M+MdtP6BcqkJTZgmBW2L9FpTHaKdpg==}
+  '@forge/lint@6.0.2':
+    resolution: {integrity: sha512-RQ8P0Afb6TZZ3qawptLe6uYcPFvig7NLOS8tSbvVe3aRjMOxP4ogGSnLQwIv6TPGMYDzXzTb5T8IS7g/i/6ezw==}
     peerDependencies:
       typescript: '>=5.0.0'
     peerDependenciesMeta:
@@ -677,6 +669,14 @@ packages:
 
   '@forge/manifest@13.1.0-next.6':
     resolution: {integrity: sha512-cg3aHJ/fT8kDtGWG/LooTcqiHTAQhjN65Z0BcZ4K2Inn62lRMeVSG03zXwItOvEkm30qAgDY/QEQ6Ir03L4cCw==}
+    peerDependencies:
+      typescript: '>=5.0.0'
+    peerDependenciesMeta:
+      typescript:
+        optional: true
+
+  '@forge/manifest@13.2.0':
+    resolution: {integrity: sha512-Ek4tWw3YwgwemNsv0gCoMu7DuH8PqsavwXk7zMpNblxP0IrOsVyDxsrDSeDh7PvlSOznxqp8uJndLj4ZhTW3+g==}
     peerDependencies:
       typescript: '>=5.0.0'
     peerDependenciesMeta:
@@ -699,8 +699,8 @@ packages:
       typescript:
         optional: true
 
-  '@forge/tunnel@7.0.1':
-    resolution: {integrity: sha512-UCvoDX0FTK4Lu0OmtsunOUKBk3HK3BmPap/dEcHkmVgm5SPju4ASR4D45caW85mWQuMYewKKtcpXDE7CjxCx4g==}
+  '@forge/tunnel@7.0.2':
+    resolution: {integrity: sha512-EiK2JBf2JD3u9XVlmChQ0ofbV6kZFQGxNZ1RmxBqDC2iVXhYPJwV6MYqOAjvZTi/fkie4Px5pF0K4PoZMWygvA==}
     peerDependencies:
       typescript: '>=5.0.0'
     peerDependenciesMeta:
@@ -2890,6 +2890,12 @@ packages:
 
   ini@1.3.8:
     resolution: {integrity: sha512-JV/yugV2uzW5iMRSiZAyDtQd+nxtUnjeLt0acNdw98kKLrvuRVyB80tsREOE7yvGVgalhZ6RNXCmEHkUKBKxew==}
+
+  inquirer-autocomplete-prompt@2.0.1:
+    resolution: {integrity: sha512-jUHrH0btO7j5r8DTQgANf2CBkTZChoVySD8zF/wp5fZCOLIuUbleXhf4ZY5jNBOc1owA3gdfWtfZuppfYBhcUg==}
+    engines: {node: '>=12'}
+    peerDependencies:
+      inquirer: ^8.0.0
 
   inquirer@8.2.7:
     resolution: {integrity: sha512-UjOaSel/iddGZJ5xP/Eixh6dY1XghiBw4XK13rCCIJcJfyhhoul/7KhLLUGtebEj6GDYM6Vnx/mVsjx2L/mFIA==}
@@ -5467,7 +5473,7 @@ snapshots:
       - react
       - supports-color
 
-  '@forge/bundler@7.0.1(@types/node@22.20.1)(loader-utils@2.0.4)(typescript@5.9.3)':
+  '@forge/bundler@7.0.2(@types/node@22.20.1)(loader-utils@2.0.4)(typescript@5.9.3)':
     dependencies:
       '@babel/core': 7.29.7
       '@babel/parser': 7.28.0
@@ -5478,10 +5484,10 @@ snapshots:
       '@babel/plugin-transform-react-jsx': 7.29.7(@babel/core@7.29.7)
       '@babel/traverse': 7.29.7
       '@babel/types': 7.29.7
-      '@forge/cli-shared': 9.1.0(@types/node@22.20.1)(typescript@5.9.3)
+      '@forge/cli-shared': 9.2.0(@types/node@22.20.1)(typescript@5.9.3)
       '@forge/i18n': 1.0.0(typescript@5.9.3)
-      '@forge/lint': 6.0.1(@types/node@22.20.1)(cheerio@1.2.0)(typescript@5.9.3)
-      '@forge/manifest': 13.1.0(typescript@5.9.3)
+      '@forge/lint': 6.0.2(@types/node@22.20.1)(cheerio@1.2.0)(typescript@5.9.3)
+      '@forge/manifest': 13.2.0(typescript@5.9.3)
       babel-loader: 8.4.1(@babel/core@7.29.7)(webpack@5.108.4)
       cheerio: 1.2.0
       cross-spawn: 7.0.6
@@ -5518,10 +5524,10 @@ snapshots:
       - utf-8-validate
       - webpack-cli
 
-  '@forge/cli-shared@9.1.0(@types/node@22.20.1)(typescript@5.9.3)':
+  '@forge/cli-shared@9.2.0(@types/node@22.20.1)(typescript@5.9.3)':
     dependencies:
       '@forge/i18n': 1.0.0(typescript@5.9.3)
-      '@forge/manifest': 13.1.0(typescript@5.9.3)
+      '@forge/manifest': 13.2.0(typescript@5.9.3)
       '@forge/util': 3.0.0(typescript@5.9.3)
       '@sentry/node': 7.106.0
       '@vercel/detect-agent': 1.2.3
@@ -5543,6 +5549,7 @@ snapshots:
       graphql: 16.14.2
       graphql-request: 6.1.0(graphql@16.14.2)
       inquirer: 8.2.7(@types/node@22.20.1)
+      inquirer-autocomplete-prompt: 2.0.1(inquirer@8.2.7(@types/node@22.20.1))
       io-ts: 2.2.22(fp-ts@2.16.11)
       keytar: 7.9.0
       node-fetch: 2.7.0
@@ -5559,16 +5566,16 @@ snapshots:
       - '@types/node'
       - encoding
 
-  '@forge/cli@13.1.0(@types/express@4.17.25)(@types/node@22.20.1)(loader-utils@2.0.4)(typescript@5.9.3)(webpack@5.108.4)':
+  '@forge/cli@13.2.0(@types/express@4.17.25)(@types/node@22.20.1)(loader-utils@2.0.4)(typescript@5.9.3)(webpack@5.108.4)':
     dependencies:
-      '@forge/bundler': 7.0.1(@types/node@22.20.1)(loader-utils@2.0.4)(typescript@5.9.3)
-      '@forge/cli-shared': 9.1.0(@types/node@22.20.1)(typescript@5.9.3)
+      '@forge/bundler': 7.0.2(@types/node@22.20.1)(loader-utils@2.0.4)(typescript@5.9.3)
+      '@forge/cli-shared': 9.2.0(@types/node@22.20.1)(typescript@5.9.3)
       '@forge/egress': 3.0.0(typescript@5.9.3)
       '@forge/i18n': 1.0.0(typescript@5.9.3)
-      '@forge/lint': 6.0.1(@types/node@22.20.1)(cheerio@1.2.0)(typescript@5.9.3)
-      '@forge/manifest': 13.1.0(typescript@5.9.3)
+      '@forge/lint': 6.0.2(@types/node@22.20.1)(cheerio@1.2.0)(typescript@5.9.3)
+      '@forge/manifest': 13.2.0(typescript@5.9.3)
       '@forge/runtime': 7.0.0(typescript@5.9.3)
-      '@forge/tunnel': 7.0.1(@types/express@4.17.25)(@types/node@22.20.1)(loader-utils@2.0.4)(typescript@5.9.3)(webpack@5.108.4)
+      '@forge/tunnel': 7.0.2(@types/express@4.17.25)(@types/node@22.20.1)(loader-utils@2.0.4)(typescript@5.9.3)(webpack@5.108.4)
       '@forge/util': 3.0.0(typescript@5.9.3)
       '@sentry/node': 7.106.0
       ajv: 8.20.0
@@ -5632,7 +5639,7 @@ snapshots:
       - webpack
       - webpack-cli
 
-  '@forge/csp@6.1.0(cheerio@1.2.0)(typescript@5.9.3)':
+  '@forge/csp@6.2.0(cheerio@1.2.0)(typescript@5.9.3)':
     dependencies:
       content-security-policy-parser: 0.6.0
     optionalDependencies:
@@ -5649,13 +5656,13 @@ snapshots:
     optionalDependencies:
       typescript: 5.9.3
 
-  '@forge/lint@6.0.1(@types/node@22.20.1)(cheerio@1.2.0)(typescript@5.9.3)':
+  '@forge/lint@6.0.2(@types/node@22.20.1)(cheerio@1.2.0)(typescript@5.9.3)':
     dependencies:
       '@atlassian/atlassian-openapi': 1.0.6
-      '@forge/cli-shared': 9.1.0(@types/node@22.20.1)(typescript@5.9.3)
-      '@forge/csp': 6.1.0(cheerio@1.2.0)(typescript@5.9.3)
+      '@forge/cli-shared': 9.2.0(@types/node@22.20.1)(typescript@5.9.3)
+      '@forge/csp': 6.2.0(cheerio@1.2.0)(typescript@5.9.3)
       '@forge/egress': 3.0.0(typescript@5.9.3)
-      '@forge/manifest': 13.1.0(typescript@5.9.3)
+      '@forge/manifest': 13.2.0(typescript@5.9.3)
       '@typescript-eslint/typescript-estree': 5.62.0(typescript@5.9.3)
       array.prototype.flatmap: 1.3.3
       cross-spawn: 7.0.6
@@ -5668,7 +5675,7 @@ snapshots:
       - encoding
       - supports-color
 
-  '@forge/manifest@13.1.0(typescript@5.9.3)':
+  '@forge/manifest@13.1.0-next.6(typescript@5.9.3)':
     dependencies:
       '@forge/i18n': 1.0.0(typescript@5.9.3)
       '@sentry/node': 7.106.0
@@ -5682,7 +5689,7 @@ snapshots:
     optionalDependencies:
       typescript: 5.9.3
 
-  '@forge/manifest@13.1.0-next.6(typescript@5.9.3)':
+  '@forge/manifest@13.2.0(typescript@5.9.3)':
     dependencies:
       '@forge/i18n': 1.0.0(typescript@5.9.3)
       '@sentry/node': 7.106.0
@@ -5704,11 +5711,11 @@ snapshots:
     optionalDependencies:
       typescript: 5.9.3
 
-  '@forge/tunnel@7.0.1(@types/express@4.17.25)(@types/node@22.20.1)(loader-utils@2.0.4)(typescript@5.9.3)(webpack@5.108.4)':
+  '@forge/tunnel@7.0.2(@types/express@4.17.25)(@types/node@22.20.1)(loader-utils@2.0.4)(typescript@5.9.3)(webpack@5.108.4)':
     dependencies:
-      '@forge/bundler': 7.0.1(@types/node@22.20.1)(loader-utils@2.0.4)(typescript@5.9.3)
-      '@forge/cli-shared': 9.1.0(@types/node@22.20.1)(typescript@5.9.3)
-      '@forge/csp': 6.1.0(cheerio@1.2.0)(typescript@5.9.3)
+      '@forge/bundler': 7.0.2(@types/node@22.20.1)(loader-utils@2.0.4)(typescript@5.9.3)
+      '@forge/cli-shared': 9.2.0(@types/node@22.20.1)(typescript@5.9.3)
+      '@forge/csp': 6.2.0(cheerio@1.2.0)(typescript@5.9.3)
       '@forge/runtime': 7.0.0(typescript@5.9.3)
       '@forge/util': 3.0.0(typescript@5.9.3)
       cheerio: 1.2.0
@@ -8234,6 +8241,15 @@ snapshots:
   inherits@2.0.4: {}
 
   ini@1.3.8: {}
+
+  inquirer-autocomplete-prompt@2.0.1(inquirer@8.2.7(@types/node@22.20.1)):
+    dependencies:
+      ansi-escapes: 4.3.2
+      figures: 3.2.0
+      inquirer: 8.2.7(@types/node@22.20.1)
+      picocolors: 1.1.1
+      run-async: 2.4.1
+      rxjs: 7.8.2
 
   inquirer@8.2.7(@types/node@22.20.1):
     dependencies:

@@ -96,29 +96,16 @@ modules:
                   enabled: true
 
 # The self-hosted `meet` backend, reached through Forge Remote so Atlassian
-# attaches the FIT. `baseUrl` is the API gateway origin.
+# attaches the FIT. `baseUrl` is the API gateway origin, interpolated from
+# `SMISKI_API_BASE_URL` (declared under `environment.variables` below) — the
+# Forge CLI substitutes it from the process environment while reading this
+# file, for every command (`lint`, `deploy`, `tunnel`, ...).
 #
-# NOTE the literal URL. This file previously used `${SMISKI_API_BASE_URL}` here,
-# which is a documented manifest-variable feature and passes every local
-# validator — but Forge's SERVER-SIDE check rejects it:
-#
-#   Invalid URL detected for EGRESS permissions object:
-#   ${SMISKI_API_BASE_URL}, ${SMISKI_API_BASE_URL}   MANIFEST_INVALID_RULE
-#
-# The variable is reported TWICE for this single occurrence, because the server
-# also resolves the `- remote: meet-backend` egress reference below back to this
-# same `baseUrl`. So neither the `- remote:` indirection nor `baseUrl` itself
-# escapes the check: the manifest ON DISK must already contain a real URL by the
-# time the Forge CLI reads it.
-#
-# `scripts/render-manifest.sh` does that substitution from
-# `SMISKI_API_BASE_URL`. `pnpm run deploy` and `pnpm run install:site` invoke it
-# first; a bare `pnpm run forge <cmd>` does NOT, so run `pnpm manifest:render`
-# by hand before `forge lint`/`forge deploy`. The committed placeholder is a
-# syntactically valid `.invalid` origin on purpose, so `forge lint` still passes
-# on a fresh clone — but it resolves nowhere, so an unrendered deploy fails fast
-# instead of silently pointing at the wrong gateway. Never commit a rendered
-# manifest; `git checkout app/manifest.yml` puts the placeholder back.
+# Pin `@forge/cli` to exactly `13.2.0` (app/package.json). 13.3.0+ added a
+# server-side pre-deployment check that reads the manifest BEFORE variable
+# substitution and rejects `${...}` in egress-reachable fields with
+# `MANIFEST_INVALID_RULE` (Atlassian ECO-1694; fix pending upstream). Do not
+# bump past 13.2.x until that ships.
 #
 # `operations` declares every purpose this backend serves:
 #   - compute: required for invokeRemote/requestRemote to work at all
@@ -134,7 +121,7 @@ modules:
 # require region-specific baseUrl entries.
 remotes:
     - key: meet-backend
-      baseUrl: 'https://render-manifest-not-run.invalid'
+      baseUrl: '${SMISKI_API_BASE_URL}'
       operations:
           - compute
           - storage
@@ -184,27 +171,31 @@ permissions:
     #   - LiveKit signalling (room.connect in the meeting room)
     #
     # The gateway is referenced as `- remote: meet-backend` rather than repeated
-    # as an address, so its origin has a single source of truth. This does NOT
-    # dodge the server-side egress check — the server resolves the reference back
-    # to the remote's `baseUrl` and validates that — which is why `baseUrl` above
-    # must already be a real URL. LiveKit is not a Forge remote (the browser
-    # dials it directly), so it is a concrete wss:// origin.
+    # as an address, so its origin has a single source of truth: the server
+    # resolves the reference back to the remote's `baseUrl` and validates that
+    # value. LiveKit is not a Forge remote (the browser dials it directly), so
+    # it is interpolated straight from `LIVEKIT_URL` instead.
     external:
         fetch:
             client:
                 - remote: meet-backend
-                - address: 'wss://smiski-meeting-2rcpqikr.livekit.cloud'
+                - address: '${LIVEKIT_URL}'
 
-# No `environment.variables` block: nothing in this manifest is interpolated by
-# the Forge CLI any more. Both deployment origins are literal, because Forge's
-# server-side egress check rejects `${...}` in `remotes[].baseUrl` and in
-# anything reachable from `permissions.external.fetch` (see the remotes note).
+# Interpolated by the Forge CLI (`lint`/`deploy`/`tunnel`/...) from the process
+# environment, into every `${...}` placeholder above. `default` keeps a fresh
+# clone's `forge lint` usable without any env set; real deployments must
+# export real values (`.env`, CI environment `vars`) before invoking Forge.
 #
-# Per-environment values are therefore applied by rewriting the file before the
-# CLI runs — `scripts/render-manifest.sh`, driven by `SMISKI_API_BASE_URL`.
-# `static/smiski-ui/vite.config.ts` still reads SMISKI_API_BASE_URL and
-# LIVEKIT_URL into the bundle from the same environment, so keep the LiveKit
-# address above in sync with LIVEKIT_URL by hand or signalling is CSP-blocked.
+# `static/smiski-ui/vite.config.ts` reads the same two names — plus
+# `SMISKI_API_VERSION`, which only the bundle uses — into the Custom UI build,
+# so the manifest's declared egress and the origins the frontend calls can
+# never drift apart.
+environment:
+    variables:
+        - key: SMISKI_API_BASE_URL
+          default: 'https://set-smiski-api-base-url.invalid'
+        - key: LIVEKIT_URL
+          default: 'wss://smiski-meeting-2rcpqikr.livekit.cloud'
 
 app:
     runtime:
