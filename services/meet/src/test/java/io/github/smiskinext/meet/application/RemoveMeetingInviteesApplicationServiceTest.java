@@ -10,6 +10,7 @@ import io.github.smiskinext.meet.application.result.RemoveMeetingInviteesResult;
 import io.github.smiskinext.meet.application.service.RemoveMeetingInviteesApplicationService;
 import io.github.smiskinext.meet.domain.MeetingError;
 import io.github.smiskinext.meet.domain.event.MeetingInvitationsDeletedEvent;
+import io.github.smiskinext.meet.domain.model.CancelReason;
 import io.github.smiskinext.meet.domain.model.InviteeRole;
 import io.github.smiskinext.meet.domain.model.Meeting;
 import io.github.smiskinext.meet.domain.model.MeetingInvitee;
@@ -120,10 +121,46 @@ class RemoveMeetingInviteesApplicationServiceTest {
     }
 
     @Test
-    void nonScheduledStatusIsRejectedWithoutChangeOrEvent() {
+    void scheduledMeetingAcceptsInviteeRemoval() {
+        Meeting meeting = scheduledMeeting();
+        stubMeeting(meeting);
+        MeetingInvitee bob = existing("bob@test.com", "bob", "Bob");
+        stubActiveInvitees(List.of(bob));
+
+        Result<RemoveMeetingInviteesResult, MeetingError> result =
+                service.execute(command(meeting, bob.getId().value()));
+
+        assertThat(result.isSuccess()).isTrue();
+        assertThat(bob.getRemovedAt()).isPresent();
+        verify(inviteeRepository).saveAll(anyList());
+        verify(meetingRepository).save(any());
+    }
+
+    @Test
+    void runningMeetingAcceptsInviteeRemoval() {
+        Meeting meeting = scheduledMeeting();
+        meeting.start();
+        meeting.clearDomainEvents();
+        stubMeeting(meeting);
+        MeetingInvitee bob = existing("bob@test.com", "bob", "Bob");
+        stubActiveInvitees(List.of(bob));
+
+        Result<RemoveMeetingInviteesResult, MeetingError> result =
+                service.execute(command(meeting, bob.getId().value()));
+
+        assertThat(result.isSuccess()).isTrue();
+        assertThat(bob.getRemovedAt()).isPresent();
+        List<DomainEvent> events = capturedEvents(meeting);
+        assertThat(events).hasSize(1);
+        assertThat(events.getFirst()).isInstanceOf(MeetingInvitationsDeletedEvent.class);
+    }
+
+    @Test
+    void completedMeetingRejectsInviteeRemoval() {
         Meeting meeting = scheduledMeeting();
         MeetingInvitee bob = existing("bob@test.com", "bob", "Bob");
         meeting.start();
+        meeting.complete();
         meeting.clearDomainEvents();
         stubMeeting(meeting);
 
@@ -131,6 +168,25 @@ class RemoveMeetingInviteesApplicationServiceTest {
                 service.execute(command(meeting, bob.getId().value()));
 
         assertThat(failure(result)).isInstanceOf(MeetingError.InvalidStatusTransition.class);
+        assertThat(bob.getRemovedAt()).isEmpty();
+        verify(inviteeRepository, never()).saveAll(anyList());
+        verify(meetingRepository, never()).save(any());
+        verifyNoInteractions(eventPublisher);
+    }
+
+    @Test
+    void canceledMeetingRejectsInviteeRemoval() {
+        Meeting meeting = scheduledMeeting();
+        MeetingInvitee bob = existing("bob@test.com", "bob", "Bob");
+        meeting.cancel(CancelReason.HOST_CANCELED);
+        meeting.clearDomainEvents();
+        stubMeeting(meeting);
+
+        Result<RemoveMeetingInviteesResult, MeetingError> result =
+                service.execute(command(meeting, bob.getId().value()));
+
+        assertThat(failure(result)).isInstanceOf(MeetingError.InvalidStatusTransition.class);
+        assertThat(bob.getRemovedAt()).isEmpty();
         verify(inviteeRepository, never()).saveAll(anyList());
         verify(meetingRepository, never()).save(any());
         verifyNoInteractions(eventPublisher);

@@ -411,6 +411,20 @@ public class Meeting extends AggregateRoot<MeetingId> {
                 Instant.now()));
     }
 
+    /**
+     * Updates the meeting information as its host. Registers {@code MeetingInfoUpdatedEvent} when a
+     * value effectively changes.
+     *
+     * <p>{@code title}, {@code description}, and {@code issueLink} are editable in every status.
+     * {@code timeZone} and {@code timeRange} are editable only while the meeting is
+     * {@link MeetingStatus#SCHEDULED}; changing either one in any other status is rejected with
+     * {@link MeetingError.InvalidStatusTransition} and leaves the meeting untouched.
+     *
+     * @param updatedBy the account performing the update
+     * @param invitees invitee snapshots carried by the info-updated event
+     * @return success, or failure when the caller is not the host, a scheduled field changes
+     *     off-{@code SCHEDULED}, or the new time range is invalid
+     */
     public Result<Void, MeetingError> updateInfo(
             AccountId updatedBy,
             MeetingTitle newTitle,
@@ -422,10 +436,6 @@ public class Meeting extends AggregateRoot<MeetingId> {
         if (!hostId.equals(updatedBy)) {
             return Result.failure(
                     new MeetingError.NotAuthorized(updatedBy.value(), hostId.value()));
-        }
-        if (status == MeetingStatus.COMPLETED || status == MeetingStatus.CANCELED) {
-            return Result.failure(
-                    new MeetingError.InvalidStatusTransition(status, MeetingStatus.SCHEDULED));
         }
 
         boolean scheduledFieldsChanged =

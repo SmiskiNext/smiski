@@ -79,7 +79,6 @@ import { useHostConflictGuard } from './useHostConflictGuard';
 import { useIssuePanelInstantModal } from './useIssuePanelInstantModal';
 import { useIssuePanelMeetingDetailModal } from './useIssuePanelMeetingDetailModal';
 import { useIssuePanelScheduleModal } from './useIssuePanelScheduleModal';
-import { useIssuePanelSettingsModal } from './useIssuePanelSettingsModal';
 
 const ISSUE_ID = '10001';
 const PROJECT_ID = '10002';
@@ -150,14 +149,6 @@ describe('platform-modal openers carry the published Jira identifiers', () => {
         });
 
         result.current.open({ issueKey: 'SMISKI-101', projectKey: 'SMISKI' });
-
-        expectIdentifiersCarried();
-    });
-
-    it('useIssuePanelSettingsModal', () => {
-        const { result } = renderHook(() => useIssuePanelSettingsModal());
-
-        result.current.open('meeting-1');
 
         expectIdentifiersCarried();
     });

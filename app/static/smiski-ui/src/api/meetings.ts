@@ -115,19 +115,34 @@ export interface ScheduleMeetingInput {
     settings?: CreateMeetingSettingsInput;
 }
 
+/** Jira issue a meeting is linked to, as sent on a meeting information update. */
+export interface MeetingIssueLinkInput {
+    issueId: string;
+    issueKey: string;
+    projectKey: string;
+}
+
 /**
  * Edit of an existing meeting. The backend `update` operation is a full
- * replace (`title`/`description`/`issueLink`/`zoneId` all required), but the
- * edit form only lets a user change title, description, and start time — so
+ * replace (`title`/`description`/`issueLink`/`zoneId` all required), so
  * `detail` (the meeting's current full detail, from `getMeeting`) supplies
- * everything else unchanged. Settings are updated through the backend's
+ * everything the edit form does not change. `selectedIssue` carries the issue
+ * the host picked in the edit surface; when omitted, the meeting's current
+ * issue link is preserved. Settings are updated through the backend's
  * dedicated settings endpoint and are not part of this request.
  */
 export interface UpdateMeetingInput {
     title: string;
     description: string;
-    startTime: string;
+    /**
+     * New scheduled start. Absent for meetings that carry no scheduled start
+     * (instant meetings) or when the edit surface locks the time fields because
+     * the meeting has left `SCHEDULED`.
+     */
+    startTime?: string;
     detail: Meeting;
+    /** Defaults to `detail`'s current issue link when the host did not change it. */
+    selectedIssue?: MeetingIssueLinkInput;
 }
 
 /** Filters for the project-page dashboard listing. */
@@ -428,7 +443,7 @@ export function buildAddMeetingInviteesPayload(
     };
 }
 
-/** Adds invitees to a SCHEDULED meeting as its host. */
+/** Adds invitees to a SCHEDULED or RUNNING meeting as its host. */
 export async function addMeetingInvitees(
     meetingId: string,
     invitees: MeetingInviteeInput[],
@@ -443,7 +458,7 @@ export async function addMeetingInvitees(
     return meetingInviteesFromBackend(response);
 }
 
-/** Removes active invitees by invitee id from a SCHEDULED meeting. */
+/** Removes active invitees by invitee id from a SCHEDULED or RUNNING meeting. */
 export async function removeMeetingInvitees(
     meetingId: string,
     inviteeIds: string[],
@@ -581,29 +596,37 @@ export async function listProjectMeetings(
 
 /**
  * Build the full-replace update request body from the edit form's input,
- * conforming to the OpenAPI `MeetUpdateMeetingRequest` contract. `title`/
- * `description`/`startTime` come from the edit form; `issueLink`/`zoneId`/
- * `endTime` are carried forward unchanged from `input.detail` (the meeting's
- * full detail, fetched separately, since this form doesn't edit them).
- * Settings are updated through the backend's dedicated settings endpoint and
- * are not part of this request. Pure, so the contract is unit-testable like
- * the instant/schedule builders above.
+ * conforming to the OpenAPI `MeetUpdateMeetingRequest` contract. `title` and
+ * `description` come from the edit form. `issueLink` comes from
+ * `input.selectedIssue` when the host picked an issue in the edit surface, and
+ * falls back to `input.detail`'s current link otherwise. `startTime` falls back
+ * to the meeting's current scheduled start when the edit surface locked the time
+ * fields, and `timeRange` is omitted entirely unless both bounds are known — the
+ * backend rejects `zoneId`/`timeRange` changes outside `SCHEDULED`, so an
+ * unchanged range must round-trip exactly. `zoneId`/`endTime` are carried
+ * forward unchanged from `input.detail` (the meeting's full detail, fetched
+ * separately). Settings are updated through the backend's dedicated settings
+ * endpoint and are not part of this request. Pure, so the contract is
+ * unit-testable like the instant/schedule builders above.
  */
 export function buildUpdateMeetingPayload(
     input: UpdateMeetingInput,
 ): MeetUpdateMeetingRequest {
+    const issueLink = input.selectedIssue ?? {
+        issueId: input.detail.issueId,
+        issueKey: input.detail.issueKey,
+        projectKey: input.detail.projectKey,
+    };
+    const startTime = input.startTime ?? input.detail.scheduledAt;
     return {
         title: input.title,
         description: input.description,
-        issueLink: {
-            issueId: input.detail.issueId,
-            issueKey: input.detail.issueKey,
-            projectKey: input.detail.projectKey,
-        },
+        issueLink,
         zoneId: input.detail.zoneId ?? getLocalTimeZone(),
-        timeRange: input.detail.endTime
-            ? { startTime: input.startTime, endTime: input.detail.endTime }
-            : undefined,
+        timeRange:
+            startTime && input.detail.endTime
+                ? { startTime, endTime: input.detail.endTime }
+                : undefined,
     };
 }
 

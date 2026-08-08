@@ -1,14 +1,22 @@
 /**
- * EditMeetingModal — unified edit modal for SCHEDULED meetings on project page.
- * Combines meeting info (title/description/time), settings (admission/capacity/
- * media), and invitees (add/remove) into a single scrollable form with one
- * "Save changes" button.
+ * EditMeetingModal — unified edit modal for the project page, available to the
+ * host across all meeting statuses (SCHEDULED, RUNNING, COMPLETED, CANCELED).
+ * Combines meeting info (title/description/issue/time), settings (admission/
+ * capacity/media), and invitees (add/remove) into a single scrollable form with
+ * one "Save changes" button.
  *
  * The backend operations remain separate (updateMeeting, updateMeetingSettings,
  * add/removeMeetingInvitees), but the orchestration is sequential: Info →
  * Settings → Invitees. On partial error, the modal stays open, reports which
  * section failed, and the user can retry — invitee diff is recalculated against
  * the latest cache on retry, so no duplicate adds.
+ *
+ * Status-aware behavior (matches backend gates):
+ * - Title/description/issue link: editable in every status.
+ * - Time/zone: editable only when status === SCHEDULED (disabled + grayed out
+ *   otherwise); backend rejects changes in other statuses.
+ * - Settings/invitees: hidden entirely when status is COMPLETED or CANCELED
+ *   (backend rejects those operations on terminal meetings).
  *
  * This modal is project-page-specific and replaces the separate flows:
  * - ScheduleMeetingModal (edit mode) for info
@@ -23,7 +31,7 @@ import type { WorkspaceUser } from '../../../api/workspaceUsers';
 import { ADMISSION_POLICY_OPTIONS } from '../../../components/shared/AdvancedMeetingSettingsFields';
 import { WorkspaceUserPicker } from '../../../components/shared/WorkspaceUserPicker';
 import { Button, Modal } from '../../../components/ui';
-import type { MeetingSettings } from '../../../domain';
+import type { JiraIssue, MeetingSettings } from '../../../domain';
 import { useMeeting } from '../../../hooks/useMeeting';
 import {
     useAddMeetingInvitees,
@@ -34,6 +42,7 @@ import {
     useUpdateMeeting,
     useUpdateMeetingSettings,
 } from '../../../hooks/useMeetingMutations';
+import { useProjectIssues } from '../../../hooks/useProjectIssues';
 import {
     formatTimeZoneOption,
     listTimeZones,
@@ -64,6 +73,16 @@ interface EditMeetingFormValues {
     chatEnabled: boolean;
     allowMicrophone: boolean;
     allowVideo: boolean;
+}
+
+interface SelectedIssue {
+    issueId: string;
+    issueKey: string;
+    projectKey: string;
+}
+
+function issueOptionLabel(issue: JiraIssue): string {
+    return `${issue.key} — ${issue.summary}`;
 }
 
 function wallTimeParts(iso?: string): { date: string; time: string } {
@@ -110,6 +129,20 @@ export function EditMeetingModal({
     const [newInvitees, setNewInvitees] = useState<WorkspaceUser[]>([]);
     const [formError, setFormError] = useState<string | null>(null);
     const [inviteesSeeded, setInviteesSeeded] = useState(false);
+    const [selectedIssue, setSelectedIssue] = useState<SelectedIssue | null>(
+        null,
+    );
+    const [issueQuery, setIssueQuery] = useState('');
+
+    const canEditSchedule = meeting?.status === 'SCHEDULED';
+    const canManageSettingsAndInvitees =
+        meeting?.status === 'SCHEDULED' || meeting?.status === 'RUNNING';
+
+    const { issues, loading: issuesLoading } = useProjectIssues(
+        meeting?.projectKey ?? '',
+        issueQuery,
+        isOpen && Boolean(meeting?.projectKey),
+    );
 
     const isLoading = meetingLoading || inviteesLoading;
     const isSaving =
@@ -135,6 +168,13 @@ export function EditMeetingModal({
             allowVideo: meeting.settings.allowVideo,
         });
         setTimeZone(meeting.zoneId ?? 'UTC');
+        if (meeting.issueId && meeting.issueKey) {
+            setSelectedIssue({
+                issueId: meeting.issueId,
+                issueKey: meeting.issueKey,
+                projectKey: meeting.projectKey,
+            });
+        }
     }, [meeting, form]);
 
     // Seed invitees only on initial load (when meetingId changes), not on every
@@ -163,6 +203,8 @@ export function EditMeetingModal({
         form.resetFields();
         setNewInvitees([]);
         setFormError(null);
+        setSelectedIssue(null);
+        setIssueQuery('');
         onClose();
     };
 
@@ -175,24 +217,38 @@ export function EditMeetingModal({
 
         const title = values.title.trim();
         const description = values.description?.trim() ?? '';
-        const startIso = zonedWallTimeToIso(
-            values.startDate,
-            values.startTime,
-            timeZone,
-        );
-        if (!startIso) {
-            setFormError('Choose a valid start date and time.');
-            return;
+
+        let startIso: string | undefined;
+        if (canEditSchedule) {
+            const computedIso = zonedWallTimeToIso(
+                values.startDate,
+                values.startTime,
+                timeZone,
+            );
+            if (!computedIso) {
+                setFormError('Choose a valid start date and time.');
+                return;
+            }
+            if (new Date(computedIso).getTime() <= Date.now()) {
+                setFormError('Choose a start date and time in the future.');
+                return;
+            }
+            startIso = computedIso;
         }
-        if (new Date(startIso).getTime() <= Date.now()) {
-            setFormError('Choose a start date and time in the future.');
-            return;
-        }
+
+        const issueChanged =
+            selectedIssue !== null
+            && (selectedIssue.issueId !== meeting.issueId
+                || selectedIssue.issueKey !== meeting.issueKey);
+
+        const startTimeChanged =
+            canEditSchedule && startIso !== meeting.scheduledAt;
 
         const infoDirty =
             title !== meeting.title
             || description !== (meeting.description ?? '')
-            || startIso !== meeting.scheduledAt;
+            || startTimeChanged
+            || issueChanged;
 
         const formSettings: MeetingSettings = {
             admissionPolicy: values.admissionPolicy,
@@ -202,10 +258,9 @@ export function EditMeetingModal({
             allowMicrophone: values.allowMicrophone,
             allowVideo: values.allowVideo,
         };
-        const settingsDirty = !shallowEqualSettings(
-            formSettings,
-            meeting.settings,
-        );
+        const settingsDirty =
+            canManageSettingsAndInvitees
+            && !shallowEqualSettings(formSettings, meeting.settings);
 
         const currentIds = new Set(invitees.map((inv) => inv.accountId));
         const newIds = new Set(newInvitees.map((inv) => inv.accountId));
@@ -225,6 +280,11 @@ export function EditMeetingModal({
                         description,
                         startTime: startIso,
                         detail: meeting,
+                        selectedIssue: selectedIssue ?? {
+                            issueId: meeting.issueId,
+                            issueKey: meeting.issueKey,
+                            projectKey: meeting.projectKey,
+                        },
                     },
                 });
             }
@@ -236,7 +296,7 @@ export function EditMeetingModal({
                 });
             }
 
-            if (toAdd.length > 0) {
+            if (canManageSettingsAndInvitees && toAdd.length > 0) {
                 await addInvitees.mutateAsync({
                     meetingId,
                     invitees: toAdd.map((inv) => ({
@@ -247,7 +307,7 @@ export function EditMeetingModal({
                 });
             }
 
-            if (toRemove.length > 0) {
+            if (canManageSettingsAndInvitees && toRemove.length > 0) {
                 await removeInvitees.mutateAsync({
                     meetingId,
                     inviteeIds: toRemove,
@@ -317,23 +377,69 @@ export function EditMeetingModal({
                     >
                         <Input placeholder='e.g. Sprint planning sync' />
                     </Form.Item>
+                    <Form.Item label='Linked issue'>
+                        <Select
+                            showSearch
+                            placeholder='Search for an issue…'
+                            aria-label='Linked issue'
+                            value={selectedIssue?.issueKey}
+                            options={issues.map((issue) => ({
+                                value: issue.key,
+                                label: issueOptionLabel(issue),
+                            }))}
+                            onSearch={setIssueQuery}
+                            onChange={(key) => {
+                                const issue = issues.find((i) => i.key === key);
+                                if (issue && meeting) {
+                                    setSelectedIssue({
+                                        issueId: issue.id,
+                                        issueKey: issue.key,
+                                        projectKey: meeting.projectKey,
+                                    });
+                                }
+                            }}
+                            loading={issuesLoading}
+                            filterOption={false}
+                            notFoundContent={
+                                issuesLoading ? 'Loading…' : 'No issues found'
+                            }
+                        />
+                    </Form.Item>
                     <Form.Item
                         label='Start date'
                         name='startDate'
-                        rules={[
-                            { required: true, message: 'Choose a start date.' },
-                        ]}
+                        rules={
+                            canEditSchedule
+                                ? [
+                                      {
+                                          required: true,
+                                          message: 'Choose a start date.',
+                                      },
+                                  ]
+                                : []
+                        }
                     >
-                        <Input type='date' min={nowInZone.date} />
+                        <Input
+                            type='date'
+                            min={nowInZone.date}
+                            disabled={!canEditSchedule}
+                        />
                     </Form.Item>
                     <Form.Item
                         label='Start time'
                         name='startTime'
-                        rules={[
-                            { required: true, message: 'Choose a start time.' },
-                        ]}
+                        rules={
+                            canEditSchedule
+                                ? [
+                                      {
+                                          required: true,
+                                          message: 'Choose a start time.',
+                                      },
+                                  ]
+                                : []
+                        }
                     >
-                        <Input type='time' />
+                        <Input type='time' disabled={!canEditSchedule} />
                     </Form.Item>
                     <Form.Item label='Time zone'>
                         <Select
@@ -342,6 +448,7 @@ export function EditMeetingModal({
                             value={timeZone}
                             options={TIME_ZONE_OPTIONS}
                             onChange={setTimeZone}
+                            disabled={!canEditSchedule}
                         />
                     </Form.Item>
                     <Form.Item label='Description' name='description'>
@@ -351,72 +458,81 @@ export function EditMeetingModal({
                         />
                     </Form.Item>
 
-                    <h3 className='mb-4 mt-6 text-sm font-semibold text-[var(--text)]'>
-                        Settings
-                    </h3>
-                    <Form.Item
-                        label='Who can join'
-                        name='admissionPolicy'
-                        rules={[
-                            {
-                                required: true,
-                                message: 'Choose an admission policy.',
-                            },
-                        ]}
-                    >
-                        <Select options={ADMISSION_POLICY_OPTIONS} />
-                    </Form.Item>
-                    <Form.Item
-                        label='Max participants'
-                        name='maxParticipants'
-                        rules={[
-                            {
-                                required: true,
-                                message: 'Enter a value between 2 and 100.',
-                            },
-                        ]}
-                    >
-                        <InputNumber min={2} max={100} className='w-full' />
-                    </Form.Item>
-                    <Form.Item
-                        label='Allow screen share'
-                        name='allowScreenShare'
-                        valuePropName='checked'
-                    >
-                        <Switch />
-                    </Form.Item>
-                    <Form.Item
-                        label='Enable chat'
-                        name='chatEnabled'
-                        valuePropName='checked'
-                    >
-                        <Switch />
-                    </Form.Item>
-                    <Form.Item
-                        label='Allow microphone'
-                        name='allowMicrophone'
-                        valuePropName='checked'
-                    >
-                        <Switch />
-                    </Form.Item>
-                    <Form.Item
-                        label='Allow video'
-                        name='allowVideo'
-                        valuePropName='checked'
-                    >
-                        <Switch />
-                    </Form.Item>
+                    {canManageSettingsAndInvitees && (
+                        <>
+                            <h3 className='mb-4 mt-6 text-sm font-semibold text-[var(--text)]'>
+                                Settings
+                            </h3>
+                            <Form.Item
+                                label='Who can join'
+                                name='admissionPolicy'
+                                rules={[
+                                    {
+                                        required: true,
+                                        message: 'Choose an admission policy.',
+                                    },
+                                ]}
+                            >
+                                <Select options={ADMISSION_POLICY_OPTIONS} />
+                            </Form.Item>
+                            <Form.Item
+                                label='Max participants'
+                                name='maxParticipants'
+                                rules={[
+                                    {
+                                        required: true,
+                                        message:
+                                            'Enter a value between 2 and 100.',
+                                    },
+                                ]}
+                            >
+                                <InputNumber
+                                    min={2}
+                                    max={100}
+                                    className='w-full'
+                                />
+                            </Form.Item>
+                            <Form.Item
+                                label='Allow screen share'
+                                name='allowScreenShare'
+                                valuePropName='checked'
+                            >
+                                <Switch />
+                            </Form.Item>
+                            <Form.Item
+                                label='Enable chat'
+                                name='chatEnabled'
+                                valuePropName='checked'
+                            >
+                                <Switch />
+                            </Form.Item>
+                            <Form.Item
+                                label='Allow microphone'
+                                name='allowMicrophone'
+                                valuePropName='checked'
+                            >
+                                <Switch />
+                            </Form.Item>
+                            <Form.Item
+                                label='Allow video'
+                                name='allowVideo'
+                                valuePropName='checked'
+                            >
+                                <Switch />
+                            </Form.Item>
 
-                    <h3 className='mb-4 mt-6 text-sm font-semibold text-[var(--text)]'>
-                        Invitees
-                    </h3>
-                    <Form.Item label='Manage invitees'>
-                        <WorkspaceUserPicker
-                            value={newInvitees}
-                            onChange={setNewInvitees}
-                            requireEmail
-                        />
-                    </Form.Item>
+                            <h3 className='mb-4 mt-6 text-sm font-semibold text-[var(--text)]'>
+                                Invitees
+                            </h3>
+                            <Form.Item label='Manage invitees'>
+                                <WorkspaceUserPicker
+                                    value={newInvitees}
+                                    onChange={setNewInvitees}
+                                    requireEmail
+                                />
+                            </Form.Item>
+                        </>
+                    )}
 
                     {formError && (
                         <Form.Item>

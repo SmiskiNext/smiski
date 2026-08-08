@@ -33,19 +33,15 @@ export function resolveMeetingPermissions(
 
 /**
  * Pure action policy — mirrors the backend `meet` service's actual
- * authorization exactly (verified against
- * `CancelMeetingApplicationService`/`EndMeetingApplicationService`/
- * `UpdateMeetingApplicationService`): `EDIT`/`CANCEL`/`END`/`SETTINGS` require the
- * acting user to be the meeting's host (`hostId.equals(actor)`), not merely
- * hold the project-level `Edit Meeting` permission — that permission only
- * gates *which* meetings a user can manage, not *whose*. `START`/`JOIN` have
- * no host restriction backend-side (`RequestJoinApplicationService` admits
- * any caller under the meeting's admission policy), so those stay gated on
- * `canEditMeeting`/`canViewMeeting` alone. `SETTINGS` (backend
- * `updateSettings`) is available only on RUNNING — for SCHEDULED meetings,
- * settings are merged into the EDIT action via the unified EditMeetingModal
- * on project page (issue panel still uses separate modals). The domain
- * method rejects COMPLETED/CANCELED.
+ * authorization exactly: `EDIT`/`CANCEL`/`END` require the acting user to be
+ * the meeting's host (`hostId.equals(actor)`), not merely hold the project-level
+ * `Edit Meeting` permission. `START`/`JOIN` have no host restriction
+ * backend-side, so those stay gated on `canEditMeeting`/`canViewMeeting` alone.
+ * `EDIT` is available to the host in every status (`SCHEDULED`, `RUNNING`,
+ * `COMPLETED`, `CANCELED`) and consolidates settings and invitee management for
+ * the project page (no separate `SETTINGS` action). The domain-layer
+ * `updateInfo` accepts info changes in all statuses and rejects time/zone
+ * changes off-SCHEDULED; `updateSettings` rejects COMPLETED/CANCELED.
  */
 export function getAvailableMeetingActions(
     meeting: Meeting,
@@ -67,11 +63,17 @@ export function getAvailableMeetingActions(
         case 'RUNNING': {
             if (!permissions.canEditMeeting) return ['JOIN', 'VIEW_DETAIL'];
             const actions: MeetingAction[] = ['JOIN', 'VIEW_DETAIL'];
-            if (isHost) actions.push('END', 'SETTINGS');
+            if (isHost) {
+                actions.push('EDIT');
+                actions.push('END');
+            }
             return actions;
         }
         case 'COMPLETED':
-        case 'CANCELED':
-            return ['VIEW_DETAIL', 'VIEW_HISTORY'];
+        case 'CANCELED': {
+            const actions: MeetingAction[] = ['VIEW_DETAIL', 'VIEW_HISTORY'];
+            if (permissions.canEditMeeting && isHost) actions.push('EDIT');
+            return actions;
+        }
     }
 }

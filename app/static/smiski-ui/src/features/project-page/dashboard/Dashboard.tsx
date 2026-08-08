@@ -5,7 +5,6 @@ import {
     ErrorState,
     InlineFeedback,
     LoadingState,
-    MeetingSettingsModal,
     NoPermissionState,
     ScheduleMeetingModal,
     StartInstantMeetingModal,
@@ -37,9 +36,6 @@ export function Dashboard({ projectKey, onOpenRoom }: DashboardProps) {
         focus: 'details' | 'history';
     } | null>(null);
     const [editingMeetingId, setEditingMeetingId] = useState<string | null>(
-        null,
-    );
-    const [settingsMeetingId, setSettingsMeetingId] = useState<string | null>(
         null,
     );
     const [isScheduleOpen, setScheduleOpen] = useState(false);
@@ -81,9 +77,6 @@ export function Dashboard({ projectKey, onOpenRoom }: DashboardProps) {
                 break;
             case 'END':
                 confirmAction.request('END', meeting);
-                break;
-            case 'SETTINGS':
-                setSettingsMeetingId(meeting.id);
                 break;
             case 'VIEW_HISTORY':
                 setSelectedMeeting({ id: meeting.id, focus: 'history' });
@@ -171,17 +164,6 @@ export function Dashboard({ projectKey, onOpenRoom }: DashboardProps) {
                     onSaved={() => {
                         setEditingMeetingId(null);
                         showSuccess('Meeting updated.');
-                    }}
-                />
-            )}
-            {settingsMeetingId && (
-                <MeetingSettingsModal
-                    isOpen
-                    meetingId={settingsMeetingId}
-                    onClose={() => setSettingsMeetingId(null)}
-                    onSaved={() => {
-                        setSettingsMeetingId(null);
-                        showSuccess('Meeting settings saved.');
                     }}
                 />
             )}
