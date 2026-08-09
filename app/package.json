@@ -18,10 +18,9 @@
         "format": "biome format --write",
         "format:check": "biome format .",
         "typecheck": "pnpm --filter smiski-ui typecheck",
-        "manifest:render": "node ./scripts/render-manifest.js",
-        "deploy": "node ./scripts/deploy.js",
-        "install:site": "pnpm manifest:render && pnpm run forge install",
-        "forge": "node ./scripts/forge-run.js"
+        "deploy": "pnpm build && forge deploy",
+        "install:site": "forge install",
+        "forge": "forge"
     },
     "devDependencies": {
         "@biomejs/biome": "^2.4.15",

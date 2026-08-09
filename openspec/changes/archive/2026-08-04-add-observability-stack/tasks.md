@@ -217,19 +217,18 @@ stack. Tasks 6.1 through 6.4 require the three images to be rebuilt first.
       application containers, re-checked after the mount amendment.** Queried by
       `name`, not merely counted:
 
-    | container               | working set | cpu total | cpu rate (1m) |
-    | ----------------------- | ----------- | --------- | ------------- |
-    | `docker-tenant-1`       | 508.9 MB    | 32.8 s    | 0.003 cores   |
-    | `docker-meet-1`         | 575.9 MB    | 36.1 s    | 0.014 cores   |
-    | `docker-notification-1` | 477.9 MB    | 36.3 s    | 0.019 cores   |
+      | container              | working set | cpu total | cpu rate (1m) |
+                                          | ---------------------- | ----------- | --------- | ------------- |
+                                          | `docker-tenant-1`      | 508.9 MB    | 32.8 s    | 0.003 cores   |
+                                          | `docker-meet-1`        | 575.9 MB    | 36.1 s    | 0.014 cores   |
+                                          | `docker-notification-1`| 477.9 MB    | 36.3 s    | 0.019 cores   |
 
-    All 20 stack containers carry a `name` label, so the narrowed
-    `/sys/fs/cgroup` + `/var/lib/docker` pair is sufficient — the earlier
-    `/rootfs` mount is confirmed unnecessary. `store_container_labels = false`
-    also holds: a series carries exactly
-    `__name__, id, image, instance, job, name` and zero `container_label_*`
-    keys. No per-container agent is deployed; the exporter runs inside Alloy and
-    pushes 5,543 series by remote write.
+                                          All 20 stack containers carry a `name` label, so the narrowed
+                                          `/sys/fs/cgroup` + `/var/lib/docker` pair is sufficient — the earlier
+                                          `/rootfs` mount is confirmed unnecessary. `store_container_labels = false`
+                                          also holds: a series carries exactly `__name__, id, image, instance, job,
+                                          name` and zero `container_label_*` keys. No per-container agent is deployed;
+                                          the exporter runs inside Alloy and pushes 5,543 series by remote write.
 
 - [x] 6.13 _Observability failure does not block the application_ — stop Loki
       while the profile runs and confirm the application containers stay healthy
@@ -261,58 +260,58 @@ stack. Tasks 6.1 through 6.4 require the three images to be rebuilt first.
       reasoned about) ← **All six resolve; each was resolved, not assumed.**
       `docker manifest inspect` returned a digest for every reference:
 
-    | image                                           | digest (truncated) |
-    | ----------------------------------------------- | ------------------ |
-    | `grafana/loki:3.7.4`                            | `sha256:d80be589`  |
-    | `grafana/alloy:v1.18.0`                         | `sha256:eb21f4c0`  |
-    | `prom/prometheus:v3.13.2`                       | `sha256:1147c928`  |
-    | `grafana/grafana:12.4.6`                        | `sha256:950e5b5b`  |
-    | `prometheuscommunity/postgres-exporter:v0.20.1` | `sha256:4f3d8280`  |
-    | `oliver006/redis_exporter:v1.88.0-alpine`       | `sha256:9291e77f`  |
+      | image                                           | digest (truncated) |
+                                          | ----------------------------------------------- | ------------------ |
+                                          | `grafana/loki:3.7.4`                            | `sha256:d80be589` |
+                                          | `grafana/alloy:v1.18.0`                         | `sha256:eb21f4c0` |
+                                          | `prom/prometheus:v3.13.2`                       | `sha256:1147c928` |
+                                          | `grafana/grafana:12.4.6`                        | `sha256:950e5b5b` |
+                                          | `prometheuscommunity/postgres-exporter:v0.20.1` | `sha256:4f3d8280` |
+                                          | `oliver006/redis_exporter:v1.88.0-alpine`       | `sha256:9291e77f` |
 
-    The sibling scenario _No observability image floats on a mutable tag_ also
-    passes: every reference carries an explicit version and none is `latest`,
-    `main`, `stable` or bare.
+                                          The sibling scenario _No observability image floats on a mutable tag_ also
+                                          passes: every reference carries an explicit version and none is `latest`,
+                                          `main`, `stable` or bare.
 
-    **Delta-spec scenario coverage.** The delta spec declares 27 scenarios, not
-    25 — an earlier count here was wrong. All 27 are executed rather than
-    reasoned about. The 15 tasks above cover 19 directly. Three more were
-    covered in passing and are recorded where they were observed: _Collector
-    restart does not lose the log store's contents_ in 6.13, _Collection
-    requires no per-service configuration_ in 6.10 (no application service
-    definition carries logging configuration, yet all 20 containers are
-    collected — including two from an unrelated project), and _A component
-    without a metrics endpoint is excluded deliberately_ in 6.9 (`kafka` and
-    `gateway` are absent from the 9 targets and their exclusion is documented in
-    `prometheus.yml`, `compose.yaml` and `AGENTS.md`). _Stale image reports a
-    down target rather than failing_ is the one scenario asserted structurally
-    rather than by executing a stale build: no application container depends on
-    a Prometheus target, which 6.13 demonstrated from the opposite direction.
+                                          **Delta-spec scenario coverage.** The delta spec declares 27 scenarios, not
+                                          25 — an earlier count here was wrong. All 27 are executed rather than
+                                          reasoned about. The 15 tasks above cover 19 directly. Three more were
+                                          covered in passing and are recorded where they were observed:
+                                          _Collector restart does not lose the log store's contents_ in 6.13,
+                                          _Collection requires no per-service configuration_ in 6.10 (no application
+                                          service definition carries logging configuration, yet all 20 containers are
+                                          collected — including two from an unrelated project), and _A component
+                                          without a metrics endpoint is excluded deliberately_ in 6.9 (`kafka` and
+                                          `gateway` are absent from the 9 targets and their exclusion is documented in
+                                          `prometheus.yml`, `compose.yaml` and `AGENTS.md`). _Stale image reports a
+                                          down target rather than failing_ is the one scenario asserted structurally
+                                          rather than by executing a stale build: no application container depends on
+                                          a Prometheus target, which 6.13 demonstrated from the opposite direction.
 
-    The remaining four are configuration scenarios, executed against the files
-    as committed:
+                                          The remaining four are configuration scenarios, executed against the files
+                                          as committed:
 
-    - _Each configuration format has a documented validation command_ and
-      _Compose definition is valid with and without the profile_ — the five
-      commands in `AGENTS.md` "Validating configuration changes" cover compose
-      (both modes), Envoy, Prometheus, Alloy and Loki; all exit 0.
-    - _Invalid configuration is rejected before startup_ — each validator was
-      run against a deliberately corrupted copy outside the repository.
-      `promtool` exit 1 naming `field scrape_intervl not found`,
-      `alloy validate` exit 1 with a caret at the offending line,
-      `loki -verify-config` exit 1 naming `field auth_enabld not found`. The
-      same three commands exit 0 against the committed files, so the validators
-      discriminate rather than always passing.
-    - _Other profiles are unaffected_ — `git diff` on `log4j2-spring.xml` is
-      purely additive: the `local | default | dev` and `k8s` branches have no
-      removed or altered line, so only the new `docker` branch is introduced.
+                                          - _Each configuration format has a documented validation command_ and
+                                            _Compose definition is valid with and without the profile_ — the five
+                                            commands in `AGENTS.md` "Validating configuration changes" cover compose
+                                            (both modes), Envoy, Prometheus, Alloy and Loki; all exit 0.
+                                          - _Invalid configuration is rejected before startup_ — each validator was
+                                            run against a deliberately corrupted copy outside the repository.
+                                            `promtool` exit 1 naming `field scrape_intervl not found`, `alloy
+                                            validate` exit 1 with a caret at the offending line, `loki
+                                            -verify-config` exit 1 naming `field auth_enabld not found`. The same
+                                            three commands exit 0 against the committed files, so the validators
+                                            discriminate rather than always passing.
+                                          - _Other profiles are unaffected_ — `git diff` on `log4j2-spring.xml` is
+                                            purely additive: the `local | default | dev` and `k8s` branches have no
+                                            removed or altered line, so only the new `docker` branch is introduced.
 
-    Two further scenarios are covered by 6.3 and 6.5 under different wording:
-    _Stack-activated profile does not alter the component graph_ (the three
-    services start healthy under `docker` with AOT active and expose the same
-    endpoints) and _Every profile the stack activates produces log output_ (the
-    `docker` branch matches, so an appender is attached — the "no fallback
-    branch" risk in design does not fire). _Service with no unresolvable
-    property starts_ and _Property required by a shared component is supplied_
-    hold as a precondition of 6.2 through 6.6: all three services reached a
-    healthy state and served requests under the stack's supplied environment.
+                                          Two further scenarios are covered by 6.3 and 6.5 under different wording:
+                                          _Stack-activated profile does not alter the component graph_ (the three
+                                          services start healthy under `docker` with AOT active and expose the same
+                                          endpoints) and _Every profile the stack activates produces log output_ (the
+                                          `docker` branch matches, so an appender is attached — the "no fallback
+                                          branch" risk in design does not fire). _Service with no unresolvable
+                                          property starts_ and _Property required by a shared component is supplied_
+                                          hold as a precondition of 6.2 through 6.6: all three services reached a
+                                          healthy state and served requests under the stack's supplied environment.
