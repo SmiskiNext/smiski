@@ -20,5 +20,6 @@ public record MeetingSummary(
         @Nullable Instant endTime,
         MeetingType type,
         MeetingStatus status,
+        @Nullable String organizerDisplayName,
         MeetingSettings settings,
         Instant createdAt) {}

@@ -265,6 +265,7 @@ public class MeetingRepositoryAdapter implements MeetingRepository {
                 entity.getEndTime(),
                 MeetingType.valueOf(entity.getType()),
                 MeetingStatus.valueOf(entity.getStatus()),
+                entity.getOrganizerDisplayName(),
                 entity.getSettings(),
                 entity.getCreatedAt());
     }

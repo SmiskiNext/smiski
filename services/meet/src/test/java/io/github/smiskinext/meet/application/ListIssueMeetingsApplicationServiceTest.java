@@ -150,6 +150,7 @@ class ListIssueMeetingsApplicationServiceTest {
                 null,
                 MeetingType.SCHEDULED,
                 MeetingStatus.SCHEDULED,
+                "Host Display Name",
                 settings,
                 createdAt);
     }
