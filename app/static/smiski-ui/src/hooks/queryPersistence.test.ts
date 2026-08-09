@@ -15,6 +15,7 @@ import {
 } from './queryPersistence';
 
 const ALICE = { accountId: 'account-alice', displayName: 'Alice' };
+const PERMISSION_KEYS = { viewKey: 'view-key', editKey: 'edit-key' };
 const MEETING_ID = '0195e0c2-8f3a-7c21-b9d4-2f1a6e7c8d90';
 
 function dehydratedKeys(client: QueryClient): unknown[][] {
@@ -32,19 +33,19 @@ describe('persisted query allowlist', () => {
         vi.restoreAllMocks();
     });
 
-    it('persists the three slow-moving reads', () => {
+    it('persists permission reads but not current-user identity', () => {
         const client = new QueryClient();
         client.setQueryData(queryKeys.currentUser, ALICE);
-        client.setQueryData(queryKeys.meetingPermissionKeys(), {
-            viewKey: 'v',
-            editKey: 'e',
-        });
+        client.setQueryData(queryKeys.meetingPermissionKeys(), PERMISSION_KEYS);
         client.setQueryData(
             queryKeys.meetingPermissions('SMISKI', ALICE.accountId),
             { hasViewMeeting: true, hasEditMeeting: false },
         );
 
-        expect(dehydratedKeys(client)).toHaveLength(3);
+        expect(dehydratedKeys(client)).toEqual([
+            [...queryKeys.meetingPermissionKeys()],
+            [...queryKeys.meetingPermissions('SMISKI', ALICE.accountId)],
+        ]);
     });
 
     it('persists a permission check for any project and any user', () => {
@@ -84,10 +85,13 @@ describe('persisted query allowlist', () => {
 
     it('matches by prefix, as TanStack filters do', () => {
         const client = new QueryClient();
-        client.setQueryData([...queryKeys.currentUser, 'detail'], ALICE);
+        client.setQueryData(
+            [...queryKeys.meetingPermissionKeys(), 'detail'],
+            PERMISSION_KEYS,
+        );
 
         expect(dehydratedKeys(client)).toEqual([
-            ['jira', 'current-user', 'detail'],
+            [...queryKeys.meetingPermissionKeys(), 'detail'],
         ]);
     });
 
@@ -144,7 +148,7 @@ describe('persister resilience', () => {
 
     it('restores a value written by the same build', async () => {
         const source = new QueryClient();
-        source.setQueryData(queryKeys.currentUser, ALICE);
+        source.setQueryData(queryKeys.meetingPermissionKeys(), PERMISSION_KEYS);
         await persistOptions.persister.persistClient({
             timestamp: Date.now(),
             buster: persistOptions.buster,
@@ -157,12 +161,14 @@ describe('persister resilience', () => {
             ...persistOptions,
         });
 
-        expect(target.getQueryData(queryKeys.currentUser)).toEqual(ALICE);
+        expect(target.getQueryData(queryKeys.meetingPermissionKeys())).toEqual(
+            PERMISSION_KEYS,
+        );
     });
 
     it('discards a cache written by a different build', async () => {
         const source = new QueryClient();
-        source.setQueryData(queryKeys.currentUser, ALICE);
+        source.setQueryData(queryKeys.meetingPermissionKeys(), PERMISSION_KEYS);
         await persistOptions.persister.persistClient({
             timestamp: Date.now(),
             buster: 'a-previous-deploy',
@@ -175,12 +181,14 @@ describe('persister resilience', () => {
             ...persistOptions,
         });
 
-        expect(target.getQueryData(queryKeys.currentUser)).toBeUndefined();
+        expect(
+            target.getQueryData(queryKeys.meetingPermissionKeys()),
+        ).toBeUndefined();
     });
 
     it('discards an envelope older than the max age', async () => {
         const source = new QueryClient();
-        source.setQueryData(queryKeys.currentUser, ALICE);
+        source.setQueryData(queryKeys.meetingPermissionKeys(), PERMISSION_KEYS);
         await persistOptions.persister.persistClient({
             timestamp: Date.now() - PERSISTED_CACHE_MAX_AGE_MS - 1,
             buster: persistOptions.buster,
@@ -193,12 +201,14 @@ describe('persister resilience', () => {
             ...persistOptions,
         });
 
-        expect(target.getQueryData(queryKeys.currentUser)).toBeUndefined();
+        expect(
+            target.getQueryData(queryKeys.meetingPermissionKeys()),
+        ).toBeUndefined();
     });
 
     it('restores a hydrated entry with a gcTime that outlives the envelope', async () => {
         const source = new QueryClient();
-        source.setQueryData(queryKeys.currentUser, ALICE);
+        source.setQueryData(queryKeys.meetingPermissionKeys(), PERMISSION_KEYS);
         await persistOptions.persister.persistClient({
             timestamp: Date.now(),
             buster: persistOptions.buster,
@@ -213,7 +223,7 @@ describe('persister resilience', () => {
 
         const restored = target
             .getQueryCache()
-            .find({ queryKey: queryKeys.currentUser });
+            .find({ queryKey: queryKeys.meetingPermissionKeys() });
         expect(restored?.gcTime).toBeGreaterThanOrEqual(
             PERSISTED_CACHE_MAX_AGE_MS,
         );
@@ -229,7 +239,9 @@ describe('persister resilience', () => {
                 ...persistOptions,
             }),
         ).resolves.toBeUndefined();
-        expect(target.getQueryData(queryKeys.currentUser)).toBeUndefined();
+        expect(
+            target.getQueryData(queryKeys.meetingPermissionKeys()),
+        ).toBeUndefined();
     });
 
     it('degrades silently when the quota is exceeded mid-write', async () => {
@@ -237,7 +249,7 @@ describe('persister resilience', () => {
             throw new Error('QuotaExceededError');
         });
         const source = new QueryClient();
-        source.setQueryData(queryKeys.currentUser, ALICE);
+        source.setQueryData(queryKeys.meetingPermissionKeys(), PERMISSION_KEYS);
 
         await expect(
             persistOptions.persister.persistClient({

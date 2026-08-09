@@ -2,6 +2,7 @@ import { useState } from 'react';
 import {
     ActiveMeetingWarningDialog,
     ConfirmMeetingActionDialog,
+    EditMeetingModal,
     ErrorState,
     InlineFeedback,
     LoadingState,
@@ -16,7 +17,6 @@ import { useStartMeeting } from '../../../hooks/useMeetingMutations';
 import { useMeetingPermissions } from '../../../hooks/useMeetingPermission';
 import { useProjectMeetings } from '../../../hooks/useProjectMeetings';
 import { DashboardHeader } from './DashboardHeader';
-import { EditMeetingModal } from './EditMeetingModal';
 import { MeetingDetailPanel } from './MeetingDetailPanel';
 import { MeetingListTable } from './MeetingListTable';
 import {

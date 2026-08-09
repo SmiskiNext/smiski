@@ -10,7 +10,7 @@
  *   (`useUpdateMeetingSettings`), which the backend also enforces as host-only
  *   and rejects on COMPLETED/CANCELED meetings — callers must only render this
  *   for a host on a SCHEDULED/RUNNING meeting (see `domain/meetingPolicy.ts`'s
- *   `SETTINGS` action gating). `meeting.settings` is only present on a detail
+ *   meeting action gating). `meeting.settings` is only present on a detail
  *   (`get`) response, so this fetches fresh detail via `useMeeting` rather than
  *   trusting a possibly list-sourced `Meeting` prop — and only when the host
  *   section is actually shown, so a non-host never requests settings they

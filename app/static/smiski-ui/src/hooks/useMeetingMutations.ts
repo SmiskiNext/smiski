@@ -108,10 +108,10 @@ export function useUpdateMeetingSettings() {
 
 /**
  * "Start" a scheduled meeting by joining it as the host (backend `join`;
- * there is no separate start endpoint — joining is what transitions a
- * meeting to RUNNING). Seeds `useRoomToken`'s cache with the token/roomName
- * already returned here, so the meeting-room screen the caller navigates to
- * next doesn't re-request one.
+ * there is no separate start endpoint). Connecting with the returned token
+ * causes LiveKit's `room_started` webhook to transition the meeting to
+ * RUNNING. Seeds `useRoomToken`'s cache so the meeting-room screen does not
+ * request a second token.
  */
 export function useStartMeeting() {
     const invalidate = useInvalidateMeetings();

@@ -11,9 +11,6 @@ vi.mock('../api/meetings', () => ({
     listProjectMeetings: (...args: unknown[]) =>
         listProjectMeetingsMock(...args),
 }));
-vi.mock('../context/CurrentUserContext', () => ({
-    useCurrentUser: () => ({ accountId: 'current-user' }),
-}));
 
 import { useProjectMeetings } from './useProjectMeetings';
 
@@ -91,5 +88,43 @@ describe('useProjectMeetings', () => {
             ),
         );
         expect(result.current.pageNumber).toBe(1);
+    });
+
+    it('omits creatorId for All creators and sends an explicit selection', async () => {
+        listProjectMeetingsMock.mockResolvedValue({
+            meetings: [],
+            size: 0,
+            hasNext: false,
+        });
+
+        const { rerender } = renderHook(
+            ({ createdByAccountId }) =>
+                useProjectMeetings({
+                    projectKey: 'SMISKI',
+                    createdByAccountId,
+                }),
+            {
+                initialProps: {
+                    createdByAccountId: undefined as string | undefined,
+                },
+                wrapper: createWrapper(),
+            },
+        );
+
+        await waitFor(() => expect(listProjectMeetingsMock).toHaveBeenCalled());
+        expect(listProjectMeetingsMock.mock.calls[0][0]).toMatchObject({
+            projectKey: 'SMISKI',
+            createdByAccountId: undefined,
+        });
+
+        rerender({ createdByAccountId: 'account-alice' });
+        await waitFor(() =>
+            expect(listProjectMeetingsMock).toHaveBeenLastCalledWith(
+                expect.objectContaining({
+                    createdByAccountId: 'account-alice',
+                    pageToken: undefined,
+                }),
+            ),
+        );
     });
 });

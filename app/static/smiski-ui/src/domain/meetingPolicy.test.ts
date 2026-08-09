@@ -92,11 +92,12 @@ describe('getAvailableMeetingActions', () => {
     // (`hostId.equals(actor)` in CancelMeetingApplicationService /
     // EndMeetingApplicationService / UpdateMeetingApplicationService), not
     // "any Edit Meeting permission holder" — a non-host Edit-Meeting user
-    // must not see actions the backend will reject with 403.
-    it('hides EDIT/CANCEL from a non-host Edit Meeting user, keeps START', () => {
+    // must not see host actions. START is also host-only in the UI so manual
+    // admission cannot turn a purported start into a pending join request.
+    it('hides host actions from a non-host Edit Meeting user, keeps JOIN', () => {
         expect(
             getAvailableMeetingActions(meeting('SCHEDULED'), edit, NON_HOST),
-        ).toEqual(['VIEW_DETAIL', 'START']);
+        ).toEqual(['JOIN', 'VIEW_DETAIL']);
     });
 
     it('hides EDIT/END from a non-host Edit Meeting user, keeps JOIN', () => {

@@ -8,6 +8,7 @@ export * from './ActiveMeetingWarningDialog';
 export * from './AdvancedMeetingSettingsFields';
 export * from './ConfirmActionDialog';
 export * from './ConfirmMeetingActionDialog';
+export * from './EditMeetingModal';
 export * from './EmptyState';
 export * from './ErrorState';
 export * from './InlineFeedback';

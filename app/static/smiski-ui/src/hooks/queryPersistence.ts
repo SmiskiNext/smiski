@@ -7,9 +7,10 @@
  * schedule, instant, detail, confirm). Each one builds its own empty
  * `QueryClient`, so a `staleTime` alone — however long — buys nothing across
  * them: opening a modal re-asks Jira for data the panel behind it already has.
- * Persisting turns those repeat reads into cache hits, which matters because
- * Jira meters Users/Groups/Permissions reads in a more expensive rate-limit
- * tier than ordinary reads.
+ * Persisting the permission reads turns those repeats into cache hits, which
+ * matters because Jira meters Permissions reads in a more expensive rate-limit
+ * tier than ordinary reads. Current-user identity is deliberately fetched once
+ * per iframe instead of being shared through storage.
  *
  * `localStorage` is the right channel because every Forge module of this app
  * shares one origin — `utils/meetingRoomHandoff.ts` already relies on exactly
@@ -18,7 +19,7 @@
  *
  * Persistence is opt-in per key, never opt-out: see
  * {@link isPersistedQueryKey}. Live meeting and room state must always come
- * from the network, so only the three slow-moving reads are eligible.
+ * from the network, so only the two permission reads are eligible.
  *
  * Nothing here may throw. A browser can refuse storage outright (private
  * browsing, disabled cookies — where even *reading* `window.localStorage`
@@ -34,7 +35,7 @@ import type {
     PersistedClient,
 } from '@tanstack/react-query-persist-client';
 import { BUILD_VERSION } from '../utils/buildVersion';
-import { isPersistedQueryKey } from './queryKeys';
+import { isCurrentUserQueryKey, isPersistedQueryKey } from './queryKeys';
 
 const STORAGE_KEY = 'smiski:query-cache';
 
@@ -115,7 +116,8 @@ function resolveStorage(): AsyncStorage<string> | undefined {
 }
 
 /**
- * Reads the stored envelope, treating anything unreadable as absent.
+ * Reads the stored envelope, treating anything unreadable as absent and
+ * removing current-user queries written by older builds before hydration.
  *
  * The persist library's own restore path reacts to a deserialize failure by
  * clearing the cache and rethrowing, which surfaces a console error on every
@@ -125,7 +127,11 @@ function resolveStorage(): AsyncStorage<string> | undefined {
  */
 function deserializePersistedClient(cached: string): PersistedClient {
     try {
-        return JSON.parse(cached) as PersistedClient;
+        const client = JSON.parse(cached) as PersistedClient;
+        client.clientState.queries = client.clientState.queries.filter(
+            (query) => !isCurrentUserQueryKey(query.queryKey),
+        );
+        return client;
     } catch {
         return {
             timestamp: 0,

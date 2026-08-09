@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { cleanup, render, screen } from '@testing-library/react';
+import { act, cleanup, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Meeting, MeetingStatus } from '../../../domain';
 import type { UseLiveKitRoomResult } from '../../../hooks/useLiveKitRoom';
@@ -78,6 +78,7 @@ import { MeetingRoom } from './MeetingRoom';
 
 const MEETING_ID = 'meeting-1';
 const WAITING_TO_START_LABEL = 'Waiting for the meeting to start…';
+const refetchMeeting = vi.fn();
 
 function meeting(status: MeetingStatus): Meeting {
     return {
@@ -126,6 +127,7 @@ function renderRoom(status: MeetingStatus | null, error: Error | null = null) {
         meeting: status ? meeting(status) : null,
         loading: false,
         error,
+        refetch: refetchMeeting,
     });
     const onLeave = vi.fn();
     render(<MeetingRoom meetingId={MEETING_ID} onLeave={onLeave} />);
@@ -137,9 +139,13 @@ describe('MeetingRoom start gating', () => {
         vi.clearAllMocks();
         hooks.useRoomToken.mockReturnValue(NO_TOKEN);
         hooks.useLiveKitRoom.mockReturnValue(IDLE_LIVEKIT);
+        refetchMeeting.mockResolvedValue(undefined);
     });
 
-    afterEach(cleanup);
+    afterEach(() => {
+        cleanup();
+        vi.useRealTimers();
+    });
 
     it('holds the room token back and waits while the meeting is scheduled', () => {
         renderRoom('SCHEDULED');
@@ -180,5 +186,65 @@ describe('MeetingRoom start gating', () => {
         expect(screen.getByTestId('meeting-room-shell')).toBeDefined();
         expect(screen.queryByText(WAITING_TO_START_LABEL)).toBeNull();
         expect(hooks.useRoomToken).toHaveBeenCalledWith(MEETING_ID, true);
+    });
+
+    it('renders immediately and refreshes backend state when LiveKit connects first', () => {
+        hooks.useRoomToken.mockReturnValue({
+            ...NO_TOKEN,
+            token: 'room-token',
+            url: 'wss://livekit.test',
+        });
+        hooks.useLiveKitRoom.mockReturnValue({
+            ...IDLE_LIVEKIT,
+            connectionState: 'connected',
+        });
+
+        renderRoom('SCHEDULED');
+
+        expect(screen.getByTestId('meeting-room-shell')).toBeDefined();
+        expect(
+            screen.getByText('Connected. Synchronizing meeting status…'),
+        ).toBeDefined();
+        expect(screen.queryByText(WAITING_TO_START_LABEL)).toBeNull();
+        expect(refetchMeeting).toHaveBeenCalledTimes(1);
+        expect(hooks.useRoomToken).toHaveBeenCalledWith(MEETING_ID, false);
+    });
+
+    it('stops the short sync poll after the backend reports RUNNING', async () => {
+        vi.useFakeTimers();
+        let status: MeetingStatus = 'SCHEDULED';
+        hooks.useMeeting.mockImplementation(() => ({
+            meeting: meeting(status),
+            loading: false,
+            error: null,
+            refetch: refetchMeeting,
+        }));
+        hooks.useRoomToken.mockReturnValue({
+            ...NO_TOKEN,
+            token: 'room-token',
+            url: 'wss://livekit.test',
+        });
+        hooks.useLiveKitRoom.mockReturnValue({
+            ...IDLE_LIVEKIT,
+            connectionState: 'connected',
+        });
+
+        const onLeave = vi.fn();
+        const { rerender } = render(
+            <MeetingRoom meetingId={MEETING_ID} onLeave={onLeave} />,
+        );
+        expect(refetchMeeting).toHaveBeenCalledTimes(1);
+
+        await act(() => vi.advanceTimersByTimeAsync(2000));
+        expect(refetchMeeting).toHaveBeenCalledTimes(2);
+
+        status = 'RUNNING';
+        rerender(<MeetingRoom meetingId={MEETING_ID} onLeave={onLeave} />);
+        await act(() => vi.advanceTimersByTimeAsync(4000));
+
+        expect(refetchMeeting).toHaveBeenCalledTimes(2);
+        expect(
+            screen.queryByText('Connected. Synchronizing meeting status…'),
+        ).toBeNull();
     });
 });

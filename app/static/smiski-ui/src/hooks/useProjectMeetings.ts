@@ -2,8 +2,9 @@
  * Cursor-paginated project meeting query. Cursor history is kept client-side
  * so users can move backwards even though the backend only returns a next
  * cursor. Changing any filter starts a fresh cursor chain automatically. The
- * current user's meetings are shown by default unless `createdByAccountId` is
- * explicitly provided.
+ * Omitting `createdByAccountId` lists every creator, matching the dashboard's
+ * "All creators" option. A specific creator is sent only when the user selects
+ * one explicitly.
  */
 import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
@@ -12,7 +13,6 @@ import {
     listProjectMeetings,
     type MeetingListFilters,
 } from '../api/meetings';
-import { useCurrentUser } from '../context/CurrentUserContext';
 import type { Meeting } from '../domain';
 import { queryKeys } from './queryKeys';
 
@@ -54,14 +54,7 @@ export function useProjectMeetings(
     filters: MeetingListFilters,
     enabled = true,
 ): UseProjectMeetingsResult {
-    const currentUser = useCurrentUser();
-
-    const effectiveFilters = {
-        ...filters,
-        createdByAccountId: filters.createdByAccountId ?? currentUser.accountId,
-    };
-
-    const scope = paginationScope(effectiveFilters);
+    const scope = paginationScope(filters);
     const [storedNavigation, setNavigation] = useState(() =>
         initialNavigation(scope),
     );
@@ -71,7 +64,7 @@ export function useProjectMeetings(
             : initialNavigation(scope);
     const pageToken = navigation.tokens[navigation.pageIndex];
     const params = {
-        ...effectiveFilters,
+        ...filters,
         pageSize: DEFAULT_MEETING_PAGE_SIZE,
         pageToken,
     };

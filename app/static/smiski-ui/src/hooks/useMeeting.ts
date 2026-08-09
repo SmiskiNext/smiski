@@ -47,5 +47,6 @@ export function useMeeting(
         meeting: query.data ?? null,
         loading: query.isLoading,
         error: query.error as Error | null,
+        refetch: query.refetch,
     };
 }
