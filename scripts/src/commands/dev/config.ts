@@ -76,6 +76,13 @@ const FILLABLE: FillableKey[] = [
         source: detectHostAddress,
         isUnset: isPlaceholder,
     },
+    {
+        key: 'CLOUDFLARE_TUNNEL_TOKEN',
+        description:
+            'Token associating the cloudflared connector with a named tunnel',
+        source: async () => null,
+        isUnset: isPlaceholder,
+    },
 ];
 
 /** Returns a URL-safe secret long enough for every consumer's minimum. */
@@ -306,8 +313,44 @@ export const configCommand = defineCommand({
         name: 'config',
         description: "Create and edit the development stack's environment file",
     },
-    async run() {
+    args: {
+        check: {
+            type: 'boolean',
+            description:
+                'Validate that all required variables are set, then exit',
+        },
+    },
+    async run({ args }) {
         if (!(await ensureEnvironmentFile())) {
+            process.exitCode = 1;
+            return;
+        }
+
+        const content = await readFile(dockerEnvFile, 'utf8');
+        const lines = content.split('\n');
+        const assignments = parseAssignments(lines);
+
+        // --check: validate required vars are set, exit 0 (all set) or 1 (missing)
+        if (args.check) {
+            const missing = FILLABLE.filter((fillable) => {
+                const assignment = assignments.find(
+                    (a) => a.key === fillable.key,
+                );
+                return (
+                    assignment === undefined
+                    || fillable.isUnset(assignment.value)
+                );
+            });
+
+            if (missing.length === 0) {
+                consola.success('All required variables are set.');
+                return;
+            }
+
+            consola.error(
+                `Missing required variables: ${missing.map((f) => f.key).join(', ')}`,
+            );
+            consola.info(`Run 'smiski dev config' to set them interactively.`);
             process.exitCode = 1;
             return;
         }
@@ -321,7 +364,7 @@ export const configCommand = defineCommand({
             return;
         }
 
-        let lines = (await readFile(dockerEnvFile, 'utf8')).split('\n');
+        let liveLines = lines;
         let dirty = false;
 
         consola.info(
@@ -330,11 +373,11 @@ export const configCommand = defineCommand({
         );
 
         while (true) {
-            const assignments = parseAssignments(lines);
+            const liveAssignments = parseAssignments(liveLines);
 
             const selection = await consola.prompt('Select an entry', {
                 type: 'select',
-                options: buildMenuOptions(assignments),
+                options: buildMenuOptions(liveAssignments),
                 cancel: 'null',
             });
 
@@ -343,10 +386,10 @@ export const configCommand = defineCommand({
             }
 
             if (selection === AUTOFILL_ACTION) {
-                const changes = await autofill(assignments);
+                const changes = await autofill(liveAssignments);
 
                 if (changes.size > 0) {
-                    lines = applyChanges(lines, changes);
+                    liveLines = applyChanges(liveLines, changes);
                     dirty = true;
                 }
 
@@ -358,7 +401,7 @@ export const configCommand = defineCommand({
                 continue;
             }
 
-            const assignment = assignments.find(
+            const assignment = liveAssignments.find(
                 (entry) => entry.key === selection,
             );
 
@@ -373,8 +416,8 @@ export const configCommand = defineCommand({
                 continue;
             }
 
-            lines = applyChanges(
-                lines,
+            liveLines = applyChanges(
+                liveLines,
                 new Map([[assignment.lineIndex, `${selection}=${entered}`]]),
             );
             dirty = true;
@@ -387,7 +430,7 @@ export const configCommand = defineCommand({
             return;
         }
 
-        await writeFile(dockerEnvFile, lines.join('\n'), 'utf8');
+        await writeFile(dockerEnvFile, liveLines.join('\n'), 'utf8');
         consola.success(`Wrote ${relative(repositoryRoot, dockerEnvFile)}.`);
         consola.info(
             'Running containers do not see the new values until they are '
