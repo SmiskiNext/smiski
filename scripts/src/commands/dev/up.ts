@@ -40,7 +40,8 @@ export const upCommand = defineCommand({
         profile: {
             type: 'string',
             description:
-                'Compose profile to enable; observability is the only one defined',
+                'Additional compose profile to enable; observability is the only one defined. '
+                + 'The tunnel profile (cloudflared) is always enabled by this command.',
         },
         rebuild: {
             type: 'boolean',
@@ -66,8 +67,18 @@ export const upCommand = defineCommand({
             }
         }
 
-        const profileArgs =
-            args.profile === undefined ? [] : ['--profile', args.profile];
+        // tunnel is always selected: cloudflared is profile-gated in compose.yaml
+        // so the load-test overlay does not inherit it through `include:`, which
+        // means this command must opt back in on every run to keep today's
+        // behaviour for the development stack.
+        const profiles = new Set(['tunnel']);
+        if (args.profile !== undefined) {
+            profiles.add(args.profile);
+        }
+        const profileArgs = [...profiles].flatMap((profile) => [
+            '--profile',
+            profile,
+        ]);
         const buildArgs = args.rebuild ? ['--build'] : [];
 
         const exitCode = await runCompose(DEV_STACK, [

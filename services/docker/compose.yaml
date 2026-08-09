@@ -329,8 +329,18 @@ services:
     # the meeting event-stream routes that are served WITHOUT authentication (see
     # AGENTS.md). Forge Remote cannot present a Cloudflare Access service token,
     # so the tunnel is effectively open. Accepted for local Forge development.
+    #
+    # profiles: [tunnel] keeps this OFF unless the profile is selected, for two
+    # reasons. It stops the load-test overlay — which `include:`s this file —
+    # from inheriting a public tunnel onto its deliberately insecure stack: a
+    # `!reset null` in the overlay does NOT remove an included service, but a
+    # profile declared HERE is honoured through `include:`. And it makes the
+    # internet exposure opt-in rather than a side effect of `up`. `smiski dev up`
+    # selects it automatically; a raw `docker compose up` needs `--profile
+    # tunnel`.
     cloudflared:
         image: cloudflare/cloudflared:2026.7.3
+        profiles: [tunnel]
         command:
             - 'tunnel'
             - '--no-autoupdate'
