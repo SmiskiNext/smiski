@@ -31,12 +31,25 @@ export function AdvancedMeetingSettingsFields() {
                             <Form.Item
                                 label='Who can join'
                                 name='admissionPolicy'
+                                rules={[
+                                    {
+                                        required: true,
+                                        message: 'Choose an admission policy.',
+                                    },
+                                ]}
                             >
                                 <Select options={ADMISSION_POLICY_OPTIONS} />
                             </Form.Item>
                             <Form.Item
                                 label='Max participants'
                                 name='maxParticipants'
+                                rules={[
+                                    {
+                                        required: true,
+                                        message:
+                                            'Enter a value between 2 and 100.',
+                                    },
+                                ]}
                             >
                                 <InputNumber
                                     min={2}

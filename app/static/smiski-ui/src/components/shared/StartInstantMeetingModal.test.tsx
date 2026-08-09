@@ -72,7 +72,39 @@ function renderModal() {
     return { onStarted, onClose };
 }
 
+function expectRequiredLabel(label: string) {
+    expect(
+        screen
+            .getByText(label)
+            .closest('label')
+            ?.classList.contains('ant-form-item-required'),
+    ).toBe(true);
+}
+
 describe('StartInstantMeetingModal result handling', () => {
+    it('marks every required input while leaving optional fields unmarked', async () => {
+        const user = userEvent.setup();
+        renderModal();
+
+        expectRequiredLabel('Title');
+        expect(
+            screen
+                .getByText('Description')
+                .closest('label')
+                ?.classList.contains('ant-form-item-required'),
+        ).toBe(false);
+
+        await user.click(screen.getByText('Advanced settings'));
+        expectRequiredLabel('Who can join');
+        expectRequiredLabel('Max participants');
+        expect(
+            screen
+                .getByText('Allow screen share')
+                .closest('label')
+                ?.classList.contains('ant-form-item-required'),
+        ).toBe(false);
+    });
+
     it('keeps the modal open and shows the message when the result carries an error', async () => {
         mutateAsync.mockResolvedValue({
             error: { message: 'title must not be blank' },

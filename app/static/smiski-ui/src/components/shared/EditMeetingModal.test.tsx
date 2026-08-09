@@ -141,6 +141,15 @@ describe('EditMeetingModal lifecycle fields', () => {
         return { onClose, onSaved };
     }
 
+    function expectRequiredLabel(label: string) {
+        expect(
+            screen
+                .getByText(label)
+                .closest('label')
+                ?.classList.contains('ant-form-item-required'),
+        ).toBe(true);
+    }
+
     it('allows schedule, settings, and invitee changes while SCHEDULED', async () => {
         const user = userEvent.setup();
         renderModal();
@@ -152,6 +161,19 @@ describe('EditMeetingModal lifecycle fields', () => {
         expect(screen.getByText('Settings')).toBeDefined();
         expect(screen.getByText('Invitees')).toBeDefined();
         expect(screen.getByTestId('workspace-user-picker')).toBeDefined();
+        for (const label of [
+            'Title',
+            'Linked issue',
+            'Start date',
+            'Start time',
+            'End date',
+            'End time',
+            'Time zone',
+            'Who can join',
+            'Max participants',
+        ]) {
+            expectRequiredLabel(label);
+        }
 
         await user.clear(endTime);
         await user.type(endTime, '11:00');

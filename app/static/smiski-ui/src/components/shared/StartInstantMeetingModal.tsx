@@ -220,6 +220,7 @@ export function StartInstantMeetingModal({
             <Form.Item
                 label='Title'
                 name='title'
+                required
                 rules={[
                     {
                         validator: (_rule, value: string | undefined) => {

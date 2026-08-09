@@ -327,6 +327,7 @@ export function ScheduleMeetingModal({
             <Form.Item
                 label='Title'
                 name='title'
+                required
                 rules={[
                     {
                         validator: (_rule, value: string | undefined) => {
@@ -358,7 +359,7 @@ export function ScheduleMeetingModal({
             >
                 <Input type='time' />
             </Form.Item>
-            <Form.Item label='Time zone'>
+            <Form.Item label='Time zone' required>
                 <Select
                     showSearch
                     aria-label='Time zone'

@@ -33,6 +33,10 @@ const SORT_OPTIONS: Array<{ value: MeetingListSort; label: string }> = [
     { value: 'CREATED_AT', label: 'Newest created' },
 ];
 
+const STATUS_OPTIONS = MEETING_STATUS_FILTER_OPTIONS.filter(
+    (option) => option.value !== '',
+);
+
 export function SearchAndFilterBar({
     projectKey,
     value,
@@ -98,19 +102,20 @@ export function SearchAndFilterBar({
                 className='w-44'
                 ariaLabel='Filter by status'
                 values={value.statuses ?? []}
-                options={MEETING_STATUS_FILTER_OPTIONS.filter(
-                    (option) => option.value !== '',
-                )}
+                options={STATUS_OPTIONS}
                 placeholder='All statuses'
-                onChange={(statuses) =>
+                onChange={(statuses) => {
+                    const selectedStatuses =
+                        statuses.length === STATUS_OPTIONS.length
+                            ? undefined
+                            : (statuses as MeetingStatus[]);
                     onChange({
                         ...value,
-                        statuses:
-                            statuses.length > 0
-                                ? (statuses as MeetingStatus[])
-                                : undefined,
-                    })
-                }
+                        statuses: selectedStatuses?.length
+                            ? selectedStatuses
+                            : undefined,
+                    });
+                }}
             />
             <SelectDropdown
                 className='w-64'

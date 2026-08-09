@@ -427,7 +427,7 @@ export function EditMeetingModal({
                     >
                         <Input placeholder='e.g. Sprint planning sync' />
                     </Form.Item>
-                    <Form.Item label='Linked issue'>
+                    <Form.Item label='Linked issue' required>
                         <Select
                             showSearch
                             placeholder='Search for an issue…'
@@ -505,7 +505,7 @@ export function EditMeetingModal({
                             >
                                 <Input type='time' />
                             </Form.Item>
-                            <Form.Item label='Time zone'>
+                            <Form.Item label='Time zone' required>
                                 <Select
                                     showSearch
                                     aria-label='Time zone'
