@@ -13,10 +13,12 @@ import type { OpenInstantMeetingPayload } from '../../hooks/useIssuePanelInstant
  * with this issue key, deriving the project key from it when not supplied.
  */
 export function instantModalPayloadFor(
+    issueId: string,
     issueKey: string,
     projectKey?: string,
-): Required<Pick<OpenInstantMeetingPayload, 'issueKey' | 'projectKey'>> {
+): OpenInstantMeetingPayload {
     return {
+        issueId,
         issueKey,
         projectKey: projectKey ?? issueKey.split('-')[0],
     };

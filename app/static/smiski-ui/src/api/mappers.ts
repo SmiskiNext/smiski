@@ -94,7 +94,7 @@ export function meetingFromBackend(
         snapshot.hostName
         ?? snapshot.organizerDisplayName
         ?? snapshot.creatorName
-        ?? 'Unknown host';
+        ?? (hostId || 'Unknown host');
     const startTime = snapshot.startTime ?? snapshot.startedAt ?? undefined;
     const createdAt = snapshot.createdAt ?? undefined;
     // A SCHEDULED-type meeting keeps its originally-scheduled time regardless

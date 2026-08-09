@@ -12,13 +12,11 @@ export const ADMISSION_POLICY_OPTIONS: {
  * Collapsed-by-default "Advanced settings" section for the instant/schedule
  * create forms. Must be rendered inside an antd `Form` whose field names for
  * `admissionPolicy`/`maxParticipants`/`allowScreenShare`/`allowMicrophone`/
- * `allowVideo` match `DEFAULT_MEETING_SETTINGS` in `api/meetings.ts` — the
+ * `chatEnabled`/`allowVideo` match `DEFAULT_MEETING_SETTINGS` in
+ * `api/meetings.ts` — the
  * bounds here mirror the backend's own validation exactly
  * (`UpdateMeetingSettingsRequest`/`MeetingSettings`), same as
  * `MeetingSettingsModal`'s fields for an existing meeting.
- *
- * `chatEnabled` is intentionally not exposed here yet (not needed by the
- * product yet) — create requests always send the default `true` for it.
  */
 export function AdvancedMeetingSettingsFields() {
     return (
@@ -33,12 +31,25 @@ export function AdvancedMeetingSettingsFields() {
                             <Form.Item
                                 label='Who can join'
                                 name='admissionPolicy'
+                                rules={[
+                                    {
+                                        required: true,
+                                        message: 'Choose an admission policy.',
+                                    },
+                                ]}
                             >
                                 <Select options={ADMISSION_POLICY_OPTIONS} />
                             </Form.Item>
                             <Form.Item
                                 label='Max participants'
                                 name='maxParticipants'
+                                rules={[
+                                    {
+                                        required: true,
+                                        message:
+                                            'Enter a value between 2 and 100.',
+                                    },
+                                ]}
                             >
                                 <InputNumber
                                     min={2}
@@ -49,6 +60,13 @@ export function AdvancedMeetingSettingsFields() {
                             <Form.Item
                                 label='Allow screen share'
                                 name='allowScreenShare'
+                                valuePropName='checked'
+                            >
+                                <Switch />
+                            </Form.Item>
+                            <Form.Item
+                                label='Enable chat'
+                                name='chatEnabled'
                                 valuePropName='checked'
                             >
                                 <Switch />

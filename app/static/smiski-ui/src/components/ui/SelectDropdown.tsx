@@ -16,6 +16,7 @@ export interface SelectDropdownProps {
     onChange: (value: string) => void;
     className?: string;
     disabled?: boolean;
+    onOpenChange?: (isOpen: boolean) => void;
 }
 
 export function SelectDropdown({
@@ -25,6 +26,7 @@ export function SelectDropdown({
     onChange,
     className,
     disabled = false,
+    onOpenChange,
 }: SelectDropdownProps) {
     const [isOpen, setOpen] = useState(false);
     const rootRef = useRef<HTMLDivElement>(null);
@@ -37,6 +39,10 @@ export function SelectDropdown({
     useEffect(() => {
         if (disabled) setOpen(false);
     }, [disabled]);
+
+    useEffect(() => {
+        onOpenChange?.(isOpen);
+    }, [isOpen, onOpenChange]);
 
     useEffect(() => {
         if (!isOpen) return;

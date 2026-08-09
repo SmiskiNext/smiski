@@ -31,7 +31,7 @@ const ACTION_ICONS: Record<MeetingAction, IconName> = {
     JOIN: 'video',
     VIEW_DETAIL: 'info',
     VIEW_HISTORY: 'history',
-    SETTINGS: 'settings',
+    DELETE: 'trash',
 };
 
 export function MeetingActionMenu({
@@ -143,7 +143,7 @@ export function MeetingActionMenu({
                             <button
                                 key={action}
                                 type='button'
-                                className={`flex w-full items-center gap-2.5 rounded px-2.5 py-1.5 text-left text-xs font-medium transition hover:bg-[var(--surface-soft)] ${action === 'CANCEL' || action === 'END' ? 'text-red-600 dark:text-red-300' : 'text-[var(--text)]'}`}
+                                className={`flex w-full items-center gap-2.5 rounded px-2.5 py-1.5 text-left text-xs font-medium transition hover:bg-[var(--surface-soft)] ${action === 'CANCEL' || action === 'END' || action === 'DELETE' ? 'text-red-600 dark:text-red-300' : 'text-[var(--text)]'}`}
                                 onClick={(event) => {
                                     event.stopPropagation();
                                     setOpen(false);

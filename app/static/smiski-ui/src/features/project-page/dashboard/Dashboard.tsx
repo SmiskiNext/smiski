@@ -2,6 +2,7 @@ import { useState } from 'react';
 import {
     ActiveMeetingWarningDialog,
     ConfirmMeetingActionDialog,
+    EditMeetingModal,
     ErrorState,
     InlineFeedback,
     LoadingState,
@@ -16,10 +17,10 @@ import { useStartMeeting } from '../../../hooks/useMeetingMutations';
 import { useMeetingPermissions } from '../../../hooks/useMeetingPermission';
 import { useProjectMeetings } from '../../../hooks/useProjectMeetings';
 import { DashboardHeader } from './DashboardHeader';
-import { EditMeetingModal } from './EditMeetingModal';
 import { MeetingDetailPanel } from './MeetingDetailPanel';
 import { MeetingListTable } from './MeetingListTable';
 import {
+    DEFAULT_PROJECT_MEETING_SORT,
     type MeetingFilterValue,
     SearchAndFilterBar,
 } from './SearchAndFilterBar';
@@ -30,7 +31,9 @@ export interface DashboardProps {
 }
 
 export function Dashboard({ projectKey, onOpenRoom }: DashboardProps) {
-    const [filters, setFilters] = useState<MeetingFilterValue>({});
+    const [filters, setFilters] = useState<MeetingFilterValue>({
+        sort: DEFAULT_PROJECT_MEETING_SORT,
+    });
     const [selectedMeeting, setSelectedMeeting] = useState<{
         id: string;
         focus: 'details' | 'history';
@@ -48,7 +51,7 @@ export function Dashboard({ projectKey, onOpenRoom }: DashboardProps) {
         setFeedback({ appearance: 'success', message });
 
     const permissions = useMeetingPermissions(projectKey);
-    const { meetings, loading, error } = useProjectMeetings(
+    const projectMeetings = useProjectMeetings(
         { projectKey, ...filters },
         permissions.canViewMeeting && !permissions.isLoading,
     );
@@ -77,6 +80,9 @@ export function Dashboard({ projectKey, onOpenRoom }: DashboardProps) {
                 break;
             case 'END':
                 confirmAction.request('END', meeting);
+                break;
+            case 'DELETE':
+                confirmAction.request('DELETE', meeting);
                 break;
             case 'VIEW_HISTORY':
                 setSelectedMeeting({ id: meeting.id, focus: 'history' });
@@ -128,10 +134,16 @@ export function Dashboard({ projectKey, onOpenRoom }: DashboardProps) {
                 </div>
             )}
             <MeetingListTable
-                meetings={meetings}
+                meetings={projectMeetings.meetings}
                 permissions={permissions}
-                isLoading={loading}
-                error={error}
+                isLoading={projectMeetings.loading}
+                error={projectMeetings.error}
+                pageNumber={projectMeetings.pageNumber}
+                hasPreviousPage={projectMeetings.hasPreviousPage}
+                hasNextPage={projectMeetings.hasNextPage}
+                onPreviousPage={projectMeetings.previousPage}
+                onNextPage={projectMeetings.nextPage}
+                onBatchDeleteSuccess={projectMeetings.resetPagination}
                 onSelect={(meeting) =>
                     setSelectedMeeting({ id: meeting.id, focus: 'details' })
                 }

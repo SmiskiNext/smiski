@@ -40,7 +40,7 @@ export interface MeetingSettingsModalContext extends ModalBackendContext {
     meetingId: string;
 }
 
-export type ConfirmableMeetingAction = 'CANCEL' | 'END';
+export type ConfirmableMeetingAction = 'CANCEL' | 'END' | 'DELETE';
 
 export interface ConfirmMeetingActionModalContext extends ModalBackendContext {
     kind: typeof CONFIRM_MEETING_ACTION_MODAL_KIND;

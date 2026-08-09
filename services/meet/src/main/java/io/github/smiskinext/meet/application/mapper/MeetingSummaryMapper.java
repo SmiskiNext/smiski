@@ -34,6 +34,7 @@ public final class MeetingSummaryMapper {
                 summary.status(),
                 summary.startTime(),
                 summary.endTime(),
+                summary.organizerDisplayName(),
                 summary.createdAt(),
                 settingsView);
     }

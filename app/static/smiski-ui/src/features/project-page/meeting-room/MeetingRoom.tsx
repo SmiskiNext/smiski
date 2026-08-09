@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
     EmptyState,
     ErrorState,
@@ -26,7 +26,8 @@ import { MeetingRoomShell } from './MeetingRoomShell';
 import { ParticipantListPlaceholder } from './ParticipantListPlaceholder';
 import { PendingJoinRequestsPanel } from './PendingJoinRequestsPanel';
 
-const MEETING_START_POLL_INTERVAL_MS = 60000;
+const MEETING_START_FALLBACK_POLL_INTERVAL_MS = 60000;
+const MEETING_START_SYNC_POLL_INTERVAL_MS = 2000;
 
 export interface MeetingRoomProps {
     meetingId: string;
@@ -41,17 +42,15 @@ export interface MeetingRoomProps {
  * roster wins once connected, the backend meeting roster comes next, and a
  * self-only placeholder covers the window before either has loaded.
  *
- * A meeting that has not started yet gets a waiting room rather than the room
- * shell, and its room-token request stays held back until then: the backend
- * `join` operation does not gate on meeting status, so asking early would
- * either drop the user into an empty room or raise a premature host-approval
- * request. Polling the meeting detail swaps the waiting room for the real one
- * once the host starts it.
+ * A scheduled meeting gets a waiting room until either the backend reports it
+ * RUNNING or LiveKit confirms this client connected. LiveKit is the immediate
+ * source of truth during the webhook propagation window; a short poll then
+ * reconciles backend state without holding the host behind a stale status.
  */
 export function MeetingRoom({ meetingId, onLeave }: MeetingRoomProps) {
     const currentUser = useCurrentUser();
-    const { meeting, loading, error } = useMeeting(meetingId, {
-        pollWhileScheduledMs: MEETING_START_POLL_INTERVAL_MS,
+    const { meeting, loading, error, refetch } = useMeeting(meetingId, {
+        pollWhileScheduledMs: MEETING_START_FALLBACK_POLL_INTERVAL_MS,
     });
     const { participants, loading: participantsLoading } =
         useMeetingParticipants(meetingId, meeting?.projectKey);
@@ -102,6 +101,18 @@ export function MeetingRoom({ meetingId, onLeave }: MeetingRoomProps) {
         onParticipantPresence: enqueuePresenceToast,
     });
     const liveKitError = roomTokenError ?? liveKit.error;
+    const isLiveKitConnected = liveKit.connectionState === 'connected';
+    const isSynchronizingStatus = !hasStarted && isLiveKitConnected;
+    const canRenderRoom = hasStarted || isLiveKitConnected;
+
+    useEffect(() => {
+        if (!isSynchronizingStatus) return;
+        void refetch();
+        const interval = window.setInterval(() => {
+            void refetch();
+        }, MEETING_START_SYNC_POLL_INTERVAL_MS);
+        return () => window.clearInterval(interval);
+    }, [isSynchronizingStatus, refetch]);
 
     if (loading)
         return (
@@ -148,7 +159,7 @@ export function MeetingRoom({ meetingId, onLeave }: MeetingRoomProps) {
             </div>
         );
 
-    if (!hasStarted)
+    if (!canRenderRoom)
         return (
             <div className='p-6'>
                 <LoadingState label='Waiting for the meeting to start…' />
@@ -228,6 +239,14 @@ export function MeetingRoom({ meetingId, onLeave }: MeetingRoomProps) {
 
     return (
         <div className='w-full px-4 py-4 sm:px-6'>
+            {isSynchronizingStatus && (
+                <div
+                    role='status'
+                    className='mb-3 rounded-md border border-blue-200 bg-blue-50 px-3 py-2 text-sm text-blue-800 dark:border-blue-800 dark:bg-blue-950/40 dark:text-blue-200'
+                >
+                    Connected. Synchronizing meeting status…
+                </div>
+            )}
             <div className='mb-3 flex items-center justify-between'>
                 <Button
                     size='sm'

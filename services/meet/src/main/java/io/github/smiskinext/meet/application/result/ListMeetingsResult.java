@@ -55,6 +55,7 @@ public record ListMeetingsResult(
             MeetingStatus status,
             @Nullable Instant startTime,
             @Nullable Instant endTime,
+            @Nullable String organizerDisplayName,
             Instant createdAt,
             Settings settings) {
 

@@ -422,6 +422,7 @@ export type MeetMeetingSummary = {
      */
     startTime?: string | null;
     endTime?: string;
+    organizerDisplayName?: string;
     createdAt?: string;
     settings?: MeetMeetingSummarySettings;
 };

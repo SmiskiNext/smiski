@@ -63,6 +63,7 @@ function renderModal() {
         <StartInstantMeetingModal
             isOpen
             projectKey='SMISKI'
+            issueId='10001'
             issueKey='SMISKI-101'
             onClose={onClose}
             onStarted={onStarted}
@@ -71,7 +72,50 @@ function renderModal() {
     return { onStarted, onClose };
 }
 
+function expectRequiredLabel(label: string) {
+    expect(
+        screen
+            .getByText(label)
+            .closest('label')
+            ?.classList.contains('ant-form-item-required'),
+    ).toBe(true);
+}
+
 describe('StartInstantMeetingModal result handling', () => {
+    it('marks every required input while leaving optional fields unmarked', async () => {
+        const user = userEvent.setup();
+        renderModal();
+
+        expectRequiredLabel('Title');
+        expectRequiredLabel('Description');
+
+        await user.click(screen.getByText('Advanced settings'));
+        expectRequiredLabel('Who can join');
+        expectRequiredLabel('Max participants');
+        expect(
+            screen
+                .getByText('Allow screen share')
+                .closest('label')
+                ?.classList.contains('ant-form-item-required'),
+        ).toBe(false);
+    });
+
+    it('blocks submission when the description is blank', async () => {
+        const user = userEvent.setup();
+        renderModal();
+
+        await user.type(
+            screen.getByPlaceholderText('e.g. Investigate deployment failure'),
+            'Incident sync',
+        );
+        await user.click(screen.getByRole('button', { name: 'Start meeting' }));
+
+        expect(
+            await screen.findByText('Enter a meeting description.'),
+        ).toBeDefined();
+        expect(mutateAsync).not.toHaveBeenCalled();
+    });
+
     it('keeps the modal open and shows the message when the result carries an error', async () => {
         mutateAsync.mockResolvedValue({
             error: { message: 'title must not be blank' },
@@ -82,6 +126,10 @@ describe('StartInstantMeetingModal result handling', () => {
         await user.type(
             screen.getByPlaceholderText('e.g. Investigate deployment failure'),
             'Incident sync',
+        );
+        await user.type(
+            screen.getByPlaceholderText('Add context or an agenda…'),
+            'Coordinate the incident response',
         );
         await user.click(screen.getByRole('button', { name: 'Start meeting' }));
 
@@ -116,11 +164,21 @@ describe('StartInstantMeetingModal result handling', () => {
             screen.getByPlaceholderText('e.g. Investigate deployment failure'),
             'Incident sync',
         );
+        await user.type(
+            screen.getByPlaceholderText('Add context or an agenda…'),
+            'Coordinate the incident response',
+        );
         await user.click(screen.getByRole('button', { name: 'Start meeting' }));
 
         await waitFor(() => {
             expect(onStarted).toHaveBeenCalledWith('meeting-1');
         });
+        expect(mutateAsync).toHaveBeenCalledWith(
+            expect.objectContaining({
+                issueId: '10001',
+                issueKey: 'SMISKI-101',
+            }),
+        );
         expect(onClose).toHaveBeenCalledTimes(1);
     });
 });

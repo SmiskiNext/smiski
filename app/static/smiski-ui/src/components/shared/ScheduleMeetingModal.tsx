@@ -7,29 +7,18 @@
  * platform modal, since that modal already supplies the backdrop.
  *
  * The CREATE branch calls the real `meet` backend through Forge Remote
- * (`useScheduleMeeting`), capturing a start time and a time zone (seeded from
- * the invoking user's Jira profile), plus invitees carrying full identity
- * from `WorkspaceUserPicker`. The backend's `timeRange` still requires an end
- * time, so one is derived as `start + DEFAULT_MEETING_DURATION_MS` — the form
- * itself only asks for a start time. The EDIT branch also calls the real
- * backend (`useUpdateMeeting`), but the backend `update` operation is a full
- * replace, so it first fetches the meeting's full detail (`useMeeting`) to
- * carry forward `issueLink`/`settings`/`zoneId`/`endTime` unchanged — this
- * form only edits title/description/start-time. Backend failures are shown
- * inline and keep the modal open.
+ * (`useScheduleMeeting`), capturing the backend's create settings plus
+ * invitees carrying full identity from `WorkspaceUserPicker`. New meetings
+ * default to a one-hour slot. Editing is handled by `EditMeetingModal` so the
+ * same status-aware workflow is shared by both Jira surfaces.
  */
 import { Alert, Form, Input, Select } from 'antd';
 import { useState } from 'react';
 import type { CreateMeetingSettingsInput } from '../../api/meetings';
-import { listProjectMeetings } from '../../api/meetings';
+import { listAllMeetings } from '../../api/meetings';
 import type { WorkspaceUser } from '../../api/workspaceUsers';
 import { useCurrentUser } from '../../context/CurrentUserContext';
-import type { Meeting } from '../../domain';
-import { useMeeting } from '../../hooks/useMeeting';
-import {
-    useScheduleMeeting,
-    useUpdateMeeting,
-} from '../../hooks/useMeetingMutations';
+import { useScheduleMeeting } from '../../hooks/useMeetingMutations';
 import {
     formatTimeZoneOption,
     listTimeZones,
@@ -40,6 +29,13 @@ import {
 import { Button, Modal } from '../ui';
 import { AdvancedMeetingSettingsFields } from './AdvancedMeetingSettingsFields';
 import { IssuePicker } from './IssuePicker';
+import {
+    MEETING_TITLE_MAX_LENGTH,
+    meetingDescriptionError,
+    meetingEmailError,
+    meetingTimeRangeError,
+    meetingTitleError,
+} from './meetingFormValidation';
 import { WorkspaceUserPicker } from './WorkspaceUserPicker';
 
 const TIME_ZONE_OPTIONS = listTimeZones().map((zone) => ({
@@ -55,6 +51,7 @@ const DEFAULT_ADVANCED_SETTINGS: CreateMeetingSettingsInput = {
     admissionPolicy: 'ALLOW_ALL',
     maxParticipants: 50,
     allowScreenShare: true,
+    chatEnabled: true,
     allowMicrophone: true,
     allowVideo: true,
 };
@@ -62,8 +59,9 @@ const DEFAULT_ADVANCED_SETTINGS: CreateMeetingSettingsInput = {
 export interface ScheduleMeetingModalProps {
     isOpen: boolean;
     issueKey?: string;
+    /** Numeric Jira issue identifier required by the backend issue-link contract. */
+    issueId?: string;
     projectKey?: string;
-    meeting?: Meeting;
     onClose: () => void;
     onSubmitted?: (meetingId: string) => void;
     /** Pass 'embedded' when already rendered inside a Forge platform Modal. */
@@ -76,7 +74,7 @@ interface ScheduleMeetingFormValues
     title: string;
     startDate: string;
     startTime: string;
-    description?: string;
+    description: string;
 }
 
 /**
@@ -87,30 +85,24 @@ function IssueField({
     projectKey,
     value,
     onChange,
+    onIssueIdChange,
 }: {
     projectKey: string;
     value?: string;
     onChange?: (issueKey: string) => void;
+    onIssueIdChange?: (issueId?: string) => void;
 }) {
     return (
         <IssuePicker
             projectKey={projectKey}
             value={value ?? ''}
             autoFocus
-            onChange={(key) => onChange?.(key)}
+            onChange={(key, issue) => {
+                onChange?.(key);
+                onIssueIdChange?.(issue?.id);
+            }}
         />
     );
-}
-
-function wallTimeParts(iso?: string): { date: string; time: string } {
-    if (!iso) return { date: '', time: '' };
-    const at = new Date(iso);
-    if (Number.isNaN(at.getTime())) return { date: '', time: '' };
-    const pad = (value: number) => String(value).padStart(2, '0');
-    return {
-        date: `${at.getFullYear()}-${pad(at.getMonth() + 1)}-${pad(at.getDate())}`,
-        time: `${pad(at.getHours())}:${pad(at.getMinutes())}`,
-    };
 }
 
 /**
@@ -126,18 +118,18 @@ async function hasOwnScheduleConflict(
     projectKey: string,
     organizerAccountId: string,
     startIso: string,
-    excludingMeetingId?: string,
 ): Promise<boolean> {
     if (!projectKey) return false;
-    const ownMeetings = await listProjectMeetings({
+    // Standalone `vite dev` has no Forge bridge to reach the resolver
+    // through — fail open (no conflict) rather than blocking the form.
+    const ownMeetings = await listAllMeetings({
         projectKey,
         createdByAccountId: organizerAccountId,
     }).catch(() => []);
     const startMs = new Date(startIso).getTime();
     return ownMeetings.some(
         (candidate) =>
-            candidate.id !== excludingMeetingId
-            && candidate.status === 'SCHEDULED'
+            candidate.status === 'SCHEDULED'
             && candidate.scheduledAt !== undefined
             && new Date(candidate.scheduledAt).getTime() === startMs,
     );
@@ -146,8 +138,8 @@ async function hasOwnScheduleConflict(
 export function ScheduleMeetingModal({
     isOpen,
     issueKey,
+    issueId,
     projectKey,
-    meeting,
     onClose,
     onSubmitted,
     chrome = 'overlay',
@@ -155,35 +147,28 @@ export function ScheduleMeetingModal({
     const [form] = Form.useForm<ScheduleMeetingFormValues>();
     const currentUser = useCurrentUser();
     const scheduleMeeting = useScheduleMeeting();
-    const updateMeeting = useUpdateMeeting();
-    const isEdit = Boolean(meeting);
-    // The backend `update` request is a full replace; fetch the current full
-    // detail (settings/zoneId/endTime) this form doesn't itself edit so it can
-    // be carried forward unchanged.
-    const editDetail = useMeeting(isEdit ? meeting?.id : undefined);
     // Issue-context modal payloads normally include the project key, but derive
     // it from the linked issue as a defensive fallback so the picker/invitees
     // are never disabled merely because the optional context field was absent.
-    const effectiveProjectKey =
-        projectKey || meeting?.projectKey || issueKey?.split('-')[0] || '';
+    const effectiveProjectKey = projectKey || issueKey?.split('-')[0] || '';
     const [invitees, setInvitees] = useState<WorkspaceUser[]>([]);
-    const [timeZone, setTimeZone] = useState(
-        resolveUserTimeZone(currentUser.timeZone),
-    );
+    const defaultTimeZone = resolveUserTimeZone(currentUser.timeZone);
+    const [timeZone, setTimeZone] = useState(defaultTimeZone);
+    const [selectedIssueId, setSelectedIssueId] = useState(issueId);
     const [formError, setFormError] = useState<string | null>(null);
 
-    const start = wallTimeParts(meeting?.scheduledAt);
     const initialValues: Partial<ScheduleMeetingFormValues> = {
-        title: meeting?.title ?? '',
-        description: meeting?.description ?? '',
-        startDate: start.date,
-        startTime: start.time,
-        ...(isEdit ? {} : DEFAULT_ADVANCED_SETTINGS),
+        issueKey,
+        title: '',
+        description: '',
+        ...DEFAULT_ADVANCED_SETTINGS,
     };
 
     const resetAndClose = () => {
         form.resetFields();
         setInvitees([]);
+        setSelectedIssueId(issueId);
+        setTimeZone(defaultTimeZone);
         setFormError(null);
         onClose();
     };
@@ -201,8 +186,25 @@ export function ScheduleMeetingModal({
             setFormError('Choose a valid start date and time.');
             return;
         }
-        if (new Date(startIso).getTime() <= Date.now()) {
-            setFormError('Choose a start date and time in the future.');
+        const endIso = new Date(
+            new Date(startIso).getTime() + DEFAULT_MEETING_DURATION_MS,
+        ).toISOString();
+        const timeRangeError = meetingTimeRangeError(startIso, endIso);
+        if (timeRangeError) {
+            setFormError(timeRangeError);
+            return;
+        }
+
+        const resolvedIssueKey =
+            (issueKey ?? values.issueKey)?.trim().toUpperCase() ?? '';
+        const resolvedIssueId = issueId ?? selectedIssueId;
+        if (!resolvedIssueId) {
+            setFormError('Select a valid Jira issue and try again.');
+            return;
+        }
+        const emailError = meetingEmailError(currentUser.email, invitees);
+        if (emailError) {
+            setFormError(emailError);
             return;
         }
         if (
@@ -210,7 +212,6 @@ export function ScheduleMeetingModal({
                 effectiveProjectKey,
                 currentUser.accountId,
                 startIso,
-                meeting?.id,
             )
         ) {
             setFormError(
@@ -219,44 +220,9 @@ export function ScheduleMeetingModal({
             return;
         }
 
-        if (isEdit && meeting) {
-            if (!editDetail.meeting) {
-                setFormError(
-                    'Meeting details are still loading — try again in a moment.',
-                );
-                return;
-            }
-            try {
-                const updated = await updateMeeting.mutateAsync({
-                    meetingId: meeting.id,
-                    input: {
-                        title,
-                        description,
-                        startTime: startIso,
-                        detail: editDetail.meeting,
-                    },
-                });
-                onSubmitted?.(updated.id);
-                resetAndClose();
-            } catch (error) {
-                setFormError(
-                    error instanceof Error
-                        ? error.message
-                        : 'Could not save the meeting.',
-                );
-            }
-            return;
-        }
-
-        const endIso = new Date(
-            new Date(startIso).getTime() + DEFAULT_MEETING_DURATION_MS,
-        ).toISOString();
-
-        const resolvedIssueKey = (issueKey ?? values.issueKey ?? '')
-            .trim()
-            .toUpperCase();
         const result = await scheduleMeeting.mutateAsync({
             issueKey: resolvedIssueKey,
+            issueId: resolvedIssueId,
             projectKey: effectiveProjectKey || undefined,
             title,
             description,
@@ -284,6 +250,8 @@ export function ScheduleMeetingModal({
                 allowScreenShare:
                     values.allowScreenShare
                     ?? DEFAULT_ADVANCED_SETTINGS.allowScreenShare,
+                chatEnabled:
+                    values.chatEnabled ?? DEFAULT_ADVANCED_SETTINGS.chatEnabled,
                 allowMicrophone:
                     values.allowMicrophone
                     ?? DEFAULT_ADVANCED_SETTINGS.allowMicrophone,
@@ -306,6 +274,14 @@ export function ScheduleMeetingModal({
     if (!isOpen) return null;
 
     const nowInZone = nowWallTimeInZone(timeZone);
+    const timeZoneOptions = TIME_ZONE_OPTIONS.some(
+        (option) => option.value === timeZone,
+    )
+        ? TIME_ZONE_OPTIONS
+        : [
+              { value: timeZone, label: formatTimeZoneOption(timeZone) },
+              ...TIME_ZONE_OPTIONS,
+          ];
 
     const body = (
         <Form
@@ -316,7 +292,7 @@ export function ScheduleMeetingModal({
             onFinish={handleSubmit}
             preserve={false}
         >
-            {!isEdit && !issueKey && (
+            {!issueKey && (
                 <Form.Item
                     label='Issue'
                     name='issueKey'
@@ -342,16 +318,30 @@ export function ScheduleMeetingModal({
                         },
                     ]}
                 >
-                    <IssueField projectKey={effectiveProjectKey} />
+                    <IssueField
+                        projectKey={effectiveProjectKey}
+                        onIssueIdChange={setSelectedIssueId}
+                    />
                 </Form.Item>
             )}
             <Form.Item
                 label='Title'
                 name='title'
-                rules={[{ required: true, message: 'Enter a meeting title.' }]}
+                required
+                rules={[
+                    {
+                        validator: (_rule, value: string | undefined) => {
+                            const error = meetingTitleError(value);
+                            return error
+                                ? Promise.reject(new Error(error))
+                                : Promise.resolve();
+                        },
+                    },
+                ]}
             >
                 <Input
-                    autoFocus={Boolean(isEdit || issueKey)}
+                    maxLength={MEETING_TITLE_MAX_LENGTH}
+                    autoFocus={Boolean(issueKey)}
                     placeholder='e.g. Sprint planning sync'
                 />
             </Form.Item>
@@ -369,26 +359,38 @@ export function ScheduleMeetingModal({
             >
                 <Input type='time' />
             </Form.Item>
-            <Form.Item label='Time zone'>
+            <Form.Item label='Time zone' required>
                 <Select
                     showSearch
                     aria-label='Time zone'
                     value={timeZone}
-                    options={TIME_ZONE_OPTIONS}
+                    options={timeZoneOptions}
                     onChange={setTimeZone}
                 />
             </Form.Item>
-            {!isEdit && (
-                <Form.Item label='Invitees'>
-                    <WorkspaceUserPicker
-                        value={invitees}
-                        onChange={setInvitees}
-                        requireEmail={true}
-                    />
-                </Form.Item>
-            )}
-            {!isEdit && <AdvancedMeetingSettingsFields />}
-            <Form.Item label='Description' name='description'>
+            <Form.Item label='Invitees'>
+                <WorkspaceUserPicker
+                    value={invitees}
+                    onChange={setInvitees}
+                    requireEmail={true}
+                />
+            </Form.Item>
+            <AdvancedMeetingSettingsFields />
+            <Form.Item
+                label='Description'
+                name='description'
+                required
+                rules={[
+                    {
+                        validator: (_rule, value: string | undefined) => {
+                            const error = meetingDescriptionError(value);
+                            return error
+                                ? Promise.reject(new Error(error))
+                                : Promise.resolve();
+                        },
+                    },
+                ]}
+            >
                 <Input.TextArea
                     rows={4}
                     placeholder='Add context or an agenda…'
@@ -402,14 +404,11 @@ export function ScheduleMeetingModal({
         </Form>
     );
 
-    const isSaving =
-        scheduleMeeting.isPending
-        || updateMeeting.isPending
-        || (isEdit && editDetail.loading);
+    const isSaving = scheduleMeeting.isPending;
 
     return (
         <Modal
-            title={isEdit ? 'Edit meeting' : 'Schedule a meeting'}
+            title='Schedule a meeting'
             chrome={chrome}
             onClose={resetAndClose}
             footer={
@@ -422,7 +421,7 @@ export function ScheduleMeetingModal({
                         isLoading={isSaving}
                         onClick={() => form.submit()}
                     >
-                        {isEdit ? 'Save changes' : 'Schedule meeting'}
+                        Schedule meeting
                     </Button>
                 </>
             }

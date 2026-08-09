@@ -22,7 +22,8 @@ const ALICE = {
 };
 
 /**
- * Writes an envelope the way a previous iframe would have left it behind.
+ * Writes a legacy envelope the way an older app build would have left it
+ * behind before current-user identity was removed from persistence.
  *
  * Written straight to storage rather than through `persistOptions.persister`,
  * whose `persistClient` is throttled: a save still queued from an earlier test's
@@ -113,13 +114,13 @@ describe('restoring through PersistQueryClientProvider', () => {
         expect(requestJiraMock).toHaveBeenCalledTimes(1);
     });
 
-    it('renders a restored identity without asking Jira again', async () => {
+    it('drops a legacy restored identity and asks Jira again', async () => {
         seedPersistedIdentity(Date.now());
 
         renderThroughPersistGate();
 
         expect(await screen.findByText('surface mounted')).toBeDefined();
-        expect(requestJiraMock).not.toHaveBeenCalled();
+        expect(requestJiraMock).toHaveBeenCalledTimes(1);
     });
 
     it('discards a restored identity once the envelope is too old', async () => {

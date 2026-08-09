@@ -40,6 +40,7 @@ vi.mock('@forge/bridge', () => ({
 
 const cancelMutate = vi.fn();
 const endMutate = vi.fn();
+const deleteMutate = vi.fn();
 
 vi.mock('./useMeetingMutations', () => ({
     useCancelMeeting: () => ({
@@ -50,6 +51,12 @@ vi.mock('./useMeetingMutations', () => ({
     }),
     useEndMeeting: () => ({
         mutate: endMutate,
+        isPending: false,
+        error: null,
+        reset: vi.fn(),
+    }),
+    useDeleteMeeting: () => ({
+        mutate: deleteMutate,
         isPending: false,
         error: null,
         reset: vi.fn(),
@@ -138,7 +145,11 @@ describe('platform-modal openers carry the published Jira identifiers', () => {
             wrapper: QueryWrapper,
         });
 
-        result.current.open({ issueKey: 'SMISKI-101', projectKey: 'SMISKI' });
+        result.current.open({
+            issueId: ISSUE_ID,
+            issueKey: 'SMISKI-101',
+            projectKey: 'SMISKI',
+        });
 
         expectIdentifiersCarried();
     });
@@ -148,7 +159,11 @@ describe('platform-modal openers carry the published Jira identifiers', () => {
             wrapper: QueryWrapper,
         });
 
-        result.current.open({ issueKey: 'SMISKI-101', projectKey: 'SMISKI' });
+        result.current.open({
+            issueId: ISSUE_ID,
+            issueKey: 'SMISKI-101',
+            projectKey: 'SMISKI',
+        });
 
         expectIdentifiersCarried();
     });
@@ -189,6 +204,7 @@ describe('platform-modal openers carry the published Jira identifiers', () => {
         });
         render(
             <StartInstantMeetingButton
+                issueId={ISSUE_ID}
                 issueKey='SMISKI-202'
                 projectKey='SMISKI'
                 onOpenInstantModal={vi.fn()}
@@ -203,24 +219,27 @@ describe('platform-modal openers carry the published Jira identifiers', () => {
     });
 });
 
-describe('a modal payload cannot erase the published identifiers', () => {
+describe('explicit modal issue context wins over stale published context', () => {
     beforeEach(() => {
         modalOpened.mockReset();
         clearBackendContext();
         setBackendContext({ issueId: ISSUE_ID, projectId: PROJECT_ID });
     });
 
-    it('keeps the published values when the payload declares them as undefined', () => {
+    it('keeps the issue id paired with the explicitly selected issue', () => {
         const { result } = renderHook(() => useIssuePanelScheduleModal(), {
             wrapper: QueryWrapper,
         });
 
         result.current.open({
+            issueId: '20002',
             issueKey: 'SMISKI-101',
-            issueId: undefined,
-            projectId: undefined,
-        } as Parameters<typeof result.current.open>[0]);
+            projectKey: 'SMISKI',
+        });
 
-        expectIdentifiersCarried();
+        expect(openedContext()).toMatchObject({
+            issueId: '20002',
+            projectId: PROJECT_ID,
+        });
     });
 });

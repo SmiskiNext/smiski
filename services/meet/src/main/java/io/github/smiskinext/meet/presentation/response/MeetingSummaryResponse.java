@@ -30,6 +30,7 @@ public record MeetingSummaryResponse(
         @Nullable Instant startTime,
 
         @Nullable Instant endTime,
+        @Nullable String organizerDisplayName,
         Instant createdAt,
         Settings settings) {
 
@@ -65,6 +66,7 @@ public record MeetingSummaryResponse(
                 item.status(),
                 item.startTime(),
                 item.endTime(),
+                item.organizerDisplayName(),
                 item.createdAt(),
                 settings);
     }

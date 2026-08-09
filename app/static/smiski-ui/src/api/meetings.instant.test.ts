@@ -11,8 +11,10 @@ describe('buildInstantMeetingPayload (MeetCreateInstantMeetingRequest body)', ()
     it('sends each selected invitee with email, accountId, and displayName', () => {
         const payload = buildInstantMeetingPayload(
             {
+                issueId: '10001',
                 issueKey: 'SMISKI-101',
                 title: 'Incident sync',
+                description: 'Coordinate the incident response',
                 invitees: [
                     {
                         accountId: 'acc-alice',
@@ -50,7 +52,7 @@ describe('buildInstantMeetingPayload (MeetCreateInstantMeetingRequest body)', ()
         expect(payload.organizerEmail).toBe('host@example.com');
         expect(payload.organizerDisplayName).toBe('Host User');
         expect(payload.issueLink).toEqual({
-            issueId: undefined,
+            issueId: '10001',
             issueKey: 'SMISKI-101',
             projectKey: 'SMISKI',
         });
@@ -61,8 +63,10 @@ describe('buildInstantMeetingPayload (MeetCreateInstantMeetingRequest body)', ()
     it('carries the profile-resolved zoneId through to the payload', () => {
         const payload = buildInstantMeetingPayload(
             {
+                issueId: '10009',
                 issueKey: 'SMISKI-9',
                 title: 'Zoned meeting',
+                description: 'Discuss the regional rollout',
                 zoneId: 'Asia/Ho_Chi_Minh',
             },
             'web-device-123',
@@ -72,23 +76,38 @@ describe('buildInstantMeetingPayload (MeetCreateInstantMeetingRequest body)', ()
 
     it('sends an empty invitee list when no invitees are selected', () => {
         const payload = buildInstantMeetingPayload(
-            { issueKey: 'SMISKI-9', title: 'Solo meeting' },
+            {
+                issueId: '10009',
+                issueKey: 'SMISKI-9',
+                title: 'Solo meeting',
+                description: 'Review the open work',
+            },
             'web-device-123',
         );
         expect(payload.invitees).toEqual([]);
     });
 
-    it('defaults the description to the title when none is given', () => {
+    it('trims the required description without replacing it with the title', () => {
         const payload = buildInstantMeetingPayload(
-            { issueKey: 'SMISKI-9', title: 'Solo meeting' },
+            {
+                issueId: '10009',
+                issueKey: 'SMISKI-9',
+                title: 'Solo meeting',
+                description: '  Focused review  ',
+            },
             'web-device-123',
         );
-        expect(payload.description).toBe('Solo meeting');
+        expect(payload.description).toBe('Focused review');
     });
 
     it('defaults settings when the caller supplies none', () => {
         const payload = buildInstantMeetingPayload(
-            { issueKey: 'SMISKI-9', title: 'Solo meeting' },
+            {
+                issueId: '10009',
+                issueKey: 'SMISKI-9',
+                title: 'Solo meeting',
+                description: 'Review the open work',
+            },
             'web-device-123',
         );
         expect(payload.settings).toEqual({
@@ -101,15 +120,18 @@ describe('buildInstantMeetingPayload (MeetCreateInstantMeetingRequest body)', ()
         });
     });
 
-    it("merges the 'Advanced settings' form values over the defaults, keeping chatEnabled fixed", () => {
+    it("merges all 'Advanced settings' form values over the defaults", () => {
         const payload = buildInstantMeetingPayload(
             {
+                issueId: '10009',
                 issueKey: 'SMISKI-9',
                 title: 'Locked-down meeting',
+                description: 'Review sensitive work',
                 settings: {
                     admissionPolicy: 'MANUAL_APPROVAL',
                     maxParticipants: 10,
                     allowScreenShare: false,
+                    chatEnabled: false,
                     allowMicrophone: false,
                     allowVideo: false,
                 },
@@ -120,7 +142,7 @@ describe('buildInstantMeetingPayload (MeetCreateInstantMeetingRequest body)', ()
             admissionPolicy: 'MANUAL_APPROVAL',
             maxParticipants: 10,
             allowScreenShare: false,
-            chatEnabled: true,
+            chatEnabled: false,
             allowMicrophone: false,
             allowVideo: false,
         });

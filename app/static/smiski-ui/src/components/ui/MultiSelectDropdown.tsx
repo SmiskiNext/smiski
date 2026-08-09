@@ -17,6 +17,8 @@ export interface MultiSelectDropdownProps {
     placeholder?: string;
     className?: string;
     disabled?: boolean;
+    /** Number of selected labels shown before the compact `+N` counter. */
+    maxVisibleValues?: number;
 }
 
 export function MultiSelectDropdown({
@@ -27,6 +29,7 @@ export function MultiSelectDropdown({
     placeholder = 'Select…',
     className,
     disabled,
+    maxVisibleValues = 1,
 }: MultiSelectDropdownProps) {
     const [isOpen, setOpen] = useState(false);
     const rootRef = useRef<HTMLDivElement>(null);
@@ -35,6 +38,11 @@ export function MultiSelectDropdown({
     const selectedLabels = options
         .filter((option) => values.includes(option.value))
         .map((option) => option.label);
+    const visibleLabels = selectedLabels.slice(
+        0,
+        Math.max(0, maxVisibleValues),
+    );
+    const hiddenLabelCount = selectedLabels.length - visibleLabels.length;
     const position = useFloatingPosition(rootRef, isOpen);
 
     useEffect(() => {
@@ -75,9 +83,14 @@ export function MultiSelectDropdown({
                 aria-haspopup='listbox'
                 aria-expanded={isOpen}
                 aria-controls={listboxId}
+                title={
+                    selectedLabels.length
+                        ? selectedLabels.join(', ')
+                        : undefined
+                }
                 disabled={disabled}
                 className={cn(
-                    'flex min-h-8 w-full items-center justify-between gap-2 rounded border bg-[var(--surface)] px-2.5 py-1 text-left text-sm transition hover:bg-[var(--surface-soft)] focus:border-brand-500 focus:ring-2 focus:ring-brand-500/25 focus:outline-none',
+                    'flex h-8 w-full items-center justify-between gap-2 overflow-hidden rounded border bg-[var(--surface)] px-2.5 py-1 text-left text-sm transition hover:bg-[var(--surface-soft)] focus:border-brand-500 focus:ring-2 focus:ring-brand-500/25 focus:outline-none',
                     isOpen && 'border-brand-500 ring-2 ring-brand-500/25',
                     disabled
                         && 'cursor-not-allowed opacity-60 hover:bg-[var(--surface)]',
@@ -85,15 +98,20 @@ export function MultiSelectDropdown({
                 onClick={() => !disabled && setOpen((open) => !open)}
             >
                 {selectedLabels.length ? (
-                    <span className='flex flex-wrap gap-1 py-0.5'>
-                        {selectedLabels.map((label) => (
+                    <span className='flex min-w-0 flex-1 items-center gap-1 overflow-hidden py-0.5'>
+                        {visibleLabels.map((label) => (
                             <span
                                 key={label}
-                                className='rounded bg-brand-50 px-1.5 py-0.5 text-xs font-medium text-brand-700 dark:bg-brand-500/15 dark:text-brand-300'
+                                className='min-w-0 truncate rounded bg-brand-50 px-1.5 py-0.5 text-xs font-medium text-brand-700 dark:bg-brand-500/15 dark:text-brand-300'
                             >
                                 {label}
                             </span>
                         ))}
+                        {hiddenLabelCount > 0 && (
+                            <span className='shrink-0 rounded bg-[var(--surface-soft)] px-1.5 py-0.5 text-xs font-medium text-[var(--text-muted)]'>
+                                +{hiddenLabelCount}
+                            </span>
+                        )}
                     </span>
                 ) : (
                     <span className='text-[var(--text-faint)]'>

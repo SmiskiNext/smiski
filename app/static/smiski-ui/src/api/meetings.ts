@@ -2,23 +2,30 @@ import {
     acceptJoinRequests as acceptJoinRequestsOperation,
     addInvitees,
     batchDeleteInvitees,
+    batchDelete as batchDeleteOperation,
     cancel,
     createInstant,
     declineJoinRequests as declineJoinRequestsOperation,
+    delete_ as deleteMeetingOperation,
     end,
     get,
     join,
     list,
+    listIssueMeetings as listIssueMeetingsOperation,
     listPendingJoinRequests as listPendingJoinRequestsOperation,
     type MeetAddMeetingInviteesRequest,
     type MeetAddMeetingInviteesResponse,
+    type MeetBatchDeleteMeetingsResponse,
     type MeetCancelMeetingResponse,
     type MeetCreateInstantMeetingRequest,
     type MeetCreateInstantMeetingResponse,
+    type MeetDeleteMeetingResponse,
     type MeetEndMeetingResponse,
     type MeetGetMeetingResponse,
+    type MeetIssueMeetingListPage,
     type MeetJoinDecisionResponse,
     type MeetJoinMeetingResponse,
+    type MeetListMeetingsRequest,
     type MeetListPendingJoinRequestsResponse,
     type MeetMeetingListPage,
     type MeetProblemDetail,
@@ -72,20 +79,25 @@ export interface InstantMeetingHostIdentity {
 }
 
 /**
- * User-editable subset of `MeetingSettings` exposed by the create forms'
- * "Advanced settings" section. `chatEnabled` is deliberately excluded — not
- * surfaced in the UI yet — and always sent as `DEFAULT_MEETING_SETTINGS`'s
- * default.
+ * User-editable meeting settings exposed by the create forms' shared
+ * "Advanced settings" section.
  */
-export type CreateMeetingSettingsInput = Omit<MeetingSettings, 'chatEnabled'>;
+export interface CreateMeetingSettingsInput {
+    admissionPolicy: 'ALLOW_ALL' | 'MANUAL_APPROVAL';
+    maxParticipants: number;
+    allowScreenShare: boolean;
+    chatEnabled: boolean;
+    allowMicrophone: boolean;
+    allowVideo: boolean;
+}
 
 /** Payload to create an instant meeting (UC01). */
 export interface CreateInstantMeetingInput {
     issueKey: string;
-    issueId?: string;
+    issueId: string;
     projectKey?: string;
     title: string;
-    description?: string;
+    description: string;
     zoneId?: string;
     /** Full invitees carrying accountId, displayName, and email. */
     invitees?: MeetingInviteeInput[];
@@ -98,7 +110,7 @@ export interface CreateInstantMeetingInput {
 /** Payload to schedule a meeting (UC03). */
 export interface ScheduleMeetingInput {
     issueKey: string;
-    issueId?: string;
+    issueId: string;
     projectKey?: string;
     title: string;
     /** ISO-8601 UTC instant for the scheduled start. */
@@ -106,7 +118,7 @@ export interface ScheduleMeetingInput {
     /** ISO-8601 UTC instant for the scheduled end. */
     endTime: string;
     zoneId?: string;
-    description?: string;
+    description: string;
     /** Invitees carrying full identity (accountId, displayName, email). */
     invitees: MeetingInviteeInput[];
     /** Organizer identity (from CurrentUserContext); resolves organizer fields. */
@@ -122,37 +134,91 @@ export interface MeetingIssueLinkInput {
     projectKey: string;
 }
 
-/**
- * Edit of an existing meeting. The backend `update` operation is a full
- * replace (`title`/`description`/`issueLink`/`zoneId` all required), so
- * `detail` (the meeting's current full detail, from `getMeeting`) supplies
- * everything the edit form does not change. `selectedIssue` carries the issue
- * the host picked in the edit surface; when omitted, the meeting's current
- * issue link is preserved. Settings are updated through the backend's
- * dedicated settings endpoint and are not part of this request.
- */
-export interface UpdateMeetingInput {
+/** Common fields accepted by the backend's full-replace update operation. */
+interface UpdateMeetingBaseInput {
     title: string;
     description: string;
-    /**
-     * New scheduled start. Absent for meetings that carry no scheduled start
-     * (instant meetings) or when the edit surface locks the time fields because
-     * the meeting has left `SCHEDULED`.
-     */
-    startTime?: string;
-    detail: Meeting;
-    /** Defaults to `detail`'s current issue link when the host did not change it. */
-    selectedIssue?: MeetingIssueLinkInput;
 }
 
+/**
+ * Edit of an existing meeting. A detail-backed input carries forward fields
+ * that the project-page form leaves unchanged, while the issue-panel form can
+ * provide the complete editable issue/time payload explicitly. Settings stay
+ * on the dedicated settings endpoint.
+ */
+export type UpdateMeetingInput = UpdateMeetingBaseInput &
+    (
+        | {
+              /**
+               * New scheduled start. Absent for instant meetings or when the
+               * meeting has left `SCHEDULED` and the form locks its schedule.
+               */
+              startTime?: string;
+              detail: Meeting;
+              /** Preserve the current issue link when the host did not change it. */
+              selectedIssue?: MeetingIssueLinkInput;
+          }
+        | {
+              issueId: string;
+              issueKey: string;
+              projectKey: string;
+              startTime: string;
+              endTime: string;
+              zoneId: string;
+          }
+    );
+
 /** Filters for the project-page dashboard listing. */
-export interface MeetingListFilters {
-    projectKey: string;
+export interface MeetingSearchFilters {
+    projectKey?: string;
     issueKey?: string;
     createdByAccountId?: string;
-    status?: MeetingStatus;
+    statuses?: MeetingStatus[];
     search?: string;
+    sort?: MeetingListSort;
 }
+
+export interface MeetingListFilters extends MeetingSearchFilters {
+    projectKey: string;
+}
+
+export type MeetingListSort = NonNullable<MeetListMeetingsRequest['sort']>;
+
+export interface CursorPageParams {
+    pageSize?: number;
+    pageToken?: string;
+}
+
+export interface ProjectMeetingListParams
+    extends MeetingListFilters,
+        CursorPageParams {}
+
+interface MeetingSearchPageParams
+    extends MeetingSearchFilters,
+        CursorPageParams {}
+
+export interface MeetingCursorPage {
+    meetings: Meeting[];
+    size: number;
+    hasNext: boolean;
+    nextPageToken?: string;
+}
+
+export interface OffsetPageParams {
+    offset?: number;
+    pageSize?: number;
+}
+
+export interface MeetingOffsetPage {
+    meetings: Meeting[];
+    total: number;
+    offset: number;
+    pageSize: number;
+    hasNext: boolean;
+}
+
+export const DEFAULT_MEETING_PAGE_SIZE = 20;
+export const MAX_MEETING_PAGE_SIZE = 50;
 
 /**
  * Backend problem mapped for the create/schedule modals. Carries at least a
@@ -210,7 +276,7 @@ export function buildInstantMeetingPayload(
     const projectKey = input.projectKey ?? input.issueKey.split('-')[0];
     return {
         title: input.title,
-        description: input.description?.trim() || input.title,
+        description: input.description.trim(),
         issueLink: {
             issueId: input.issueId,
             issueKey: input.issueKey,
@@ -222,13 +288,13 @@ export function buildInstantMeetingPayload(
             deviceId,
             avatarUrl: input.host?.avatarUrl,
         },
-        organizerEmail: input.host?.email ?? '',
+        organizerEmail: input.host?.email?.trim() ?? '',
         organizerDisplayName: input.host?.displayName ?? 'Jira user',
         zoneId: input.zoneId ?? getLocalTimeZone(),
         invitees: (input.invitees ?? []).map((invitee) => ({
             accountId: invitee.accountId,
             displayName: invitee.displayName,
-            email: invitee.email,
+            email: invitee.email?.trim() ?? '',
         })),
     };
 }
@@ -248,7 +314,7 @@ export function buildScheduleMeetingPayload(
     const projectKey = input.projectKey ?? input.issueKey.split('-')[0];
     return {
         title: input.title,
-        description: input.description?.trim() || input.title,
+        description: input.description.trim(),
         issueLink: {
             issueId: input.issueId,
             issueKey: input.issueKey,
@@ -259,13 +325,13 @@ export function buildScheduleMeetingPayload(
             startTime: input.startTime,
             endTime: input.endTime,
         },
-        organizerEmail: input.organizer?.email ?? '',
+        organizerEmail: input.organizer?.email?.trim() ?? '',
         organizerDisplayName: input.organizer?.displayName ?? 'Jira user',
         zoneId: input.zoneId ?? getLocalTimeZone(),
         invitees: input.invitees.map((invitee) => ({
             accountId: invitee.accountId,
             displayName: invitee.displayName,
-            email: invitee.email,
+            email: invitee.email?.trim() ?? '',
         })),
     };
 }
@@ -473,16 +539,27 @@ export async function removeMeetingInvitees(
     return meetingInviteesFromBackend(response);
 }
 
-/** Lists meetings linked to a Jira issue (backend `list`, exact `issueKey` filter). */
-export async function listIssueMeetings(issueKey: string): Promise<Meeting[]> {
-    const response = await unwrap<MeetMeetingListPage>(() =>
-        list({
+/** Lists one offset-paginated page linked to a Jira issue id. */
+export async function listIssueMeetings(
+    issueId: string,
+    params: OffsetPageParams = {},
+): Promise<MeetingOffsetPage> {
+    const response = await unwrap<MeetIssueMeetingListPage>(() =>
+        listIssueMeetingsOperation({
             client: forgeRemoteClient,
-            path: { version: apiConfig.apiVersion },
-            body: { issueKey },
+            path: { version: apiConfig.apiVersion, issueId },
+            body: params,
         }),
     );
-    return meetingsFromBackend(response);
+    const meetings = meetingsFromBackend(response);
+    const offset = response.meta?.offset ?? params.offset ?? 0;
+    const pageSize =
+        response.meta?.pageSize ?? params.pageSize ?? DEFAULT_MEETING_PAGE_SIZE;
+    const total = response.meta?.total ?? offset + meetings.length;
+    const hasNext =
+        meetings.length > 0
+        && (response.meta?.hasNext ?? offset + meetings.length < total);
+    return { meetings, total, offset, pageSize, hasNext };
 }
 
 /** Lists a page of PENDING join requests for the meeting host. */
@@ -571,47 +648,112 @@ export async function declinePendingMeetingJoinRequests(
     return joinRequestDecisionsFromBackend(response);
 }
 
-/**
- * Lists meetings across a project for the dashboard table. Filters by
- * projectKey, optional issueKey, creatorId, status, and search query.
- */
-export async function listProjectMeetings(
-    filters: MeetingListFilters,
-): Promise<Meeting[]> {
+async function listMeetingsPage(
+    params: MeetingSearchPageParams,
+): Promise<MeetingCursorPage> {
     const response = await unwrap<MeetMeetingListPage>(() =>
         list({
             client: forgeRemoteClient,
             path: { version: apiConfig.apiVersion },
             body: {
-                projectKey: filters.projectKey,
-                issueKey: filters.issueKey,
-                creatorId: filters.createdByAccountId,
-                statuses: filters.status ? [filters.status] : undefined,
-                search: filters.search,
+                projectKey: params.projectKey,
+                issueKey: params.issueKey,
+                creatorId: params.createdByAccountId,
+                statuses: params.statuses?.length ? params.statuses : undefined,
+                search: params.search,
+                sort: params.sort,
+                pageSize: params.pageSize,
+                pageToken: params.pageToken,
             },
         }),
     );
-    return meetingsFromBackend(response);
+    const meetings = meetingsFromBackend(response);
+    const hasNext = response.meta?.hasNext ?? false;
+    const nextPageToken = response.meta?.nextPageToken;
+    if (hasNext && !nextPageToken) {
+        throw new MeetingApiError({
+            message:
+                'The meeting backend returned an invalid pagination response.',
+            code: 'INVALID_PAGINATION_RESPONSE',
+        });
+    }
+    return {
+        meetings,
+        size: response.meta?.size ?? meetings.length,
+        hasNext,
+        nextPageToken,
+    };
+}
+
+/** Lists one cursor-paginated project page with server-side filtering/sort. */
+export function listProjectMeetings(
+    params: ProjectMeetingListParams,
+): Promise<MeetingCursorPage> {
+    return listMeetingsPage(params);
 }
 
 /**
- * Build the full-replace update request body from the edit form's input,
- * conforming to the OpenAPI `MeetUpdateMeetingRequest` contract. `title` and
- * `description` come from the edit form. `issueLink` comes from
- * `input.selectedIssue` when the host picked an issue in the edit surface, and
- * falls back to `input.detail`'s current link otherwise. `startTime` falls back
- * to the meeting's current scheduled start when the edit surface locked the time
- * fields, and `timeRange` is omitted entirely unless both bounds are known — the
- * backend rejects `zoneId`/`timeRange` changes outside `SCHEDULED`, so an
- * unchanged range must round-trip exactly. `zoneId`/`endTime` are carried
- * forward unchanged from `input.detail` (the meeting's full detail, fetched
- * separately). Settings are updated through the backend's dedicated settings
- * endpoint and are not part of this request. Pure, so the contract is
- * unit-testable like the instant/schedule builders above.
+ * Loads every cursor page for correctness-sensitive checks such as scheduling
+ * and host conflicts. Repeated cursors are rejected instead of looping.
  */
+export async function listAllMeetings(
+    filters: MeetingSearchFilters,
+): Promise<Meeting[]> {
+    const meetings: Meeting[] = [];
+    const seenTokens = new Set<string>();
+    let pageToken: string | undefined;
+
+    do {
+        const page = await listMeetingsPage({
+            ...filters,
+            pageSize: MAX_MEETING_PAGE_SIZE,
+            pageToken,
+        });
+        meetings.push(...page.meetings);
+        if (!page.hasNext) return meetings;
+
+        const nextPageToken = page.nextPageToken;
+        if (!nextPageToken) {
+            throw new MeetingApiError({
+                message:
+                    'The meeting backend returned an invalid pagination response.',
+                code: 'INVALID_PAGINATION_RESPONSE',
+            });
+        }
+        if (seenTokens.has(nextPageToken)) {
+            throw new MeetingApiError({
+                message: 'The meeting backend returned a repeated page cursor.',
+                code: 'INVALID_PAGINATION_RESPONSE',
+            });
+        }
+        seenTokens.add(nextPageToken);
+        pageToken = nextPageToken;
+    } while (pageToken);
+
+    return meetings;
+}
+
+/** Build a full-replace backend payload from either edit surface's input. */
 export function buildUpdateMeetingPayload(
     input: UpdateMeetingInput,
 ): MeetUpdateMeetingRequest {
+    if (!('detail' in input)) {
+        return {
+            title: input.title,
+            description: input.description,
+            issueLink: {
+                issueId: input.issueId,
+                issueKey: input.issueKey,
+                projectKey: input.projectKey,
+            },
+            zoneId: input.zoneId,
+            timeRange: {
+                startTime: input.startTime,
+                endTime: input.endTime,
+            },
+        };
+    }
+
     const issueLink = input.selectedIssue ?? {
         issueId: input.detail.issueId,
         issueKey: input.detail.issueKey,
@@ -707,6 +849,33 @@ export async function endMeeting(meetingId: string): Promise<Meeting> {
         }),
     );
     return meetingFromBackend(response);
+}
+
+/** Soft-deletes one meeting as its host. RUNNING meetings are rejected. */
+export async function deleteMeeting(meetingId: string): Promise<string> {
+    const response = await unwrap<MeetDeleteMeetingResponse>(() =>
+        deleteMeetingOperation({
+            client: forgeRemoteClient,
+            path: { version: apiConfig.apiVersion, id: meetingId },
+        }),
+    );
+    return response.meeting?.id ?? meetingId;
+}
+
+/**
+ * Soft-deletes a batch of meetings by ID (backend `batchDelete`).
+ */
+export async function batchDeleteMeetings(
+    meetingIds: string[],
+): Promise<Meeting[]> {
+    const response = await unwrap<MeetBatchDeleteMeetingsResponse>(() =>
+        batchDeleteOperation({
+            client: forgeRemoteClient,
+            path: { version: apiConfig.apiVersion },
+            body: { meetingIds },
+        }),
+    );
+    return meetingsFromBackend(response);
 }
 
 /** The joining participant's identity, required by the backend `join` operation. */
@@ -816,24 +985,17 @@ export async function getRoomToken(
 
 /**
  * Any RUNNING meeting hosted by `accountId`, optionally excluding one issue.
- * Backs the "confirm before starting a second concurrent meeting" prompt
- * (UC-01 alt flow). Calls the SDK `list` operation directly (`creatorId` +
- * `statuses: ['RUNNING']`) rather than a resolver — the real backend already
- * supports this filter combination, unlike the project-wide listing above.
- * `list` has no "exclude an issue" filter, so that's applied client-side.
+ * Every cursor page is checked so a conflict cannot be missed after page 1.
+ * The backend has no "exclude an issue" filter, so that part stays client-side.
  */
 export async function findRunningMeetingHostedByUser(
     accountId: string,
     excludingIssueKey?: string,
 ): Promise<Meeting | null> {
-    const response = await unwrap<MeetMeetingListPage>(() =>
-        list({
-            client: forgeRemoteClient,
-            path: { version: apiConfig.apiVersion },
-            body: { creatorId: accountId, statuses: ['RUNNING'] },
-        }),
-    );
-    const running = meetingsFromBackend(response);
+    const running = await listAllMeetings({
+        createdByAccountId: accountId,
+        statuses: ['RUNNING'],
+    });
     return (
         running.find((meeting) => meeting.issueKey !== excludingIssueKey)
         ?? null

@@ -19,8 +19,9 @@ import {
 } from '../utils/scheduleMeetingModalContext';
 
 export interface OpenScheduleMeetingPayload {
-    issueKey?: string;
-    projectKey?: string;
+    issueId: string;
+    issueKey: string;
+    projectKey: string;
     meeting?: Meeting;
 }
 
@@ -32,8 +33,8 @@ export function useIssuePanelScheduleModal(
     const open = (payload: OpenScheduleMeetingPayload) => {
         const context: ScheduleMeetingModalContext = {
             kind: SCHEDULE_MEETING_MODAL_KIND,
-            ...payload,
             ...getBackendContext(),
+            ...payload,
         };
         new ForgeModal({
             context,

@@ -2,7 +2,7 @@
  * Centralized React Query key factories — keeps cache invalidation in
  * mutation hooks in sync with the query hooks that read the same data.
  */
-import type { MeetingListFilters } from '../api/meetings';
+import type { ProjectMeetingListParams } from '../api/meetings';
 import type { PendingJoinRequestsPageParams } from '../domain';
 import { BUILD_VERSION } from '../utils/buildVersion';
 
@@ -28,9 +28,8 @@ export const queryKeys = {
      */
     meetingPermissions: (projectKey: string, accountId: string) =>
         [MEETING_PERMISSIONS_ROOT, projectKey, accountId] as const,
-    issueMeetings: (issueKey: string) =>
-        ['meetings', 'issue', issueKey] as const,
-    projectMeetings: (filters: Partial<MeetingListFilters>) =>
+    issueMeetings: (issueId: string) => ['meetings', 'issue', issueId] as const,
+    projectMeetings: (filters: Partial<ProjectMeetingListParams>) =>
         ['meetings', 'project', filters] as const,
     projectIssues: (projectKey: string, query?: string) =>
         ['issues', 'project', projectKey, query ?? ''] as const,
@@ -56,11 +55,11 @@ export const queryKeys = {
  * app caches must be "not persisted": meetings, issues, members, workspace
  * users, join requests and room tokens all describe live state, and restoring
  * any of them from a previous session would show the user something that is no
- * longer true. Only these three are safe, and each for its own reason — the
- * permission-key resolution changes only on redeploy (and is already scoped by
- * build version), a permission check changes only when an admin edits the
- * project's permission scheme, and the invoking user's identity is fixed for
- * the session.
+ * longer true. Only the two permission reads are persisted: permission-key
+ * resolution changes only on redeploy (and is already scoped by build
+ * version), while a permission check changes only when an admin edits the
+ * project's permission scheme. Current-user identity is intentionally excluded
+ * because this storage is shared across Jira sessions and sites.
  *
  * Each entry is a key prefix matched positionally, so the per-project and
  * per-user permission checks are covered without enumerating them. The roots
@@ -69,11 +68,19 @@ export const queryKeys = {
  */
 export const PERSISTED_QUERY_KEY_PREFIXES: ReadonlyArray<
     ReadonlyArray<unknown>
-> = [
-    CURRENT_USER_KEY,
-    [MEETING_PERMISSION_KEYS_ROOT],
-    [MEETING_PERMISSIONS_ROOT],
-];
+> = [[MEETING_PERMISSION_KEYS_ROOT], [MEETING_PERMISSIONS_ROOT]];
+
+/** Identifies current-user queries written by older app builds. */
+export function isCurrentUserQueryKey(
+    queryKey: ReadonlyArray<unknown>,
+): boolean {
+    return (
+        queryKey.length >= CURRENT_USER_KEY.length
+        && CURRENT_USER_KEY.every(
+            (segment, index) => queryKey[index] === segment,
+        )
+    );
+}
 
 /** Whether a cache key is one of the {@link PERSISTED_QUERY_KEY_PREFIXES}. */
 export function isPersistedQueryKey(queryKey: ReadonlyArray<unknown>): boolean {

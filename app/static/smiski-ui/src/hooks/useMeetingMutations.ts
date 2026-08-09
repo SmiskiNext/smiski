@@ -1,5 +1,5 @@
 /**
- * Meeting write operations (create/schedule/update/cancel/start/end/
+ * Meeting write operations (create/schedule/update/cancel/start/end/delete/
  * settings). Each invalidates the query caches a change could affect, so
  * lists refresh immediately.
  */
@@ -13,8 +13,10 @@ import type {
     UpdateMeetingInput,
 } from '../api/meetings';
 import {
+    batchDeleteMeetings,
     cancelMeeting,
     createInstantMeeting,
+    deleteMeeting,
     endMeeting,
     joinMeeting,
     scheduleMeeting,
@@ -106,10 +108,10 @@ export function useUpdateMeetingSettings() {
 
 /**
  * "Start" a scheduled meeting by joining it as the host (backend `join`;
- * there is no separate start endpoint — joining is what transitions a
- * meeting to RUNNING). Seeds `useRoomToken`'s cache with the token/roomName
- * already returned here, so the meeting-room screen the caller navigates to
- * next doesn't re-request one.
+ * there is no separate start endpoint). Connecting with the returned token
+ * causes LiveKit's `room_started` webhook to transition the meeting to
+ * RUNNING. Seeds `useRoomToken`'s cache so the meeting-room screen does not
+ * request a second token.
  */
 export function useStartMeeting() {
     const invalidate = useInvalidateMeetings();
@@ -137,6 +139,24 @@ export function useEndMeeting() {
     const invalidate = useInvalidateMeetings();
     return useMutation({
         mutationFn: (meetingId: string) => endMeeting(meetingId),
+        onSuccess: invalidate,
+    });
+}
+
+/** Soft-deletes one non-running meeting as its host. */
+export function useDeleteMeeting() {
+    const invalidate = useInvalidateMeetings();
+    return useMutation({
+        mutationFn: (meetingId: string) => deleteMeeting(meetingId),
+        onSuccess: invalidate,
+    });
+}
+
+/** Batch soft-deletes multiple meetings by ID (backend `batchDelete`). */
+export function useBatchDeleteMeetings() {
+    const invalidate = useInvalidateMeetings();
+    return useMutation({
+        mutationFn: (meetingIds: string[]) => batchDeleteMeetings(meetingIds),
         onSuccess: invalidate,
     });
 }

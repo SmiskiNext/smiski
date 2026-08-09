@@ -10,8 +10,10 @@ import { buildScheduleMeetingPayload } from './meetings';
 describe('buildScheduleMeetingPayload (MeetScheduleMeetingRequest body)', () => {
     it('sends each selected invitee with email, accountId, and displayName', () => {
         const payload = buildScheduleMeetingPayload({
+            issueId: '10001',
             issueKey: 'SMISKI-101',
             title: 'Sprint planning',
+            description: 'Plan the next sprint',
             startTime: '2026-08-01T02:00:00.000Z',
             endTime: '2026-08-01T03:00:00.000Z',
             zoneId: 'Asia/Ho_Chi_Minh',
@@ -45,8 +47,10 @@ describe('buildScheduleMeetingPayload (MeetScheduleMeetingRequest body)', () => 
 
     it('carries the time range, organizer identity, and zone, and never a host object', () => {
         const payload = buildScheduleMeetingPayload({
+            issueId: '10001',
             issueKey: 'SMISKI-101',
             title: 'Sprint planning',
+            description: 'Plan the next sprint',
             startTime: '2026-08-01T02:00:00.000Z',
             endTime: '2026-08-01T03:00:00.000Z',
             zoneId: 'Asia/Ho_Chi_Minh',
@@ -66,7 +70,7 @@ describe('buildScheduleMeetingPayload (MeetScheduleMeetingRequest body)', () => 
         expect(payload.organizerEmail).toBe('host@example.com');
         expect(payload.organizerDisplayName).toBe('Host User');
         expect(payload.issueLink).toEqual({
-            issueId: undefined,
+            issueId: '10001',
             issueKey: 'SMISKI-101',
             projectKey: 'SMISKI',
         });
@@ -75,8 +79,10 @@ describe('buildScheduleMeetingPayload (MeetScheduleMeetingRequest body)', () => 
 
     it('sends an empty invitee list when no invitees are selected', () => {
         const payload = buildScheduleMeetingPayload({
+            issueId: '10009',
             issueKey: 'SMISKI-9',
             title: 'Solo review',
+            description: 'Review the open work',
             startTime: '2026-08-01T02:00:00.000Z',
             endTime: '2026-08-01T03:00:00.000Z',
             invitees: [],
@@ -84,21 +90,25 @@ describe('buildScheduleMeetingPayload (MeetScheduleMeetingRequest body)', () => 
         expect(payload.invitees).toEqual([]);
     });
 
-    it('defaults the description to the title when none is given', () => {
+    it('trims the required description without replacing it with the title', () => {
         const payload = buildScheduleMeetingPayload({
+            issueId: '10009',
             issueKey: 'SMISKI-9',
             title: 'Solo review',
+            description: '  Focused review  ',
             startTime: '2026-08-01T02:00:00.000Z',
             endTime: '2026-08-01T03:00:00.000Z',
             invitees: [],
         });
-        expect(payload.description).toBe('Solo review');
+        expect(payload.description).toBe('Focused review');
     });
 
     it('defaults settings when the caller supplies none', () => {
         const payload = buildScheduleMeetingPayload({
+            issueId: '10009',
             issueKey: 'SMISKI-9',
             title: 'Solo review',
+            description: 'Review the open work',
             startTime: '2026-08-01T02:00:00.000Z',
             endTime: '2026-08-01T03:00:00.000Z',
             invitees: [],
@@ -113,10 +123,12 @@ describe('buildScheduleMeetingPayload (MeetScheduleMeetingRequest body)', () => 
         });
     });
 
-    it("merges the 'Advanced settings' form values over the defaults, keeping chatEnabled fixed", () => {
+    it("merges all 'Advanced settings' form values over the defaults", () => {
         const payload = buildScheduleMeetingPayload({
+            issueId: '10009',
             issueKey: 'SMISKI-9',
             title: 'Locked-down review',
+            description: 'Review sensitive work',
             startTime: '2026-08-01T02:00:00.000Z',
             endTime: '2026-08-01T03:00:00.000Z',
             invitees: [],
@@ -124,6 +136,7 @@ describe('buildScheduleMeetingPayload (MeetScheduleMeetingRequest body)', () => 
                 admissionPolicy: 'MANUAL_APPROVAL',
                 maxParticipants: 10,
                 allowScreenShare: false,
+                chatEnabled: false,
                 allowMicrophone: false,
                 allowVideo: false,
             },
@@ -132,7 +145,7 @@ describe('buildScheduleMeetingPayload (MeetScheduleMeetingRequest body)', () => 
             admissionPolicy: 'MANUAL_APPROVAL',
             maxParticipants: 10,
             allowScreenShare: false,
-            chatEnabled: true,
+            chatEnabled: false,
             allowMicrophone: false,
             allowVideo: false,
         });

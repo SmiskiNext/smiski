@@ -1,8 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
 
-// `meetings.ts` imports `@forge/bridge`, which connects to the Custom UI bridge
-// at module load and throws outside Jira. Stub it so the pure payload builder
-// can be imported and tested in the node vitest environment.
 vi.mock('@forge/bridge', () => ({ invoke: vi.fn(), invokeRemote: vi.fn() }));
 
 import type { Meeting } from '../domain';
@@ -24,18 +21,57 @@ const DETAIL: Meeting = {
     participantCount: 1,
     endTime: '2026-08-01T03:00:00.000Z',
     zoneId: 'Asia/Ho_Chi_Minh',
-    settings: {
-        admissionPolicy: 'MANUAL_APPROVAL',
-        maxParticipants: 25,
-        allowScreenShare: false,
-        chatEnabled: true,
-        allowMicrophone: true,
-        allowVideo: true,
-    },
 };
 
 describe('buildUpdateMeetingPayload (MeetUpdateMeetingRequest body)', () => {
-    it('carries issueLink and zoneId forward from detail unchanged', () => {
+    it('maps every editable form field to the full-replace contract', () => {
+        const payload = buildUpdateMeetingPayload({
+            title: 'Architecture review',
+            description: 'Review the proposed service boundaries.',
+            issueId: '10042',
+            issueKey: 'SMISKI-42',
+            projectKey: 'SMISKI',
+            startTime: '2026-08-01T02:30:00.000Z',
+            endTime: '2026-08-01T04:00:00.000Z',
+            zoneId: 'Asia/Ho_Chi_Minh',
+        });
+
+        expect(payload).toEqual({
+            title: 'Architecture review',
+            description: 'Review the proposed service boundaries.',
+            issueLink: {
+                issueId: '10042',
+                issueKey: 'SMISKI-42',
+                projectKey: 'SMISKI',
+            },
+            zoneId: 'Asia/Ho_Chi_Minh',
+            timeRange: {
+                startTime: '2026-08-01T02:30:00.000Z',
+                endTime: '2026-08-01T04:00:00.000Z',
+            },
+        });
+    });
+
+    it('always carries the numeric Jira issue id required by the backend', () => {
+        const payload = buildUpdateMeetingPayload({
+            title: 'Architecture review',
+            description: 'Review the proposed service boundaries.',
+            issueId: '10043',
+            issueKey: 'SMISKI-43',
+            projectKey: 'SMISKI',
+            startTime: '2026-08-01T02:30:00.000Z',
+            endTime: '2026-08-01T04:00:00.000Z',
+            zoneId: 'UTC',
+        });
+
+        expect(payload.issueLink).toEqual({
+            issueId: '10043',
+            issueKey: 'SMISKI-43',
+            projectKey: 'SMISKI',
+        });
+    });
+
+    it("carries detail fields and preserves the meeting's existing end time", () => {
         const payload = buildUpdateMeetingPayload({
             title: 'New title',
             description: 'New description',
@@ -43,31 +79,14 @@ describe('buildUpdateMeetingPayload (MeetUpdateMeetingRequest body)', () => {
             detail: DETAIL,
         });
 
-        expect(payload.title).toBe('New title');
-        expect(payload.description).toBe('New description');
-        expect(payload.issueLink).toEqual({
-            issueId: 'issue-SMISKI-101',
-            issueKey: 'SMISKI-101',
-            projectKey: 'SMISKI',
-        });
         expect(payload.zoneId).toBe('Asia/Ho_Chi_Minh');
-    });
-
-    it("builds timeRange from the new start time and the detail's existing end time", () => {
-        const payload = buildUpdateMeetingPayload({
-            title: 'New title',
-            description: '',
-            startTime: '2026-08-01T02:30:00.000Z',
-            detail: DETAIL,
-        });
-
         expect(payload.timeRange).toEqual({
             startTime: '2026-08-01T02:30:00.000Z',
             endTime: '2026-08-01T03:00:00.000Z',
         });
     });
 
-    it('omits timeRange when the detail has no end time', () => {
+    it('omits timeRange when detail has no end time', () => {
         const payload = buildUpdateMeetingPayload({
             title: 'New title',
             description: '',
@@ -76,17 +95,6 @@ describe('buildUpdateMeetingPayload (MeetUpdateMeetingRequest body)', () => {
         });
 
         expect(payload.timeRange).toBeUndefined();
-    });
-
-    it('falls back to the local zone when detail lacks one', () => {
-        const payload = buildUpdateMeetingPayload({
-            title: 'New title',
-            description: '',
-            startTime: '2026-08-01T02:30:00.000Z',
-            detail: { ...DETAIL, settings: undefined, zoneId: undefined },
-        });
-
-        expect(payload.zoneId).toBeTruthy();
     });
 
     it('uses the selected issue link when provided', () => {

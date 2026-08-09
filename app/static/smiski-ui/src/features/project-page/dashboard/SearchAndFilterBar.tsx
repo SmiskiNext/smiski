@@ -1,5 +1,11 @@
+import type { MeetingListSort } from '../../../api/meetings';
 import { MEETING_STATUS_FILTER_OPTIONS } from '../../../components/shared';
-import { Button, Icon, SelectDropdown } from '../../../components/ui';
+import {
+    Button,
+    Icon,
+    MultiSelectDropdown,
+    SelectDropdown,
+} from '../../../components/ui';
 import type { MeetingStatus } from '../../../domain';
 import { useProjectIssues } from '../../../hooks/useProjectIssues';
 import { useProjectMembers } from '../../../hooks/useProjectMembers';
@@ -8,7 +14,8 @@ export interface MeetingFilterValue {
     search?: string;
     issueKey?: string;
     createdByAccountId?: string;
-    status?: MeetingStatus;
+    statuses?: MeetingStatus[];
+    sort?: MeetingListSort;
 }
 
 export interface SearchAndFilterBarProps {
@@ -18,6 +25,17 @@ export interface SearchAndFilterBarProps {
 }
 
 const compactControl = 'field-control h-8 rounded py-1 text-sm shadow-none';
+
+export const DEFAULT_PROJECT_MEETING_SORT: MeetingListSort = 'START_TIME';
+
+const SORT_OPTIONS: Array<{ value: MeetingListSort; label: string }> = [
+    { value: 'START_TIME', label: 'Latest start' },
+    { value: 'CREATED_AT', label: 'Newest created' },
+];
+
+const STATUS_OPTIONS = MEETING_STATUS_FILTER_OPTIONS.filter(
+    (option) => option.value !== '',
+);
 
 export function SearchAndFilterBar({
     projectKey,
@@ -55,7 +73,8 @@ export function SearchAndFilterBar({
         value.search
             || value.issueKey
             || value.createdByAccountId
-            || value.status,
+            || value.statuses?.length
+            || (value.sort && value.sort !== DEFAULT_PROJECT_MEETING_SORT),
     );
 
     return (
@@ -79,19 +98,24 @@ export function SearchAndFilterBar({
                     }
                 />
             </label>
-            <SelectDropdown
-                className='w-36'
+            <MultiSelectDropdown
+                className='w-44'
                 ariaLabel='Filter by status'
-                value={value.status ?? ''}
-                options={MEETING_STATUS_FILTER_OPTIONS}
-                onChange={(status) =>
+                values={value.statuses ?? []}
+                options={STATUS_OPTIONS}
+                placeholder='All statuses'
+                onChange={(statuses) => {
+                    const selectedStatuses =
+                        statuses.length === STATUS_OPTIONS.length
+                            ? undefined
+                            : (statuses as MeetingStatus[]);
                     onChange({
                         ...value,
-                        status: (status || undefined) as
-                            | MeetingStatus
-                            | undefined,
-                    })
-                }
+                        statuses: selectedStatuses?.length
+                            ? selectedStatuses
+                            : undefined,
+                    });
+                }}
             />
             <SelectDropdown
                 className='w-64'
@@ -117,12 +141,26 @@ export function SearchAndFilterBar({
                     })
                 }
             />
+            <SelectDropdown
+                className='w-40'
+                ariaLabel='Sort meetings'
+                value={value.sort ?? DEFAULT_PROJECT_MEETING_SORT}
+                options={SORT_OPTIONS}
+                onChange={(sort) =>
+                    onChange({
+                        ...value,
+                        sort: sort as MeetingListSort,
+                    })
+                }
+            />
             {hasActiveFilters && (
                 <Button
                     size='sm'
                     variant='ghost'
                     className='h-8 min-h-0 rounded'
-                    onClick={() => onChange({})}
+                    onClick={() =>
+                        onChange({ sort: DEFAULT_PROJECT_MEETING_SORT })
+                    }
                 >
                     Clear
                 </Button>

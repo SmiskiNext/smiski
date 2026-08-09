@@ -32,9 +32,15 @@ const COPY: Record<
         describe: (meeting) =>
             `This ends "${meeting.title}" for everyone in the room right now.`,
     },
+    DELETE: {
+        title: 'Delete meeting?',
+        confirmLabel: 'Delete meeting',
+        describe: (meeting) =>
+            `This removes "${meeting.title}" from Smiski and schedules it for permanent deletion.`,
+    },
 };
 
-/** Fixed CANCEL/END copy over the generic `ConfirmActionDialog`. */
+/** Meeting-action-specific copy over the generic `ConfirmActionDialog`. */
 export function ConfirmMeetingActionDialog({
     action,
     meeting,

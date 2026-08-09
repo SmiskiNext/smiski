@@ -1,5 +1,5 @@
 /**
- * EditMeetingModal — unified edit modal for the project page, available to the
+ * EditMeetingModal — shared unified edit modal, available to the
  * host across all meeting statuses (SCHEDULED, RUNNING, COMPLETED, CANCELED).
  * Combines meeting info (title/description/issue/time), settings (admission/
  * capacity/media), and invitees (add/remove) into a single scrollable form with
@@ -18,37 +18,43 @@
  * - Settings/invitees: hidden entirely when status is COMPLETED or CANCELED
  *   (backend rejects those operations on terminal meetings).
  *
- * This modal is project-page-specific and replaces the separate flows:
- * - ScheduleMeetingModal (edit mode) for info
+ * This modal is shared by the project page and issue-panel Forge modal. It
+ * replaces the separate flows:
+ * - the former ScheduleMeetingModal edit mode for info
  * - MeetingSettingsModal for settings
  * - MeetingInviteeManager for invitees
- *
- * Issue panel remains unchanged (still uses those separate components).
  */
 import { Alert, Form, Input, InputNumber, Select, Switch } from 'antd';
 import { useEffect, useState } from 'react';
-import type { WorkspaceUser } from '../../../api/workspaceUsers';
-import { ADMISSION_POLICY_OPTIONS } from '../../../components/shared/AdvancedMeetingSettingsFields';
-import { WorkspaceUserPicker } from '../../../components/shared/WorkspaceUserPicker';
-import { Button, Modal } from '../../../components/ui';
-import type { JiraIssue, MeetingSettings } from '../../../domain';
-import { useMeeting } from '../../../hooks/useMeeting';
+import type { WorkspaceUser } from '../../api/workspaceUsers';
+import type { JiraIssue, MeetingSettings } from '../../domain';
+import { useMeeting } from '../../hooks/useMeeting';
 import {
     useAddMeetingInvitees,
     useMeetingInvitees,
     useRemoveMeetingInvitees,
-} from '../../../hooks/useMeetingInvitees';
+} from '../../hooks/useMeetingInvitees';
 import {
     useUpdateMeeting,
     useUpdateMeetingSettings,
-} from '../../../hooks/useMeetingMutations';
-import { useProjectIssues } from '../../../hooks/useProjectIssues';
+} from '../../hooks/useMeetingMutations';
+import { useProjectIssues } from '../../hooks/useProjectIssues';
 import {
     formatTimeZoneOption,
+    isoToWallTimeInZone,
     listTimeZones,
     nowWallTimeInZone,
     zonedWallTimeToIso,
-} from '../../../utils/datetime';
+} from '../../utils/datetime';
+import { Button, Modal } from '../ui';
+import { ADMISSION_POLICY_OPTIONS } from './AdvancedMeetingSettingsFields';
+import {
+    meetingDescriptionError,
+    meetingTimeRangeError,
+} from './meetingFormValidation';
+import { WorkspaceUserPicker } from './WorkspaceUserPicker';
+
+const DEFAULT_MEETING_DURATION_MS = 60 * 60 * 1000;
 
 const TIME_ZONE_OPTIONS = listTimeZones().map((zone) => ({
     value: zone,
@@ -60,6 +66,8 @@ export interface EditMeetingModalProps {
     meetingId: string;
     onClose: () => void;
     onSaved?: () => void;
+    /** Pass 'embedded' when Jira's Forge modal supplies the outer chrome. */
+    chrome?: 'overlay' | 'embedded';
 }
 
 interface EditMeetingFormValues {
@@ -67,6 +75,8 @@ interface EditMeetingFormValues {
     description: string;
     startDate: string;
     startTime: string;
+    endDate: string;
+    endTime: string;
     admissionPolicy: 'ALLOW_ALL' | 'MANUAL_APPROVAL';
     maxParticipants: number;
     allowScreenShare: boolean;
@@ -85,17 +95,6 @@ function issueOptionLabel(issue: JiraIssue): string {
     return `${issue.key} — ${issue.summary}`;
 }
 
-function wallTimeParts(iso?: string): { date: string; time: string } {
-    if (!iso) return { date: '', time: '' };
-    const at = new Date(iso);
-    if (Number.isNaN(at.getTime())) return { date: '', time: '' };
-    const pad = (value: number) => String(value).padStart(2, '0');
-    return {
-        date: `${at.getFullYear()}-${pad(at.getMonth() + 1)}-${pad(at.getDate())}`,
-        time: `${pad(at.getHours())}:${pad(at.getMinutes())}`,
-    };
-}
-
 function shallowEqualSettings(a: MeetingSettings, b: MeetingSettings): boolean {
     return (
         a.admissionPolicy === b.admissionPolicy
@@ -107,11 +106,19 @@ function shallowEqualSettings(a: MeetingSettings, b: MeetingSettings): boolean {
     );
 }
 
+function sameInstant(left?: string, right?: string): boolean {
+    if (!left || !right) return left === right;
+    const leftMs = new Date(left).getTime();
+    const rightMs = new Date(right).getTime();
+    return !Number.isNaN(leftMs) && leftMs === rightMs;
+}
+
 export function EditMeetingModal({
     isOpen,
     meetingId,
     onClose,
     onSaved,
+    chrome = 'overlay',
 }: EditMeetingModalProps) {
     const [form] = Form.useForm<EditMeetingFormValues>();
     const { meeting, loading: meetingLoading } = useMeeting(
@@ -153,12 +160,25 @@ export function EditMeetingModal({
 
     useEffect(() => {
         if (!meeting?.settings) return;
-        const start = wallTimeParts(meeting.scheduledAt);
+        const detailTimeZone = meeting.zoneId ?? 'UTC';
+        const start = isoToWallTimeInZone(meeting.scheduledAt, detailTimeZone);
+        const fallbackEnd = meeting.scheduledAt
+            ? new Date(
+                  new Date(meeting.scheduledAt).getTime()
+                      + DEFAULT_MEETING_DURATION_MS,
+              ).toISOString()
+            : undefined;
+        const end = isoToWallTimeInZone(
+            meeting.endTime ?? fallbackEnd,
+            detailTimeZone,
+        );
         form.setFieldsValue({
             title: meeting.title,
             description: meeting.description ?? '',
             startDate: start.date,
             startTime: start.time,
+            endDate: end.date,
+            endTime: end.time,
             admissionPolicy: meeting.settings
                 .admissionPolicy as EditMeetingFormValues['admissionPolicy'],
             maxParticipants: meeting.settings.maxParticipants,
@@ -167,7 +187,7 @@ export function EditMeetingModal({
             allowMicrophone: meeting.settings.allowMicrophone,
             allowVideo: meeting.settings.allowVideo,
         });
-        setTimeZone(meeting.zoneId ?? 'UTC');
+        setTimeZone(detailTimeZone);
         if (meeting.issueId && meeting.issueKey) {
             setSelectedIssue({
                 issueId: meeting.issueId,
@@ -199,12 +219,16 @@ export function EditMeetingModal({
         setNewInvitees([]);
     }, [meetingId]);
 
-    const resetAndClose = () => {
+    const resetState = () => {
         form.resetFields();
         setNewInvitees([]);
         setFormError(null);
         setSelectedIssue(null);
         setIssueQuery('');
+    };
+
+    const resetAndClose = () => {
+        resetState();
         onClose();
     };
 
@@ -219,6 +243,7 @@ export function EditMeetingModal({
         const description = values.description?.trim() ?? '';
 
         let startIso: string | undefined;
+        let endIso: string | undefined;
         if (canEditSchedule) {
             const computedIso = zonedWallTimeToIso(
                 values.startDate,
@@ -234,20 +259,41 @@ export function EditMeetingModal({
                 return;
             }
             startIso = computedIso;
+            endIso = zonedWallTimeToIso(
+                values.endDate,
+                values.endTime,
+                timeZone,
+            );
+            const timeRangeError = meetingTimeRangeError(startIso, endIso);
+            if (timeRangeError) {
+                setFormError(timeRangeError);
+                return;
+            }
         }
 
+        const effectiveIssue = selectedIssue ?? {
+            issueId: meeting.issueId,
+            issueKey: meeting.issueKey,
+            projectKey: meeting.projectKey,
+        };
         const issueChanged =
             selectedIssue !== null
             && (selectedIssue.issueId !== meeting.issueId
                 || selectedIssue.issueKey !== meeting.issueKey);
 
         const startTimeChanged =
-            canEditSchedule && startIso !== meeting.scheduledAt;
+            canEditSchedule && !sameInstant(startIso, meeting.scheduledAt);
+        const endTimeChanged =
+            canEditSchedule && !sameInstant(endIso, meeting.endTime);
+        const zoneChanged =
+            canEditSchedule && timeZone !== (meeting.zoneId ?? 'UTC');
 
         const infoDirty =
             title !== meeting.title
             || description !== (meeting.description ?? '')
             || startTimeChanged
+            || endTimeChanged
+            || zoneChanged
             || issueChanged;
 
         const formSettings: MeetingSettings = {
@@ -275,17 +321,22 @@ export function EditMeetingModal({
             if (infoDirty) {
                 await updateMeeting.mutateAsync({
                     meetingId,
-                    input: {
-                        title,
-                        description,
-                        startTime: startIso,
-                        detail: meeting,
-                        selectedIssue: selectedIssue ?? {
-                            issueId: meeting.issueId,
-                            issueKey: meeting.issueKey,
-                            projectKey: meeting.projectKey,
-                        },
-                    },
+                    input:
+                        canEditSchedule && startIso && endIso
+                            ? {
+                                  title,
+                                  description,
+                                  ...effectiveIssue,
+                                  startTime: startIso,
+                                  endTime: endIso,
+                                  zoneId: timeZone,
+                              }
+                            : {
+                                  title,
+                                  description,
+                                  detail: meeting,
+                                  selectedIssue: effectiveIssue,
+                              },
                 });
             }
 
@@ -314,8 +365,9 @@ export function EditMeetingModal({
                 });
             }
 
-            onSaved?.();
-            resetAndClose();
+            resetState();
+            if (onSaved) onSaved();
+            else onClose();
         } catch (error) {
             setFormError(
                 error instanceof Error
@@ -333,6 +385,7 @@ export function EditMeetingModal({
         <Modal
             title='Edit meeting'
             size='lg'
+            chrome={chrome}
             onClose={resetAndClose}
             footer={
                 <>
@@ -377,7 +430,7 @@ export function EditMeetingModal({
                     >
                         <Input placeholder='e.g. Sprint planning sync' />
                     </Form.Item>
-                    <Form.Item label='Linked issue'>
+                    <Form.Item label='Linked issue' required>
                         <Select
                             showSearch
                             placeholder='Search for an issue…'
@@ -405,53 +458,86 @@ export function EditMeetingModal({
                             }
                         />
                     </Form.Item>
+                    {canEditSchedule && (
+                        <>
+                            <Form.Item
+                                label='Start date'
+                                name='startDate'
+                                rules={[
+                                    {
+                                        required: true,
+                                        message: 'Choose a start date.',
+                                    },
+                                ]}
+                            >
+                                <Input type='date' min={nowInZone.date} />
+                            </Form.Item>
+                            <Form.Item
+                                label='Start time'
+                                name='startTime'
+                                rules={[
+                                    {
+                                        required: true,
+                                        message: 'Choose a start time.',
+                                    },
+                                ]}
+                            >
+                                <Input type='time' />
+                            </Form.Item>
+                            <Form.Item
+                                label='End date'
+                                name='endDate'
+                                rules={[
+                                    {
+                                        required: true,
+                                        message: 'Choose an end date.',
+                                    },
+                                ]}
+                            >
+                                <Input type='date' min={nowInZone.date} />
+                            </Form.Item>
+                            <Form.Item
+                                label='End time'
+                                name='endTime'
+                                rules={[
+                                    {
+                                        required: true,
+                                        message: 'Choose an end time.',
+                                    },
+                                ]}
+                            >
+                                <Input type='time' />
+                            </Form.Item>
+                            <Form.Item label='Time zone' required>
+                                <Select
+                                    showSearch
+                                    aria-label='Time zone'
+                                    value={timeZone}
+                                    options={TIME_ZONE_OPTIONS}
+                                    onChange={setTimeZone}
+                                />
+                            </Form.Item>
+                        </>
+                    )}
                     <Form.Item
-                        label='Start date'
-                        name='startDate'
-                        rules={
-                            canEditSchedule
-                                ? [
-                                      {
-                                          required: true,
-                                          message: 'Choose a start date.',
-                                      },
-                                  ]
-                                : []
-                        }
+                        label='Description'
+                        name='description'
+                        required
+                        rules={[
+                            {
+                                validator: (
+                                    _rule,
+                                    value: string | undefined,
+                                ) => {
+                                    const error =
+                                        meetingDescriptionError(value);
+                                    return error
+                                        ? Promise.reject(new Error(error))
+                                        : Promise.resolve();
+                                },
+                            },
+                        ]}
                     >
-                        <Input
-                            type='date'
-                            min={nowInZone.date}
-                            disabled={!canEditSchedule}
-                        />
-                    </Form.Item>
-                    <Form.Item
-                        label='Start time'
-                        name='startTime'
-                        rules={
-                            canEditSchedule
-                                ? [
-                                      {
-                                          required: true,
-                                          message: 'Choose a start time.',
-                                      },
-                                  ]
-                                : []
-                        }
-                    >
-                        <Input type='time' disabled={!canEditSchedule} />
-                    </Form.Item>
-                    <Form.Item label='Time zone'>
-                        <Select
-                            showSearch
-                            aria-label='Time zone'
-                            value={timeZone}
-                            options={TIME_ZONE_OPTIONS}
-                            onChange={setTimeZone}
-                            disabled={!canEditSchedule}
-                        />
-                    </Form.Item>
-                    <Form.Item label='Description' name='description'>
                         <Input.TextArea
                             rows={3}
                             placeholder='Add context or an agenda…'

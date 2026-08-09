@@ -35,7 +35,7 @@ function defineDeploymentVariables(mode: string): Record<string, string> {
     return Object.fromEntries(
         DEPLOYMENT_VARIABLES.map((key) => [
             `import.meta.env.${key}`,
-            JSON.stringify(env[key] ?? ''),
+            JSON.stringify(process.env[key] || env[key] || ''),
         ]),
     );
 }

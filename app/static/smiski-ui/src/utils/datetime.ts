@@ -114,6 +114,33 @@ export function nowWallTimeInZone(timeZone: string): {
     };
 }
 
+/** Convert a UTC ISO instant into date/time input values in an IANA zone. */
+export function isoToWallTimeInZone(
+    iso: string | undefined,
+    timeZone: string,
+): { date: string; time: string } {
+    if (!iso) return { date: '', time: '' };
+    const instant = new Date(iso);
+    if (Number.isNaN(instant.getTime()) || !isResolvableTimeZone(timeZone)) {
+        return { date: '', time: '' };
+    }
+    const parts = new Intl.DateTimeFormat('en-CA', {
+        timeZone,
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false,
+    }).formatToParts(instant);
+    const get = (type: string) =>
+        parts.find((part) => part.type === type)?.value ?? '';
+    return {
+        date: `${get('year')}-${get('month')}-${get('day')}`,
+        time: `${get('hour')}:${get('minute')}`,
+    };
+}
+
 /**
  * Convert a wall-clock `date` (YYYY-MM-DD) + `time` (HH:mm) interpreted in
  * `timeZone` into a UTC ISO string. Returns '' if inputs are unparseable.

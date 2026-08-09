@@ -3,19 +3,13 @@
  * actions, search/filter, and one unified list covering every meeting status
  * for this issue (replaces the old split Current/Upcoming/History sections).
  *
- * Data comes from `useIssueMeetings` → the real `meet` backend's `list`
- * operation (SDK over Forge Remote, see `api/meetings.ts`'s
- * `listIssueMeetings`). There is no mock db — meeting persistence is never
- * mocked. Join navigates to the Project Page's meeting room
+ * Data comes from `useIssueMeetings` → the real `meet` backend's dedicated,
+ * offset-paginated issue listing (SDK over Forge Remote). There is no mock db
+ * — meeting persistence is never mocked. Joining a meeting or creating an
+ * instant one navigates to the Project Page's meeting room
  * (`useNavigateToMeetingRoom`) — Issue Panel and Project Page are separate
  * Forge modules/iframes, so this narrow panel never has room to render the
  * meeting itself.
- *
- * This surface is deliberately limited to creating meetings (instant and
- * scheduled), listing them, viewing detail/history, and joining a running one.
- * Meeting management (edit, cancel, start, end, settings) lives on the project
- * page, so `HIDDEN_PANEL_ACTIONS` suppresses those entries from the shared
- * action menu.
  *
  * Every dialog this surface triggers opens as a Forge platform modal over the
  * whole product window (`hooks/useIssuePanel*Modal.ts`), so the panel itself
@@ -33,10 +27,13 @@ import {
 } from '../../components/shared';
 import { Button, Icon } from '../../components/ui';
 import type { CurrentIssueContextValue, MeetingAction } from '../../domain';
+import { useConfirmMeetingAction } from '../../hooks/useConfirmMeetingAction';
+import { useHostConflictGuard } from '../../hooks/useHostConflictGuard';
 import { useIssueMeetings } from '../../hooks/useIssueMeetings';
 import { useIssuePanelInstantModal } from '../../hooks/useIssuePanelInstantModal';
 import { useIssuePanelMeetingDetailModal } from '../../hooks/useIssuePanelMeetingDetailModal';
 import { useIssuePanelScheduleModal } from '../../hooks/useIssuePanelScheduleModal';
+import { useStartMeeting } from '../../hooks/useMeetingMutations';
 import { useMeetingPermissions } from '../../hooks/useMeetingPermission';
 import { useNavigateToMeetingRoom } from '../../hooks/useNavigateToMeetingRoom';
 import { IssueMeetingsFilterBar } from './IssueMeetingsFilterBar';
@@ -46,26 +43,18 @@ import {
 } from './issueMeetingsFilter';
 import { StartInstantMeetingButton } from './StartInstantMeetingButton';
 
-/** Management actions the issue panel never offers; see the module doc. */
-const HIDDEN_PANEL_ACTIONS: MeetingAction[] = [
-    'EDIT',
-    'CANCEL',
-    'START',
-    'END',
-    'SETTINGS',
-];
-
 export interface IssueMeetingsPanelProps {
     issue: CurrentIssueContextValue;
 }
 
 export function IssueMeetingsPanel({ issue }: IssueMeetingsPanelProps) {
     const permissions = useMeetingPermissions(issue.projectKey);
-    const { meetings, loading, error } = useIssueMeetings(
-        issue.issueKey,
+    const issueMeetings = useIssueMeetings(
+        issue.issueId,
         issue.projectKey,
         permissions.canViewMeeting && !permissions.isLoading,
     );
+    const { meetings, loading, error } = issueMeetings;
     const openMeetingRoom = useNavigateToMeetingRoom();
 
     const [filter, setFilter] = useState<IssueMeetingsFilterValue>({});
@@ -83,6 +72,12 @@ export function IssueMeetingsPanel({ issue }: IssueMeetingsPanelProps) {
         openMeetingRoom(issue.projectKey, meetingId),
     );
     const detailModal = useIssuePanelMeetingDetailModal();
+    const hostConflictGuard = useHostConflictGuard('platform-modal');
+    const confirmAction = useConfirmMeetingAction(
+        setFeedback,
+        'platform-modal',
+    );
+    const startMeeting = useStartMeeting();
 
     const visibleMeetings = filterAndSortIssueMeetings(meetings, filter);
 
@@ -90,8 +85,33 @@ export function IssueMeetingsPanel({ issue }: IssueMeetingsPanelProps) {
         const meeting = meetings.find((m) => m.id === meetingId);
         if (!meeting) return;
         switch (action) {
+            case 'EDIT':
+                scheduleModal.open({
+                    issueId: issue.issueId,
+                    issueKey: issue.issueKey,
+                    projectKey: issue.projectKey,
+                    meeting,
+                });
+                break;
+            case 'CANCEL':
+                confirmAction.request('CANCEL', meeting);
+                break;
+            case 'START':
+                hostConflictGuard.guard(meeting.issueKey, () => {
+                    startMeeting.mutate(meeting.id, {
+                        onSuccess: (_result, meetingId) =>
+                            openMeetingRoom(issue.projectKey, meetingId),
+                    });
+                });
+                break;
             case 'JOIN':
                 openMeetingRoom(issue.projectKey, meeting.id);
+                break;
+            case 'END':
+                confirmAction.request('END', meeting);
+                break;
+            case 'DELETE':
+                confirmAction.request('DELETE', meeting);
                 break;
             case 'VIEW_DETAIL':
             case 'VIEW_HISTORY':
@@ -128,6 +148,7 @@ export function IssueMeetingsPanel({ issue }: IssueMeetingsPanelProps) {
                 <div className='mb-3 grid grid-cols-2 gap-2'>
                     <StartInstantMeetingButton
                         className='w-full'
+                        issueId={issue.issueId}
                         issueKey={issue.issueKey}
                         projectKey={issue.projectKey}
                         onOpenInstantModal={instantModal.open}
@@ -137,6 +158,7 @@ export function IssueMeetingsPanel({ issue }: IssueMeetingsPanelProps) {
                         className='w-full'
                         onClick={() =>
                             scheduleModal.open({
+                                issueId: issue.issueId,
                                 issueKey: issue.issueKey,
                                 projectKey: issue.projectKey,
                             })
@@ -181,12 +203,37 @@ export function IssueMeetingsPanel({ issue }: IssueMeetingsPanelProps) {
                                         meetingId={meeting.id}
                                         meeting={meeting}
                                         permissions={permissions}
-                                        hiddenActions={HIDDEN_PANEL_ACTIONS}
                                         onAction={handleAction}
                                     />
                                 }
                             />
                         ))}
+                    </div>
+                )}
+                {!loading && !error && meetings.length > 0 && (
+                    <div className='mt-3 space-y-2'>
+                        <div className='flex items-center justify-between gap-3'>
+                            <span className='text-xs tabular-nums text-[var(--text-faint)]'>
+                                Loaded {meetings.length} of{' '}
+                                {issueMeetings.total}
+                            </span>
+                            {issueMeetings.hasMore && (
+                                <Button
+                                    size='sm'
+                                    variant='secondary'
+                                    isLoading={issueMeetings.loadingMore}
+                                    disabled={issueMeetings.loadingMore}
+                                    onClick={issueMeetings.loadMore}
+                                >
+                                    Load more
+                                </Button>
+                            )}
+                        </div>
+                        {issueMeetings.loadMoreError && (
+                            <p className='text-xs text-red-600 dark:text-red-300'>
+                                {issueMeetings.loadMoreError.message}
+                            </p>
+                        )}
                     </div>
                 )}
             </div>

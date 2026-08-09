@@ -26,7 +26,7 @@ export function toWorkspaceUsers(users: User[]): WorkspaceUser[] {
         .map((user) => ({
             accountId: user.accountId as string,
             displayName: user.displayName ?? (user.accountId as string),
-            email: user.emailAddress ?? '',
+            email: user.emailAddress?.trim() ?? '',
             avatarUrl: user.avatarUrls?.['48x48'],
         }));
 }

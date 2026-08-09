@@ -3665,6 +3665,8 @@ components:
         endTime:
           type: string
           format: date-time
+        organizerDisplayName:
+          type: string
         createdAt:
           type: string
           format: date-time

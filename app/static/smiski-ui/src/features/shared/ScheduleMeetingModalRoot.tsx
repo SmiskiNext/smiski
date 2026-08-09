@@ -1,12 +1,15 @@
 /**
  * Mounted inside the Forge platform Modal iframe opened by
- * `hooks/useIssuePanelScheduleModal.ts`. Renders the same ScheduleMeetingModal
- * used everywhere else, but reports back to the opener (a different iframe,
- * with its own React Query cache) via `view.close(result)` instead of a local
- * onClose/onSubmitted callback.
+ * `hooks/useIssuePanelScheduleModal.ts`. Creates use ScheduleMeetingModal;
+ * edits use the shared status-aware EditMeetingModal. Both report back to the
+ * opener (a different iframe, with its own React Query cache) via
+ * `view.close(result)`.
  */
 import { view } from '@forge/bridge';
-import { ScheduleMeetingModal } from '../../components/shared';
+import {
+    EditMeetingModal,
+    ScheduleMeetingModal,
+} from '../../components/shared';
 import type {
     ScheduleMeetingModalContext,
     ScheduleMeetingModalResult,
@@ -23,13 +26,27 @@ export function ScheduleMeetingModalRoot({
         void view.close(result);
     };
 
+    if (payload.meeting) {
+        return (
+            <EditMeetingModal
+                isOpen
+                meetingId={payload.meeting.id}
+                chrome='embedded'
+                onClose={() => close({ submitted: false })}
+                onSaved={() =>
+                    close({ submitted: true, meetingId: payload.meeting?.id })
+                }
+            />
+        );
+    }
+
     return (
         <ScheduleMeetingModal
             isOpen
             chrome='embedded'
             issueKey={payload.issueKey}
+            issueId={payload.issueId}
             projectKey={payload.projectKey}
-            meeting={payload.meeting}
             onClose={() => close({ submitted: false })}
             onSubmitted={(meetingId) => close({ submitted: true, meetingId })}
         />

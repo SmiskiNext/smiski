@@ -1,7 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import type { Meeting, MeetingStatus } from './index';
 import {
+    canDeleteMeeting,
     getAvailableMeetingActions,
+    getDeletableMeetingIds,
+    pruneMeetingSelection,
     resolveMeetingPermissions,
 } from './meetingPolicy';
 
@@ -61,7 +64,7 @@ describe('getAvailableMeetingActions', () => {
         ).toEqual(['JOIN', 'VIEW_DETAIL']);
         expect(
             getAvailableMeetingActions(meeting('SCHEDULED'), edit, HOST),
-        ).toEqual(['VIEW_DETAIL', 'EDIT', 'START', 'CANCEL']);
+        ).toEqual(['VIEW_DETAIL', 'EDIT', 'START', 'CANCEL', 'DELETE']);
     });
 
     it('gates running meeting actions', () => {
@@ -81,7 +84,7 @@ describe('getAvailableMeetingActions', () => {
             ).toEqual(['VIEW_DETAIL', 'VIEW_HISTORY']);
             expect(
                 getAvailableMeetingActions(meeting(status), edit, HOST),
-            ).toEqual(['VIEW_DETAIL', 'VIEW_HISTORY', 'EDIT']);
+            ).toEqual(['VIEW_DETAIL', 'VIEW_HISTORY', 'EDIT', 'DELETE']);
         },
     );
 
@@ -89,11 +92,12 @@ describe('getAvailableMeetingActions', () => {
     // (`hostId.equals(actor)` in CancelMeetingApplicationService /
     // EndMeetingApplicationService / UpdateMeetingApplicationService), not
     // "any Edit Meeting permission holder" — a non-host Edit-Meeting user
-    // must not see actions the backend will reject with 403.
-    it('hides EDIT/CANCEL from a non-host Edit Meeting user, keeps START', () => {
+    // must not see host actions. START is also host-only in the UI so manual
+    // admission cannot turn a purported start into a pending join request.
+    it('hides host actions from a non-host Edit Meeting user, keeps JOIN', () => {
         expect(
             getAvailableMeetingActions(meeting('SCHEDULED'), edit, NON_HOST),
-        ).toEqual(['VIEW_DETAIL', 'START']);
+        ).toEqual(['JOIN', 'VIEW_DETAIL']);
     });
 
     it('hides EDIT/END from a non-host Edit Meeting user, keeps JOIN', () => {
@@ -109,5 +113,45 @@ describe('getAvailableMeetingActions', () => {
         expect(
             getAvailableMeetingActions(meeting('CANCELED'), edit, NON_HOST),
         ).toEqual(['VIEW_DETAIL', 'VIEW_HISTORY']);
+    });
+
+    it('offers DELETE only to the host with edit permission on non-running meetings', () => {
+        expect(canDeleteMeeting(meeting('SCHEDULED'), edit, HOST)).toBe(true);
+        expect(canDeleteMeeting(meeting('COMPLETED'), edit, HOST)).toBe(true);
+        expect(canDeleteMeeting(meeting('CANCELED'), edit, HOST)).toBe(true);
+        expect(canDeleteMeeting(meeting('RUNNING'), edit, HOST)).toBe(false);
+        expect(canDeleteMeeting(meeting('SCHEDULED'), edit, NON_HOST)).toBe(
+            false,
+        );
+        expect(canDeleteMeeting(meeting('SCHEDULED'), viewOnly, HOST)).toBe(
+            false,
+        );
+    });
+
+    it('selects only deletable meetings across mixed ownership and statuses', () => {
+        const meetings = [
+            meeting('SCHEDULED'),
+            { ...meeting('RUNNING'), id: 'meeting-running' },
+            {
+                ...meeting('COMPLETED'),
+                id: 'meeting-other-host',
+                hostId: NON_HOST,
+            },
+            { ...meeting('CANCELED'), id: 'meeting-canceled' },
+        ];
+
+        expect([...getDeletableMeetingIds(meetings, edit, HOST)]).toEqual([
+            'meeting-1',
+            'meeting-canceled',
+        ]);
+    });
+
+    it('prunes IDs that disappear or become ineligible after refetch', () => {
+        expect([
+            ...pruneMeetingSelection(
+                new Set(['meeting-1', 'meeting-running', 'removed']),
+                new Set(['meeting-1']),
+            ),
+        ]).toEqual(['meeting-1']);
     });
 });
