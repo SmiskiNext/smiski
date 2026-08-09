@@ -256,6 +256,48 @@ func TestAuthorize_NoContextHeaders(t *testing.T) {
 	}
 }
 
+// TestAuthorize_UserlessFITAllowedWithEmptyAccountID covers the app life-cycle
+// path: a FIT carrying no principal, sent without context headers, as the Forge
+// install/upgrade trigger and pre-uninstall function do. The tenant is resolved
+// from the cloudId, the accountId stays empty, and the request is not denied.
+func TestAuthorize_UserlessFITAllowedWithEmptyAccountID(t *testing.T) {
+	jiraCalled := false
+	mockJira := &mockJiraClient{
+		checkPermissionsFunc: func(ctx context.Context, cloudID, systemToken string, req *jira.BulkPermissionsRequestBean) ([]string, error) {
+			jiraCalled = true
+			return nil, errors.New("permission check must not run for a context-free request")
+		},
+	}
+
+	service := NewAuthzService(mockJira, &mockCache{})
+
+	req := &AuthzRequest{
+		FITToken:    createUserlessFIT(),
+		SystemToken: "system-token",
+	}
+
+	result, err := service.Authorize(context.Background(), req)
+	if err != nil {
+		t.Fatalf("expected no error for a user-less FIT, got %v", err)
+	}
+
+	if result.CloudID != "abc123-def456" {
+		t.Errorf("expected cloudId %q, got %q", "abc123-def456", result.CloudID)
+	}
+
+	if result.AccountID != "" {
+		t.Errorf("expected an empty accountId, got %q", result.AccountID)
+	}
+
+	if len(result.Permissions) != 0 {
+		t.Errorf("expected empty permissions when no context, got %v", result.Permissions)
+	}
+
+	if jiraCalled {
+		t.Error("expected the Jira permission check to be skipped")
+	}
+}
+
 func TestAuthorize_ProjectIDContext(t *testing.T) {
 	editARI := "ari:cloud:ecosystem::extension/12345/67890/static/edit-meeting"
 
@@ -725,6 +767,33 @@ func createValidFIT() string {
 		},
 		"context": {"cloudId": "abc123-def456"},
 		"principal": "655362:612c5d42-ac0a-4f00-6f14-9d84a1b2c3d4",
+		"aud": "ari:cloud:ecosystem::app/12345",
+		"iss": "forge/invocation-token",
+		"iat": 1700175149,
+		"exp": 1700175174
+	}`
+
+	header := base64.RawURLEncoding.EncodeToString([]byte(`{"alg":"RS256","typ":"JWT"}`))
+	claims := base64.RawURLEncoding.EncodeToString([]byte(payload))
+
+	return header + "." + claims + ".signature"
+}
+
+// createUserlessFIT builds the token an app-level invocation carries: the same
+// claims as createValidFIT minus the principal, which Atlassian omits for a
+// Forge lifecycle trigger or pre-uninstall function.
+func createUserlessFIT() string {
+	payload := `{
+		"app": {
+			"id": "ari:cloud:ecosystem::app/12345",
+			"installationId": "ari:cloud:ecosystem::installation/test",
+			"apiBaseUrl": "https://api.atlassian.com/ex/jira/abc123-def456",
+			"appVersion": "1.0.0",
+			"environment": {
+				"id": "ari:cloud:ecosystem::environment/67890"
+			}
+		},
+		"context": {"cloudId": "abc123-def456"},
 		"aud": "ari:cloud:ecosystem::app/12345",
 		"iss": "forge/invocation-token",
 		"iat": 1700175149,

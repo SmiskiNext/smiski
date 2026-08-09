@@ -13,17 +13,28 @@
         "ui:dev": "pnpm --filter smiski-ui dev",
         "ui:build": "pnpm --filter smiski-ui build",
         "build": "pnpm ui:build",
-        "test": "pnpm --filter smiski-ui test",
-        "lint": "biome check",
+        "test": "pnpm test:functions && pnpm test:ui",
+        "test:ui": "pnpm --filter smiski-ui test",
+        "test:functions": "vitest run",
+        "lint": "biome check && forge lint",
         "format": "biome format --write",
         "format:check": "biome format .",
-        "typecheck": "pnpm --filter smiski-ui typecheck",
+        "typecheck": "pnpm typecheck:functions && pnpm typecheck:ui",
+        "typecheck:ui": "pnpm --filter smiski-ui typecheck",
+        "typecheck:functions": "tsc --noEmit",
         "deploy": "pnpm build && forge deploy",
         "install:site": "forge install",
         "forge": "forge"
     },
+    "dependencies": {
+        "@forge/api": "8.0.3",
+        "@smiskinext/smiski-ts": "workspace:*"
+    },
     "devDependencies": {
         "@biomejs/biome": "^2.4.15",
-        "@forge/cli": "13.2.0"
+        "@forge/cli": "13.2.0",
+        "@types/node": "22.20.1",
+        "typescript": "5.9.3",
+        "vitest": "^2.1.9"
     }
 }
