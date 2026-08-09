@@ -352,6 +352,7 @@ export const zMeetMeetingSummary = z.object({
         z.null()
     ])),
     endTime: z.optional(z.iso.datetime()),
+    organizerDisplayName: z.optional(z.string()),
     createdAt: z.optional(z.iso.datetime()),
     settings: z.optional(zMeetMeetingSummarySettings)
 });
