@@ -6,6 +6,7 @@ import {
     cancel,
     createInstant,
     declineJoinRequests as declineJoinRequestsOperation,
+    delete_ as deleteMeetingOperation,
     end,
     get,
     join,
@@ -18,6 +19,7 @@ import {
     type MeetCancelMeetingResponse,
     type MeetCreateInstantMeetingRequest,
     type MeetCreateInstantMeetingResponse,
+    type MeetDeleteMeetingResponse,
     type MeetEndMeetingResponse,
     type MeetGetMeetingResponse,
     type MeetIssueMeetingListPage,
@@ -77,17 +79,22 @@ export interface InstantMeetingHostIdentity {
 }
 
 /**
- * User-editable subset of `MeetingSettings` exposed by the create forms'
- * "Advanced settings" section. `chatEnabled` is deliberately excluded — not
- * surfaced in the UI yet — and always sent as `DEFAULT_MEETING_SETTINGS`'s
- * default.
+ * User-editable meeting settings exposed by the create forms' shared
+ * "Advanced settings" section.
  */
-export type CreateMeetingSettingsInput = Omit<MeetingSettings, 'chatEnabled'>;
+export interface CreateMeetingSettingsInput {
+    admissionPolicy: 'ALLOW_ALL' | 'MANUAL_APPROVAL';
+    maxParticipants: number;
+    allowScreenShare: boolean;
+    chatEnabled: boolean;
+    allowMicrophone: boolean;
+    allowVideo: boolean;
+}
 
 /** Payload to create an instant meeting (UC01). */
 export interface CreateInstantMeetingInput {
     issueKey: string;
-    issueId?: string;
+    issueId: string;
     projectKey?: string;
     title: string;
     description?: string;
@@ -103,7 +110,7 @@ export interface CreateInstantMeetingInput {
 /** Payload to schedule a meeting (UC03). */
 export interface ScheduleMeetingInput {
     issueKey: string;
-    issueId?: string;
+    issueId: string;
     projectKey?: string;
     title: string;
     /** ISO-8601 UTC instant for the scheduled start. */
@@ -127,35 +134,46 @@ export interface MeetingIssueLinkInput {
     projectKey: string;
 }
 
-/**
- * Edit of an existing meeting. The backend `update` operation is a full
- * replace (`title`/`description`/`issueLink`/`zoneId` all required), so
- * `detail` (the meeting's current full detail, from `getMeeting`) supplies
- * everything the edit form does not change. `selectedIssue` carries the issue
- * the host picked in the edit surface; when omitted, the meeting's current
- * issue link is preserved. Settings are updated through the backend's
- * dedicated settings endpoint and are not part of this request.
- */
-export interface UpdateMeetingInput {
+/** Common fields accepted by the backend's full-replace update operation. */
+interface UpdateMeetingBaseInput {
     title: string;
     description: string;
-    /**
-     * New scheduled start. Absent for meetings that carry no scheduled start
-     * (instant meetings) or when the edit surface locks the time fields because
-     * the meeting has left `SCHEDULED`.
-     */
-    startTime?: string;
-    detail: Meeting;
-    /** Defaults to `detail`'s current issue link when the host did not change it. */
-    selectedIssue?: MeetingIssueLinkInput;
 }
+
+/**
+ * Edit of an existing meeting. A detail-backed input carries forward fields
+ * that the project-page form leaves unchanged, while the issue-panel form can
+ * provide the complete editable issue/time payload explicitly. Settings stay
+ * on the dedicated settings endpoint.
+ */
+export type UpdateMeetingInput = UpdateMeetingBaseInput &
+    (
+        | {
+              /**
+               * New scheduled start. Absent for instant meetings or when the
+               * meeting has left `SCHEDULED` and the form locks its schedule.
+               */
+              startTime?: string;
+              detail: Meeting;
+              /** Preserve the current issue link when the host did not change it. */
+              selectedIssue?: MeetingIssueLinkInput;
+          }
+        | {
+              issueId: string;
+              issueKey: string;
+              projectKey: string;
+              startTime: string;
+              endTime: string;
+              zoneId: string;
+          }
+    );
 
 /** Filters for the project-page dashboard listing. */
 export interface MeetingSearchFilters {
     projectKey?: string;
     issueKey?: string;
     createdByAccountId?: string;
-    status?: MeetingStatus;
+    statuses?: MeetingStatus[];
     search?: string;
     sort?: MeetingListSort;
 }
@@ -270,13 +288,13 @@ export function buildInstantMeetingPayload(
             deviceId,
             avatarUrl: input.host?.avatarUrl,
         },
-        organizerEmail: input.host?.email ?? '',
+        organizerEmail: input.host?.email?.trim() ?? '',
         organizerDisplayName: input.host?.displayName ?? 'Jira user',
         zoneId: input.zoneId ?? getLocalTimeZone(),
         invitees: (input.invitees ?? []).map((invitee) => ({
             accountId: invitee.accountId,
             displayName: invitee.displayName,
-            email: invitee.email,
+            email: invitee.email?.trim() ?? '',
         })),
     };
 }
@@ -307,13 +325,13 @@ export function buildScheduleMeetingPayload(
             startTime: input.startTime,
             endTime: input.endTime,
         },
-        organizerEmail: input.organizer?.email ?? '',
+        organizerEmail: input.organizer?.email?.trim() ?? '',
         organizerDisplayName: input.organizer?.displayName ?? 'Jira user',
         zoneId: input.zoneId ?? getLocalTimeZone(),
         invitees: input.invitees.map((invitee) => ({
             accountId: invitee.accountId,
             displayName: invitee.displayName,
-            email: invitee.email,
+            email: invitee.email?.trim() ?? '',
         })),
     };
 }
@@ -641,7 +659,7 @@ async function listMeetingsPage(
                 projectKey: params.projectKey,
                 issueKey: params.issueKey,
                 creatorId: params.createdByAccountId,
-                statuses: params.status ? [params.status] : undefined,
+                statuses: params.statuses?.length ? params.statuses : undefined,
                 search: params.search,
                 sort: params.sort,
                 pageSize: params.pageSize,
@@ -715,24 +733,27 @@ export async function listAllMeetings(
     return meetings;
 }
 
-/**
- * Build the full-replace update request body from the edit form's input,
- * conforming to the OpenAPI `MeetUpdateMeetingRequest` contract. `title` and
- * `description` come from the edit form. `issueLink` comes from
- * `input.selectedIssue` when the host picked an issue in the edit surface, and
- * falls back to `input.detail`'s current link otherwise. `startTime` falls back
- * to the meeting's current scheduled start when the edit surface locked the time
- * fields, and `timeRange` is omitted entirely unless both bounds are known — the
- * backend rejects `zoneId`/`timeRange` changes outside `SCHEDULED`, so an
- * unchanged range must round-trip exactly. `zoneId`/`endTime` are carried
- * forward unchanged from `input.detail` (the meeting's full detail, fetched
- * separately). Settings are updated through the backend's dedicated settings
- * endpoint and are not part of this request. Pure, so the contract is
- * unit-testable like the instant/schedule builders above.
- */
+/** Build a full-replace backend payload from either edit surface's input. */
 export function buildUpdateMeetingPayload(
     input: UpdateMeetingInput,
 ): MeetUpdateMeetingRequest {
+    if (!('detail' in input)) {
+        return {
+            title: input.title,
+            description: input.description,
+            issueLink: {
+                issueId: input.issueId,
+                issueKey: input.issueKey,
+                projectKey: input.projectKey,
+            },
+            zoneId: input.zoneId,
+            timeRange: {
+                startTime: input.startTime,
+                endTime: input.endTime,
+            },
+        };
+    }
+
     const issueLink = input.selectedIssue ?? {
         issueId: input.detail.issueId,
         issueKey: input.detail.issueKey,
@@ -828,6 +849,17 @@ export async function endMeeting(meetingId: string): Promise<Meeting> {
         }),
     );
     return meetingFromBackend(response);
+}
+
+/** Soft-deletes one meeting as its host. RUNNING meetings are rejected. */
+export async function deleteMeeting(meetingId: string): Promise<string> {
+    const response = await unwrap<MeetDeleteMeetingResponse>(() =>
+        deleteMeetingOperation({
+            client: forgeRemoteClient,
+            path: { version: apiConfig.apiVersion, id: meetingId },
+        }),
+    );
+    return response.meeting?.id ?? meetingId;
 }
 
 /**
@@ -962,7 +994,7 @@ export async function findRunningMeetingHostedByUser(
 ): Promise<Meeting | null> {
     const running = await listAllMeetings({
         createdByAccountId: accountId,
-        status: 'RUNNING',
+        statuses: ['RUNNING'],
     });
     return (
         running.find((meeting) => meeting.issueKey !== excludingIssueKey)

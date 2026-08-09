@@ -91,7 +91,10 @@ primitives.
 Project meeting listing uses the backend's cursor-paginated `list` operation
 with an exact `projectKey` filter. Issue Panel listing uses the dedicated,
 offset-paginated `/issues/{issueId}/meetings` operation. Correctness-sensitive
-conflict checks walk every cursor page. Everything else
+conflict checks walk every cursor page. Single and batch delete use the backend
+soft-delete operations and share the host/non-running eligibility policy.
+Create/edit forms cover the full exposed backend contract, including issue link,
+time range, timezone, and chat settings. Everything else
 (instant/schedule/get/update/cancel/end/settings/join/token) is real. Check the
 specific hook before assuming either direction. Meeting persistence is **never**
 mocked and there is no mock/backend switch: `mocks/` is Jira identity/issue data

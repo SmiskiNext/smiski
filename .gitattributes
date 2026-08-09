@@ -3,6 +3,23 @@
 #
 # Linux start script should use lf
 /gradlew        text eol=lf
+/.gitattributes text eol=lf
+/.gitignore     text eol=lf
+
+# Source and text configuration are formatted as LF by Biome/Prettier. Explicit
+# attributes prevent core.autocrlf from making a fresh Windows checkout fail.
+*.css           text eol=lf
+*.example       text eol=lf
+*.js            text eol=lf
+*.json          text eol=lf
+*.jsx           text eol=lf
+*.md            text eol=lf
+*.mjs           text eol=lf
+*.sh            text eol=lf
+*.ts            text eol=lf
+*.tsx           text eol=lf
+*.yaml          text eol=lf
+*.yml           text eol=lf
 
 # These are Windows script files and should use crlf
 *.bat           text eol=crlf

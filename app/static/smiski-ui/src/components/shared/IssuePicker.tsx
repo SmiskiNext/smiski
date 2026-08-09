@@ -10,13 +10,14 @@
  */
 import { Select } from 'antd';
 import { useEffect, useMemo, useState } from 'react';
+import type { JiraIssue } from '../../domain';
 import { useProjectIssues } from '../../hooks/useProjectIssues';
 
 export interface IssuePickerProps {
     projectKey: string;
     /** Selected issue key, or '' when nothing is chosen. */
     value: string;
-    onChange: (issueKey: string) => void;
+    onChange: (issueKey: string, issue?: JiraIssue) => void;
     autoFocus?: boolean;
     invalid?: boolean;
     placeholder?: string;
@@ -26,6 +27,7 @@ interface IssueOption {
     value: string;
     label: string;
     summary: string;
+    issue: JiraIssue;
 }
 
 export function IssuePicker({
@@ -62,6 +64,7 @@ export function IssuePicker({
             value: issue.key,
             label: `${issue.key} — ${issue.summary}`,
             summary: issue.summary,
+            issue,
         }));
         if (
             selectedOption
@@ -95,10 +98,9 @@ export function IssuePicker({
             }
             options={options}
             onChange={(next, option) => {
-                onChange(next ?? '');
-                setSelectedOption(
-                    next ? ((option as IssueOption) ?? null) : null,
-                );
+                const selected = next ? (option as IssueOption) : undefined;
+                onChange(next ?? '', selected?.issue);
+                setSelectedOption(next ? (selected ?? null) : null);
                 setQuery('');
             }}
         />

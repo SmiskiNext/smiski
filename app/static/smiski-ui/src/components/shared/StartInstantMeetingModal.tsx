@@ -23,6 +23,11 @@ import { resolveUserTimeZone } from '../../utils/datetime';
 import { Button, Modal } from '../ui';
 import { AdvancedMeetingSettingsFields } from './AdvancedMeetingSettingsFields';
 import { IssuePicker } from './IssuePicker';
+import {
+    MEETING_TITLE_MAX_LENGTH,
+    meetingEmailError,
+    meetingTitleError,
+} from './meetingFormValidation';
 import { WorkspaceUserPicker } from './WorkspaceUserPicker';
 
 /** Matches DEFAULT_MEETING_SETTINGS in api/meetings.ts. */
@@ -30,6 +35,7 @@ const DEFAULT_ADVANCED_SETTINGS: CreateMeetingSettingsInput = {
     admissionPolicy: 'ALLOW_ALL',
     maxParticipants: 50,
     allowScreenShare: true,
+    chatEnabled: true,
     allowMicrophone: true,
     allowVideo: true,
 };
@@ -39,6 +45,8 @@ export interface StartInstantMeetingModalProps {
     projectKey: string;
     /** When provided, the meeting binds to this issue and the picker is hidden. */
     issueKey?: string;
+    /** Numeric Jira issue identifier required by the backend issue-link contract. */
+    issueId?: string;
     onClose: () => void;
     onStarted: (meetingId: string) => void;
     /** Pass 'embedded' when already rendered inside a Forge platform Modal. */
@@ -59,17 +67,22 @@ function IssueField({
     projectKey,
     value,
     onChange,
+    onIssueIdChange,
 }: {
     projectKey: string;
     value?: string;
     onChange?: (issueKey: string) => void;
+    onIssueIdChange?: (issueId?: string) => void;
 }) {
     return (
         <IssuePicker
             projectKey={projectKey}
             value={value ?? ''}
             autoFocus
-            onChange={(key) => onChange?.(key)}
+            onChange={(key, issue) => {
+                onChange?.(key);
+                onIssueIdChange?.(issue?.id);
+            }}
         />
     );
 }
@@ -78,6 +91,7 @@ export function StartInstantMeetingModal({
     isOpen,
     projectKey,
     issueKey,
+    issueId,
     onClose,
     onStarted,
     chrome = 'overlay',
@@ -86,6 +100,7 @@ export function StartInstantMeetingModal({
     const currentUser = useCurrentUser();
     const createMeeting = useCreateInstantMeeting();
     const [invitees, setInvitees] = useState<WorkspaceUser[]>([]);
+    const [selectedIssueId, setSelectedIssueId] = useState(issueId);
     const [formError, setFormError] = useState<string | null>(null);
 
     const handleSubmit = async (values: InstantMeetingFormValues) => {
@@ -93,9 +108,20 @@ export function StartInstantMeetingModal({
         const resolvedIssueKey = (issueKey ?? values.issueKey ?? '')
             .trim()
             .toUpperCase();
+        const resolvedIssueId = issueId ?? selectedIssueId;
+        if (!resolvedIssueId) {
+            setFormError('Select a valid Jira issue and try again.');
+            return;
+        }
+        const emailError = meetingEmailError(currentUser.email, invitees);
+        if (emailError) {
+            setFormError(emailError);
+            return;
+        }
 
         const result = await createMeeting.mutateAsync({
             issueKey: resolvedIssueKey,
+            issueId: resolvedIssueId,
             projectKey,
             title: values.title.trim(),
             description: values.description?.trim(),
@@ -112,11 +138,22 @@ export function StartInstantMeetingModal({
                 avatarUrl: currentUser.avatarUrl,
             },
             settings: {
-                admissionPolicy: values.admissionPolicy,
-                maxParticipants: values.maxParticipants,
-                allowScreenShare: values.allowScreenShare,
-                allowMicrophone: values.allowMicrophone,
-                allowVideo: values.allowVideo,
+                admissionPolicy:
+                    values.admissionPolicy
+                    ?? DEFAULT_ADVANCED_SETTINGS.admissionPolicy,
+                maxParticipants:
+                    values.maxParticipants
+                    ?? DEFAULT_ADVANCED_SETTINGS.maxParticipants,
+                allowScreenShare:
+                    values.allowScreenShare
+                    ?? DEFAULT_ADVANCED_SETTINGS.allowScreenShare,
+                chatEnabled:
+                    values.chatEnabled ?? DEFAULT_ADVANCED_SETTINGS.chatEnabled,
+                allowMicrophone:
+                    values.allowMicrophone
+                    ?? DEFAULT_ADVANCED_SETTINGS.allowMicrophone,
+                allowVideo:
+                    values.allowVideo ?? DEFAULT_ADVANCED_SETTINGS.allowVideo,
             },
         });
 
@@ -135,6 +172,7 @@ export function StartInstantMeetingModal({
     const resetAndClose = () => {
         form.resetFields();
         setInvitees([]);
+        setSelectedIssueId(issueId);
         setFormError(null);
         onClose();
     };
@@ -173,15 +211,28 @@ export function StartInstantMeetingModal({
                         },
                     ]}
                 >
-                    <IssueField projectKey={projectKey} />
+                    <IssueField
+                        projectKey={projectKey}
+                        onIssueIdChange={setSelectedIssueId}
+                    />
                 </Form.Item>
             )}
             <Form.Item
                 label='Title'
                 name='title'
-                rules={[{ required: true, message: 'Enter a meeting title.' }]}
+                rules={[
+                    {
+                        validator: (_rule, value: string | undefined) => {
+                            const error = meetingTitleError(value);
+                            return error
+                                ? Promise.reject(new Error(error))
+                                : Promise.resolve();
+                        },
+                    },
+                ]}
             >
                 <Input
+                    maxLength={MEETING_TITLE_MAX_LENGTH}
                     autoFocus={Boolean(issueKey)}
                     placeholder='e.g. Investigate deployment failure'
                 />

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
     EmptyState,
     ErrorState,
@@ -10,9 +10,11 @@ import { Button, Icon, Modal } from '../../../components/ui';
 import { useCurrentUser } from '../../../context/CurrentUserContext';
 import {
     getAvailableMeetingActions,
+    getDeletableMeetingIds,
     type Meeting,
     type MeetingAction,
     type MeetingPermissions,
+    pruneMeetingSelection,
 } from '../../../domain';
 import { useBatchDeleteMeetings } from '../../../hooks';
 
@@ -138,6 +140,7 @@ export function MeetingListTable({
     onAction,
     onBatchDeleteSuccess,
 }: MeetingListTableProps) {
+    const currentUser = useCurrentUser();
     const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const [batchDeleteError, setBatchDeleteError] = useState<string | null>(
@@ -145,19 +148,52 @@ export function MeetingListTable({
     );
 
     const batchDeleteMutation = useBatchDeleteMeetings();
+    const deletionPermissions = useMemo(
+        () => ({
+            canEditMeeting: permissions.canEditMeeting,
+            isLoading: permissions.isLoading,
+        }),
+        [permissions.canEditMeeting, permissions.isLoading],
+    );
+    const deletableIds = useMemo(
+        () =>
+            getDeletableMeetingIds(
+                meetings,
+                deletionPermissions,
+                currentUser.accountId,
+            ),
+        [meetings, deletionPermissions, currentUser.accountId],
+    );
+    const deletableMeetings = useMemo(
+        () => meetings.filter((meeting) => deletableIds.has(meeting.id)),
+        [meetings, deletableIds],
+    );
+
+    // Refetches, filters, and page changes may remove a meeting or make it no
+    // longer deletable. Keep selection aligned with the latest server page.
+    useEffect(() => {
+        setSelectedIds((current) => {
+            const valid = pruneMeetingSelection(current, deletableIds);
+            return valid.size === current.size ? current : valid;
+        });
+    }, [deletableIds]);
+
+    useEffect(() => {
+        if (selectedIds.size === 0) setShowDeleteConfirm(false);
+    }, [selectedIds.size]);
 
     const isAllPageSelected =
-        meetings.length > 0
-        && meetings.every((meeting) => selectedIds.has(meeting.id));
+        deletableMeetings.length > 0
+        && deletableMeetings.every((meeting) => selectedIds.has(meeting.id));
 
     const toggleSelectAllPage = () => {
         const next = new Set(selectedIds);
         if (isAllPageSelected) {
-            for (const meeting of meetings) {
+            for (const meeting of deletableMeetings) {
                 next.delete(meeting.id);
             }
         } else {
-            for (const meeting of meetings) {
+            for (const meeting of deletableMeetings) {
                 next.add(meeting.id);
             }
         }
@@ -165,15 +201,16 @@ export function MeetingListTable({
     };
 
     const toggleSelectRow = (
-        id: string,
+        meeting: Meeting,
         event: React.MouseEvent | React.ChangeEvent,
     ) => {
         event.stopPropagation();
+        if (!deletableIds.has(meeting.id)) return;
         const next = new Set(selectedIds);
-        if (next.has(id)) {
-            next.delete(id);
+        if (next.has(meeting.id)) {
+            next.delete(meeting.id);
         } else {
-            next.add(id);
+            next.add(meeting.id);
         }
         setSelectedIds(next);
     };
@@ -185,6 +222,13 @@ export function MeetingListTable({
     const handleConfirmBatchDelete = async () => {
         const ids = Array.from(selectedIds);
         if (ids.length === 0) return;
+        if (ids.some((id) => !deletableIds.has(id))) {
+            setBatchDeleteError(
+                'Selection changed. Review the deletable meetings and try again.',
+            );
+            setSelectedIds(new Set(ids.filter((id) => deletableIds.has(id))));
+            return;
+        }
         setBatchDeleteError(null);
         try {
             await batchDeleteMutation.mutateAsync(ids);
@@ -273,6 +317,10 @@ export function MeetingListTable({
                                                     aria-label='Select all meetings on current page'
                                                     className='h-3.5 w-3.5 cursor-pointer rounded border-slate-300 text-brand-600 focus:ring-brand-500'
                                                     checked={isAllPageSelected}
+                                                    disabled={
+                                                        deletableMeetings.length
+                                                        === 0
+                                                    }
                                                     onChange={
                                                         toggleSelectAllPage
                                                     }
@@ -294,6 +342,9 @@ export function MeetingListTable({
                         <tbody>
                             {meetings.map((meeting) => {
                                 const isSelected = selectedIds.has(meeting.id);
+                                const isDeletable = deletableIds.has(
+                                    meeting.id,
+                                );
                                 return (
                                     <tr
                                         key={meeting.id}
@@ -319,13 +370,11 @@ export function MeetingListTable({
                                             <input
                                                 type='checkbox'
                                                 aria-label={`Select ${meeting.title}`}
-                                                className='h-3.5 w-3.5 cursor-pointer rounded border-slate-300 text-brand-600 focus:ring-brand-500'
+                                                className='h-3.5 w-3.5 cursor-pointer rounded border-slate-300 text-brand-600 focus:ring-brand-500 disabled:cursor-not-allowed disabled:opacity-40'
                                                 checked={isSelected}
+                                                disabled={!isDeletable}
                                                 onChange={(e) =>
-                                                    toggleSelectRow(
-                                                        meeting.id,
-                                                        e,
-                                                    )
+                                                    toggleSelectRow(meeting, e)
                                                 }
                                             />
                                         </td>
@@ -354,7 +403,14 @@ export function MeetingListTable({
                                             />
                                         </td>
                                         <td className='hidden border-b px-3 py-2.5 text-[var(--text-muted)] xl:table-cell'>
-                                            {meeting.hostName}
+                                            {meeting.hostId
+                                            === currentUser.accountId
+                                                ? currentUser.displayName
+                                                : meeting.hostName
+                                                    !== 'Unknown host'
+                                                  ? meeting.hostName
+                                                  : meeting.hostId
+                                                    || 'Unknown host'}
                                         </td>
                                         <td className='hidden border-b px-3 py-2.5 whitespace-nowrap text-[var(--text-muted)] lg:table-cell'>
                                             {meetingTime(meeting)}

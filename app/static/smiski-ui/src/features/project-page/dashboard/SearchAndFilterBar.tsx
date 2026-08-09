@@ -1,6 +1,11 @@
 import type { MeetingListSort } from '../../../api/meetings';
 import { MEETING_STATUS_FILTER_OPTIONS } from '../../../components/shared';
-import { Button, Icon, SelectDropdown } from '../../../components/ui';
+import {
+    Button,
+    Icon,
+    MultiSelectDropdown,
+    SelectDropdown,
+} from '../../../components/ui';
 import type { MeetingStatus } from '../../../domain';
 import { useProjectIssues } from '../../../hooks/useProjectIssues';
 import { useProjectMembers } from '../../../hooks/useProjectMembers';
@@ -9,7 +14,7 @@ export interface MeetingFilterValue {
     search?: string;
     issueKey?: string;
     createdByAccountId?: string;
-    status?: MeetingStatus;
+    statuses?: MeetingStatus[];
     sort?: MeetingListSort;
 }
 
@@ -64,7 +69,7 @@ export function SearchAndFilterBar({
         value.search
             || value.issueKey
             || value.createdByAccountId
-            || value.status
+            || value.statuses?.length
             || (value.sort && value.sort !== DEFAULT_PROJECT_MEETING_SORT),
     );
 
@@ -89,17 +94,21 @@ export function SearchAndFilterBar({
                     }
                 />
             </label>
-            <SelectDropdown
-                className='w-36'
+            <MultiSelectDropdown
+                className='w-44'
                 ariaLabel='Filter by status'
-                value={value.status ?? ''}
-                options={MEETING_STATUS_FILTER_OPTIONS}
-                onChange={(status) =>
+                values={value.statuses ?? []}
+                options={MEETING_STATUS_FILTER_OPTIONS.filter(
+                    (option) => option.value !== '',
+                )}
+                placeholder='All statuses'
+                onChange={(statuses) =>
                     onChange({
                         ...value,
-                        status: (status || undefined) as
-                            | MeetingStatus
-                            | undefined,
+                        statuses:
+                            statuses.length > 0
+                                ? (statuses as MeetingStatus[])
+                                : undefined,
                     })
                 }
             />

@@ -9,14 +9,16 @@ const runningMeeting = { id: 'm-1', status: 'RUNNING' } as Meeting;
 
 describe('Issue Panel start-instant gate', () => {
     it('opens the form prefilled for the current issue, deriving the project key', () => {
-        expect(instantModalPayloadFor('SMISKI-101')).toEqual({
+        expect(instantModalPayloadFor('10001', 'SMISKI-101')).toEqual({
+            issueId: '10001',
             issueKey: 'SMISKI-101',
             projectKey: 'SMISKI',
         });
     });
 
     it('prefers an explicit project key when supplied', () => {
-        expect(instantModalPayloadFor('SMISKI-101', 'OTHER')).toEqual({
+        expect(instantModalPayloadFor('10001', 'SMISKI-101', 'OTHER')).toEqual({
+            issueId: '10001',
             issueKey: 'SMISKI-101',
             projectKey: 'OTHER',
         });

@@ -53,10 +53,9 @@ jobs:
             FORGE_EMAIL: ${{ secrets.FORGE_EMAIL }}
             FORGE_API_TOKEN: ${{ secrets.FORGE_API_TOKEN }}
             JIRA_SITE: ${{ vars.JIRA_SITE }}
-            # One name per value. The Forge CLI interpolates these into
-            # manifest.yml's ${...} placeholders from the process environment,
-            # and vite.config.ts injects the same three into the Custom UI
-            # bundle — so the manifest and the frontend can never disagree.
+            # One name per value. The render script writes the deploy origins
+            # into manifest.yml, while vite.config.ts injects the same values
+            # into the Custom UI bundle so the two cannot disagree.
             SMISKI_API_BASE_URL: ${{ vars.SMISKI_API_BASE_URL }}
             SMISKI_API_VERSION: ${{ vars.SMISKI_API_VERSION || '1' }}
             LIVEKIT_URL: ${{ vars.LIVEKIT_URL }}
@@ -131,6 +130,13 @@ jobs:
                   pnpm typecheck
                   pnpm test
                   pnpm build
+
+            # manifest.yml ships a placeholder baseUrl. Forge's server-side
+            # pre-deployment check rejects unresolved ${...} in egress-reachable
+            # fields, so the real origin is substituted into the file on disk
+            # before any Forge command reads it. See app/scripts/render-manifest.js.
+            - name: Render manifest
+              run: pnpm manifest:render
 
             - name: Forge lint
               shell: bash

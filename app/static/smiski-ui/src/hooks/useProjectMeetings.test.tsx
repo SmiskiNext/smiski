@@ -11,6 +11,9 @@ vi.mock('../api/meetings', () => ({
     listProjectMeetings: (...args: unknown[]) =>
         listProjectMeetingsMock(...args),
 }));
+vi.mock('../context/CurrentUserContext', () => ({
+    useCurrentUser: () => ({ accountId: 'current-user' }),
+}));
 
 import { useProjectMeetings } from './useProjectMeetings';
 

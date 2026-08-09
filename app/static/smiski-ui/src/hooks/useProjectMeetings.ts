@@ -40,7 +40,7 @@ function paginationScope(filters: MeetingListFilters): string {
         filters.projectKey,
         filters.issueKey ?? '',
         filters.createdByAccountId ?? '',
-        filters.status ?? '',
+        [...(filters.statuses ?? [])].sort().join(','),
         filters.search ?? '',
         filters.sort ?? '',
     ]);

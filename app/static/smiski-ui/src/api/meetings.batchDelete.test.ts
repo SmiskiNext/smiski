@@ -57,17 +57,23 @@ describe('batchDeleteMeetings (SDK batchDelete operation over Forge Remote)', ()
         expect(deletedMeetings[1].id).toBe(id2);
     });
 
-    it('throws MeetingApiError on backend error response', async () => {
+    it('preserves all-or-nothing semantics when any meeting is rejected', async () => {
+        const ids = [
+            '0195e0c2-8f3a-7c21-b9d4-2f1a6e7c8d90',
+            '0195e0c2-8f3a-7c21-b9d4-2f1a6e7c8d91',
+        ];
         invokeRemoteMock.mockResolvedValue(
-            invokeResult(403, {
-                code: 'NOT_AUTHORIZED',
-                title: 'Forbidden',
-                detail: 'Only the host or project admin may delete meetings',
+            invokeResult(409, {
+                code: 'MEETING_ALREADY_RUNNING',
+                title: 'Conflict',
+                detail: 'One selected meeting is running.',
             }),
         );
 
-        await expect(batchDeleteMeetings(['m1'])).rejects.toThrow(
-            MeetingApiError,
+        await expect(batchDeleteMeetings(ids)).rejects.toThrow(MeetingApiError);
+        expect(invokeRemoteMock).toHaveBeenCalledTimes(1);
+        expect(invokeRemoteMock).toHaveBeenCalledWith(
+            expect.objectContaining({ body: { meetingIds: ids } }),
         );
     });
 });

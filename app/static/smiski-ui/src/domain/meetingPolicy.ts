@@ -8,7 +8,44 @@ export type MeetingAction =
     | 'EDIT'
     | 'CANCEL'
     | 'END'
-    | 'SETTINGS';
+    | 'SETTINGS'
+    | 'DELETE';
+
+/** Backend delete policy shared by menus and batch-selection controls. */
+export function canDeleteMeeting(
+    meeting: Meeting,
+    permissions: Pick<MeetingPermissions, 'canEditMeeting' | 'isLoading'>,
+    currentUserAccountId: string,
+): boolean {
+    return (
+        !permissions.isLoading
+        && permissions.canEditMeeting
+        && meeting.hostId === currentUserAccountId
+        && meeting.status !== 'RUNNING'
+    );
+}
+
+export function getDeletableMeetingIds(
+    meetings: Meeting[],
+    permissions: Pick<MeetingPermissions, 'canEditMeeting' | 'isLoading'>,
+    currentUserAccountId: string,
+): Set<string> {
+    return new Set(
+        meetings
+            .filter((meeting) =>
+                canDeleteMeeting(meeting, permissions, currentUserAccountId),
+            )
+            .map((meeting) => meeting.id),
+    );
+}
+
+/** Drops stale or newly ineligible IDs after a list refetch. */
+export function pruneMeetingSelection(
+    selectedIds: ReadonlySet<string>,
+    deletableIds: ReadonlySet<string>,
+): Set<string> {
+    return new Set([...selectedIds].filter((id) => deletableIds.has(id)));
+}
 
 /**
  * Centralizes Jira custom-permission inheritance for the frontend.
@@ -64,6 +101,8 @@ export function getAvailableMeetingActions(
             if (isHost) actions.push('EDIT');
             actions.push('START');
             if (isHost) actions.push('CANCEL');
+            if (canDeleteMeeting(meeting, permissions, currentUserAccountId))
+                actions.push('DELETE');
             return actions;
         }
         case 'RUNNING': {
@@ -79,6 +118,8 @@ export function getAvailableMeetingActions(
         case 'CANCELED': {
             const actions: MeetingAction[] = ['VIEW_DETAIL', 'VIEW_HISTORY'];
             if (permissions.canEditMeeting && isHost) actions.push('EDIT');
+            if (canDeleteMeeting(meeting, permissions, currentUserAccountId))
+                actions.push('DELETE');
             return actions;
         }
     }

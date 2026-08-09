@@ -36,6 +36,7 @@ export function InstantMeetingModalRoot({
             isOpen
             chrome='embedded'
             issueKey={payload.issueKey}
+            issueId={payload.issueId}
             projectKey={projectKey}
             onClose={() => close({ created: false })}
             onStarted={(meetingId) => close({ created: true, meetingId })}

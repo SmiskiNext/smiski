@@ -28,6 +28,7 @@ export function ScheduleMeetingModalRoot({
             isOpen
             chrome='embedded'
             issueKey={payload.issueKey}
+            issueId={payload.issueId}
             projectKey={payload.projectKey}
             meeting={payload.meeting}
             onClose={() => close({ submitted: false })}

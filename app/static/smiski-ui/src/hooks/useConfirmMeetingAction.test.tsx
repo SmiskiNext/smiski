@@ -10,8 +10,10 @@ vi.mock('@forge/bridge', () => ({
 
 const cancelMutate = vi.fn();
 const endMutate = vi.fn();
+const deleteMutate = vi.fn();
 const cancelReset = vi.fn();
 const endReset = vi.fn();
+const deleteReset = vi.fn();
 
 vi.mock('./useMeetingMutations', () => ({
     useCancelMeeting: () => ({
@@ -25,6 +27,12 @@ vi.mock('./useMeetingMutations', () => ({
         isPending: false,
         error: null,
         reset: endReset,
+    }),
+    useDeleteMeeting: () => ({
+        mutate: deleteMutate,
+        isPending: false,
+        error: null,
+        reset: deleteReset,
     }),
 }));
 
@@ -50,8 +58,10 @@ describe('useConfirmMeetingAction (inline presentation)', () => {
     beforeEach(() => {
         cancelMutate.mockReset();
         endMutate.mockReset();
+        deleteMutate.mockReset();
         cancelReset.mockReset();
         endReset.mockReset();
+        deleteReset.mockReset();
     });
 
     it('opens a pending confirmation without firing the mutation yet', () => {
@@ -68,6 +78,7 @@ describe('useConfirmMeetingAction (inline presentation)', () => {
         });
         expect(cancelMutate).not.toHaveBeenCalled();
         expect(endMutate).not.toHaveBeenCalled();
+        expect(deleteMutate).not.toHaveBeenCalled();
     });
 
     it('confirms a CANCEL through cancelMeeting and reports success', () => {
@@ -120,6 +131,32 @@ describe('useConfirmMeetingAction (inline presentation)', () => {
         expect(result.current.pending).toBeNull();
     });
 
+    it('confirms DELETE through deleteMeeting and reports success', () => {
+        const onDone = vi.fn();
+        const { result } = renderHook(() =>
+            useConfirmMeetingAction(onDone, 'inline'),
+        );
+
+        act(() => result.current.request('DELETE', MEETING));
+        act(() => result.current.confirm());
+
+        expect(deleteMutate).toHaveBeenCalledWith(
+            MEETING.id,
+            expect.objectContaining({ onSuccess: expect.any(Function) }),
+        );
+        expect(cancelMutate).not.toHaveBeenCalled();
+        expect(endMutate).not.toHaveBeenCalled();
+
+        const { onSuccess } = deleteMutate.mock.calls[0][1];
+        act(() => onSuccess());
+
+        expect(onDone).toHaveBeenCalledWith({
+            appearance: 'success',
+            message: 'Meeting deleted.',
+        });
+        expect(result.current.pending).toBeNull();
+    });
+
     it('keeps the dialog open on a failed confirm (no onSuccess call, pending stays set)', () => {
         const onDone = vi.fn();
         const { result } = renderHook(() =>
@@ -135,7 +172,7 @@ describe('useConfirmMeetingAction (inline presentation)', () => {
         expect(onDone).not.toHaveBeenCalled();
     });
 
-    it('dismiss clears pending and resets both mutations', () => {
+    it('dismiss clears pending and resets every action mutation', () => {
         const onDone = vi.fn();
         const { result } = renderHook(() =>
             useConfirmMeetingAction(onDone, 'inline'),
@@ -147,5 +184,6 @@ describe('useConfirmMeetingAction (inline presentation)', () => {
         expect(result.current.pending).toBeNull();
         expect(cancelReset).toHaveBeenCalled();
         expect(endReset).toHaveBeenCalled();
+        expect(deleteReset).toHaveBeenCalled();
     });
 });

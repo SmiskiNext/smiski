@@ -16,8 +16,9 @@ import {
 } from '../utils/instantMeetingModalContext';
 
 export interface OpenInstantMeetingPayload {
-    issueKey?: string;
-    projectKey?: string;
+    issueId: string;
+    issueKey: string;
+    projectKey: string;
 }
 
 export function useIssuePanelInstantModal(
@@ -28,8 +29,8 @@ export function useIssuePanelInstantModal(
     const open = (payload: OpenInstantMeetingPayload) => {
         const context: InstantMeetingModalContext = {
             kind: INSTANT_MEETING_MODAL_KIND,
-            ...payload,
             ...getBackendContext(),
+            ...payload,
         };
         new ForgeModal({
             context,

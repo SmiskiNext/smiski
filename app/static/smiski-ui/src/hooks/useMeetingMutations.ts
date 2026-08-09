@@ -1,5 +1,5 @@
 /**
- * Meeting write operations (create/schedule/update/cancel/start/end/
+ * Meeting write operations (create/schedule/update/cancel/start/end/delete/
  * settings). Each invalidates the query caches a change could affect, so
  * lists refresh immediately.
  */
@@ -16,6 +16,7 @@ import {
     batchDeleteMeetings,
     cancelMeeting,
     createInstantMeeting,
+    deleteMeeting,
     endMeeting,
     joinMeeting,
     scheduleMeeting,
@@ -138,6 +139,15 @@ export function useEndMeeting() {
     const invalidate = useInvalidateMeetings();
     return useMutation({
         mutationFn: (meetingId: string) => endMeeting(meetingId),
+        onSuccess: invalidate,
+    });
+}
+
+/** Soft-deletes one non-running meeting as its host. */
+export function useDeleteMeeting() {
+    const invalidate = useInvalidateMeetings();
+    return useMutation({
+        mutationFn: (meetingId: string) => deleteMeeting(meetingId),
         onSuccess: invalidate,
     });
 }

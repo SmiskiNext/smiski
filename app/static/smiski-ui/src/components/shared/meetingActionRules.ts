@@ -9,6 +9,7 @@ const ACTION_LABELS: Record<MeetingAction, string> = {
     CANCEL: 'Cancel',
     END: 'End meeting',
     SETTINGS: 'Settings',
+    DELETE: 'Delete',
 };
 
 export function actionLabel(action: MeetingAction): string {

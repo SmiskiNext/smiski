@@ -1,5 +1,5 @@
 /**
- * Gates CANCEL/END behind a confirmation step and reports the outcome —
+ * Gates CANCEL/END/DELETE behind a confirmation step and reports the outcome —
  * mirrors `useHostConflictGuard`'s inline/platform-modal split: the Issue
  * Panel is a narrow iframe with no room for an overlay, so its confirmation
  * pops out to a Forge platform modal (`ConfirmMeetingActionDialog` rendered
@@ -23,7 +23,11 @@ import {
     type ConfirmMeetingActionModalContext,
     type ConfirmMeetingActionModalResult,
 } from '../utils/issuePanelModalContext';
-import { useCancelMeeting, useEndMeeting } from './useMeetingMutations';
+import {
+    useCancelMeeting,
+    useDeleteMeeting,
+    useEndMeeting,
+} from './useMeetingMutations';
 
 export type { ConfirmableMeetingAction } from '../utils/issuePanelModalContext';
 
@@ -33,7 +37,25 @@ export interface ConfirmMeetingActionFeedback {
 }
 
 function actionVerb(action: ConfirmableMeetingAction): string {
-    return action === 'END' ? 'end' : 'cancel';
+    switch (action) {
+        case 'END':
+            return 'end';
+        case 'DELETE':
+            return 'delete';
+        case 'CANCEL':
+            return 'cancel';
+    }
+}
+
+function successMessage(action: ConfirmableMeetingAction): string {
+    switch (action) {
+        case 'END':
+            return 'Meeting ended.';
+        case 'DELETE':
+            return 'Meeting deleted.';
+        case 'CANCEL':
+            return 'Meeting canceled.';
+    }
 }
 
 export function useConfirmMeetingAction(
@@ -46,23 +68,35 @@ export function useConfirmMeetingAction(
     } | null>(null);
     const cancelMeeting = useCancelMeeting();
     const endMeeting = useEndMeeting();
-    const mutation = pending?.action === 'END' ? endMeeting : cancelMeeting;
+    const deleteMeeting = useDeleteMeeting();
+    const mutation =
+        pending?.action === 'END'
+            ? endMeeting
+            : pending?.action === 'DELETE'
+              ? deleteMeeting
+              : cancelMeeting;
+
+    const mutationFor = (action: ConfirmableMeetingAction) => {
+        switch (action) {
+            case 'END':
+                return endMeeting;
+            case 'DELETE':
+                return deleteMeeting;
+            case 'CANCEL':
+                return cancelMeeting;
+        }
+    };
 
     /** Fires the mutation without keeping any dialog open for its result. */
     const runDetached = (
         action: ConfirmableMeetingAction,
         meeting: Meeting,
     ) => {
-        const mutate =
-            action === 'END' ? endMeeting.mutate : cancelMeeting.mutate;
-        mutate(meeting.id, {
+        mutationFor(action).mutate(meeting.id, {
             onSuccess: () =>
                 onDone({
                     appearance: 'success',
-                    message:
-                        action === 'END'
-                            ? 'Meeting ended.'
-                            : 'Meeting canceled.',
+                    message: successMessage(action),
                 }),
             onError: (error) =>
                 onDone({
@@ -78,6 +112,7 @@ export function useConfirmMeetingAction(
         if (presentation === 'inline') {
             cancelMeeting.reset();
             endMeeting.reset();
+            deleteMeeting.reset();
             setPending({ action, meeting });
             return;
         }
@@ -101,16 +136,11 @@ export function useConfirmMeetingAction(
     const confirm = () => {
         if (!pending) return;
         const { action, meeting } = pending;
-        const mutate =
-            action === 'END' ? endMeeting.mutate : cancelMeeting.mutate;
-        mutate(meeting.id, {
+        mutationFor(action).mutate(meeting.id, {
             onSuccess: () => {
                 onDone({
                     appearance: 'success',
-                    message:
-                        action === 'END'
-                            ? 'Meeting ended.'
-                            : 'Meeting canceled.',
+                    message: successMessage(action),
                 });
                 setPending(null);
             },
@@ -121,6 +151,7 @@ export function useConfirmMeetingAction(
         setPending(null);
         cancelMeeting.reset();
         endMeeting.reset();
+        deleteMeeting.reset();
     };
 
     return {

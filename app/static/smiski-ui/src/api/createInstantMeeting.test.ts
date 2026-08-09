@@ -43,6 +43,7 @@ describe('createInstantMeeting (SDK createInstant over Forge Remote)', () => {
         );
 
         const result = await createInstantMeeting({
+            issueId: '10001',
             issueKey: 'SMISKI-101',
             title: 'Incident sync',
             zoneId: 'Asia/Ho_Chi_Minh',
@@ -84,6 +85,7 @@ describe('createInstantMeeting (SDK createInstant over Forge Remote)', () => {
         );
 
         await createInstantMeeting({
+            issueId: '10001',
             issueKey: 'SMISKI-101',
             title: 'Contract-shaped body',
             zoneId: 'Asia/Ho_Chi_Minh',
@@ -120,6 +122,7 @@ describe('createInstantMeeting (SDK createInstant over Forge Remote)', () => {
         );
 
         const result = await createInstantMeeting({
+            issueId: '10001',
             issueKey: 'SMISKI-101',
             title: 'Rejected by backend',
             zoneId: 'Asia/Ho_Chi_Minh',
@@ -140,6 +143,7 @@ describe('createInstantMeeting (SDK createInstant over Forge Remote)', () => {
         invokeRemoteMock.mockRejectedValue(new Error('remote unreachable'));
 
         const result = await createInstantMeeting({
+            issueId: '10001',
             issueKey: 'SMISKI-101',
             title: 'Unreachable backend',
             zoneId: 'Asia/Ho_Chi_Minh',

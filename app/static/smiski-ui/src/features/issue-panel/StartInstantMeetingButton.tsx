@@ -13,6 +13,7 @@ import {
 } from './startInstantGate';
 
 export interface StartInstantMeetingButtonProps {
+    issueId: string;
     issueKey: string;
     projectKey?: string;
     disabled?: boolean;
@@ -23,12 +24,14 @@ export interface StartInstantMeetingButtonProps {
      * active-meeting warning) — the meeting is never created without the form.
      */
     onOpenInstantModal: (payload: {
+        issueId: string;
         issueKey: string;
         projectKey: string;
     }) => void;
 }
 
 export function StartInstantMeetingButton({
+    issueId,
     issueKey,
     projectKey,
     disabled,
@@ -38,7 +41,9 @@ export function StartInstantMeetingButton({
     const { conflictingMeeting } = useHostConflict(issueKey);
 
     const openForm = () =>
-        onOpenInstantModal(instantModalPayloadFor(issueKey, projectKey));
+        onOpenInstantModal(
+            instantModalPayloadFor(issueId, issueKey, projectKey),
+        );
 
     const handleClick = () => {
         if (

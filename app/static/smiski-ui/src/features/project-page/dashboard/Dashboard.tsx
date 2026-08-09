@@ -81,6 +81,9 @@ export function Dashboard({ projectKey, onOpenRoom }: DashboardProps) {
             case 'END':
                 confirmAction.request('END', meeting);
                 break;
+            case 'DELETE':
+                confirmAction.request('DELETE', meeting);
+                break;
             case 'VIEW_HISTORY':
                 setSelectedMeeting({ id: meeting.id, focus: 'history' });
                 break;

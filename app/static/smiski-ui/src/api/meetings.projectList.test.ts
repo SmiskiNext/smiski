@@ -55,7 +55,7 @@ describe('listProjectMeetings', () => {
         const page = await listProjectMeetings({
             projectKey: 'SMISKI',
             createdByAccountId: 'acc-host-1',
-            status: 'SCHEDULED',
+            statuses: ['SCHEDULED', 'RUNNING'],
             search: 'Standup',
             sort: 'START_TIME',
             pageSize: 20,
@@ -69,7 +69,7 @@ describe('listProjectMeetings', () => {
             body: {
                 projectKey: 'SMISKI',
                 creatorId: 'acc-host-1',
-                statuses: ['SCHEDULED'],
+                statuses: ['SCHEDULED', 'RUNNING'],
                 search: 'Standup',
                 sort: 'START_TIME',
                 pageSize: 20,

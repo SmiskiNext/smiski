@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { LoadingState, MeetingStatusTag } from '../../../components/shared';
 import { Avatar, Button, Icon } from '../../../components/ui';
+import { useCurrentUser } from '../../../context/CurrentUserContext';
 import { useMeeting } from '../../../hooks/useMeeting';
 import { useMeetingInvitees } from '../../../hooks/useMeetingInvitees';
 import { useMeetingParticipants } from '../../../hooks/useMeetingParticipants';
@@ -23,6 +24,7 @@ export function MeetingDetailPanel({
     focus = 'details',
     onClose,
 }: MeetingDetailPanelProps) {
+    const currentUser = useCurrentUser();
     const { meeting, loading: meetingLoading } = useMeeting(meetingId);
     const { invitees } = useMeetingInvitees(meetingId);
     const { participants, loading: participantsLoading } =
@@ -126,7 +128,11 @@ export function MeetingDetailPanel({
                                     Host
                                 </dt>
                                 <dd className='font-medium text-[var(--text)]'>
-                                    {meeting.hostName}
+                                    {meeting.hostId === currentUser.accountId
+                                        ? currentUser.displayName
+                                        : meeting.hostName !== 'Unknown host'
+                                          ? meeting.hostName
+                                          : meeting.hostId || 'Unknown host'}
                                 </dd>
                             </div>
                         </dl>

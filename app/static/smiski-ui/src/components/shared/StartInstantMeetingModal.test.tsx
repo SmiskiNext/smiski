@@ -63,6 +63,7 @@ function renderModal() {
         <StartInstantMeetingModal
             isOpen
             projectKey='SMISKI'
+            issueId='10001'
             issueKey='SMISKI-101'
             onClose={onClose}
             onStarted={onStarted}
@@ -121,6 +122,12 @@ describe('StartInstantMeetingModal result handling', () => {
         await waitFor(() => {
             expect(onStarted).toHaveBeenCalledWith('meeting-1');
         });
+        expect(mutateAsync).toHaveBeenCalledWith(
+            expect.objectContaining({
+                issueId: '10001',
+                issueKey: 'SMISKI-101',
+            }),
+        );
         expect(onClose).toHaveBeenCalledTimes(1);
     });
 });
