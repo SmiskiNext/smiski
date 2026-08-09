@@ -74,7 +74,7 @@ interface ScheduleMeetingFormValues
     title: string;
     startDate: string;
     startTime: string;
-    description?: string;
+    description: string;
 }
 
 /**
@@ -379,6 +379,7 @@ export function ScheduleMeetingModal({
             <Form.Item
                 label='Description'
                 name='description'
+                required
                 rules={[
                     {
                         validator: (_rule, value: string | undefined) => {

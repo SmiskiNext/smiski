@@ -48,7 +48,10 @@ import {
 } from '../../utils/datetime';
 import { Button, Modal } from '../ui';
 import { ADMISSION_POLICY_OPTIONS } from './AdvancedMeetingSettingsFields';
-import { meetingTimeRangeError } from './meetingFormValidation';
+import {
+    meetingDescriptionError,
+    meetingTimeRangeError,
+} from './meetingFormValidation';
 import { WorkspaceUserPicker } from './WorkspaceUserPicker';
 
 const DEFAULT_MEETING_DURATION_MS = 60 * 60 * 1000;
@@ -516,7 +519,25 @@ export function EditMeetingModal({
                             </Form.Item>
                         </>
                     )}
-                    <Form.Item label='Description' name='description'>
+                    <Form.Item
+                        label='Description'
+                        name='description'
+                        required
+                        rules={[
+                            {
+                                validator: (
+                                    _rule,
+                                    value: string | undefined,
+                                ) => {
+                                    const error =
+                                        meetingDescriptionError(value);
+                                    return error
+                                        ? Promise.reject(new Error(error))
+                                        : Promise.resolve();
+                                },
+                            },
+                        ]}
+                    >
                         <Input.TextArea
                             rows={3}
                             placeholder='Add context or an agenda…'

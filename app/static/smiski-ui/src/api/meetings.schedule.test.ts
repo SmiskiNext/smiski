@@ -13,6 +13,7 @@ describe('buildScheduleMeetingPayload (MeetScheduleMeetingRequest body)', () => 
             issueId: '10001',
             issueKey: 'SMISKI-101',
             title: 'Sprint planning',
+            description: 'Plan the next sprint',
             startTime: '2026-08-01T02:00:00.000Z',
             endTime: '2026-08-01T03:00:00.000Z',
             zoneId: 'Asia/Ho_Chi_Minh',
@@ -49,6 +50,7 @@ describe('buildScheduleMeetingPayload (MeetScheduleMeetingRequest body)', () => 
             issueId: '10001',
             issueKey: 'SMISKI-101',
             title: 'Sprint planning',
+            description: 'Plan the next sprint',
             startTime: '2026-08-01T02:00:00.000Z',
             endTime: '2026-08-01T03:00:00.000Z',
             zoneId: 'Asia/Ho_Chi_Minh',
@@ -80,6 +82,7 @@ describe('buildScheduleMeetingPayload (MeetScheduleMeetingRequest body)', () => 
             issueId: '10009',
             issueKey: 'SMISKI-9',
             title: 'Solo review',
+            description: 'Review the open work',
             startTime: '2026-08-01T02:00:00.000Z',
             endTime: '2026-08-01T03:00:00.000Z',
             invitees: [],
@@ -87,16 +90,17 @@ describe('buildScheduleMeetingPayload (MeetScheduleMeetingRequest body)', () => 
         expect(payload.invitees).toEqual([]);
     });
 
-    it('defaults the description to the title when none is given', () => {
+    it('trims the required description without replacing it with the title', () => {
         const payload = buildScheduleMeetingPayload({
             issueId: '10009',
             issueKey: 'SMISKI-9',
             title: 'Solo review',
+            description: '  Focused review  ',
             startTime: '2026-08-01T02:00:00.000Z',
             endTime: '2026-08-01T03:00:00.000Z',
             invitees: [],
         });
-        expect(payload.description).toBe('Solo review');
+        expect(payload.description).toBe('Focused review');
     });
 
     it('defaults settings when the caller supplies none', () => {
@@ -104,6 +108,7 @@ describe('buildScheduleMeetingPayload (MeetScheduleMeetingRequest body)', () => 
             issueId: '10009',
             issueKey: 'SMISKI-9',
             title: 'Solo review',
+            description: 'Review the open work',
             startTime: '2026-08-01T02:00:00.000Z',
             endTime: '2026-08-01T03:00:00.000Z',
             invitees: [],
@@ -123,6 +128,7 @@ describe('buildScheduleMeetingPayload (MeetScheduleMeetingRequest body)', () => 
             issueId: '10009',
             issueKey: 'SMISKI-9',
             title: 'Locked-down review',
+            description: 'Review sensitive work',
             startTime: '2026-08-01T02:00:00.000Z',
             endTime: '2026-08-01T03:00:00.000Z',
             invitees: [],

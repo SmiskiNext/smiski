@@ -97,7 +97,7 @@ export interface CreateInstantMeetingInput {
     issueId: string;
     projectKey?: string;
     title: string;
-    description?: string;
+    description: string;
     zoneId?: string;
     /** Full invitees carrying accountId, displayName, and email. */
     invitees?: MeetingInviteeInput[];
@@ -118,7 +118,7 @@ export interface ScheduleMeetingInput {
     /** ISO-8601 UTC instant for the scheduled end. */
     endTime: string;
     zoneId?: string;
-    description?: string;
+    description: string;
     /** Invitees carrying full identity (accountId, displayName, email). */
     invitees: MeetingInviteeInput[];
     /** Organizer identity (from CurrentUserContext); resolves organizer fields. */
@@ -276,7 +276,7 @@ export function buildInstantMeetingPayload(
     const projectKey = input.projectKey ?? input.issueKey.split('-')[0];
     return {
         title: input.title,
-        description: input.description?.trim() || input.title,
+        description: input.description.trim(),
         issueLink: {
             issueId: input.issueId,
             issueKey: input.issueKey,
@@ -314,7 +314,7 @@ export function buildScheduleMeetingPayload(
     const projectKey = input.projectKey ?? input.issueKey.split('-')[0];
     return {
         title: input.title,
-        description: input.description?.trim() || input.title,
+        description: input.description.trim(),
         issueLink: {
             issueId: input.issueId,
             issueKey: input.issueKey,

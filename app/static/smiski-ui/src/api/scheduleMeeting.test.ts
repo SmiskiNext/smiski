@@ -20,6 +20,7 @@ const baseInput = {
     issueId: '10001',
     issueKey: 'SMISKI-101',
     title: 'Sprint planning',
+    description: 'Plan the next sprint',
     startTime: '2026-08-01T02:00:00.000Z',
     endTime: '2026-08-01T03:00:00.000Z',
     zoneId: 'Asia/Ho_Chi_Minh',

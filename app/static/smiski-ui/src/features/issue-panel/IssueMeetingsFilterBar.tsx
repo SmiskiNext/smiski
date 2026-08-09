@@ -4,6 +4,7 @@
  * SearchAndFilterBar (no issue/creator filters — already scoped to one
  * issue), but shares the same status option set for consistency.
  */
+import { useState } from 'react';
 import { MEETING_STATUS_FILTER_OPTIONS } from '../../components/shared';
 import { Icon, SelectDropdown } from '../../components/ui';
 import type { IssueMeetingsFilterValue } from './issueMeetingsFilter';
@@ -17,9 +18,13 @@ export function IssueMeetingsFilterBar({
     value,
     onChange,
 }: IssueMeetingsFilterBarProps) {
+    // The fixed, portaled menu does not contribute to document scrollHeight.
+    // Reserve its footprint so Forge's iframe auto-resizer leaves it visible.
+    const [isStatusMenuOpen, setStatusMenuOpen] = useState(false);
+
     return (
         <search
-            className='flex flex-col gap-2'
+            className={`flex flex-col gap-2 ${isStatusMenuOpen ? 'pb-52' : ''}`}
             aria-label='Search and filter meetings'
         >
             <label className='relative block'>
@@ -46,6 +51,7 @@ export function IssueMeetingsFilterBar({
                 ariaLabel='Filter by status'
                 value={value.status ?? ''}
                 options={MEETING_STATUS_FILTER_OPTIONS}
+                onOpenChange={setStatusMenuOpen}
                 onChange={(status) =>
                     onChange({
                         ...value,

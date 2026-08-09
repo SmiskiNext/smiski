@@ -163,6 +163,7 @@ describe('EditMeetingModal lifecycle fields', () => {
         expect(screen.getByTestId('workspace-user-picker')).toBeDefined();
         for (const label of [
             'Title',
+            'Description',
             'Linked issue',
             'Start date',
             'Start time',
@@ -223,6 +224,20 @@ describe('EditMeetingModal lifecycle fields', () => {
         expect(update?.input).not.toHaveProperty('endTime');
         expect(onSaved).toHaveBeenCalledTimes(1);
         expect(onClose).not.toHaveBeenCalled();
+    });
+
+    it('blocks saving when the description is blank', async () => {
+        const user = userEvent.setup();
+        renderModal();
+
+        const description = await screen.findByLabelText('Description');
+        await user.clear(description);
+        await user.click(screen.getByRole('button', { name: 'Save changes' }));
+
+        expect(
+            await screen.findByText('Enter a meeting description.'),
+        ).toBeDefined();
+        expect(mocks.updateMeeting).not.toHaveBeenCalled();
     });
 
     it.each(['COMPLETED', 'CANCELED'] as const)(

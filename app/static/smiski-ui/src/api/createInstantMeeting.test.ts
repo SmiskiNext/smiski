@@ -46,6 +46,7 @@ describe('createInstantMeeting (SDK createInstant over Forge Remote)', () => {
             issueId: '10001',
             issueKey: 'SMISKI-101',
             title: 'Incident sync',
+            description: 'Coordinate the incident response',
             zoneId: 'Asia/Ho_Chi_Minh',
             invitees: [
                 {
@@ -88,6 +89,7 @@ describe('createInstantMeeting (SDK createInstant over Forge Remote)', () => {
             issueId: '10001',
             issueKey: 'SMISKI-101',
             title: 'Contract-shaped body',
+            description: 'Verify the remote request contract',
             zoneId: 'Asia/Ho_Chi_Minh',
             host: HOST,
         });
@@ -125,6 +127,7 @@ describe('createInstantMeeting (SDK createInstant over Forge Remote)', () => {
             issueId: '10001',
             issueKey: 'SMISKI-101',
             title: 'Rejected by backend',
+            description: 'Exercise backend validation handling',
             zoneId: 'Asia/Ho_Chi_Minh',
             host: HOST,
         });
@@ -146,6 +149,7 @@ describe('createInstantMeeting (SDK createInstant over Forge Remote)', () => {
             issueId: '10001',
             issueKey: 'SMISKI-101',
             title: 'Unreachable backend',
+            description: 'Exercise transport failure handling',
             zoneId: 'Asia/Ho_Chi_Minh',
             host: HOST,
         });

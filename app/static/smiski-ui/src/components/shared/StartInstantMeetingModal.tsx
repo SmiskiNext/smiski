@@ -25,6 +25,7 @@ import { AdvancedMeetingSettingsFields } from './AdvancedMeetingSettingsFields';
 import { IssuePicker } from './IssuePicker';
 import {
     MEETING_TITLE_MAX_LENGTH,
+    meetingDescriptionError,
     meetingEmailError,
     meetingTitleError,
 } from './meetingFormValidation';
@@ -56,7 +57,7 @@ export interface StartInstantMeetingModalProps {
 interface InstantMeetingFormValues extends CreateMeetingSettingsInput {
     issueKey?: string;
     title: string;
-    description?: string;
+    description: string;
 }
 
 /**
@@ -238,7 +239,21 @@ export function StartInstantMeetingModal({
                     placeholder='e.g. Investigate deployment failure'
                 />
             </Form.Item>
-            <Form.Item label='Description' name='description'>
+            <Form.Item
+                label='Description'
+                name='description'
+                required
+                rules={[
+                    {
+                        validator: (_rule, value: string | undefined) => {
+                            const error = meetingDescriptionError(value);
+                            return error
+                                ? Promise.reject(new Error(error))
+                                : Promise.resolve();
+                        },
+                    },
+                ]}
+            >
                 <Input.TextArea
                     rows={4}
                     placeholder='Add context or an agenda…'

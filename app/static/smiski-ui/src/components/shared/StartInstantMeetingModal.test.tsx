@@ -87,12 +87,7 @@ describe('StartInstantMeetingModal result handling', () => {
         renderModal();
 
         expectRequiredLabel('Title');
-        expect(
-            screen
-                .getByText('Description')
-                .closest('label')
-                ?.classList.contains('ant-form-item-required'),
-        ).toBe(false);
+        expectRequiredLabel('Description');
 
         await user.click(screen.getByText('Advanced settings'));
         expectRequiredLabel('Who can join');
@@ -105,6 +100,22 @@ describe('StartInstantMeetingModal result handling', () => {
         ).toBe(false);
     });
 
+    it('blocks submission when the description is blank', async () => {
+        const user = userEvent.setup();
+        renderModal();
+
+        await user.type(
+            screen.getByPlaceholderText('e.g. Investigate deployment failure'),
+            'Incident sync',
+        );
+        await user.click(screen.getByRole('button', { name: 'Start meeting' }));
+
+        expect(
+            await screen.findByText('Enter a meeting description.'),
+        ).toBeDefined();
+        expect(mutateAsync).not.toHaveBeenCalled();
+    });
+
     it('keeps the modal open and shows the message when the result carries an error', async () => {
         mutateAsync.mockResolvedValue({
             error: { message: 'title must not be blank' },
@@ -115,6 +126,10 @@ describe('StartInstantMeetingModal result handling', () => {
         await user.type(
             screen.getByPlaceholderText('e.g. Investigate deployment failure'),
             'Incident sync',
+        );
+        await user.type(
+            screen.getByPlaceholderText('Add context or an agenda…'),
+            'Coordinate the incident response',
         );
         await user.click(screen.getByRole('button', { name: 'Start meeting' }));
 
@@ -148,6 +163,10 @@ describe('StartInstantMeetingModal result handling', () => {
         await user.type(
             screen.getByPlaceholderText('e.g. Investigate deployment failure'),
             'Incident sync',
+        );
+        await user.type(
+            screen.getByPlaceholderText('Add context or an agenda…'),
+            'Coordinate the incident response',
         );
         await user.click(screen.getByRole('button', { name: 'Start meeting' }));
 
