@@ -1,5 +1,5 @@
 import { $ } from 'zx';
-import { testComposeFile } from './paths.ts';
+import { dockerComposeFile, testComposeFile } from './paths.ts';
 
 $.verbose = false;
 
@@ -17,7 +17,37 @@ export const PINNED_IMAGES = {
     netshoot: 'nicolaka/netshoot:v0.13',
 } as const;
 
-const COMPOSE_PROJECT_NAME = 'smiski-test';
+/**
+ * A compose stack the helpers below can address.
+ *
+ * The project name cannot be derived from the compose file path: compose takes
+ * it from a top-level `name:` when one is present and from the containing
+ * directory otherwise. Both are recorded here so container names and the stack
+ * network can be resolved without re-deriving that rule at each call site.
+ */
+export interface ComposeStack {
+    composeFile: string;
+    projectName: string;
+}
+
+/** The load-test stack, whose overlay declares `name: smiski-test`. */
+export const TEST_STACK: ComposeStack = {
+    composeFile: testComposeFile,
+    projectName: 'smiski-test',
+};
+
+/**
+ * The local development stack.
+ *
+ * Its compose file declares no `name:`, so compose derives the project from the
+ * containing directory — `services/docker` yields `docker`. Keeping the two
+ * stacks under different project names is what stops one stack's containers,
+ * volumes and network from colliding with the other's.
+ */
+export const DEV_STACK: ComposeStack = {
+    composeFile: dockerComposeFile,
+    projectName: 'docker',
+};
 
 /** Result of a command run without throwing on a non-zero exit. */
 export interface CommandOutcome {
@@ -26,23 +56,46 @@ export interface CommandOutcome {
     stderr: string;
 }
 
-function composeBaseArgs(): string[] {
-    return ['compose', '-f', testComposeFile];
+function composeBaseArgs(stack: ComposeStack): string[] {
+    return ['compose', '-f', stack.composeFile];
 }
 
 /**
- * Resolves the container name of a test-stack service.
+ * Runs a compose subcommand with its output streamed to the terminal.
+ *
+ * Streaming rather than capturing because the operations this fronts — image
+ * pulls, source builds, container creation — take minutes and report progress
+ * as they go. Captured output arrives only at the end, which is
+ * indistinguishable from a hang for as long as the command runs.
+ */
+export async function runCompose(
+    stack: ComposeStack,
+    args: string[],
+): Promise<number> {
+    const result = await $({
+        nothrow: true,
+        stdio: 'inherit',
+        verbose: true,
+    })`docker ${composeBaseArgs(stack)} ${args}`;
+
+    return result.exitCode ?? 1;
+}
+
+/**
+ * Resolves the container name of a stack service.
  *
  * Compose derives it from the project name, so it cannot be hardcoded: the
- * overlay declares `name: smiski-test`, which is what keeps the test stack's
- * containers, volumes and networks distinct from the development stack's.
+ * test overlay declares `name: smiski-test`, which is what keeps the test
+ * stack's containers, volumes and networks distinct from the development
+ * stack's.
  */
 export async function resolveContainerName(
     service: string,
+    stack: ComposeStack = TEST_STACK,
 ): Promise<string | null> {
     const result = await $({
         nothrow: true,
-    })`docker ${composeBaseArgs()} ps --format {{.Name}} ${service}`;
+    })`docker ${composeBaseArgs(stack)} ps --format {{.Name}} ${service}`;
 
     if (result.exitCode !== 0) {
         return null;
@@ -52,9 +105,12 @@ export async function resolveContainerName(
     return name ? name : null;
 }
 
-/** Reports whether a test-stack service has a running container. */
-export async function isServiceRunning(service: string): Promise<boolean> {
-    const name = await resolveContainerName(service);
+/** Reports whether a stack service has a running container. */
+export async function isServiceRunning(
+    service: string,
+    stack: ComposeStack = TEST_STACK,
+): Promise<boolean> {
+    const name = await resolveContainerName(service, stack);
     if (name === null) {
         return false;
     }
@@ -66,14 +122,15 @@ export async function isServiceRunning(service: string): Promise<boolean> {
     return state.exitCode === 0 && state.stdout.trim() === 'true';
 }
 
-/** Runs a command inside a test-stack container without throwing. */
+/** Runs a command inside a stack container without throwing. */
 export async function execInService(
     service: string,
     command: string[],
+    stack: ComposeStack = TEST_STACK,
 ): Promise<CommandOutcome> {
     const result = await $({
         nothrow: true,
-    })`docker ${composeBaseArgs()} exec -T ${service} ${command}`;
+    })`docker ${composeBaseArgs(stack)} exec -T ${service} ${command}`;
 
     return {
         exitCode: result.exitCode ?? 1,
@@ -110,7 +167,7 @@ export async function runOnStackNetwork(
         containerName?: string;
     } = {},
 ): Promise<CommandOutcome> {
-    const networkFlag = `--network=${COMPOSE_PROJECT_NAME}_default`;
+    const networkFlag = `--network=${TEST_STACK.projectName}_default`;
 
     const mountArgs = (options.mounts ?? []).flatMap((mount) => ['-v', mount]);
     const environmentArgs = Object.entries(options.environment ?? {}).flatMap(
