@@ -48,8 +48,21 @@ export const HARNESS_ISSUE_ID = '10001';
  */
 export const HARNESS_SYSTEM_TOKEN = 'loadtest-system-token';
 
-/** Default gateway origin, matching the inherited Envoy host port. */
-export const DEFAULT_GATEWAY_ORIGIN = 'http://localhost:30000';
+/**
+ * Default gateway origin for the containerised k6 load generator.
+ *
+ * The TC-04 generator runs inside a container joined to the stack network, so
+ * `localhost` there is the container itself, not the host — the published host
+ * port `localhost:30000` is unreachable from inside and every request fails as
+ * a transport error before it reaches Envoy. The in-stack service name and
+ * Envoy's internal listener port are used instead, resolved on the same network
+ * the same way `mock-jira` and `livekit-server` are.
+ *
+ * A tester driving the harness from a browser ON the host still uses
+ * `http://localhost:30000`; pass it explicitly with `--gateway-origin` for a
+ * host-side run.
+ */
+export const DEFAULT_GATEWAY_ORIGIN = 'http://envoy:8080';
 
 /** Default browser-facing LiveKit signalling URL for a host browser. */
 export const DEFAULT_LIVEKIT_WS_URL = 'ws://localhost:7880';

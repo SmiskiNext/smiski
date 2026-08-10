@@ -51,7 +51,9 @@ export const tokensCommand = defineCommand({
     args: {
         'gateway-origin': {
             type: 'string',
-            description: 'Origin of the Envoy ingress',
+            description:
+                'Origin of the Envoy ingress; defaults to the in-stack address '
+                + 'the containerised generator reaches, not the host port',
             default: DEFAULT_GATEWAY_ORIGIN,
         },
         'request-count': {
