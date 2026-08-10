@@ -2,7 +2,7 @@
 set -e
 
 if [ -n "$CI" ]; then
-    forge settings set usage-analytics false > /dev/null 2>&1 || true
+    pnpm exec forge settings set usage-analytics false > /dev/null 2>&1 || true
 fi
 
-exec forge "$@"
+exec pnpm exec forge "$@"
