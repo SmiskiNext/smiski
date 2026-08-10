@@ -97,7 +97,9 @@ jobs:
               working-directory: app
 
             - name: Lint check
-              run: pnpm lint
+              run: |
+                  pnpm exec biome check
+                  ../.github/scripts/forge-wrapper.sh lint
               working-directory: app
 
     biome-scripts:

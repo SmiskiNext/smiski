@@ -113,9 +113,7 @@ jobs:
             # pre-deployment check that rejects the `${...}` placeholders in
             # permissions.external.fetch. See app/AGENTS.md.
             - name: Forge lint
-              run: |
-                  pnpm exec forge settings set usage-analytics false
-                  pnpm exec forge lint
+              run: ../.github/scripts/forge-wrapper.sh lint
               working-directory: app
               env:
                   FORGE_EMAIL: ${{ secrets.FORGE_EMAIL }}
