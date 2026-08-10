@@ -14,7 +14,7 @@ jwks.json
 # Measurement artifacts written by `smiski test loadtest` and `smiski test
 # collect`. Every file under it is a result rather than source, and results are
 # reproduced by re-running the harness, not by reading them out of git.
-results/
+#results/
 
 # Bytecode cache CPython writes beside mock-jira/server.py.
 #

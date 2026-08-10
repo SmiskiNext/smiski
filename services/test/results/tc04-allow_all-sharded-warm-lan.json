@@ -1,0 +1,20 @@
+{
+    "variant": "sharded",
+    "cacheState": "warm",
+    "admissionPolicy": "ALLOW_ALL",
+    "requestCount": 500,
+    "dispatchedCount": 501,
+    "meetingCount": 9,
+    "approved": 501,
+    "pending": 0,
+    "tokensIssued": 501,
+    "failures": {},
+    "failureTotal": 0,
+    "droppedIterations": 0,
+    "latencyMedianMs": 3.662589,
+    "latencyP95Ms": 4.6218,
+    "latencyP99Ms": 5.863751,
+    "latencyMaxMs": 8.827828,
+    "successRate": 100,
+    "networkProfile": "lan"
+}

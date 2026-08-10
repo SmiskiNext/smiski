@@ -1,0 +1,23 @@
+# harness,browser QoS harness (services/test/harness)
+# exported at,2026-08-10T07:15:41.971Z
+# server url,ws://10.77.0.10:7880
+# relay requested,true
+# candidate types observed,relay
+# relay proven,true
+# nat traversal proven,false
+# call setup ms,118
+# call setup within 3000 ms budget,true
+# sample interval ms,1000
+# sample count,8
+# session duration seconds,7.2
+# screen share,none recorded
+# note,latency is the selected candidate pair round-trip time; jitter and packet loss are inbound-rtp
+timestamp,elapsed_seconds,round_trip_ms,jitter_ms,packet_loss_percent,packets_lost_cumulative,frames_dropped,downlink_kbps,uplink_kbps,local_candidate_type,remote_candidate_type
+2026-08-10T07:15:34.287Z,0.2,0.00,,,0,0,,,relay,host
+2026-08-10T07:15:35.286Z,1.2,0.00,,,0,0,0.0,965.1,relay,host
+2026-08-10T07:15:36.286Z,2.2,0.00,,,0,0,0.0,1272.8,relay,host
+2026-08-10T07:15:37.286Z,3.2,0.00,,,0,0,0.0,2365.0,relay,host
+2026-08-10T07:15:38.286Z,4.2,0.00,,,0,0,0.0,3434.5,relay,host
+2026-08-10T07:15:39.286Z,5.2,0.00,,,0,0,0.0,1271.0,relay,host
+2026-08-10T07:15:40.286Z,6.2,0.00,,,0,0,0.0,1291.3,relay,host
+2026-08-10T07:15:41.286Z,7.2,0.00,,,0,0,0.0,1267.9,relay,host

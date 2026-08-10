@@ -1,0 +1,20 @@
+{
+    "variant": "single",
+    "cacheState": "warm",
+    "admissionPolicy": "ALLOW_ALL",
+    "requestCount": 500,
+    "dispatchedCount": 501,
+    "meetingCount": 1,
+    "approved": 501,
+    "pending": 0,
+    "tokensIssued": 501,
+    "failures": {},
+    "failureTotal": 0,
+    "droppedIterations": 0,
+    "latencyMedianMs": 5.934945,
+    "latencyP95Ms": 13.784436,
+    "latencyP99Ms": 17.165865,
+    "latencyMaxMs": 17.989852,
+    "successRate": 100,
+    "networkProfile": "lan"
+}
