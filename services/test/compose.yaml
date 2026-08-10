@@ -407,8 +407,24 @@ services:
     # the media subnet sends only media traffic through the NAT while host access
     # to the noVNC port keeps working. NET_ADMIN is required to add the route.
     #
-    # CHROME_CLI opens the harness page by IP (10.77.0.11) because this browser
-    # cannot resolve the `harness` service name from the client network.
+    # CHROME_CLI carries both the start URL and the launch flags. Each flag is
+    # load bearing:
+    #   - --unsafely-treat-insecure-origin-as-secure=http://10.77.0.11 grants a
+    #     SECURE CONTEXT to the one origin this browser opens. The harness reaches
+    #     the page over plain HTTP at a LAN address, and browsers withhold
+    #     navigator.mediaDevices outside a secure context — so without this flag
+    #     the client can subscribe but never publish, and every two-party call
+    #     from behind the NAT is one-directional with a zero uplink. Pairing it
+    #     with --user-data-dir is mandatory: the flag is honoured only with a
+    #     writable profile directory.
+    #   - --use-fake-device-for-media-stream feeds Chromium a synthetic camera
+    #     and microphone. The container has no capture hardware, so a real
+    #     getUserMedia would reject; the fake device produces the steady video and
+    #     audio the QoS sampler needs to see real bytes, jitter and loss.
+    #   - --use-fake-ui-for-media-stream auto-accepts the permission prompt, which
+    #     no operator can click on a headless-driven capture.
+    # The page is opened by IP (10.77.0.11) because this browser cannot resolve
+    # the `harness` service name from the client network.
     #
     # Downloads are mapped into results/ so an exported CSV lands beside every
     # other artifact. The noVNC port is published on 3010, not 3000: the
@@ -427,7 +443,11 @@ services:
             PUID: '1000'
             PGID: '1000'
             TZ: ${TZ:-UTC}
-            CHROME_CLI: http://10.77.0.11/
+            CHROME_CLI: >-
+                --user-data-dir=/config/chromium
+                --unsafely-treat-insecure-origin-as-secure=http://10.77.0.11
+                --use-fake-device-for-media-stream
+                --use-fake-ui-for-media-stream http://10.77.0.11/
         ports:
             - '${BROWSER_VNC_PORT:-3010}:3000'
         volumes:
@@ -436,6 +456,55 @@ services:
         networks:
             clients:
                 ipv4_address: 10.88.0.10
+        depends_on:
+            nat-gw:
+                condition: service_started
+            harness:
+                condition: service_started
+            livekit-server:
+                condition: service_healthy
+
+    # The SECOND NAT client, so TC-02 can measure a two-party call in which BOTH
+    # participants sit behind the NAT rather than one behind it and one on the
+    # host. It is identical to `browser` but for its client-net address and its
+    # own noVNC host port, and it shares the SAME nat-gw — modelling two users
+    # behind one NAT, which is what a home or office network looks like.
+    #
+    # WHY A WHOLE SECOND CONTAINER, not a second tab. Each browser forms its own
+    # peer connection, and TC-02 needs each side to both publish and subscribe so
+    # the other's downlink has real inbound media to sample. Two tabs in one
+    # browser would share a media stack and blur which candidate and which stats
+    # belong to which participant.
+    #
+    # It reuses custom-init.sh unchanged: the script routes 10.77.0.0/24 via
+    # nat-gw for whichever browser runs it, so this one is source-NAT'd and forms
+    # its own srflx candidate exactly as `browser` does. Both write into the same
+    # results/ directory; the export filenames carry a timestamp, so they do not
+    # collide.
+    browser-b:
+        image: ${BROWSER_IMAGE:-lscr.io/linuxserver/chromium:latest}
+        security_opt:
+            - seccomp:unconfined
+        shm_size: '1gb'
+        cap_add:
+            - NET_ADMIN
+        environment:
+            PUID: '1000'
+            PGID: '1000'
+            TZ: ${TZ:-UTC}
+            CHROME_CLI: >-
+                --user-data-dir=/config/chromium
+                --unsafely-treat-insecure-origin-as-secure=http://10.77.0.11
+                --use-fake-device-for-media-stream
+                --use-fake-ui-for-media-stream http://10.77.0.11/
+        ports:
+            - '${BROWSER_B_VNC_PORT:-3011}:3000'
+        volumes:
+            - ./browser/custom-init.sh:/custom-cont-init.d/10-media-route.sh:ro
+            - ./results:/config/Downloads
+        networks:
+            clients:
+                ipv4_address: 10.88.0.11
         depends_on:
             nat-gw:
                 condition: service_started

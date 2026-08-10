@@ -1,461 +1,186 @@
 # Load-test harness stack
 
-Measurement harness for the WebRTC meeting stack: TC-01 through TC-05, with the
-acceptance thresholds the assignment states. It is a thin **overlay** on
-`services/docker/compose.yaml` plus a TURN server, a mock Jira, a browser QoS
-page and the `smiski test` CLI.
+Measurement harness for TC-01–TC-05 (thresholds: see `problem.md`). Thin
+**overlay** on `services/docker/compose.yaml` (`include:`, `name: smiski-test`).
+`services/docker/` is read-only for this work. No copied service definitions;
+edit `services/test/compose.yaml` only.
 
 > [!WARNING]
 >
-> **Local development only. Do not expose this stack to a network.**
->
-> It inherits and then widens the development stack's warning. Two additions are
-> deliberately insecure: Envoy accepts **Forge Invocation Tokens signed by a key
-> on this machine**, so anyone who can reach port 30000 can mint any identity;
-> and `mock-jira` **grants every permission it is asked for**. The generated
-> private key under `keys/` must never be committed.
+> Local dev only, never expose to a network. Envoy trusts a **locally signed**
+> key (`keys/`, gitignored, never commit) — anyone reaching port 30000 can mint
+> any identity. `mock-jira` grants every permission requested.
 
-## What differs from the development stack
+## File map
 
-`compose.yaml` here contains no copied service definitions. It declares
-`name: smiski-test` and `include: ../docker/compose.yaml`, so the test stack
-tracks the development stack automatically instead of drifting from a duplicate.
-`services/docker/` is read-only for this work.
+| Path                              | Role                                             |
+| --------------------------------- | ------------------------------------------------ |
+| `compose.yaml`                    | overlay services + `nat-gw`/`browser*`/networks  |
+| `.env.example`                    | copy to `.env`; required keys marked             |
+| `envoy/envoy.yaml`                | `local_jwks` (not Atlassian `remote_jwks`)       |
+| `mock-jira/server.py`             | grants every permission asked, echoes ARI        |
+| `harness/{harness.js,index.html}` | browser QoS/NAT page (TC-01/02)                  |
+| `browser/custom-init.sh`          | routes `10.77.0.0/24` via `nat-gw` in `browser*` |
+| `observability/prometheus.yml`    | scrape config (literal ports, no env expansion)  |
+| `keys/`                           | gitignored; JWKS + private key from `keygen`     |
+| `results/`                        | gitignored; CSV output, mounted into browsers    |
 
-| Addition                 | Why it exists                                                                          |
-| ------------------------ | -------------------------------------------------------------------------------------- |
-| `coturn`                 | STUN + TURN for TC-01, independently measurable                                        |
-| `nat-gw`                 | Real NAT between the client and the media server — see TC-01                           |
-| `browser`                | Containerised Chromium behind the NAT, driven over noVNC                               |
-| `mock-jira`              | Removes the gateway's 2 s Jira timeout from TC-04                                      |
-| `harness`                | Browser QoS page for TC-01/TC-02, outside the Forge app                                |
-| `livekit-redis-exporter` | Makes the **second** cache instance a separate target                                  |
-| `envoy/envoy.yaml`       | `local_jwks` instead of Atlassian's `remote_jwks`                                      |
-| `observability/*`        | Scrape jobs for LiveKit, Coturn, `livekit-redis`                                       |
-| two pinned networks      | Places `nat-gw` between client and media — see [Two legs of TC-01](#two-legs-of-tc-01) |
+CLI: `scripts/src/commands/test/*` (`keygen`, `token`, `seed`, `impair`,
+`loadtest/{room,tokens}`, `collect`). Invoke as
+`pnpm --dir scripts smiski test <cmd> --help`.
 
-Volumes and networks are prefixed separately (`smiski-test_valkey-data` vs
-`docker_valkey-data`), so the two stacks never share data.
+## Network topology
 
-> [!IMPORTANT]
->
-> **Host ports are inherited unchanged**, and they are hardcoded in the included
-> file (30000, 9901, 8281-8284, 9094, 7880-7882, 3000, 9090, 3100, 12345). This
-> overlay publishes **one more**: `BROWSER_VNC_PORT` (default 3010) for the
-> TC-01 browser's noVNC console, chosen off the inherited range because Grafana
-> already owns 3000. The two stacks cannot run simultaneously as written even
-> though their data is fully separate. Stop one before starting the other, or
-> add `ports: !override` entries in a local file that is not committed.
+Two pinned networks, `10.77.0.0/24` (media) and `10.88.0.0/24` (clients).
+`ip_range: .128/25` on both — dynamic allocation stays out of the static range
+below.
 
-## Startup
+| Service          | Network         | IP                         |
+| ---------------- | --------------- | -------------------------- |
+| `livekit-server` | media           | `10.77.0.10`               |
+| `harness`        | media           | `10.77.0.11`               |
+| `coturn`         | media           | `10.77.0.12`               |
+| `nat-gw`         | media + clients | `10.77.0.13` / `10.88.0.2` |
+| `browser`        | clients         | `10.88.0.10`               |
+| `browser-b`      | clients         | `10.88.0.11`               |
+
+`nat-gw` is the only route from `clients` to `media` (MASQUERADE + FORWARD
+ACCEPT). `browser`/`browser-b` get a route to `10.77.0.0/24` via `.2` from
+`custom-init.sh` — default route untouched, so noVNC stays reachable. This is
+what makes ICE form a real `srflx` candidate instead of a forced relay.
+
+`livekit-server` command is `!override`'d (CLI `--node-ip` beats config
+`rtc.node_ip`) and pinned to `10.77.0.10` so Coturn's peer permission matches
+LiveKit's real egress address — without this, connectivity checks are silently
+discarded (`requestsSent > 0, responsesReceived: 0`).
+
+## Setup
 
 ```sh
-# 1. Environment. BOTH .env files load; services/test/.env wins on a shared key,
-#    so this file only carries deltas. SMISKI_HOST_IP and CURSOR_SECRET are
-#    declared with `:?` upstream and must exist in one of the two.
-cp services/test/.env.example services/test/.env
-
-# 2. Key material. Envoy reads the JWKS at startup AND at --mode validate time,
-#    so this must run before either. A missing file is a hard failure.
-pnpm --dir scripts smiski test keygen
-
-# 3. Java images. Compose only pulls them — see the rebuild warning below.
+cp services/test/.env.example services/test/.env # set SMISKI_HOST_IP
+pnpm --dir scripts smiski test keygen            # before any start/validate
 ./services/gradlew -p services/tenant bootBuildImage
 ./services/gradlew -p services/meet bootBuildImage
 ./services/gradlew -p services/notification bootBuildImage
-
-# 4. Start. The observability profile is REQUIRED for TC-05 and for the
-#    server-side half of TC-02 and TC-03.
 COMPOSE_PROFILES=observability docker compose -f services/test/compose.yaml up -d
-
-# 5. Fixtures. Prints the meeting identifiers every later command consumes.
 pnpm --dir scripts smiski test seed
 ```
 
-Teardown:
+Teardown: `docker compose -f services/test/compose.yaml down [-v]`.
+
+Validate config (profile-gated services need the profile set or they are
+silently unchecked):
 
 ```sh
-docker compose -f services/test/compose.yaml down    # stop, keep volumes
-docker compose -f services/test/compose.yaml down -v # stop and wipe data
+docker compose -f services/test/compose.yaml config
+COMPOSE_PROFILES=observability docker compose -f services/test/compose.yaml config
+pnpm --dir scripts lint && pnpm --dir scripts typecheck
 ```
 
-Results land in `services/test/results/`, which is **gitignored** — every file
-there is an artifact reproduced by re-running the harness, not source.
+## Hard constraints
 
-## Preconditions that yield missing data rather than an error
+- **Rebuild the 3 Java images after any backend change.** AOT bakes
+  `/actuator/prometheus` in at build time; no env var adds it later. Symptom:
+  `spring-services` reads `down` on `/targets`, nothing errors.
+- **`harness` page needs a secure context.** Open at `http://localhost:8090`,
+  never a LAN IP — `navigator.mediaDevices` is withheld outside secure context.
+  Symptom: loads and samples fine, `uplink_kbps` stays 0, screen share throws.
+- **Never enable `adaptiveStream`/`dynacast` in `harness.js`.** Suppresses
+  `inbound-rtp` on an unsized/background video element. Symptom: `jitter_ms`,
+  `packet_loss_percent`, `downlink_kbps` export blank on a healthy connection.
+- **A room needs a publisher before downlink stats exist.** A lone client in an
+  empty room exports blank jitter/loss — start `loadtest room` or a second
+  client first.
+- **`${VAR:-default}` is inert for `JIRA_API_BASE`** — already set in
+  `services/docker/.env`, both `.env` files load, so redirect it by editing the
+  literal in `compose.yaml`, not `.env`. Symptom: 2 s latency, empty permission
+  set, no error.
+- **Prometheus does not expand env vars; `promtool check config` passes
+  anyway.** Ports in `observability/prometheus.yml` are literal — changing
+  `LIVEKIT_PROMETHEUS_PORT` requires editing both files.
+- **File validation cannot detect any of the above.** After an observability
+  change, curl `/targets` on `:9090` and confirm every job is `up`.
+- **NAT browsers cannot publish media unmodified.** `browser`/`browser-b` launch
+  `CHROME_CLI` with `--unsafely-treat-insecure-origin-as-secure`,
+  `--use-fake-device-for-media-stream`, `--use-fake-ui-for-media-stream`,
+  `--user-data-dir` — without all four, uplink is 0 (insecure origin) and there
+  is no capture hardware in the container anyway.
+- **`impair 4g` shapes LiveKit's egress only** (downlink for every participant),
+  not the client→server leg. TC-02 thresholds read from **inbound** stats, which
+  is the shaped direction — do not report the uplink figure as a
+  degraded-network measurement.
+- **`--cloud-id` must equal the seeded `meetings.tenant_id`.** A mismatch passes
+  auth, then Hibernate's `@TenantId` filter yields `404 MEETING_NOT_FOUND`.
+  `smiski test seed` prints the tenant it used.
+- **Two headers required on hand-rolled requests:** `x-issue-id: 10001`,
+  `x-forge-oauth-system: loadtest-system-token` (missing →
+  `500 configuration_error`). Body needs `displayName` + `deviceId`.
 
-These are the traps. Each one leaves the stack looking healthy while the numbers
-you came for are absent or wrong. All were observed on this host, not inferred.
+## Test cases
 
-### Stale Java images
+`local_candidate_type` in the harness export is the only thing that
+distinguishes direct traversal (`srflx`/`prflx`) from relay (`relay`) — a
+successful connection alone proves neither.
 
-> [!IMPORTANT]
->
-> **Rebuild the three Java images, or `spring-services` reports down.** Compose
-> runs them with `-Dspring.aot.enabled=true`, and AOT evaluates
-> `@ConditionalOnAvailableEndpoint` at build time, so `/actuator/prometheus` is
-> compiled into the image. No environment variable can add it afterwards.
-> **Symptom:** the stack serves requests normally and the `spring-services`
-> targets simply read `down` on `/targets`. TC-04's service-side series are
-> empty; nothing errors.
+| Case        | Command                                                                                                                                                    | Threshold                                   | Evidence field                                                      |
+| ----------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------- | ------------------------------------------------------------------- |
+| TC-01 Leg 1 | connect via noVNC `:3010` → `http://10.77.0.11`, relay-only OFF                                                                                            | setup < 3000 ms                             | `local_candidate_type=srflx/prflx`, `nat traversal proven,true`     |
+| TC-01 Leg 2 | `smiski test impair blocked-udp --service nat-gw`, reconnect                                                                                               | setup < 3000 ms                             | `local_candidate_type=relay`, `relay proven,true`                   |
+| TC-02       | `impair 4g --service livekit-server`; both `browser`(`:3010`)/`browser-b`(`:3011`) join, publish ON, 15 min                                                | latency < 200 ms, loss < 2%, jitter < 30 ms | `round_trip_ms`, `packet_loss_percent`, `jitter_ms` per side        |
+| TC-03       | `smiski test loadtest room --room "$ROOM" --duration 3m --video-publishers 10 --subscribers 19 --video-resolution high` + manual screen share from harness | 0% drop/error                               | `livekit_track_publish_counter`, harness export                     |
+| TC-04a      | `smiski test loadtest tokens --admission-policy ALLOW_ALL`                                                                                                 | p50 < 500 ms (sharded warm only)            | CLI summary                                                         |
+| TC-04b      | `smiski test loadtest tokens --admission-policy MANUAL_APPROVAL --variants single --cache-states warm`                                                     | Redis updated, no conflict                  | `valkey-cli --scan` for `join_request*` immediately after run (TTL) |
+| TC-05       | `smiski test collect --cases tc05 --since 30` (needs `observability` profile)                                                                              | LiveKit CPU < 80%, Redis RAM < 256 MB       | CSV, separate `valkey`/`livekit-redis` jobs                         |
 
-### The harness page needs a secure context
+Reverse impairment after each case: `smiski test impair lan --service <name>` or
+`--remove`.
 
-> [!IMPORTANT]
->
-> **Open the harness page at `http://localhost:8090`, never at a LAN address.**
-> Browsers expose `navigator.mediaDevices` only in a secure context.
-> `http://localhost` counts as secure; `http://192.168.x.x:8090` does not.
-> **Symptom:** the page loads, connects, and samples happily — but cannot
-> capture, so `uplink_kbps` is 0 for the whole session and screen share fails
-> with `Cannot read properties of undefined (reading 'getDisplayMedia')`. The
-> page detects this case and says so in its status line, which is the only
-> warning you get.
-
-### Adaptive streaming suppresses inbound statistics
-
-> [!IMPORTANT]
->
-> **Do not enable `adaptiveStream`.** With it on, the client subscribes only to
-> tracks whose video element it judges visible, so a background tab or an
-> unsized element leaves `isSubscribed` false. **Symptom:** no `inbound-rtp` is
-> produced at all, so `jitter_ms`, `packet_loss_percent` and `downlink_kbps`
-> export **blank** on a connection that looks perfectly healthy — TC-02 loses
-> its entire downlink half. `harness.js` sets `adaptiveStream: false` and
-> `dynacast: false` for exactly this reason; leave them off.
-
-### And three more, each silent in its own way
-
-- **Something must be publishing before downlink statistics exist.** A lone
-  harness client in an empty room exports blank jitter and loss even when
-  everything is configured correctly — there is simply no inbound media.
-  Measured: the same page read `jitter —, packetLoss —` alone and
-  `jitter 0.00 ms, packetLoss 0.91 %, downlink 13679 kbps` with a populated
-  room. Start `loadtest room`, or a second client, first.
-- **`${VAR:-default}` is inert for a key already in the development `.env`.**
-  `JIRA_API_BASE` is set there, so a `:-` default never applied and the gateway
-  called the real Atlassian API while the mock sat idle. **Symptom:** pure
-  latency in the exact figure TC-04 measures — a 2 s timeout, then an empty
-  permission set, no error. The value is written literally in `compose.yaml`;
-  redirect the mock by editing that line, not the `.env`.
-- **Prometheus does not expand environment variables, yet
-  `promtool check config` passes anyway.** A templated port yields
-  `too many colons in address` only at scrape time. Ports in
-  `observability/prometheus.yml` are literal, so changing
-  `LIVEKIT_PROMETHEUS_PORT` means editing **both** files.
-
-> [!NOTE]
->
-> The common thread: **file validation cannot detect any of these.** After any
-> observability change, read `/targets` on <http://localhost:9090> and confirm
-> every job reports `up`. A valid configuration file does not imply a reachable
-> target — that mistake has already been made once here.
-
-## Two legs of TC-01
-
-TC-01 asks for NAT traversal. The honest way to show it is to put a **real NAT**
-in the media path and let ICE choose, rather than pinning
-`iceTransportPolicy: 'relay'` and calling a forced relay "traversal". So the
-overlay runs a containerised browser behind a NAT gateway and measures two legs:
-
-- **Leg 1 — direct traversal.** UDP is open and Coturn answers STUN. ICE learns
-  a post-NAT address and connects straight to LiveKit. Evidence:
-  `local_candidate_type` is `srflx` (or `prflx`), and
-  `nat traversal proven,true` in the export header. **No relay is used.**
-- **Leg 2 — relay fallback.** `impair blocked-udp --service nat-gw` drops UDP in
-  the gateway, so STUN/UDP and media/UDP both fail and ICE falls back to TURN
-  over TCP **on its own**. Evidence: `local_candidate_type` is `relay` and
-  `relay proven,true`.
-
-Why one NAT type, not two. Research against RFC 8445 confirmed that in a
-client-behind-NAT ↔ reachable-SFU topology, **cone and symmetric NAT both
-traverse directly** via the reflexive candidate the client forms during its
-connectivity check to LiveKit. The NAT type does not change the outcome when the
-server is reachable; what forces a relay is losing UDP. So `nat-gw` emulates one
-type — **port-restricted cone**, which is what plain `MASQUERADE` + conntrack
-produces — and Leg 2 removes UDP rather than switching NAT type.
-
-The topology, all in `compose.yaml`:
-
-```text
-  client-net 10.88.0.0/24            media-net 10.77.0.0/24
-  ┌────────────────┐   MASQUERADE   ┌──────────────────────────────┐
-  │ browser .10     │──┐            │ livekit .10  harness .11       │
-  │ (Chromium+noVNC)│  ▼            │ coturn  .12  nat-gw   .13      │
-  └────────────────┘ ┌──────────┐   └──────────────────────────────┘
-   route to          │ nat-gw   │
-   10.77.0.0/24 ─────│ .2 / .13 │───────────► only path across
-   via .2            └──────────┘
-```
-
-| Part                                      | Purpose                                          |
-| ----------------------------------------- | ------------------------------------------------ |
-| `networks.clients` `10.88.0.0/24`         | A network the media server is **not** on         |
-| `nat-gw` dual-homed `.2` / `10.77.0.13`   | The only route across, source-NATs the browser   |
-| `browser` on `clients` + `custom-init.sh` | Routes `10.77.0.0/24` via `nat-gw`, nothing else |
-| Coturn `--no-udp` removed, UDP port added | Serves STUN/UDP (Leg 1) and TURN/TCP (Leg 2)     |
-| `livekit rtc.node_ip: 10.77.0.10`         | Advertises the address the NAT browser routes to |
-
-`node_ip` and the pinned media network are retained from the original design:
-LiveKit still advertises `10.77.0.10`, which the browser reaches **through
-nat-gw**. `ip_range` on each network confines dynamic allocation to the upper
-half so the static `.10-.13` addresses do not race the ~20 other containers —
-measured once as `notification-postgres` taking `10.77.0.10` first and LiveKit
-failing with `Address already in use`.
-
-> [!IMPORTANT]
->
-> **The route is scoped, not default.** `custom-init.sh` routes only
-> `10.77.0.0/24` via `nat-gw`. Redirecting the browser's **default** route would
-> send its noVNC replies to the gateway too and freeze the operator's session.
-> Only media traffic crosses the NAT; host access to the noVNC port keeps
-> working.
-
-The client the browser runs on is what decides whether a run can show direct
-connectivity at all:
-
-> [!NOTE]
->
-> **A host browser still cannot route to `10.77.0.10`.** TC-02/TC-03 drive the
-> harness from a browser on the host, and for those every connection is still
-> relayed — so a host run is never evidence of direct connectivity. Read
-> `local_candidate_type`, never assume from the toggle. Only the containerised
-> TC-01 browser sits behind the NAT and can show `srflx`.
-
-## Running each case
-
-`smiski` is `pnpm --dir scripts smiski`. Every command takes `--help`.
-
-Two headers are required on any hand-rolled request, and both fail unhelpfully
-when missing: `x-issue-id: 10001` and
-`x-forge-oauth-system: loadtest-system-token` (omitting the latter yields
-`500 {"error":"configuration_error","message":"Missing system token"}`). The
-request body needs both `displayName` and `deviceId`; omitting `deviceId` is a
-`400` naming the field.
-
-### TC-01 — NAT traversal (< 3 s setup), two legs
-
-Preconditions: stack up (the `browser` and `nat-gw` services included), `keygen`
-and `seed` done, a meeting id to hand. The client is the containerised Chromium
-behind the NAT, driven over noVNC at `http://localhost:3010`, **not** a host
-browser. Both legs share these first two steps:
-
-1. Obtain a LiveKit token through the gateway:
-
-    ```sh
-    curl -s -X POST "http://localhost:30000/api/1/meetings/<MEETING_ID>:join" \
-        -H "Authorization: Bearer $(pnpm -s --dir scripts smiski test token)" \
-        -H 'Content-Type: application/json' -H 'x-issue-id: 10001' \
-        -H 'x-forge-oauth-system: loadtest-system-token' \
-        -d '{"displayName":"NatClient","deviceId":"d1"}'
-    ```
-
-2. **Manual:** open <http://localhost:3010> (noVNC), and in the browser there go
-   to `http://10.77.0.11`. Paste the token, leave the server URL at
-   `ws://10.77.0.10:7880`, leave the STUN field at `stun:10.77.0.12:3478`, leave
-   **relay-only OFF**.
-
-Then run each leg in turn.
-
-**Leg 1 — direct traversal.** With relay-only off and UDP open, connect. Read
-the setup time; confirm `Interpretation` reads "Leg 1: NAT traversed directly",
-then export the CSV. Evidence: `nat traversal proven,true`,
-`local_candidate_type` = `srflx`/`prflx`,
-`call setup within 3000 ms budget,true`, and **no** relay traffic on Coturn.
-
-**Leg 2 — relay fallback.** Apply
-`smiski test impair blocked-udp --service nat-gw` to drop UDP in the gateway,
-then disconnect and reconnect from the page. Confirm `Interpretation` reads "Leg
-2: relayed through TURN" and export the CSV. Restore with
-`smiski test impair lan --service nat-gw`. Evidence: `relay proven,true`,
-`local_candidate_type` = `relay`, `call setup within 3000 ms budget,true`, plus
-`turn_total_allocations` and `turn_total_traffic_sentb` from Coturn. A
-successful connection alone proves neither leg — the candidate type is what
-separates them.
-
-### TC-02 — Media QoS over 15 minutes
-
-Preconditions: stack up, `keygen`/`seed` done, **a second publisher** and the
-`4g` profile. Unlike TC-01, TC-02 uses a browser **on the host** at
-<http://localhost:8090> (server URL `ws://localhost:7880`); it does not need the
-NAT client, and every host connection is relayed, which does not affect the QoS
-figures it measures.
-
-1. `smiski test impair 4g --service livekit-server` — mandatory. On an
-   unimpaired local stack latency is ~0.04 ms, so a "< 200 ms" result carries no
-   information and must not be presented as evidence of behaviour under a
-   degraded network.
-2. Start publishers: `smiski test loadtest room --room "$ROOM" --duration 16m`
-3. **Manual:** join from the harness page and leave it sampling for the full 15
-   minutes. Do not reload — samples live in the page, and the beforeunload guard
-   is the only protection.
-4. Export, then `smiski test impair 4g --service livekit-server --remove`.
-5. `smiski test collect --cases tc02 --network-profile 4g`
-
-### TC-03 — Room capacity, 30 participants
+TC-01 request:
 
 ```sh
-smiski test loadtest room --room "$ROOM" --duration 3m \
-    --video-publishers 10 --subscribers 19 --video-resolution high
+curl -s -X POST "http://localhost:30000/api/1/meetings/<MEETING_ID>:join" \
+    -H "Authorization: Bearer $(pnpm -s --dir scripts smiski test token)" \
+    -H 'Content-Type: application/json' -H 'x-issue-id: 10001' \
+    -H 'x-forge-oauth-system: loadtest-system-token' \
+    -d '{"displayName":"NatClient","deviceId":"d1"}'
 ```
 
-**Manual leg:** `lk load-test` hardcodes `TrackSource_CAMERA` and _cannot_
-publish a screen share. Join the same room from the harness page and use the
-screen-share button; its start/stop timestamps go into the export header so the
-interval can be aligned with `livekit_track_publish_counter`.
+TC-01/02 connect fields inside the NAT browser: server `ws://10.77.0.10:7880`,
+STUN `stun:10.77.0.12:3478`.
 
-The `lk` summary table is recorded but **not** used for threshold assertions:
-its Latency column is tester-side arrival timing and it reports no jitter. Take
-jitter, loss and RTT from LiveKit's `/metrics` and the harness export.
-
-### TC-04 — Token issuance, 500 requests in 1 s
-
-```sh
-# TC-04a: token throughput — all four passes
-smiski test loadtest tokens --admission-policy ALLOW_ALL
-# TC-04b: cached approval state
-smiski test loadtest tokens --admission-policy MANUAL_APPROVAL \
-    --variants single --cache-states warm
-```
-
-The 500 ms threshold is asserted **only** against the warm-cache sharded pass.
-The single-room tail measures the pessimistic row lock, not throughput — see the
-first code-derived divergence below.
-
-TC-04b's own criterion is the cached approval state, which the response cannot
-show: under `MANUAL_APPROVAL` every response carries `token: null`. Read it from
-Redis **immediately after the run** — the keys carry a TTL, and any later
-`FLUSHALL` (the isolation checks below use one) destroys the evidence:
+TC-04b Redis check (run before any `FLUSHALL`):
 
 ```sh
 docker exec smiski-test-valkey-1 valkey-cli --scan --count 500 | rg join_request
 ```
 
-Measured on this stack: 500 requests produced 477 `PENDING` rows, 487
-`join_request_meta` keys and 487 `join_request_device` keys, with 23 requests
-counted as `http 5xx` failures rather than averaged into the timings.
+## Manual vs scripted
 
-### TC-05 — Container resources
+Scripted: keygen, token, seed, impair, `loadtest/*`, `collect`. Manual:
+everything through a browser (join, read setup time, screen share, holding TC-02
+for 15 min, judging thresholds).
 
-Runs alongside TC-03 and TC-04; needs the `observability` profile.
+## Divergences from the assignment
 
-```sh
-smiski test collect --cases tc05 --since 30
-```
+| #   | Assignment                                 | Reality                                                                    | Resolution                                                                      |
+| --- | ------------------------------------------ | -------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
+| 1   | Backend is NestJS                          | Spring Boot 4 / Java 25, service `meet`                                    | TC-04 targets `meet`                                                            |
+| 2   | Coturn container monitored                 | none existed                                                               | added standalone Coturn                                                         |
+| 3   | "the Redis container"                      | two: `valkey`, `livekit-redis`                                             | TC-05 measures both, separate jobs                                              |
+| 4   | Metrics from LiveKit dashboard             | `prometheus_port` unset                                                    | enabled `prometheus.port` + scrape job                                          |
+| 5   | Meeting sync rate to PM system             | `meet` never writes to Jira                                                | outbox drain latency + `participation_logs`                                     |
+| 6   | Kafka lag metric                           | no JMX exporter on `apache/kafka:4.1.0`                                    | drain measured via `outbox_events` table                                        |
+| 7   | TC-04 100% success + Redis update, one run | `ALLOW_ALL` skips Redis; `MANUAL_APPROVAL` returns `token: null`           | split TC-04a/TC-04b                                                             |
+| 8   | —                                          | `PESSIMISTIC_WRITE` lock serializes joins per meeting                      | single/sharded variants (253.5 ms vs 3.9 ms p50)                                |
+| 9   | —                                          | `lk load-test` hardcodes `TrackSource_CAMERA`                              | screen share done manually from harness                                         |
+| 10  | —                                          | Atlassian must sign a real FIT                                             | Envoy `local_jwks` reads a generated key                                        |
+| 11  | —                                          | Forge app has no way to inject `rtcConfig`                                 | standalone harness page instead                                                 |
+| 12  | —                                          | NAT type alone does not force relay (RFC 8445, reachable SFU)              | one NAT type (port-restricted cone), two legs = UDP open vs blocked             |
+| 13  | —                                          | container behind NAT has no capture device, LAN origin is insecure context | `browser`/`browser-b` launch with fake-device + insecure-origin-as-secure flags |
 
-The two cache instances are separate jobs (`valkey`, `livekit-redis`), so the
-256 MB threshold can be applied to the intended one. The load generator has its
-own cAdvisor series and is subtractable from host figures rather than silently
-counted as system-under-test usage.
+## Token claims
 
-## Which steps are manual
-
-| Step                                       | Scripted | Manual |
-| ------------------------------------------ | :------: | :----: |
-| Key generation, token signing, seeding     |    ✅    |        |
-| Impairment apply / remove / inspect        |    ✅    |        |
-| TC-03 room load, TC-04 token load          |    ✅    |        |
-| Metric collection to CSV                   |    ✅    |        |
-| Joining from a browser, reading setup time |          |   ✅   |
-| Driving the NAT browser over noVNC (TC-01) |          |   ✅   |
-| Screen share start/stop                    |          |   ✅   |
-| Holding TC-02 for its full 15 minutes      |          |   ✅   |
-| Judging results against thresholds         |          |   ✅   |
-
-Full automation was never a goal; combining scripted and operator steps is
-explicitly acceptable.
-
-## Divergences from the test plan, and their resolutions
-
-The assignment describes a system this repository is not. Each mismatch is
-resolved by a stated decision so no one silently reinterprets it.
-
-| #   | Assignment states                     | Repository reality                                                                                        | Resolution                                                      |
-| --- | ------------------------------------- | --------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------- |
-| 1   | Backend is NestJS                     | Spring Boot 4 / Java 25, service `meet`                                                                   | TC-04 targets the Spring `meet` service                         |
-| 2   | A Coturn container is monitored       | No Coturn anywhere; no `turn:` block, no `rtc.turn_servers`                                               | Added a standalone Coturn (STUN + TURN) container to this stack |
-| 3   | "the Redis container"                 | **Two**: `valkey` (application) and `livekit-redis` (LiveKit-internal, uninstrumented)                    | TC-05 measures both, reported as separate jobs                  |
-| 4   | Metrics come from a LiveKit dashboard | LiveKit exposes none: `prometheus_port` unset, no `livekit` scrape job                                    | `prometheus.port` enabled; scrape jobs added here               |
-| 5   | Meeting sync rate to the PM system    | `meet` never writes to Jira; it stores `issue_id`/`issue_key` locally, and only the Go gateway reads Jira | Redefined as outbox drain latency + `participation_logs` writes |
-| 6   | Kafka lag as an integration metric    | `apache/kafka:4.1.0` ships no JMX exporter, deliberately excluded from Prometheus                         | Drain measured via the `outbox_events` table instead            |
-
-Five further divergences emerged from the code rather than from the brief:
-
-1. **TC-04's two success criteria cannot both hold in one run.** Under
-   `ALLOW_ALL` every request returns a token but touches no Redis; under
-   `MANUAL_APPROVAL` Redis is written but the response carries `token: null`. It
-   is therefore split into TC-04a and TC-04b. Separately,
-   `RequestJoinApplicationService` holds a `PESSIMISTIC_WRITE` lock for the
-   whole transaction, so 500 joins against one meeting measure lock queueing
-   rather than throughput — hence the single/sharded variants. Measured here:
-   median 253.5 ms single-room cold versus 3.9 ms sharded warm, same offered
-   load.
-2. **`lk load-test` cannot publish a screen share** — hardcoded
-   `TrackSource_CAMERA`. That leg of TC-03 is manual, timestamped into the
-   harness export.
-3. **A real Forge Invocation Token cannot be minted locally** — Atlassian signs
-   it. Envoy's `remote_jwks` is swapped for `local_jwks` reading a generated key
-   file; everything else in the chain (RS256 verification, the Lua claim filter,
-   the ext_authz gRPC hop, the gateway's Valkey cache) stays in the measured
-   path. No mock JWKS service is needed.
-4. **The Forge app cannot be used as the QoS client.** It builds its `Room` with
-   no way to inject `rtcConfig`, so the standalone harness page is what lets ICE
-   be configured and keeps the production application untouched.
-5. **NAT type alone does not force a relay in a client↔SFU topology.** RFC 8445
-   verified: when the SFU is reachable, a client behind any NAT — cone or
-   symmetric — traverses directly via a reflexive candidate; only losing UDP (or
-   an unreachable server) forces TURN. So TC-01 does not switch NAT types. It
-   places one real NAT (`nat-gw`, port-restricted cone) in the path and measures
-   two legs: direct with UDP open, relay after `blocked-udp` removes UDP. The
-   old design instead forced `iceTransportPolicy: 'relay'`, which proved the
-   relay worked but never proved traversal — this replaces it.
-
-## Token claim shape
-
-`smiski test token` derives its claims from
-`services/gateway/internal/fit/parser.go`. All of `iss`, `aud`, `principal`,
-`context.cloudId`, `app.id`, `app.apiBaseUrl` and `app.environment.id` are
-required; a missing `app.id` or `app.environment.id` fails in
-`resolveARISegment` with a `403` naming the claim.
-
-> [!WARNING]
->
-> **`--cloud-id` must equal the seeded `meetings.tenant_id`.** A mismatch is not
-> an authentication failure — it passes authentication, then Hibernate's
-> `@TenantId` filter yields `404 MEETING_NOT_FOUND`, which reads like a missing
-> meeting rather than a wrong token. `smiski test seed` prints the tenant it
-> used for this reason.
-
-## Validating configuration changes
-
-```sh
-# Compose definition, both ways — a profile-gated service is NOT validated
-# while its profile is inactive, so the plain form alone leaves half unchecked.
-docker compose -f services/test/compose.yaml config
-COMPOSE_PROFILES=observability docker compose -f services/test/compose.yaml config
-
-# Envoy. Requires keygen to have run: local_jwks is read at validate time, and
-# the key set must be mounted where envoy.yaml names it, not merely exist.
-# envoy.yaml is mounted as a FILE, not by mounting its directory: a read-only
-# directory mount at /etc/envoy blocks the two nested mounts below it with
-# `create mountpoint ... Read-only file system`.
-docker run --rm \
-    -v "$(pwd)/services/test/envoy/envoy.yaml:/etc/envoy/envoy.yaml:ro" \
-    -v "$(pwd)/services/docker/envoy/lua:/etc/envoy/lua:ro" \
-    -v "$(pwd)/services/test/keys:/etc/envoy/keys:ro" \
-    envoyproxy/envoy:v1.36-latest --mode validate -c /etc/envoy/envoy.yaml
-
-# Prometheus scrape configuration
-docker run --rm -v "$(pwd)/services/test/observability:/w:ro" \
-    --entrypoint promtool prom/prometheus:v3.13.2 check config /w/prometheus.yml
-
-# CLI
-pnpm --dir scripts lint && pnpm --dir scripts typecheck
-```
-
-Then, on a **running** stack, confirm every scrape target reports `up`:
-
-```sh
-curl -s 'http://localhost:9090/api/v1/targets?state=active' \
-    | python3 -c 'import json,sys; [print(t["labels"]["job"], t["health"]) for t in json.load(sys.stdin)["data"]["activeTargets"]]'
-```
+`smiski test token` derives claims from
+`services/gateway/internal/fit/parser.go`. Required: `iss`, `aud`, `principal`,
+`context.cloudId`, `app.id`, `app.apiBaseUrl`, `app.environment.id` — missing
+`app.id`/`app.environment.id` fails `403` in `resolveARISegment`.
