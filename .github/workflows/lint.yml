@@ -96,10 +96,8 @@ jobs:
               run: pnpm install --frozen-lockfile
               working-directory: app
 
-            - name: Lint check
-              run: |
-                  pnpm exec biome check
-                  ../.github/scripts/forge-wrapper.sh lint
+            - name: Biome check
+              run: pnpm exec biome check
               working-directory: app
 
     biome-scripts:

@@ -133,7 +133,9 @@ jobs:
                   pnpm build
 
             - name: Forge lint
-              run: ../.github/scripts/forge-wrapper.sh lint
+              run: |
+                  pnpm exec forge settings set usage-analytics false
+                  pnpm exec forge lint
 
             - name: Deploy to Forge
               run: |
