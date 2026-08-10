@@ -307,6 +307,54 @@ services:
             valkey:
                 condition: service_healthy
 
+    # Public ingress for the local stack over a Cloudflare named tunnel. Forge
+    # runs in Atlassian's cloud and reaches this backend through Forge Remote,
+    # whose baseUrl (SMISKI_API_BASE_URL in app/) cannot be a localhost address —
+    # this connector gives the stack a public HTTPS origin instead. It targets
+    # envoy:8080, the one app entry point, NOT the Go `gateway` (that is the
+    # ext_authz gRPC backend, internal only).
+    #
+    # The connector dials Cloudflare's edge OUTBOUND, so it publishes no host
+    # port. Which public hostname maps to http://envoy:8080 is configured in the
+    # Cloudflare Zero Trust dashboard (remotely-managed tunnel), not in this repo,
+    # so no config.yml is mounted — the token alone associates this instance with
+    # that tunnel.
+    #
+    # CLOUDFLARE_TUNNEL_TOKEN has no default and uses `:?`, so an unset token
+    # aborts `docker compose up` by design: a tunnel with no token would connect
+    # to nothing. --no-autoupdate keeps cloudflared from replacing its own binary
+    # inside the container.
+    #
+    # SECURITY: enabling this exposes the whole backend to the internet, including
+    # the meeting event-stream routes that are served WITHOUT authentication (see
+    # AGENTS.md). Forge Remote cannot present a Cloudflare Access service token,
+    # so the tunnel is effectively open. Accepted for local Forge development.
+    #
+    # profiles: [tunnel] keeps this OFF unless the profile is selected, for two
+    # reasons. It stops the load-test overlay — which `include:`s this file —
+    # from inheriting a public tunnel onto its deliberately insecure stack: a
+    # `!reset null` in the overlay does NOT remove an included service, but a
+    # profile declared HERE is honoured through `include:`. And it makes the
+    # internet exposure opt-in rather than a side effect of `up`. `smiski dev up`
+    # selects it automatically; a raw `docker compose up` needs `--profile
+    # tunnel`.
+    cloudflared:
+        image: cloudflare/cloudflared:2026.7.3
+        profiles: [tunnel]
+        command:
+            - 'tunnel'
+            - '--no-autoupdate'
+            - 'run'
+        environment:
+            TUNNEL_TOKEN:
+                ${CLOUDFLARE_TUNNEL_TOKEN:?set CLOUDFLARE_TUNNEL_TOKEN in
+                services/docker/.env to the token of a Cloudflare named tunnel
+                whose public hostname routes to http://envoy:8080}
+        restart: unless-stopped
+        depends_on:
+            envoy:
+                condition: service_started
+
     # ── profile: observability ──────────────────────────────────────────────
     #
     # Everything below is gated behind `profiles: [observability]`. Nothing here

@@ -32,6 +32,9 @@ type Context struct {
 
 // Claims mirrors the Forge Invocation Token payload documented at
 // https://developer.atlassian.com/platform/forge/remote/essentials/.
+// Principal is documented as "UI modules only" and is therefore absent from an
+// invocation that runs without a user in session, such as an app-lifecycle
+// trigger or a pre-uninstall function.
 type Claims struct {
 	App       App     `json:"app"`
 	Context   Context `json:"context"`
@@ -44,7 +47,8 @@ type Claims struct {
 
 // ParsedFIT carries the identity derived from a Forge Invocation Token.
 // AppID and EnvironmentID are the bare UUIDs needed to qualify custom
-// permission identifiers sent to Jira.
+// permission identifiers sent to Jira. AccountID is empty when the token
+// carried no principal claim.
 type ParsedFIT struct {
 	CloudID       string
 	AccountID     string
@@ -84,10 +88,6 @@ func Parse(token string) (*ParsedFIT, error) {
 	var claims Claims
 	if err := json.Unmarshal(payload, &claims); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal claims: %w", err)
-	}
-
-	if claims.Principal == "" {
-		return nil, fmt.Errorf("%w: principal claim missing", ErrMissingClaims)
 	}
 
 	cloudID, err := resolveCloudID(claims)
@@ -170,7 +170,16 @@ func extractCloudID(apiBaseURL string) (string, error) {
 // extractAccountID normalises the principal claim into a bare Atlassian account
 // id. Forge emits either "655362:<uuid>" or an ARI such as
 // "ari:cloud:identity::user/<accountId>".
+//
+// The claim is optional, so an absent or empty principal resolves to an empty
+// account id rather than an error: the tenant is identified by cloudId, and a
+// user-less invocation is a legitimate app-level call. Permission-scoped routes
+// fail closed on the empty value, since Jira resolves no permissions for it.
 func extractAccountID(principal string) string {
+	if principal == "" {
+		return ""
+	}
+
 	if idx := strings.LastIndex(principal, "/"); idx != -1 {
 		return principal[idx+1:]
 	}

@@ -9,19 +9,24 @@
 # branches on the Forge module context (moduleKey) to mount the correct root
 # component. See static/smiski-ui/src/App.tsx.
 #
-# NOTE: There is no Forge resolver/function in this app. Meeting reads/
-# mutations go straight from the Custom UI to the real `meet` backend via
-# Forge Remote + a generated SDK; Jira-native operations (workspace user
-# search, the View/Edit Meeting permission check, issue/project-member lookup)
-# call Jira directly from the browser via `@forge/bridge`'s `requestJira`
-# (Forge bridge v2+ supports this without a resolver hop) — see
-# static/smiski-ui/src/api/.
+# NOTE: There is no Forge RESOLVER in this app. Meeting reads/mutations go
+# straight from the Custom UI to the real `meet` backend via Forge Remote + a
+# generated SDK; Jira-native operations (workspace user search, the View/Edit
+# Meeting permission check, issue/project-member lookup) call Jira directly
+# from the browser via `@forge/bridge`'s `requestJira` (Forge bridge v2+
+# supports this without a resolver hop) — see static/smiski-ui/src/api/.
 #
-# Backend calls use `invokeRemote`, which is proxied through the Forge platform
-# and resolves its target through the invoking module's `resolver.endpoint`.
-# The `resolver.endpoint: meet-endpoint` entries on both UI modules below are
-# what bind them to the `endpoint` block. Adding a `resolver.endpoint`
-# reference requires no resolver CODE — the app stays function-free.
+# There ARE Forge functions, but only for app life cycle: the `trigger` and
+# `preUninstall` modules below run outside any iframe, where `@forge/bridge`
+# cannot reach, so they call the same generated SDK from a function over
+# `@forge/api` `invokeRemote` instead — see src/.
+#
+# UI backend calls use `invokeRemote`, which is proxied through the Forge
+# platform and resolves its target through the invoking module's
+# `resolver.endpoint`. The `resolver.endpoint: meet-endpoint` entries on both
+# UI modules below are what bind them to the `endpoint` block. Adding a
+# `resolver.endpoint` reference requires no resolver CODE. A function has no
+# resolver endpoint to resolve, so it addresses the remote by key instead.
 #
 # Egress is still partly client-side: the SSE event stream and LiveKit
 # signalling leave the iframe directly, which is why
@@ -64,6 +69,49 @@ modules:
               Create, schedule, start, edit, cancel, and end meetings;
               start/stop recording.
           category: projects
+
+    # App life-cycle delivery to the tenant backend.
+    #
+    # Adding these three module blocks is a BREAKING manifest change, so
+    # applying it takes `forge deploy` **then** `forge install --upgrade`; a
+    # tunnel restart is not enough. No new scope or egress is introduced (the
+    # existing `meet-backend` remote already declares `compute`), so an
+    # administrator is re-prompted for consent only if the platform asks.
+    #
+    # `trigger` fires on install and on MAJOR upgrades only (Atlassian does not
+    # emit `avi:forge:upgraded:app` for minor/patch bumps). Both events carry
+    # the same core payload and both map to the SDK `register()` — the backend
+    # upsert is idempotent and reactivating, so an upgrade just refreshes the
+    # installation id and version. Delivery may lag up to 3 minutes and the
+    # platform retries a failed invocation up to 4 times, which is why the
+    # handler throws rather than swallowing a failure.
+    trigger:
+        - key: smiski-app-installed
+          function: lifecycle-install
+          events:
+              - avi:forge:installed:app
+              - avi:forge:upgraded:app
+
+    # `preUninstall` pauses the uninstall for a single non-blocking invocation
+    # with a 55-second budget. There is no retry and the platform discards both
+    # the return value and any error, so the handler treats every outcome as
+    # terminal: `200` (marked uninstalled, or already uninstalled) and `404`
+    # (no tenant row) are both success, and nothing throws.
+    preUninstall:
+        - key: smiski-app-pre-uninstall
+          function: lifecycle-uninstall
+
+    # The handlers the two life-cycle modules above invoke. `handler` is
+    # `<file>.<export>` relative to the app's `src/` directory, so both resolve
+    # into `src/index.ts`. These are the app's ONLY functions: UI traffic still
+    # goes straight from the iframe over `@forge/bridge`, and these exist
+    # because a life-cycle event has no iframe — `@forge/api` `invokeRemote` is
+    # the only transport that can reuse the generated SDK there.
+    function:
+        - key: lifecycle-install
+          handler: index.installOrUpgrade
+        - key: lifecycle-uninstall
+          handler: index.preUninstall
 
     # Forge Remote endpoint binding the `meet` backend remote.
     #

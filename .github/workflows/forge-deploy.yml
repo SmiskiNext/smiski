@@ -133,14 +133,8 @@ jobs:
                   pnpm build
 
             - name: Forge lint
-              shell: bash
               run: |
-                  set -euo pipefail
-
-                  # Forge commands must run from the directory containing manifest.yml.
-                  pwd
                   pnpm exec forge settings set usage-analytics false
-                  pwd
                   pnpm exec forge lint
 
             - name: Deploy to Forge

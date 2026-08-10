@@ -7,13 +7,29 @@ settings:
 importers:
 
   .:
+    dependencies:
+      '@forge/api':
+        specifier: 8.0.3
+        version: 8.0.3(typescript@5.9.3)
+      '@smiskinext/smiski-ts':
+        specifier: workspace:*
+        version: link:../sdks/typescript
     devDependencies:
       '@biomejs/biome':
         specifier: ^2.4.15
         version: 2.5.5
       '@forge/cli':
         specifier: 13.2.0
-        version: 13.2.0(@types/express@4.17.25)(@types/node@22.20.1)(loader-utils@2.0.4)(typescript@5.9.3)(webpack@5.108.4)
+        version: 13.2.0(@types/express@4.17.25)(@types/node@22.20.1)(lightningcss@1.32.0)(loader-utils@2.0.4)(typescript@5.9.3)(webpack@5.108.4(lightningcss@1.32.0))
+      '@types/node':
+        specifier: 22.20.1
+        version: 22.20.1
+      typescript:
+        specifier: 5.9.3
+        version: 5.9.3
+      vitest:
+        specifier: ^2.1.9
+        version: 2.1.9(@types/node@22.20.1)(jsdom@30.0.1)(lightningcss@1.32.0)(terser@5.49.0)
 
   ../sdks/typescript:
     dependencies:
@@ -597,6 +613,22 @@ packages:
       '@noble/hashes':
         optional: true
 
+  '@forge/api@8.0.3':
+    resolution: {integrity: sha512-qQ8W3pNXhXc1DHWZxH+pGmbXykKldGmtxfJUbnQjukDh8CAAHpXmLxwxRm6MEftW0wENgrPl8kQfGfXE2md1Bg==}
+    peerDependencies:
+      typescript: '>=5.0.0'
+    peerDependenciesMeta:
+      typescript:
+        optional: true
+
+  '@forge/auth@1.0.0':
+    resolution: {integrity: sha512-lEwaTIS9lZAMeuf9TfuP/OyhoJz1SCoIt5ZbgbgPtG3SV/KYdI2qSW6xafnONy0iAaKJo5D3VDBEbm7K1d+qog==}
+    peerDependencies:
+      typescript: '>=5.0.0'
+    peerDependenciesMeta:
+      typescript:
+        optional: true
+
   '@forge/bridge@6.1.0-next.8':
     resolution: {integrity: sha512-Gl39fhi6iCeWttsUE4o9FF4MF0/0nLhmYitr6H24MFdWjlRKUnND9gBJGqU07pA10wP65Aa7YhsOd4WaitnaXg==}
     peerDependencies:
@@ -677,6 +709,14 @@ packages:
 
   '@forge/manifest@13.2.0':
     resolution: {integrity: sha512-Ek4tWw3YwgwemNsv0gCoMu7DuH8PqsavwXk7zMpNblxP0IrOsVyDxsrDSeDh7PvlSOznxqp8uJndLj4ZhTW3+g==}
+    peerDependencies:
+      typescript: '>=5.0.0'
+    peerDependenciesMeta:
+      typescript:
+        optional: true
+
+  '@forge/manifest@13.3.0':
+    resolution: {integrity: sha512-EdXhHz1PMjITk30zxapgHWuoZVrvNxYTjcK37V4HaLV3bo58z/VoVzE9ttkzGf9H7j1bXzPWPXnEioXobr61mA==}
     peerDependencies:
       typescript: '>=5.0.0'
     peerDependenciesMeta:
@@ -2782,6 +2822,9 @@ packages:
   he@1.2.0:
     resolution: {integrity: sha512-F/1DnUGPopORZi0ni+CvrCgHQ5FyEAHRLSApuYWMmrbSwoN2Mn/7k+Gl38gJnR7yyDZk6WLXwiGod1JOWNDKGw==}
     hasBin: true
+
+  headers-utils@3.0.2:
+    resolution: {integrity: sha512-xAxZkM1dRyGV2Ou5bzMxBPNLoRCjcX+ya7KSWybQD2KwLphxsapUVK6x/02o7f4VU6GPSXch9vNY2+gkU8tYWQ==}
 
   hidefile@3.0.0:
     resolution: {integrity: sha512-AvJ9joE59PQPGOB78smS63K60KKpTK5GBIagupfK9Hw6zpA0JKba2D9uAnDycaI8/bN30ltHWGZVXIkQ4BU6oA==}
@@ -5455,6 +5498,22 @@ snapshots:
 
   '@exodus/bytes@1.15.1': {}
 
+  '@forge/api@8.0.3(typescript@5.9.3)':
+    dependencies:
+      '@forge/auth': 1.0.0(typescript@5.9.3)
+      '@forge/egress': 3.0.0(typescript@5.9.3)
+      '@forge/i18n': 1.0.0(typescript@5.9.3)
+      '@forge/manifest': 13.3.0(typescript@5.9.3)
+      headers-utils: 3.0.2
+    optionalDependencies:
+      typescript: 5.9.3
+
+  '@forge/auth@1.0.0(typescript@5.9.3)':
+    dependencies:
+      tslib: 2.8.1
+    optionalDependencies:
+      typescript: 5.9.3
+
   '@forge/bridge@6.1.0-next.8(@types/react@18.3.31)(react@18.3.1)(typescript@5.9.3)':
     dependencies:
       '@atlaskit/adf-schema': 48.0.0(react@18.3.1)
@@ -5473,7 +5532,7 @@ snapshots:
       - react
       - supports-color
 
-  '@forge/bundler@7.0.2(@types/node@22.20.1)(loader-utils@2.0.4)(typescript@5.9.3)':
+  '@forge/bundler@7.0.2(@types/node@22.20.1)(lightningcss@1.32.0)(loader-utils@2.0.4)(typescript@5.9.3)':
     dependencies:
       '@babel/core': 7.29.7
       '@babel/parser': 7.28.0
@@ -5488,17 +5547,17 @@ snapshots:
       '@forge/i18n': 1.0.0(typescript@5.9.3)
       '@forge/lint': 6.0.2(@types/node@22.20.1)(cheerio@1.2.0)(typescript@5.9.3)
       '@forge/manifest': 13.2.0(typescript@5.9.3)
-      babel-loader: 8.4.1(@babel/core@7.29.7)(webpack@5.108.4)
+      babel-loader: 8.4.1(@babel/core@7.29.7)(webpack@5.108.4(lightningcss@1.32.0))
       cheerio: 1.2.0
       cross-spawn: 7.0.6
       fs-extra: 11.3.6
-      html-webpack-plugin: 5.6.7(webpack@5.108.4)
+      html-webpack-plugin: 5.6.7(webpack@5.108.4(lightningcss@1.32.0))
       nock: 13.5.6
       node-fetch: 2.7.0
       tmp: 0.2.7
-      ts-loader: 9.6.2(loader-utils@2.0.4)(typescript@5.9.3)(webpack@5.108.4)
+      ts-loader: 9.6.2(loader-utils@2.0.4)(typescript@5.9.3)(webpack@5.108.4(lightningcss@1.32.0))
       type-fest: 4.10.2
-      webpack: 5.108.4
+      webpack: 5.108.4(lightningcss@1.32.0)
       webpack-bundle-analyzer: 4.10.2
     optionalDependencies:
       typescript: 5.9.3
@@ -5566,16 +5625,16 @@ snapshots:
       - '@types/node'
       - encoding
 
-  '@forge/cli@13.2.0(@types/express@4.17.25)(@types/node@22.20.1)(loader-utils@2.0.4)(typescript@5.9.3)(webpack@5.108.4)':
+  '@forge/cli@13.2.0(@types/express@4.17.25)(@types/node@22.20.1)(lightningcss@1.32.0)(loader-utils@2.0.4)(typescript@5.9.3)(webpack@5.108.4(lightningcss@1.32.0))':
     dependencies:
-      '@forge/bundler': 7.0.2(@types/node@22.20.1)(loader-utils@2.0.4)(typescript@5.9.3)
+      '@forge/bundler': 7.0.2(@types/node@22.20.1)(lightningcss@1.32.0)(loader-utils@2.0.4)(typescript@5.9.3)
       '@forge/cli-shared': 9.2.0(@types/node@22.20.1)(typescript@5.9.3)
       '@forge/egress': 3.0.0(typescript@5.9.3)
       '@forge/i18n': 1.0.0(typescript@5.9.3)
       '@forge/lint': 6.0.2(@types/node@22.20.1)(cheerio@1.2.0)(typescript@5.9.3)
       '@forge/manifest': 13.2.0(typescript@5.9.3)
       '@forge/runtime': 7.0.0(typescript@5.9.3)
-      '@forge/tunnel': 7.0.2(@types/express@4.17.25)(@types/node@22.20.1)(loader-utils@2.0.4)(typescript@5.9.3)(webpack@5.108.4)
+      '@forge/tunnel': 7.0.2(@types/express@4.17.25)(@types/node@22.20.1)(lightningcss@1.32.0)(loader-utils@2.0.4)(typescript@5.9.3)(webpack@5.108.4(lightningcss@1.32.0))
       '@forge/util': 3.0.0(typescript@5.9.3)
       '@sentry/node': 7.106.0
       ajv: 8.20.0
@@ -5703,6 +5762,20 @@ snapshots:
     optionalDependencies:
       typescript: 5.9.3
 
+  '@forge/manifest@13.3.0(typescript@5.9.3)':
+    dependencies:
+      '@forge/i18n': 1.0.0(typescript@5.9.3)
+      '@sentry/node': 7.106.0
+      ajv: 8.20.0
+      ajv-formats: 2.1.1(ajv@8.20.0)
+      cheerio: 1.2.0
+      glob: 13.0.6
+      lodash: 4.18.1
+      mime-types: 2.1.35
+      yaml: 2.9.0
+    optionalDependencies:
+      typescript: 5.9.3
+
   '@forge/resolver@2.0.0(typescript@5.9.3)':
     optionalDependencies:
       typescript: 5.9.3
@@ -5711,9 +5784,9 @@ snapshots:
     optionalDependencies:
       typescript: 5.9.3
 
-  '@forge/tunnel@7.0.2(@types/express@4.17.25)(@types/node@22.20.1)(loader-utils@2.0.4)(typescript@5.9.3)(webpack@5.108.4)':
+  '@forge/tunnel@7.0.2(@types/express@4.17.25)(@types/node@22.20.1)(lightningcss@1.32.0)(loader-utils@2.0.4)(typescript@5.9.3)(webpack@5.108.4(lightningcss@1.32.0))':
     dependencies:
-      '@forge/bundler': 7.0.2(@types/node@22.20.1)(loader-utils@2.0.4)(typescript@5.9.3)
+      '@forge/bundler': 7.0.2(@types/node@22.20.1)(lightningcss@1.32.0)(loader-utils@2.0.4)(typescript@5.9.3)
       '@forge/cli-shared': 9.2.0(@types/node@22.20.1)(typescript@5.9.3)
       '@forge/csp': 6.2.0(cheerio@1.2.0)(typescript@5.9.3)
       '@forge/runtime': 7.0.0(typescript@5.9.3)
@@ -5730,7 +5803,7 @@ snapshots:
       portfinder: 1.0.38
       tmp: 0.2.7
       tslib: 2.8.1
-      webpack-dev-server: 5.2.6(tslib@2.8.1)(webpack@5.108.4)
+      webpack-dev-server: 5.2.6(tslib@2.8.1)(webpack@5.108.4(lightningcss@1.32.0))
       which: 3.0.1
     optionalDependencies:
       typescript: 5.9.3
@@ -7001,14 +7074,14 @@ snapshots:
 
   b4a@1.8.1: {}
 
-  babel-loader@8.4.1(@babel/core@7.29.7)(webpack@5.108.4):
+  babel-loader@8.4.1(@babel/core@7.29.7)(webpack@5.108.4(lightningcss@1.32.0)):
     dependencies:
       '@babel/core': 7.29.7
       find-cache-dir: 3.3.2
       loader-utils: 2.0.4
       make-dir: 3.1.0
       schema-utils: 2.7.1
-      webpack: 5.108.4
+      webpack: 5.108.4(lightningcss@1.32.0)
 
   balanced-match@1.0.2: {}
 
@@ -8111,6 +8184,8 @@ snapshots:
 
   he@1.2.0: {}
 
+  headers-utils@3.0.2: {}
+
   hidefile@3.0.0:
     dependencies:
       winattr: 3.0.0
@@ -8140,7 +8215,7 @@ snapshots:
       relateurl: 0.2.7
       terser: 5.49.0
 
-  html-webpack-plugin@5.6.7(webpack@5.108.4):
+  html-webpack-plugin@5.6.7(webpack@5.108.4(lightningcss@1.32.0)):
     dependencies:
       '@types/html-minifier-terser': 6.1.0
       html-minifier-terser: 6.1.0
@@ -8148,7 +8223,7 @@ snapshots:
       pretty-error: 4.0.0
       tapable: 2.3.3
     optionalDependencies:
-      webpack: 5.108.4
+      webpack: 5.108.4(lightningcss@1.32.0)
 
   htmlparser2@10.1.0:
     dependencies:
@@ -8749,13 +8824,15 @@ snapshots:
 
   minimist@1.2.8: {}
 
-  minimizer-webpack-plugin@5.6.1(webpack@5.108.4):
+  minimizer-webpack-plugin@5.6.1(lightningcss@1.32.0)(webpack@5.108.4(lightningcss@1.32.0)):
     dependencies:
       '@jridgewell/trace-mapping': 0.3.31
       jest-worker: 27.5.1
       schema-utils: 4.3.3
       terser: 5.49.0
-      webpack: 5.108.4
+      webpack: 5.108.4(lightningcss@1.32.0)
+    optionalDependencies:
+      lightningcss: 1.32.0
 
   minipass@7.1.3: {}
 
@@ -10093,13 +10170,13 @@ snapshots:
     dependencies:
       utf8-byte-length: 1.0.5
 
-  ts-loader@9.6.2(loader-utils@2.0.4)(typescript@5.9.3)(webpack@5.108.4):
+  ts-loader@9.6.2(loader-utils@2.0.4)(typescript@5.9.3)(webpack@5.108.4(lightningcss@1.32.0)):
     dependencies:
       chalk: 4.1.2
       picomatch: 4.0.5
       source-map: 0.7.6
       typescript: 5.9.3
-      webpack: 5.108.4
+      webpack: 5.108.4(lightningcss@1.32.0)
     optionalDependencies:
       loader-utils: 2.0.4
 
@@ -10320,7 +10397,7 @@ snapshots:
       - bufferutil
       - utf-8-validate
 
-  webpack-dev-middleware@7.4.5(tslib@2.8.1)(webpack@5.108.4):
+  webpack-dev-middleware@7.4.5(tslib@2.8.1)(webpack@5.108.4(lightningcss@1.32.0)):
     dependencies:
       colorette: 2.0.20
       memfs: 4.64.0(tslib@2.8.1)
@@ -10329,11 +10406,11 @@ snapshots:
       range-parser: 1.3.0
       schema-utils: 4.3.3
     optionalDependencies:
-      webpack: 5.108.4
+      webpack: 5.108.4(lightningcss@1.32.0)
     transitivePeerDependencies:
       - tslib
 
-  webpack-dev-server@5.2.6(tslib@2.8.1)(webpack@5.108.4):
+  webpack-dev-server@5.2.6(tslib@2.8.1)(webpack@5.108.4(lightningcss@1.32.0)):
     dependencies:
       '@types/bonjour': 3.5.13
       '@types/connect-history-api-fallback': 1.5.4
@@ -10361,10 +10438,10 @@ snapshots:
       serve-index: 1.9.2
       sockjs: 0.3.24
       spdy: 4.0.2
-      webpack-dev-middleware: 7.4.5(tslib@2.8.1)(webpack@5.108.4)
+      webpack-dev-middleware: 7.4.5(tslib@2.8.1)(webpack@5.108.4(lightningcss@1.32.0))
       ws: 8.21.1
     optionalDependencies:
-      webpack: 5.108.4
+      webpack: 5.108.4(lightningcss@1.32.0)
     transitivePeerDependencies:
       - bufferutil
       - debug
@@ -10374,7 +10451,7 @@ snapshots:
 
   webpack-sources@3.5.1: {}
 
-  webpack@5.108.4:
+  webpack@5.108.4(lightningcss@1.32.0):
     dependencies:
       '@types/estree': 1.0.9
       '@types/json-schema': 7.0.15
@@ -10392,7 +10469,7 @@ snapshots:
       graceful-fs: 4.2.11
       loader-runner: 4.3.2
       mime-db: 1.54.0
-      minimizer-webpack-plugin: 5.6.1(webpack@5.108.4)
+      minimizer-webpack-plugin: 5.6.1(lightningcss@1.32.0)(webpack@5.108.4(lightningcss@1.32.0))
       neo-async: 2.6.2
       schema-utils: 4.3.3
       tapable: 2.3.3

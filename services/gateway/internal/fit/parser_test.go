@@ -4,6 +4,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"errors"
+	"strings"
 	"testing"
 )
 
@@ -108,17 +109,101 @@ func TestParse_MissingCloudIDSources(t *testing.T) {
 	}
 }
 
-func TestParse_MissingPrincipal(t *testing.T) {
+// TestParse_AbsentPrincipalYieldsEmptyAccountID covers a FIT whose payload omits
+// the principal claim entirely, as Atlassian does for an app-lifecycle trigger
+// or a pre-uninstall function. Such an invocation authenticates on cloudId
+// alone.
+func TestParse_AbsentPrincipalYieldsEmptyAccountID(t *testing.T) {
+	payload := `{
+		"app": {
+			"id": "ari:cloud:ecosystem::app/test-app-id",
+			"installationId": "ari:cloud:ecosystem::installation/test",
+			"apiBaseUrl": "https://api.atlassian.com/ex/jira/` + testCloudID + `",
+			"appVersion": "1.0.0",
+			"environment": {
+				"id": "ari:cloud:ecosystem::environment/test-env-id"
+			}
+		},
+		"context": {"cloudId": "` + testCloudID + `"},
+		"aud": "` + testAudience + `",
+		"iss": "` + testIssuer + `",
+		"iat": 1700175149,
+		"exp": 1700175174
+	}`
+
+	result, err := Parse(createTokenFromJSON(payload))
+	if err != nil {
+		t.Fatalf("expected no error for an absent principal, got %v", err)
+	}
+
+	if result.AccountID != "" {
+		t.Errorf("expected an empty accountId, got %q", result.AccountID)
+	}
+
+	if result.CloudID != testCloudID {
+		t.Errorf("expected cloudId %q, got %q", testCloudID, result.CloudID)
+	}
+}
+
+func TestParse_EmptyPrincipalYieldsEmptyAccountID(t *testing.T) {
 	claims := validClaims()
 	claims.Principal = ""
 
+	result, err := Parse(createTestToken(claims))
+	if err != nil {
+		t.Fatalf("expected no error for an empty principal, got %v", err)
+	}
+
+	if result.AccountID != "" {
+		t.Errorf("expected an empty accountId, got %q", result.AccountID)
+	}
+
+	if result.CloudID != testCloudID {
+		t.Errorf("expected cloudId %q, got %q", testCloudID, result.CloudID)
+	}
+}
+
+// TestParse_AbsentPrincipalFallsBackToAPIBaseURL pins the lifecycle path the
+// gateway actually serves: a user-less FIT whose tenant is resolvable only from
+// app.apiBaseUrl.
+func TestParse_AbsentPrincipalFallsBackToAPIBaseURL(t *testing.T) {
+	claims := validClaims()
+	claims.Principal = ""
+	claims.Context.CloudID = ""
+
+	result, err := Parse(createTestToken(claims))
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	if result.AccountID != "" {
+		t.Errorf("expected an empty accountId, got %q", result.AccountID)
+	}
+
+	if result.CloudID != testCloudID {
+		t.Errorf("expected cloudId %q from apiBaseUrl, got %q", testCloudID, result.CloudID)
+	}
+}
+
+// TestParse_MissingCloudIDRejectedWithoutPrincipal asserts the rejection is
+// driven by the unresolvable cloudId and never cites the optional principal.
+func TestParse_MissingCloudIDRejectedWithoutPrincipal(t *testing.T) {
+	claims := validClaims()
+	claims.Principal = ""
+	claims.Context.CloudID = ""
+	claims.App.APIBaseURL = ""
+
 	_, err := Parse(createTestToken(claims))
 	if err == nil {
-		t.Fatal("expected error for missing principal, got nil")
+		t.Fatal("expected error when both cloudId sources are absent, got nil")
 	}
 
 	if !errors.Is(err, ErrMissingClaims) {
 		t.Errorf("expected ErrMissingClaims, got %v", err)
+	}
+
+	if strings.Contains(err.Error(), "principal") {
+		t.Errorf("expected the message not to cite the principal claim, got %q", err.Error())
 	}
 }
 

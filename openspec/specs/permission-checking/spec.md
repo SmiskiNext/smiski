@@ -115,8 +115,13 @@ trailing path segment of `app.apiBaseUrl`.
 ### Requirement: Extract accountId from FIT principal claim
 
 The authorization service SHALL extract the accountId (user identifier) from the
-FIT `principal` claim, normalising the Forge colon-prefixed and ARI forms to a
-bare account identifier.
+FIT `principal` claim when present, normalising the Forge colon-prefixed and ARI
+forms to a bare account identifier. The `principal` claim is optional: Atlassian
+omits it for invocations that run without a user in session (for example, a
+Forge app-lifecycle trigger or pre-uninstall function). When `principal` is
+absent or empty, the service SHALL NOT reject the request on that basis; it
+SHALL resolve accountId to an empty string and continue parsing the remaining
+claims, including cloudId.
 
 #### Scenario: AccountId extracted from Forge colon-prefixed principal
 
@@ -135,16 +140,17 @@ bare account identifier.
 - **WHEN** FIT contains `"principal": "5f8c9d1234567890abcdef01"`
 - **THEN** system extracts accountId as `5f8c9d1234567890abcdef01`
 
-#### Scenario: Missing principal rejected
+#### Scenario: Missing principal yields an empty accountId, not a rejection
 
-- **WHEN** FIT does not contain `principal` claim
-- **THEN** system returns HTTP 400 Bad Request with message "Missing principal
-  claim"
+- **WHEN** FIT does not contain a `principal` claim, and a valid cloudId can be
+  resolved from `context.cloudId` or `app.apiBaseUrl`
+- **THEN** parsing succeeds, system resolves accountId as an empty string, and
+  the request is not rejected for a missing principal
 
-#### Scenario: Empty principal rejected
+#### Scenario: Empty principal yields an empty accountId, not a rejection
 
-- **WHEN** FIT contains `"principal": ""`
-- **THEN** system returns HTTP 400 Bad Request
+- **WHEN** FIT contains `"principal": ""`, and a valid cloudId can be resolved
+- **THEN** parsing succeeds and system resolves accountId as an empty string
 
 ### Requirement: Parse FIT payload without signature verification
 
@@ -163,12 +169,13 @@ validated by the gateway.
 - **THEN** system returns HTTP 400 Bad Request with message "Invalid token
   format"
 
-#### Scenario: Multiple missing claims reported
+#### Scenario: Missing cloudId claims reported
 
-- **WHEN** FIT is missing `principal` and both cloudId sources
-  (`context.cloudId`, `app.apiBaseUrl`)
-- **THEN** system returns HTTP 400 Bad Request with a message listing all
-  missing claims
+- **WHEN** FIT contains neither `context.cloudId` nor `app.apiBaseUrl`,
+  regardless of whether `principal` is present
+- **THEN** system returns HTTP 400 Bad Request with a message indicating cloudId
+  could not be resolved; the message SHALL NOT cite a missing `principal` claim,
+  since `principal` is optional and never contributes to this rejection
 
 #### Scenario: Invalid claim type reported
 
@@ -602,7 +609,9 @@ key without data corruption.
 
 The authorization service SHALL return a `CheckResponse` containing an
 `OkHttpResponse` with `X-Tenant-ID`, `X-Account-Id` and `X-Project-Permissions`
-headers when authorization succeeds.
+headers when authorization succeeds. `X-Account-Id` SHALL be injected with an
+empty value when the FIT carried no `principal` claim, rather than blocking the
+response — a resolvable cloudId is sufficient for an allow decision.
 
 #### Scenario: Success response carries OK status
 
@@ -644,6 +653,13 @@ headers when authorization succeeds.
   `HeaderValueOption{Header: {Key, Value}, Append: false}` so the backend
   receives exactly one instance of each
 
+#### Scenario: Allow decision with empty accountId when principal is absent
+
+- **WHEN** a request carries a FIT with a resolvable cloudId but no `principal`
+  claim (a user-less app-lifecycle invocation)
+- **THEN** the service returns an allow decision, injects
+  `X-Tenant-ID: <cloudId>`, and injects `X-Account-Id` with an empty value
+
 ### Requirement: Return deny decision on authorization failure
 
 The authorization service SHALL return a `CheckResponse` with a
@@ -667,10 +683,19 @@ any backend service.
 - **WHEN** authorization fails due to an unparseable or invalid token
 - **THEN** DeniedHttpResponse includes status 401 instead of 403
 
-#### Scenario: Missing identity prevents header injection
+#### Scenario: Missing cloudId prevents header injection
 
-- **WHEN** FIT does not yield a valid cloudId or accountId
-- **THEN** the request is denied and no identity headers are injected
+- **WHEN** FIT does not yield a valid cloudId
+- **THEN** the request is denied and no identity headers are injected,
+  regardless of whether `principal`/accountId is present
+
+#### Scenario: Valid cloudId with absent accountId is not denied
+
+- **WHEN** FIT yields a valid cloudId but no `principal` claim, so accountId
+  resolves to an empty string
+- **THEN** the request is NOT denied on that basis; the service proceeds to the
+  context-header check and, absent `X-Issue-Id`/`X-Project-Id`, returns an allow
+  decision with empty permissions
 
 ### Requirement: Remove authorization header before forwarding
 

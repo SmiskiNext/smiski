@@ -6,6 +6,24 @@ const moduleDirectory = dirname(fileURLToPath(import.meta.url));
 /** Absolute path to the monorepo root, independent of the caller's cwd. */
 export const repositoryRoot = resolve(moduleDirectory, '../../..');
 
+/** Absolute path to the local development stack directory. */
+export const dockerStackDirectory = resolve(repositoryRoot, 'services/docker');
+
+/** Absolute path to the development stack's compose definition. */
+export const dockerComposeFile = resolve(dockerStackDirectory, 'compose.yaml');
+
+/**
+ * Absolute path to the development stack's environment file.
+ *
+ * Gitignored, and read by compose from the compose file's own directory rather
+ * than from the caller's cwd, so the stack sees the same values whichever
+ * directory a command is run from.
+ */
+export const dockerEnvFile = resolve(dockerStackDirectory, '.env');
+
+/** Absolute path to the tracked template the environment file is copied from. */
+export const dockerEnvExample = resolve(dockerStackDirectory, '.env.example');
+
 /** Absolute path to the load-test stack directory. */
 export const testStackDirectory = resolve(repositoryRoot, 'services/test');
 

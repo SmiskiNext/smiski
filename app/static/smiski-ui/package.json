@@ -2,7 +2,7 @@
     "name": "smiski-ui",
     "version": "0.0.0",
     "description": "Smiski Custom UI — Jira issue panel + project page (Vite + React + TS)",
-    "license": "Apache-2.0",
+    "license": "AGPL-3.0-only",
     "private": true,
     "type": "module",
     "scripts": {

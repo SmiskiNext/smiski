@@ -16,6 +16,7 @@
     },
     "dependencies": {
         "citty": "^0.1.6",
+        "consola": "^3.2.3",
         "dotenv": "^16.4.7",
         "zx": "^8.2.4"
     },

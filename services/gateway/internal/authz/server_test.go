@@ -97,6 +97,77 @@ func TestCheck_ValidAuthorization(t *testing.T) {
 	}
 }
 
+// TestCheck_EmptyAccountIDStillAllowed pins the response an app life-cycle
+// invocation receives: a resolvable cloudId is enough for an allow decision, so
+// x-account-id is injected with an empty value rather than blocking the
+// response.
+func TestCheck_EmptyAccountIDStillAllowed(t *testing.T) {
+	mockAuthz := &mockAuthzService{
+		authorizeFunc: func(ctx context.Context, req *AuthzRequest) (*AuthzResult, error) {
+			return &AuthzResult{
+				CloudID:     "abc123",
+				AccountID:   "",
+				Permissions: []string{},
+			}, nil
+		},
+	}
+
+	server := NewServer(mockAuthz)
+
+	checkReq := &envoy_service_auth_v3.CheckRequest{
+		Attributes: &envoy_service_auth_v3.AttributeContext{
+			Request: &envoy_service_auth_v3.AttributeContext_Request{
+				Http: &envoy_service_auth_v3.AttributeContext_HttpRequest{
+					Headers: map[string]string{
+						"authorization": "Bearer userless-token",
+					},
+				},
+			},
+		},
+	}
+
+	resp, err := server.Check(context.Background(), checkReq)
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	if resp.Status.Code != int32(codes.OK) {
+		t.Errorf("expected status OK, got %v", resp.Status.Code)
+	}
+
+	okResp := resp.GetOkResponse()
+	if okResp == nil {
+		t.Fatal("expected OkResponse, got nil")
+	}
+
+	values := map[string]string{}
+	for _, h := range okResp.Headers {
+		values[h.Header.Key] = h.Header.Value
+	}
+
+	if values["x-tenant-id"] != "abc123" {
+		t.Errorf("expected x-tenant-id=abc123, got %q", values["x-tenant-id"])
+	}
+
+	accountID, present := values["x-account-id"]
+	if !present {
+		t.Error("expected x-account-id to be injected even when empty")
+	}
+
+	if accountID != "" {
+		t.Errorf("expected an empty x-account-id, got %q", accountID)
+	}
+
+	permissions, present := values["x-project-permissions"]
+	if !present {
+		t.Error("expected x-project-permissions to be injected")
+	}
+
+	if permissions != "" {
+		t.Errorf("expected empty permissions, got %q", permissions)
+	}
+}
+
 func TestCheck_MissingAuthorizationHeader(t *testing.T) {
 	mockAuthz := &mockAuthzService{}
 	server := NewServer(mockAuthz)
