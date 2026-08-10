@@ -22,15 +22,17 @@ page and the `smiski test` CLI.
 tracks the development stack automatically instead of drifting from a duplicate.
 `services/docker/` is read-only for this work.
 
-| Addition                   | Why it exists                                               |
-| -------------------------- | ----------------------------------------------------------- |
-| `coturn`                   | TURN relay for TC-01, independently measurable              |
-| `mock-jira`                | Removes the gateway's 2 s Jira timeout from TC-04           |
-| `harness`                  | Browser QoS page for TC-01/TC-02, outside the Forge app     |
-| `livekit-redis-exporter`   | Makes the **second** cache instance a separate target       |
-| `envoy/envoy.yaml`         | `local_jwks` instead of Atlassian's `remote_jwks`           |
-| `observability/*`          | Scrape jobs for LiveKit, Coturn, `livekit-redis`            |
-| pinned network + `node_ip` | Fixes relay traversal — see [The relay fix](#the-relay-fix) |
+| Addition                 | Why it exists                                                                          |
+| ------------------------ | -------------------------------------------------------------------------------------- |
+| `coturn`                 | STUN + TURN for TC-01, independently measurable                                        |
+| `nat-gw`                 | Real NAT between the client and the media server — see TC-01                           |
+| `browser`                | Containerised Chromium behind the NAT, driven over noVNC                               |
+| `mock-jira`              | Removes the gateway's 2 s Jira timeout from TC-04                                      |
+| `harness`                | Browser QoS page for TC-01/TC-02, outside the Forge app                                |
+| `livekit-redis-exporter` | Makes the **second** cache instance a separate target                                  |
+| `envoy/envoy.yaml`       | `local_jwks` instead of Atlassian's `remote_jwks`                                      |
+| `observability/*`        | Scrape jobs for LiveKit, Coturn, `livekit-redis`                                       |
+| two pinned networks      | Places `nat-gw` between client and media — see [Two legs of TC-01](#two-legs-of-tc-01) |
 
 Volumes and networks are prefixed separately (`smiski-test_valkey-data` vs
 `docker_valkey-data`), so the two stacks never share data.
@@ -38,10 +40,12 @@ Volumes and networks are prefixed separately (`smiski-test_valkey-data` vs
 > [!IMPORTANT]
 >
 > **Host ports are inherited unchanged**, and they are hardcoded in the included
-> file (30000, 9901, 8281-8284, 9094, 7880-7882, 3000, 9090, 3100, 12345). The
-> two stacks cannot run simultaneously as written even though their data is
-> fully separate. Stop one before starting the other, or add `ports: !override`
-> entries in a local file that is not committed.
+> file (30000, 9901, 8281-8284, 9094, 7880-7882, 3000, 9090, 3100, 12345). This
+> overlay publishes **one more**: `BROWSER_VNC_PORT` (default 3010) for the
+> TC-01 browser's noVNC console, chosen off the inherited range because Grafana
+> already owns 3000. The two stacks cannot run simultaneously as written even
+> though their data is fully separate. Stop one before starting the other, or
+> add `ports: !override` entries in a local file that is not committed.
 
 ## Startup
 
@@ -147,47 +151,76 @@ you came for are absent or wrong. All were observed on this host, not inferred.
 > every job reports `up`. A valid configuration file does not imply a reachable
 > target — that mistake has already been made once here.
 
-## The relay fix
+## Two legs of TC-01
 
-TC-01 fails without this, and the failure is silent on both sides.
+TC-01 asks for NAT traversal. The honest way to show it is to put a **real NAT**
+in the media path and let ICE choose, rather than pinning
+`iceTransportPolicy: 'relay'` and calling a forced relay "traversal". So the
+overlay runs a containerised browser behind a NAT gateway and measures two legs:
 
-`services/docker/compose.yaml` starts LiveKit with
-`--node-ip ${SMISKI_HOST_IP}`, so it advertises the **host LAN address** in its
-ICE candidates while its real egress toward Coturn is its **container address**.
-Coturn installs the peer permission for the advertised address, so the
-connectivity check arrives from an unpermitted source and is discarded. Measured
-before the fix: `requestsSent: 8, responsesReceived: 0, state: failed`, with no
-error logged anywhere. The only symptom is a candidate pair that never
-completes.
+- **Leg 1 — direct traversal.** UDP is open and Coturn answers STUN. ICE learns
+  a post-NAT address and connects straight to LiveKit. Evidence:
+  `local_candidate_type` is `srflx` (or `prflx`), and
+  `nat traversal proven,true` in the export header. **No relay is used.**
+- **Leg 2 — relay fallback.** `impair blocked-udp --service nat-gw` drops UDP in
+  the gateway, so STUN/UDP and media/UDP both fail and ICE falls back to TURN
+  over TCP **on its own**. Evidence: `local_candidate_type` is `relay` and
+  `relay proven,true`.
 
-The overlay fixes it in three coupled parts, all in `compose.yaml`:
+Why one NAT type, not two. Research against RFC 8445 confirmed that in a
+client-behind-NAT ↔ reachable-SFU topology, **cone and symmetric NAT both
+traverse directly** via the reflexive candidate the client forms during its
+connectivity check to LiveKit. The NAT type does not change the outcome when the
+server is reachable; what forces a relay is losing UDP. So `nat-gw` emulates one
+type — **port-restricted cone**, which is what plain `MASQUERADE` + conntrack
+produces — and Leg 2 removes UDP rather than switching NAT type.
 
-| Part                                           | Purpose                                       |
-| ---------------------------------------------- | --------------------------------------------- |
-| `networks.default.ipam` `10.77.0.0/24`         | Makes a static address assignable             |
-| `livekit-server.networks.default.ipv4_address` | Pins it to `10.77.0.10`                       |
-| `command: !override` without `--node-ip`       | Lets configuration win                        |
-| `rtc.node_ip: 10.77.0.10`                      | Advertises the address it actually sends from |
+The topology, all in `compose.yaml`:
 
-Dropping the flag is **required, not cosmetic**: measured on `livekit-server`
-v1.9.12, the CLI flag beats the configuration file, so `--node-ip` wins over
-`rtc.node_ip` whenever both are present.
+```text
+  client-net 10.88.0.0/24            media-net 10.77.0.0/24
+  ┌────────────────┐   MASQUERADE   ┌──────────────────────────────┐
+  │ browser .10     │──┐            │ livekit .10  harness .11       │
+  │ (Chromium+noVNC)│  ▼            │ coturn  .12  nat-gw   .13      │
+  └────────────────┘ ┌──────────┐   └──────────────────────────────┘
+   route to          │ nat-gw   │
+   10.77.0.0/24 ─────│ .2 / .13 │───────────► only path across
+   via .2            └──────────┘
+```
 
-`ip_range: 10.77.0.128/25` confines dynamic allocation to the upper half. Docker
-assigns addresses upward from the start of a subnet, so without it the static
-`.10` races the other ~20 containers. Measured: `notification-postgres` took
-`10.77.0.10` first and LiveKit then failed with
-`failed to set up container networking: Address already in use` — loud, but
-dependent on startup order.
+| Part                                      | Purpose                                          |
+| ----------------------------------------- | ------------------------------------------------ |
+| `networks.clients` `10.88.0.0/24`         | A network the media server is **not** on         |
+| `nat-gw` dual-homed `.2` / `10.77.0.13`   | The only route across, source-NATs the browser   |
+| `browser` on `clients` + `custom-init.sh` | Routes `10.77.0.0/24` via `nat-gw`, nothing else |
+| Coturn `--no-udp` removed, UDP port added | Serves STUN/UDP (Leg 1) and TURN/TCP (Leg 2)     |
+| `livekit rtc.node_ip: 10.77.0.10`         | Advertises the address the NAT browser routes to |
+
+`node_ip` and the pinned media network are retained from the original design:
+LiveKit still advertises `10.77.0.10`, which the browser reaches **through
+nat-gw**. `ip_range` on each network confines dynamic allocation to the upper
+half so the static `.10-.13` addresses do not race the ~20 other containers —
+measured once as `notification-postgres` taking `10.77.0.10` first and LiveKit
+failing with `Address already in use`.
+
+> [!IMPORTANT]
+>
+> **The route is scoped, not default.** `custom-init.sh` routes only
+> `10.77.0.0/24` via `nat-gw`. Redirecting the browser's **default** route would
+> send its noVNC replies to the gateway too and freeze the operator's session.
+> Only media traffic crosses the NAT; host access to the noVNC port keeps
+> working.
+
+The client the browser runs on is what decides whether a run can show direct
+connectivity at all:
 
 > [!NOTE]
 >
-> **Consequence.** The pinned address is reachable from inside the stack but not
-> from the host, so a browser cannot form a direct pair with the media server.
-> **Every** harness connection is relayed whether or not the relay-only toggle
-> is set. That is what makes TC-01 pass, and it means a run with the toggle
-> **off** is not evidence of direct connectivity. Read `local_candidate_type` in
-> the export rather than assuming from the toggle.
+> **A host browser still cannot route to `10.77.0.10`.** TC-02/TC-03 drive the
+> harness from a browser on the host, and for those every connection is still
+> relayed — so a host run is never evidence of direct connectivity. Read
+> `local_candidate_type`, never assume from the toggle. Only the containerised
+> TC-01 browser sits behind the NAT and can show `srflx`.
 
 ## Running each case
 
@@ -200,34 +233,53 @@ when missing: `x-issue-id: 10001` and
 request body needs both `displayName` and `deviceId`; omitting `deviceId` is a
 `400` naming the field.
 
-### TC-01 — NAT traversal via TURN (< 3 s setup)
+### TC-01 — NAT traversal (< 3 s setup), two legs
 
-Preconditions: stack up, `keygen` and `seed` done, a meeting id to hand.
+Preconditions: stack up (the `browser` and `nat-gw` services included), `keygen`
+and `seed` done, a meeting id to hand. The client is the containerised Chromium
+behind the NAT, driven over noVNC at `http://localhost:3010`, **not** a host
+browser. Both legs share these first two steps:
 
-1. `smiski test impair blocked-udp --service livekit-server`
-2. Join through the gateway to obtain a LiveKit token:
+1. Obtain a LiveKit token through the gateway:
 
     ```sh
     curl -s -X POST "http://localhost:30000/api/1/meetings/<MEETING_ID>:join" \
         -H "Authorization: Bearer $(pnpm -s --dir scripts smiski test token)" \
         -H 'Content-Type: application/json' -H 'x-issue-id: 10001' \
         -H 'x-forge-oauth-system: loadtest-system-token' \
-        -d '{"displayName":"Relay","deviceId":"d1"}'
+        -d '{"displayName":"NatClient","deviceId":"d1"}'
     ```
 
-3. **Manual:** open <http://localhost:8090>, paste the token, set the server URL
-   to `ws://localhost:7880`, **tick relay-only**, connect.
-4. Read the setup time from the status line; export the CSV.
-5. `smiski test impair lan --service livekit-server` to restore baseline.
+2. **Manual:** open <http://localhost:3010> (noVNC), and in the browser there go
+   to `http://10.77.0.11`. Paste the token, leave the server URL at
+   `ws://10.77.0.10:7880`, leave the STUN field at `stun:10.77.0.12:3478`, leave
+   **relay-only OFF**.
 
-Evidence: `relay proven,true` and `call setup within 3000 ms budget,true` in the
-export header, plus `turn_total_allocations` and `turn_total_traffic_sentb` from
-Coturn. A successful connection alone is **not** relay evidence — the candidate
-type is.
+Then run each leg in turn.
+
+**Leg 1 — direct traversal.** With relay-only off and UDP open, connect. Read
+the setup time; confirm `Interpretation` reads "Leg 1: NAT traversed directly",
+then export the CSV. Evidence: `nat traversal proven,true`,
+`local_candidate_type` = `srflx`/`prflx`,
+`call setup within 3000 ms budget,true`, and **no** relay traffic on Coturn.
+
+**Leg 2 — relay fallback.** Apply
+`smiski test impair blocked-udp --service nat-gw` to drop UDP in the gateway,
+then disconnect and reconnect from the page. Confirm `Interpretation` reads "Leg
+2: relayed through TURN" and export the CSV. Restore with
+`smiski test impair lan --service nat-gw`. Evidence: `relay proven,true`,
+`local_candidate_type` = `relay`, `call setup within 3000 ms budget,true`, plus
+`turn_total_allocations` and `turn_total_traffic_sentb` from Coturn. A
+successful connection alone proves neither leg — the candidate type is what
+separates them.
 
 ### TC-02 — Media QoS over 15 minutes
 
-Preconditions: TC-01's steps, plus **a second publisher** and the `4g` profile.
+Preconditions: stack up, `keygen`/`seed` done, **a second publisher** and the
+`4g` profile. Unlike TC-01, TC-02 uses a browser **on the host** at
+<http://localhost:8090> (server URL `ws://localhost:7880`); it does not need the
+NAT client, and every host connection is relayed, which does not affect the QoS
+figures it measures.
 
 1. `smiski test impair 4g --service livekit-server` — mandatory. On an
    unimpaired local stack latency is ~0.04 ms, so a "< 200 ms" result carries no
@@ -305,6 +357,7 @@ counted as system-under-test usage.
 | TC-03 room load, TC-04 token load          |    ✅    |        |
 | Metric collection to CSV                   |    ✅    |        |
 | Joining from a browser, reading setup time |          |   ✅   |
+| Driving the NAT browser over noVNC (TC-01) |          |   ✅   |
 | Screen share start/stop                    |          |   ✅   |
 | Holding TC-02 for its full 15 minutes      |          |   ✅   |
 | Judging results against thresholds         |          |   ✅   |
@@ -320,13 +373,13 @@ resolved by a stated decision so no one silently reinterprets it.
 | #   | Assignment states                     | Repository reality                                                                                        | Resolution                                                      |
 | --- | ------------------------------------- | --------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------- |
 | 1   | Backend is NestJS                     | Spring Boot 4 / Java 25, service `meet`                                                                   | TC-04 targets the Spring `meet` service                         |
-| 2   | A Coturn container is monitored       | No Coturn anywhere; no `turn:` block, no `rtc.turn_servers`                                               | Added a standalone Coturn container to this stack               |
+| 2   | A Coturn container is monitored       | No Coturn anywhere; no `turn:` block, no `rtc.turn_servers`                                               | Added a standalone Coturn (STUN + TURN) container to this stack |
 | 3   | "the Redis container"                 | **Two**: `valkey` (application) and `livekit-redis` (LiveKit-internal, uninstrumented)                    | TC-05 measures both, reported as separate jobs                  |
 | 4   | Metrics come from a LiveKit dashboard | LiveKit exposes none: `prometheus_port` unset, no `livekit` scrape job                                    | `prometheus.port` enabled; scrape jobs added here               |
 | 5   | Meeting sync rate to the PM system    | `meet` never writes to Jira; it stores `issue_id`/`issue_key` locally, and only the Go gateway reads Jira | Redefined as outbox drain latency + `participation_logs` writes |
 | 6   | Kafka lag as an integration metric    | `apache/kafka:4.1.0` ships no JMX exporter, deliberately excluded from Prometheus                         | Drain measured via the `outbox_events` table instead            |
 
-Four further divergences emerged from the code rather than from the brief:
+Five further divergences emerged from the code rather than from the brief:
 
 1. **TC-04's two success criteria cannot both hold in one run.** Under
    `ALLOW_ALL` every request returns a token but touches no Redis; under
@@ -346,8 +399,16 @@ Four further divergences emerged from the code rather than from the brief:
    the ext_authz gRPC hop, the gateway's Valkey cache) stays in the measured
    path. No mock JWKS service is needed.
 4. **The Forge app cannot be used as the QoS client.** It builds its `Room` with
-   no way to inject `rtcConfig`, and the relay-only toggle _is_ an `rtcConfig`
-   override. A standalone page keeps the production application untouched.
+   no way to inject `rtcConfig`, so the standalone harness page is what lets ICE
+   be configured and keeps the production application untouched.
+5. **NAT type alone does not force a relay in a client↔SFU topology.** RFC 8445
+   verified: when the SFU is reachable, a client behind any NAT — cone or
+   symmetric — traverses directly via a reflexive candidate; only losing UDP (or
+   an unreachable server) forces TURN. So TC-01 does not switch NAT types. It
+   places one real NAT (`nat-gw`, port-restricted cone) in the path and measures
+   two legs: direct with UDP open, relay after `blocked-udp` removes UDP. The
+   old design instead forced `iceTransportPolicy: 'relay'`, which proved the
+   relay worked but never proved traversal — this replaces it.
 
 ## Token claim shape
 

@@ -50,12 +50,28 @@
                 <input
                     id="serverUrl"
                     type="text"
-                    value="ws://localhost:7880"
+                    value="ws://10.77.0.10:7880"
                     spellcheck="false"
                 />
                 <p class="hint">
                     No API response carries this. The join endpoint returns a
-                    token and a room name only.
+                    token and a room name only. From the containerised NAT
+                    browser use <code>ws://10.77.0.10:7880</code>; from a browser
+                    on the host use <code>ws://localhost:7880</code>.
+                </p>
+
+                <label for="stunUrl">STUN server (optional)</label>
+                <input
+                    id="stunUrl"
+                    type="text"
+                    value="stun:10.77.0.12:3478"
+                    spellcheck="false"
+                />
+                <p class="hint">
+                    Added to the ICE servers LiveKit already supplies, so Leg 1
+                    gathers a clean <code>srflx</code> candidate. Leave it and
+                    the connection still traverses via <code>prflx</code>; clear
+                    it only to test that path. Not used when relay-only is on.
                 </p>
 
                 <label for="token">Access token</label>
@@ -78,9 +94,11 @@
                     </span>
                 </label>
                 <p class="hint">
-                    Required for TC-01. Verify the candidate type below reads
-                    <code>relay</code>; a successful connection alone is not
-                    proof of relay.
+                    Leave OFF for both legs of TC-01: ICE must choose the path
+                    itself. Leg 1 expects a <code>srflx</code>/<code>prflx</code>
+                    candidate (direct traversal); Leg 2, after
+                    <code>impair blocked-udp</code>, expects <code>relay</code>.
+                    This toggle forces relay and exists only for a control run.
                 </p>
 
                 <label class="checkbox">
@@ -111,6 +129,8 @@
                     <dd id="setupTime">&mdash;</dd>
                     <dt>Candidate type (local / remote)</dt>
                     <dd id="candidateType">&mdash;</dd>
+                    <dt>Interpretation</dt>
+                    <dd id="candidateMeaning">&mdash;</dd>
                     <dt>Round-trip time</dt>
                     <dd id="rtt">&mdash;</dd>
                     <dt>Jitter</dt>

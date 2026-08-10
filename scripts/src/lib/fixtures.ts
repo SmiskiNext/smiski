@@ -51,8 +51,18 @@ export const HARNESS_SYSTEM_TOKEN = 'loadtest-system-token';
 /** Default gateway origin, matching the inherited Envoy host port. */
 export const DEFAULT_GATEWAY_ORIGIN = 'http://localhost:30000';
 
-/** Default browser-facing LiveKit signalling URL. */
+/** Default browser-facing LiveKit signalling URL for a host browser. */
 export const DEFAULT_LIVEKIT_WS_URL = 'ws://localhost:7880';
+
+/**
+ * LiveKit signalling URL for the containerised NAT browser (TC-01).
+ *
+ * That browser sits on the client network and cannot resolve the
+ * `livekit-server` service name, so it addresses the media server by the static
+ * address the overlay pins it to, routed through nat-gw. The host port is not
+ * reachable from inside the client network, so `localhost` would not work there.
+ */
+export const NAT_CLIENT_LIVEKIT_WS_URL = 'ws://10.77.0.10:7880';
 
 /** Default in-stack LiveKit signalling URL for server-side tooling. */
 export const DEFAULT_LIVEKIT_URL = 'http://livekit-server:7880';

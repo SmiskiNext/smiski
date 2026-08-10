@@ -36,11 +36,17 @@
 # service still exits 0 for a plain `config`, and only fails once the
 # observability profile is selected.
 #
-# THE NETWORK IS PINNED to 10.77.0.0/24 and livekit-server holds a static
-# address on it. That is load bearing for TC-01, not tidiness: without it the
-# media server advertises the host LAN address while sending from its container
-# address, and coturn silently discards every connectivity check. See the
-# livekit-server override and networks: below.
+# TWO NETWORKS ARE PINNED. The media network 10.77.0.0/24 holds livekit-server
+# (.10), harness (.11), coturn (.12) and one leg of nat-gw (.13) at static
+# addresses; the client network 10.88.0.0/24 holds the browser (.10) and the
+# other leg of nat-gw (.2). This is load bearing for TC-01: the browser can
+# reach the media server ONLY through nat-gw, which source-NATs it, so ICE forms
+# a real server-reflexive candidate rather than the forced relay the old design
+# used. See nat-gw, browser and networks: below, and AGENTS.md "Two legs".
+#
+# ONE EXTRA HOST PORT is published beyond the inherited set: BROWSER_VNC_PORT
+# (default 3010) for the noVNC console of the TC-01 browser. It is chosen off
+# the inherited range because the inherited Grafana already owns host 3000.
 
 name: smiski-test
 
@@ -140,20 +146,31 @@ services:
             retries: 10
             start_period: 5s
 
-    # TURN relay, so media still connects when TC-01 blocks all UDP.
+    # TURN relay AND STUN server, serving both legs of TC-01.
     #
     # Standalone rather than LiveKit's embedded `turn:` block: that needs a
     # CA-signed certificate matching its `domain`, unavailable locally, and
     # would give no separate container for the per-container resource
     # measurement the assignment asks for.
     #
-    # TCP on 3478 only, and both halves of that matter:
-    #   - not UDP, because TC-01 blocks every UDP port and TURN/UDP would be
-    #     dropped along with the media path it exists to rescue
-    #   - not TLS, because LiveKit rejects self-signed certificates and a
-    #     locally trusted CA adds setup cost without changing what TC-01 proves
-    # --no-udp and --no-tls/--no-dtls make that explicit, so the server cannot
-    # quietly satisfy an allocation over a transport the test means to exclude.
+    # UDP IS ENABLED, which is the change that makes real NAT traversal
+    # measurable rather than forced. TC-01 now has two legs and Coturn serves a
+    # different role in each:
+    #   - Leg 1 (traversal): the client reaches Coturn over UDP/3478 as a STUN
+    #     server, learns its post-NAT address and connects DIRECTLY to LiveKit —
+    #     no relay. A `--no-udp` server could not answer the STUN binding and
+    #     this leg could never produce a server-reflexive candidate.
+    #   - Leg 2 (fallback): the browser namespace drops outbound UDP, so STUN/UDP
+    #     and media/UDP both fail and ICE falls back to TURN over TCP/3478 on its
+    #     own. Relay is chosen by ICE, not forced by iceTransportPolicy.
+    # Still --no-tls/--no-dtls: LiveKit rejects self-signed certificates and a
+    # locally trusted CA adds setup cost without changing what TC-01 proves.
+    #
+    # THE STATIC IP is load bearing. The browser is a container behind nat-gw on
+    # a separate network and cannot resolve the `coturn` service name, so LiveKit
+    # advertises Coturn to clients by the address below (rtc.turn_servers.host)
+    # and the harness offers the same address as its STUN server. Pinned in the
+    # lower half of the subnet, outside the dynamic ip_range — see networks.
     #
     # THE SECRET MUST MATCH what LiveKit advertises in rtc.turn_servers below.
     # Both read TURN_SHARED_SECRET with the same default for exactly that
@@ -175,7 +192,6 @@ services:
             - '--listening-port=${TURN_PORT:-3478}'
             - '--use-auth-secret'
             - '--static-auth-secret=${TURN_SHARED_SECRET:-change-me-turn-shared-secret}'
-            - '--no-udp'
             - '--no-tls'
             - '--no-dtls'
             - '--no-cli'
@@ -183,6 +199,10 @@ services:
             - '--log-file=stdout'
         ports:
             - '${TURN_PORT:-3478}:${TURN_PORT:-3478}/tcp'
+            - '${TURN_PORT:-3478}:${TURN_PORT:-3478}/udp'
+        networks:
+            default:
+                ipv4_address: 10.77.0.12
 
     # Serves the browser QoS harness page for TC-01 and TC-02.
     #
@@ -209,12 +229,21 @@ services:
     # The page needs a HOST port because a browser loads it, and the browser
     # also needs to reach livekit-server directly on 7880 — WebRTC signalling is
     # a WebSocket the page opens itself, not something Envoy proxies.
+    #
+    # THE STATIC IP serves the containerised NAT client. The `browser` service
+    # sits behind nat-gw on client-net and cannot resolve the `harness` service
+    # name, so it opens the page by this address (http://10.77.0.11) routed
+    # through the gateway. The host port stays published for TC-02/TC-03, which
+    # still drive the page from a browser on the host.
     harness:
         image: nginx:1.29-alpine
         ports:
             - '${HARNESS_PORT:-8090}:80'
         volumes:
             - ./harness:/usr/share/nginx/html:ro
+        networks:
+            default:
+                ipv4_address: 10.77.0.11
         depends_on:
             livekit-server:
                 condition: service_healthy
@@ -248,12 +277,16 @@ services:
     # rtc.node_ip, next to the rest of the media configuration — not restated as
     # a command-line argument that would then have to track upstream changes.
     #
-    # CONSEQUENCE WORTH KNOWING. The pinned address is reachable from inside
-    # the stack but not from the host, so a browser can no longer form a direct
-    # candidate pair with the media server. Every harness connection is relayed
-    # through coturn whether or not the relay-only toggle is set. That is what
-    # makes TC-01 pass, and it means a run WITHOUT relay-only is not evidence of
-    # direct connectivity — see AGENTS.md.
+    # CONSEQUENCE WORTH KNOWING, AND IT DIFFERS BY CLIENT. The pinned address is
+    # reachable from inside the stack but NOT from the host:
+    #   - The containerised `browser` (TC-01) reaches 10.77.0.10 THROUGH nat-gw,
+    #     so it can form a direct (server-reflexive) pair over UDP in Leg 1 and
+    #     is pushed to a TURN/TCP relay only when Leg 2 drops its UDP. Both
+    #     outcomes are chosen by ICE, which is the whole point of the two legs.
+    #   - A browser on the HOST still cannot route to 10.77.0.10, so any
+    #     host-driven connection (TC-02/TC-03) is relayed regardless of toggles.
+    #     A host run is therefore never evidence of direct connectivity — read
+    #     local_candidate_type in the export, never assume from the setup.
     livekit-server:
         command: !override
             - '--config'
@@ -297,6 +330,120 @@ services:
             livekit-redis:
                 condition: service_healthy
 
+    # The NAT gateway that makes TC-01 measure real traversal instead of forcing
+    # a relay. It is the ONLY path between the client network and the media
+    # network, and it rewrites the browser's source address on the way out —
+    # which is exactly what a NAT does.
+    #
+    # WHY A SEPARATE CONTAINER. `browser` sits alone on `clients` (10.88.0.0/24)
+    # and LiveKit/Coturn/harness sit on the media network (10.77.0.0/24). Docker
+    # isolates the two networks, so the browser has no route to 10.77.0.0/24
+    # except through this gateway, which is attached to both. Every packet the
+    # browser sends toward the media server is therefore source-NAT'd here, and
+    # the address LiveKit sees — and reflects back as the client's
+    # server-reflexive candidate — is this gateway's media address, never the
+    # browser's own. That reflexive candidate is the evidence Leg 1 records.
+    #
+    # THE NAT TYPE IS PORT-RESTRICTED CONE, which is what plain MASQUERADE plus
+    # conntrack produces: endpoint-independent mapping, address-and-port
+    # dependent filtering. Only one NAT type is emulated deliberately — in a
+    # client-to-reachable-SFU topology, cone and symmetric NAT both traverse
+    # directly via the reflexive candidate, so a second type would not produce a
+    # second outcome. See AGENTS.md "Two legs of TC-01".
+    #
+    # RULES ARE SOURCE-BASED, NOT INTERFACE-BASED, on purpose. Docker does not
+    # guarantee which of eth0/eth1 maps to which network, so matching on the
+    # 10.88.0.0/24 source subnet is stable where `-o eth1` would silently break
+    # if the ordering changed. FORWARD defaults to ACCEPT in a fresh namespace;
+    # the explicit rules state intent and survive a stricter default.
+    #
+    # Leg 2 (the UDP block) is NOT set here. It is applied on demand to this
+    # container's FORWARD chain by `smiski test impair blocked-udp --service
+    # nat-gw`, so the gateway boots in the pass-through state Leg 1 needs and the
+    # firewall is added only for the fallback measurement. `sleep infinity`
+    # keeps the namespace alive for that sidecar to join.
+    nat-gw:
+        image: nicolaka/netshoot:v0.13
+        cap_add:
+            - NET_ADMIN
+            - NET_RAW
+        sysctls:
+            net.ipv4.ip_forward: 1
+        networks:
+            clients:
+                ipv4_address: 10.88.0.2
+            default:
+                ipv4_address: 10.77.0.13
+        command:
+            - /bin/bash
+            - -c
+            - |
+                set -e
+                iptables -t nat -A POSTROUTING -s 10.88.0.0/24 ! -d 10.88.0.0/24 -j MASQUERADE
+                iptables -A FORWARD -s 10.88.0.0/24 -j ACCEPT
+                iptables -A FORWARD -d 10.88.0.0/24 -m state --state RELATED,ESTABLISHED -j ACCEPT
+                echo "nat-gw ready: port-restricted cone NAT for 10.88.0.0/24 -> 10.77.0.0/24"
+                exec sleep infinity
+        depends_on:
+            livekit-server:
+                condition: service_healthy
+
+    # A real desktop Chromium behind the NAT, driven by hand over noVNC. This is
+    # the TC-01 client: it forms its own peer connection to LiveKit and its
+    # RTCStatsReport is the client-side evidence for both legs.
+    #
+    # WHY CONTAINERISED, replacing the host-browser flow. A browser on the host
+    # shares the host's network and sits in front of no NAT, so it can only
+    # produce host candidates or the forced relay the old TC-01 used. Putting the
+    # browser on `clients`, reachable to the media server only through nat-gw,
+    # is what places a genuine NAT in the media path — the entire point of this
+    # change. It runs a full Chromium (not headless) because the operator drives
+    # it by hand, per the chosen manual workflow.
+    #
+    # THE ROUTE INJECTION is load bearing and deliberately narrow. custom-init
+    # adds a route to 10.77.0.0/24 via nat-gw and leaves the default route on the
+    # Docker bridge. Redirecting the DEFAULT route would send noVNC reply traffic
+    # to nat-gw too and break the operator's own session; scoping the route to
+    # the media subnet sends only media traffic through the NAT while host access
+    # to the noVNC port keeps working. NET_ADMIN is required to add the route.
+    #
+    # CHROME_CLI opens the harness page by IP (10.77.0.11) because this browser
+    # cannot resolve the `harness` service name from the client network.
+    #
+    # Downloads are mapped into results/ so an exported CSV lands beside every
+    # other artifact. The noVNC port is published on 3010, not 3000: the
+    # inherited Grafana already publishes host 3000.
+    #
+    # BROWSER_IMAGE defaults to :latest for a first run; pin it to a specific
+    # Chromium version tag for reproducible measurement — see .env.example.
+    browser:
+        image: ${BROWSER_IMAGE:-lscr.io/linuxserver/chromium:latest}
+        security_opt:
+            - seccomp:unconfined
+        shm_size: '1gb'
+        cap_add:
+            - NET_ADMIN
+        environment:
+            PUID: '1000'
+            PGID: '1000'
+            TZ: ${TZ:-UTC}
+            CHROME_CLI: http://10.77.0.11/
+        ports:
+            - '${BROWSER_VNC_PORT:-3010}:3000'
+        volumes:
+            - ./browser/custom-init.sh:/custom-cont-init.d/10-media-route.sh:ro
+            - ./results:/config/Downloads
+        networks:
+            clients:
+                ipv4_address: 10.88.0.10
+        depends_on:
+            nat-gw:
+                condition: service_started
+            harness:
+                condition: service_started
+            livekit-server:
+                condition: service_healthy
+
 networks:
     # Pinned so livekit-server can be given a static address, which is what
     # makes relay traversal work — see the livekit-server override above.
@@ -326,6 +473,19 @@ networks:
             config:
                 - subnet: 10.77.0.0/24
                   ip_range: 10.77.0.128/25
+
+    # The client side of the NAT, holding only `browser` and one leg of nat-gw.
+    # Its whole purpose is to be a network the media server is NOT on, so the
+    # only way across is the gateway. Pinned like the media network so nat-gw
+    # can hold a known .2 the browser routes through; the range keeps dynamic
+    # allocation clear of the two static addresses. 10.88.0.0/24 sits outside
+    # Docker's default 172.17-172.31 pool for the same collision reason the
+    # media network does.
+    clients:
+        ipam:
+            config:
+                - subnet: 10.88.0.0/24
+                  ip_range: 10.88.0.128/25
 
 configs:
     # A top-level config entry is replaced wholly by the including file, not

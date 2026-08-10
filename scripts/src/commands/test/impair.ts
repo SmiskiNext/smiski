@@ -6,16 +6,27 @@ import {
 
 const IMPAIRED_INTERFACE = 'eth0';
 
-/** LiveKit's ICE/UDP mux port, and the one blocked-UDP must drop. */
+/**
+ * The client network the NAT gateway serves.
+ *
+ * blocked-udp drops UDP being FORWARDED from this subnet, so the profile models
+ * a firewall in the network path rather than a broken endpoint. Matching the
+ * source subnet is stable where matching an interface name would not be: Docker
+ * does not guarantee which of nat-gw's interfaces is eth0 versus eth1.
+ */
+const CLIENT_SUBNET = '10.88.0.0/24';
+
+/** LiveKit's ICE/UDP mux port, and one of the two blocked-UDP must drop. */
 const MEDIA_UDP_PORT = '7882';
 
 /**
- * TURN's UDP port, blocked alongside the media path.
+ * TURN's and STUN's shared UDP port, blocked alongside the media path.
  *
- * TC-01 blocks EVERY UDP port, so TURN/UDP must go too — which is exactly why
- * Coturn is configured for TURN over TCP. Leaving UDP/3478 reachable would let
- * a relay allocation succeed over a transport the test means to exclude, and the
- * run would record a pass that proves nothing.
+ * blocked-udp drops EVERY UDP port the media path can use, so this one must go
+ * too: it carries both the STUN binding that Leg 1 uses to learn a reflexive
+ * candidate and any TURN/UDP allocation. Dropping it is what forces ICE off UDP
+ * entirely and down to the TURN-over-TCP relay that Leg 2 measures. Coturn also
+ * listens on TCP/3478, which this rule leaves reachable on purpose.
  */
 const TURN_UDP_PORT = '3478';
 
@@ -40,9 +51,13 @@ interface Profile {
  * is the second delay value; without `distribution normal` the variation is
  * uniform, which no real mobile network resembles.
  *
- * `blocked-udp` drops outbound UDP on the media and TURN ports. `iptables` is
- * used rather than `netem` because the requirement is a hard block, not loss:
- * a 100% loss qdisc would still let ICE consider the path viable for a while.
+ * `blocked-udp` drops UDP FORWARDED from the client subnet on the media and
+ * TURN ports, so it must run against `nat-gw` — the container in the media
+ * path — not against a media-network endpoint. `iptables` is used rather than
+ * `netem` because the requirement is a hard block, not loss: a 100% loss qdisc
+ * would still let ICE consider the path viable for a while. This is Leg 2 of
+ * TC-01: with UDP gone, ICE falls back to TURN over TCP on its own, and the
+ * relay is a genuine fallback rather than something forced at the client.
  */
 const PROFILES: Record<ProfileName, Profile> = {
     'lan': {
@@ -74,12 +89,15 @@ const PROFILES: Record<ProfileName, Profile> = {
         remove: [['tc', 'qdisc', 'del', 'dev', IMPAIRED_INTERFACE, 'root']],
     },
     'blocked-udp': {
-        description: `Corporate network: outbound UDP dropped on ${MEDIA_UDP_PORT} and ${TURN_UDP_PORT}`,
+        description: `Corporate firewall: UDP forwarded from ${CLIENT_SUBNET} dropped on ${MEDIA_UDP_PORT} and ${TURN_UDP_PORT} (apply to nat-gw)`,
         apply: [
             [
                 'iptables',
-                '-A',
-                'OUTPUT',
+                '-I',
+                'FORWARD',
+                '1',
+                '-s',
+                CLIENT_SUBNET,
                 '-p',
                 'udp',
                 '--dport',
@@ -89,8 +107,11 @@ const PROFILES: Record<ProfileName, Profile> = {
             ],
             [
                 'iptables',
-                '-A',
-                'OUTPUT',
+                '-I',
+                'FORWARD',
+                '1',
+                '-s',
+                CLIENT_SUBNET,
                 '-p',
                 'udp',
                 '--dport',
@@ -103,7 +124,9 @@ const PROFILES: Record<ProfileName, Profile> = {
             [
                 'iptables',
                 '-D',
-                'OUTPUT',
+                'FORWARD',
+                '-s',
+                CLIENT_SUBNET,
                 '-p',
                 'udp',
                 '--dport',
@@ -114,7 +137,9 @@ const PROFILES: Record<ProfileName, Profile> = {
             [
                 'iptables',
                 '-D',
-                'OUTPUT',
+                'FORWARD',
+                '-s',
+                CLIENT_SUBNET,
                 '-p',
                 'udp',
                 '--dport',
@@ -129,6 +154,7 @@ const PROFILES: Record<ProfileName, Profile> = {
 const INSPECTION_COMMANDS: string[][] = [
     ['tc', 'qdisc', 'show', 'dev', IMPAIRED_INTERFACE],
     ['iptables', '-S', 'OUTPUT'],
+    ['iptables', '-S', 'FORWARD'],
 ];
 
 /**
@@ -157,7 +183,9 @@ export const impairCommand = defineCommand({
         service: {
             type: 'string',
             description:
-                'Test-stack service whose network namespace is changed',
+                'Test-stack service whose network namespace is changed. Use '
+                + 'livekit-server for 4g/lan; blocked-udp must target nat-gw, '
+                + 'the container in the media path.',
             default: 'livekit-server',
         },
         remove: {
@@ -277,21 +305,41 @@ async function clearAllImpairment(containerName: string): Promise<void> {
     ]);
 
     for (const port of [MEDIA_UDP_PORT, TURN_UDP_PORT]) {
-        let removed = true;
-        while (removed) {
-            const outcome = await runInNetworkNamespace(containerName, [
-                'iptables',
-                '-D',
-                'OUTPUT',
-                '-p',
-                'udp',
-                '--dport',
-                port,
-                '-j',
-                'DROP',
-            ]);
-            removed = outcome.exitCode === 0;
-        }
+        await deleteAllMatching(containerName, [
+            'iptables',
+            '-D',
+            'FORWARD',
+            '-s',
+            CLIENT_SUBNET,
+            '-p',
+            'udp',
+            '--dport',
+            port,
+            '-j',
+            'DROP',
+        ]);
+    }
+}
+
+/**
+ * Deletes a rule repeatedly until it is gone.
+ *
+ * `iptables -I FORWARD 1` inserts a fresh copy on every apply, so an
+ * interrupted run can leave several identical rules. A single `-D` removes only
+ * one, so the baseline must loop until the delete fails — which is the signal
+ * that none remain, not an error.
+ */
+async function deleteAllMatching(
+    containerName: string,
+    deleteCommand: string[],
+): Promise<void> {
+    let removed = true;
+    while (removed) {
+        const outcome = await runInNetworkNamespace(
+            containerName,
+            deleteCommand,
+        );
+        removed = outcome.exitCode === 0;
     }
 }
 

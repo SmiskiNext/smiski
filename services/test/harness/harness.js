@@ -31,6 +31,7 @@
 
     const elements = {
         serverUrl: document.getElementById('serverUrl'),
+        stunUrl: document.getElementById('stunUrl'),
         token: document.getElementById('token'),
         relayOnly: document.getElementById('relayOnly'),
         publishMedia: document.getElementById('publishMedia'),
@@ -41,6 +42,7 @@
         status: document.getElementById('status'),
         setupTime: document.getElementById('setupTime'),
         candidateType: document.getElementById('candidateType'),
+        candidateMeaning: document.getElementById('candidateMeaning'),
         rtt: document.getElementById('rtt'),
         jitter: document.getElementById('jitter'),
         packetLoss: document.getElementById('packetLoss'),
@@ -345,6 +347,9 @@
         const local = sample.localCandidateType || '—';
         const remote = sample.remoteCandidateType || '—';
         elements.candidateType.textContent = `${local} / ${remote}`;
+        elements.candidateMeaning.textContent = interpretCandidate(
+            sample.localCandidateType,
+        );
 
         if (sample.localCandidateType === '') {
             elements.candidateType.className = '';
@@ -360,6 +365,29 @@
                     + `"${sample.localCandidateType}". This run is NOT relay evidence.`,
                 'error',
             );
+        }
+    }
+
+    /**
+     * Names what a local candidate type proves for TC-01.
+     *
+     * The two legs of TC-01 are read from this one field. `srflx` and `prflx`
+     * are both a post-NAT address the media path reached without a relay, so
+     * either proves Leg 1's direct traversal; `relay` proves Leg 2's fallback.
+     * `host` means no NAT sat in the path — the run belongs to neither leg and
+     * is almost always a host-browser session pointed at the wrong URL.
+     */
+    function interpretCandidate(localCandidateType) {
+        switch (localCandidateType) {
+            case 'srflx':
+            case 'prflx':
+                return 'Leg 1: NAT traversed directly, no relay';
+            case 'relay':
+                return 'Leg 2: relayed through TURN';
+            case 'host':
+                return 'No NAT in path — neither leg (wrong client or URL?)';
+            default:
+                return '—';
         }
     }
 
@@ -478,6 +506,32 @@
     }
 
     /**
+     * Assembles the connect options from the relay toggle and the STUN field.
+     *
+     * The STUN server is added ADDITIVELY: livekit-client merges its own
+     * server-supplied ICE servers with any supplied here, so this hands ICE an
+     * extra reflexive path for Leg 1 without displacing the TURN servers LiveKit
+     * provides — which Leg 2 needs when it falls back to a relay. Verified
+     * against livekit-client 2.20.1, whose engine concatenates the two lists.
+     *
+     * When relay-only is requested, no STUN server is added and the transport
+     * policy is pinned to relay: that control run deliberately excludes every
+     * non-relay candidate, so offering a STUN server would only add noise.
+     */
+    function buildConnectOptions() {
+        if (session.relayRequested) {
+            return { rtcConfig: { iceTransportPolicy: 'relay' } };
+        }
+
+        const stunUrl = elements.stunUrl.value.trim();
+        if (stunUrl === '') {
+            return {};
+        }
+
+        return { rtcConfig: { iceServers: [{ urls: stunUrl }] } };
+    }
+
+    /**
      * Builds the `Room`, applies the relay-only policy and starts sampling.
      *
      * `adaptiveStream` is deliberately OFF, and it is the difference between a
@@ -527,9 +581,7 @@
 
         registerRoomEvents(room);
 
-        const connectOptions = session.relayRequested
-            ? { rtcConfig: { iceTransportPolicy: 'relay' } }
-            : {};
+        const connectOptions = buildConnectOptions();
 
         setStatus('Connecting…');
         session.connectStartedAt = Date.now();
@@ -682,6 +734,12 @@
             observedCandidateTypes.length > 0
             && observedCandidateTypes.every((type) => type === 'relay');
 
+        const traversalProven =
+            observedCandidateTypes.length > 0
+            && observedCandidateTypes.every(
+                (type) => type === 'srflx' || type === 'prflx',
+            );
+
         const lines = [];
         lines.push(`# harness,browser QoS harness (services/test/harness)`);
         lines.push(`# exported at,${new Date().toISOString()}`);
@@ -691,6 +749,7 @@
             `# candidate types observed,${escapeCsv(observedCandidateTypes.join(' ') || 'none')}`,
         );
         lines.push(`# relay proven,${relayProven}`);
+        lines.push(`# nat traversal proven,${traversalProven}`);
         lines.push(
             `# call setup ms,${session.setupTimeMs === null ? '' : session.setupTimeMs}`,
         );
@@ -709,6 +768,15 @@
             lines.push(
                 '# WARNING,relay was requested but a non-relay candidate was '
                     + 'negotiated — this export is NOT evidence of relay traversal',
+            );
+        }
+
+        if (!relayProven && !traversalProven) {
+            lines.push(
+                '# WARNING,neither a pure relay nor a pure srflx/prflx path was '
+                    + 'observed — this run maps to neither leg of TC-01. A host '
+                    + 'candidate means no NAT was in the path; a mixed set means '
+                    + 'the condition changed mid-run. Re-run one leg cleanly.',
             );
         }
 
