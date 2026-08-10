@@ -5,6 +5,7 @@ import {
     runOnStackNetwork,
 } from '../../../lib/docker.ts';
 import { DEFAULT_LIVEKIT_URL } from '../../../lib/fixtures.ts';
+import { resolveLiveKitCredentials } from '../../../lib/livekit.ts';
 
 /**
  * Container name the room load simulator runs under.
@@ -69,13 +70,15 @@ export const roomCommand = defineCommand({
         },
         'api-key': {
             type: 'string',
-            description: 'LiveKit API key',
-            default: 'smiski-livekit-key',
+            description:
+                'LiveKit API key; defaults to the value the running stack '
+                + 'was started with, read from .env',
         },
         'api-secret': {
             type: 'string',
-            description: 'LiveKit API secret',
-            default: 'change-me-livekit-secret-must-be-at-least-32-chars',
+            description:
+                'LiveKit API secret; defaults to the value the running stack '
+                + 'was started with, read from .env',
         },
         'no-simulcast': {
             type: 'boolean',
@@ -97,14 +100,18 @@ export const roomCommand = defineCommand({
             return;
         }
 
+        const resolved = resolveLiveKitCredentials();
+        const apiKey = args['api-key'] ?? resolved.apiKey;
+        const apiSecret = args['api-secret'] ?? resolved.apiSecret;
+
         const commandArguments = [
             'load-test',
             '--url',
             args['livekit-url'],
             '--api-key',
-            args['api-key'],
+            apiKey,
             '--api-secret',
-            args['api-secret'],
+            apiSecret,
             '--room',
             args.room,
             '--duration',
@@ -131,7 +138,7 @@ export const roomCommand = defineCommand({
             commandArguments.push('--simulate-speakers');
         }
 
-        reportRoomPreconditions(args.room);
+        reportRoomPreconditions(args.room, apiKey);
 
         const result = await runOnStackNetwork(
             PINNED_IMAGES.livekitCli,
@@ -158,10 +165,15 @@ export const roomCommand = defineCommand({
     },
 });
 
-function reportRoomPreconditions(room: string): void {
+function reportRoomPreconditions(room: string, apiKey: string): void {
     console.log(
         'lk load-test mints its own tokens from --api-key/--api-secret; a token '
             + 'from `smiski test token` is not accepted and is not needed.',
+    );
+    console.log(
+        `Signing with API key "${apiKey}" — every participant fails with `
+            + '"invalid API key" instead of a clearer error if this disagrees '
+            + 'with the key livekit-server was started with.',
     );
     console.log(
         'Screen share is NOT driven here: lk load-test hardcodes a camera track '

@@ -28,6 +28,15 @@ export const dockerEnvExample = resolve(dockerStackDirectory, '.env.example');
 export const testStackDirectory = resolve(repositoryRoot, 'services/test');
 
 /**
+ * Absolute path to the load-test stack's environment file.
+ *
+ * Gitignored. Compose loads both this file and the development stack's `.env`,
+ * with this one winning on a shared key, so server-side tooling must resolve
+ * credentials in the same order or it signs tokens the running LiveKit rejects.
+ */
+export const testEnvFile = resolve(testStackDirectory, '.env');
+
+/**
  * Absolute path to the generated key material directory.
  *
  * Gitignored: it holds the private key that signs Forge Invocation Tokens the
