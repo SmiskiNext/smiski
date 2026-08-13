@@ -46,7 +46,7 @@ public class JoinCreatedEventConsumer {
 
     @KafkaListener(
             topics = "meet.join.created",
-            containerFactory = "joinCreatedKafkaListenerContainerFactory")
+            containerFactory = "cloudEventKafkaListenerContainerFactory")
     public void onMessage(CloudEvent event) {
         try {
             PendingJoinRequest request = decode(event);
