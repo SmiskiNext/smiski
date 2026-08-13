@@ -1,6 +1,6 @@
 {
     "name": "@smiskinext/smiski-ts",
-    "version": "0.0.0",
+    "version": "0.1.0",
     "description": "TypeScript client for the Smiski API",
     "type": "module",
     "license": "AGPL-3.0-only",
