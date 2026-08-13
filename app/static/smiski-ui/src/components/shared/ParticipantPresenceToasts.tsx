@@ -3,11 +3,10 @@
  * "{name} left" notices for the meeting room.
  *
  * Purely presentational: the queue, its cap and the auto-dismiss timers live in
- * `hooks/useParticipantPresenceNotifications`. Fixed to the viewport so the
- * notices float over the room without shifting the video area, and
- * `pointer-events-none` on the container keeps that overlay from swallowing
- * clicks meant for the control bar underneath — each toast re-enables pointer
- * events for its own close button.
+ * `hooks/useParticipantPresenceNotifications`. The room owns the shared
+ * bottom-right overlay so these notices can stack with join-request toasts
+ * without overlapping. Each toast re-enables pointer events for its close
+ * button.
  */
 import type { ParticipantPresenceToast } from '../../hooks/useParticipantPresenceNotifications';
 import { Avatar, Button, Icon } from '../ui';
@@ -27,7 +26,7 @@ export function ParticipantPresenceToasts({
         <div
             role='status'
             aria-live='polite'
-            className='pointer-events-none fixed right-4 bottom-4 z-50 flex w-72 flex-col gap-2'
+            className='flex w-full flex-col gap-2'
         >
             {toasts.map((toast) => (
                 <div

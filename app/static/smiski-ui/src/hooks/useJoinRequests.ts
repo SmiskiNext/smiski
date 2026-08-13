@@ -3,14 +3,14 @@
  *
  * The list/decision APIs use the generated SDK over Forge Remote. Realtime
  * notifications use a browser-native external fetch to the notification
- * service because Forge Remote buffers response bodies. REST polling
- * stays enabled at a low frequency to reconcile missed or stale events, so an
- * unavailable stream degrades to polling instead of surfacing as an unhandled
- * rejection.
+ * service because Forge Remote buffers response bodies. The list is fetched
+ * once on mount and again when the host opens the pending panel; an
+ * unavailable stream is therefore a gap until the next explicit refetch,
+ * not an unhandled rejection.
  */
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { subscribeToMeetingJoinRequests } from '../api/meetingEvents';
 import {
     acceptPendingMeetingJoinRequests,
@@ -18,7 +18,9 @@ import {
     listPendingMeetingJoinRequests,
 } from '../api/meetings';
 import {
+    enrichPendingJoinRequestsPageAvatars,
     type JoinRequestDecision,
+    type PendingJoinRequest,
     type PendingJoinRequestsPage,
     type PendingJoinRequestsPageParams,
     removePendingJoinRequestsFromPage,
@@ -26,13 +28,11 @@ import {
 } from '../domain';
 import { queryKeys } from './queryKeys';
 
-export const DEFAULT_JOIN_REQUEST_POLL_INTERVAL_MS = 60_000;
-
 export interface UsePendingJoinRequestsOptions
     extends PendingJoinRequestsPageParams {
     enabled?: boolean;
-    pollIntervalMs?: number | false;
     realtime?: boolean;
+    onNewJoinRequest?: (request: PendingJoinRequest) => void;
 }
 
 export function usePendingJoinRequests(
@@ -41,10 +41,10 @@ export function usePendingJoinRequests(
 ) {
     const {
         enabled = true,
-        pollIntervalMs = DEFAULT_JOIN_REQUEST_POLL_INTERVAL_MS,
         realtime = true,
         offset,
         pageSize,
+        onNewJoinRequest,
     } = options;
     const params = useMemo(() => ({ offset, pageSize }), [offset, pageSize]);
     const queryClient = useQueryClient();
@@ -55,6 +55,10 @@ export function usePendingJoinRequests(
                 : (['meeting', 'none', 'join-requests', 'pending'] as const),
         [meetingId, params],
     );
+    const onNewJoinRequestRef = useRef(onNewJoinRequest);
+    useEffect(() => {
+        onNewJoinRequestRef.current = onNewJoinRequest;
+    }, [onNewJoinRequest]);
 
     useEffect(() => {
         if (!meetingId || !enabled || !realtime) return;
@@ -62,13 +66,19 @@ export function usePendingJoinRequests(
         subscribeToMeetingJoinRequests(meetingId, {
             signal: controller.signal,
             onJoinRequest: (request) => {
+                let isNew = false;
                 queryClient.setQueryData<PendingJoinRequestsPage>(
                     queryKey,
-                    (page) =>
-                        page
-                            ? upsertPendingJoinRequestPage(page, request)
-                            : page,
+                    (page) => {
+                        if (!page) return page;
+                        isNew = !page.requests.some(
+                            (candidate) =>
+                                candidate.requestId === request.requestId,
+                        );
+                        return upsertPendingJoinRequestPage(page, request);
+                    },
                 );
+                if (isNew) onNewJoinRequestRef.current?.(request);
             },
         }).catch(() => undefined);
         return () => controller.abort();
@@ -76,11 +86,16 @@ export function usePendingJoinRequests(
 
     return useQuery({
         queryKey,
-        queryFn: () =>
-            listPendingMeetingJoinRequests(meetingId as string, params),
+        queryFn: async () => {
+            const previous =
+                queryClient.getQueryData<PendingJoinRequestsPage>(queryKey);
+            const page = await listPendingMeetingJoinRequests(
+                meetingId as string,
+                params,
+            );
+            return enrichPendingJoinRequestsPageAvatars(page, previous);
+        },
         enabled: Boolean(meetingId) && enabled,
-        refetchInterval: pollIntervalMs,
-        refetchIntervalInBackground: false,
     });
 }
 

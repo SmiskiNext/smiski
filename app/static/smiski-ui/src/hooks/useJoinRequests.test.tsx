@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { PendingJoinRequest } from '../domain';
 
 const apiMocks = vi.hoisted(() => ({
     acceptPendingMeetingJoinRequests: vi.fn(),
@@ -11,11 +12,15 @@ const apiMocks = vi.hoisted(() => ({
     listPendingMeetingJoinRequests: vi.fn(),
 }));
 
+const eventMocks = vi.hoisted(() => ({
+    subscribeToMeetingJoinRequests: vi.fn(),
+}));
+
 vi.mock('../api/meetings', () => apiMocks);
+vi.mock('../api/meetingEvents', () => eventMocks);
 
 import { queryKeys } from './queryKeys';
 import {
-    DEFAULT_JOIN_REQUEST_POLL_INTERVAL_MS,
     useAcceptJoinRequests,
     useDeclineJoinRequests,
     usePendingJoinRequests,
@@ -24,13 +29,14 @@ import {
 const MEETING_ID = '0195e0c2-8f3a-7c21-b9d4-2f1a6e7c8d90';
 const REQUEST_ID = '0195e0c2-8f3a-7c21-b9d4-2f1a6e7c8d91';
 const EMPTY_PAGE = { requests: [], total: 0, offset: 0, pageSize: 20 };
-const PENDING_REQUEST = {
+const PENDING_REQUEST: PendingJoinRequest = {
     requestId: REQUEST_ID,
     accountId: 'account-42',
     displayName: 'Alice',
-    status: 'PENDING' as const,
+    status: 'PENDING',
     requestedAt: '2026-08-02T10:00:00Z',
     expiresAt: '2026-08-02T10:10:00Z',
+    avatarUrl: 'https://avatar.example/alice.png',
 };
 
 function createHarness() {
@@ -54,9 +60,10 @@ describe('manual-admission hooks', () => {
         apiMocks.listPendingMeetingJoinRequests.mockResolvedValue(EMPTY_PAGE);
         apiMocks.acceptPendingMeetingJoinRequests.mockResolvedValue([]);
         apiMocks.declinePendingMeetingJoinRequests.mockResolvedValue([]);
+        eventMocks.subscribeToMeetingJoinRequests.mockResolvedValue(undefined);
     });
 
-    it('loads the requested pending page and configures host-side polling', async () => {
+    it('loads the requested pending page without polling', async () => {
         const { queryClient, wrapper } = createHarness();
         const params = { offset: 20, pageSize: 10 };
         const { result } = renderHook(
@@ -76,7 +83,7 @@ describe('manual-admission hooks', () => {
         if (!query) throw new Error('Expected pending join-request query.');
         expect(
             (query.options as { refetchInterval?: number }).refetchInterval,
-        ).toBe(DEFAULT_JOIN_REQUEST_POLL_INTERVAL_MS);
+        ).toBeUndefined();
     });
 
     it('does not issue a request without a meeting id', () => {
@@ -87,6 +94,93 @@ describe('manual-admission hooks', () => {
 
         expect(result.current.fetchStatus).toBe('idle');
         expect(apiMocks.listPendingMeetingJoinRequests).not.toHaveBeenCalled();
+    });
+
+    it('upserts a realtime request into the cached page', async () => {
+        const { queryClient, wrapper } = createHarness();
+        let onJoinRequest: ((request: PendingJoinRequest) => void) | undefined;
+        eventMocks.subscribeToMeetingJoinRequests.mockImplementation(
+            (_meetingId, options) => {
+                onJoinRequest = options.onJoinRequest;
+                return new Promise(() => undefined);
+            },
+        );
+
+        const { result } = renderHook(
+            () => usePendingJoinRequests(MEETING_ID),
+            { wrapper },
+        );
+        await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+        act(() => {
+            onJoinRequest?.(PENDING_REQUEST);
+        });
+
+        expect(
+            queryClient.getQueryData(
+                queryKeys.pendingJoinRequestsPage(MEETING_ID, {}),
+            ),
+        ).toEqual({
+            ...EMPTY_PAGE,
+            requests: [PENDING_REQUEST],
+            total: 1,
+        });
+    });
+
+    it('notifies only when SSE inserts a request that was not already cached', async () => {
+        const { wrapper } = createHarness();
+        const onNewJoinRequest = vi.fn();
+        let onJoinRequest: ((request: PendingJoinRequest) => void) | undefined;
+        eventMocks.subscribeToMeetingJoinRequests.mockImplementation(
+            (_meetingId, options) => {
+                onJoinRequest = options.onJoinRequest;
+                return new Promise(() => undefined);
+            },
+        );
+
+        const { result } = renderHook(
+            () => usePendingJoinRequests(MEETING_ID, { onNewJoinRequest }),
+            { wrapper },
+        );
+        await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+        act(() => {
+            onJoinRequest?.(PENDING_REQUEST);
+        });
+        act(() => {
+            onJoinRequest?.({
+                ...PENDING_REQUEST,
+                displayName: 'Alice Updated',
+            });
+        });
+
+        expect(onNewJoinRequest).toHaveBeenCalledTimes(1);
+        expect(onNewJoinRequest).toHaveBeenCalledWith(PENDING_REQUEST);
+    });
+
+    it('keeps SSE avatars when a REST refetch omits them', async () => {
+        const { queryClient, wrapper } = createHarness();
+        const queryKey = queryKeys.pendingJoinRequestsPage(MEETING_ID, {});
+        queryClient.setQueryData(queryKey, {
+            ...EMPTY_PAGE,
+            requests: [PENDING_REQUEST],
+            total: 1,
+        });
+        apiMocks.listPendingMeetingJoinRequests.mockResolvedValue({
+            ...EMPTY_PAGE,
+            requests: [{ ...PENDING_REQUEST, avatarUrl: '' }],
+            total: 1,
+        });
+
+        const { result } = renderHook(
+            () => usePendingJoinRequests(MEETING_ID),
+            { wrapper },
+        );
+        await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+        expect(result.current.data?.requests[0]?.avatarUrl).toBe(
+            PENDING_REQUEST.avatarUrl,
+        );
     });
 
     it('accepts requests then invalidates every pending page for the meeting', async () => {

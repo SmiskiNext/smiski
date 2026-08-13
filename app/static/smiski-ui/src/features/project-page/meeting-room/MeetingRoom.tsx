@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import {
     EmptyState,
     ErrorState,
+    JoinRequestToasts,
     LoadingState,
     MeetingSettingsModal,
     ParticipantPresenceToasts,
@@ -13,6 +14,12 @@ import {
     type Participant,
     reconcilePinnedAccountId,
 } from '../../../domain';
+import { useJoinRequestNotifications } from '../../../hooks/useJoinRequestNotifications';
+import {
+    useAcceptJoinRequests,
+    useDeclineJoinRequests,
+    usePendingJoinRequests,
+} from '../../../hooks/useJoinRequests';
 import { useLiveKitRoom } from '../../../hooks/useLiveKitRoom';
 import { useMeeting } from '../../../hooks/useMeeting';
 import { useMeetingParticipants } from '../../../hooks/useMeetingParticipants';
@@ -55,6 +62,7 @@ export function MeetingRoom({ meetingId, onLeave }: MeetingRoomProps) {
     const { participants, loading: participantsLoading } =
         useMeetingParticipants(meetingId, meeting?.projectKey);
     const [isPeoplePanelOpen, setPeoplePanelOpen] = useState(false);
+    const [isPendingPanelOpen, setPendingPanelOpen] = useState(false);
     const [isSettingsOpen, setSettingsOpen] = useState(false);
     const [layoutMode, setLayoutMode] = useState<LayoutMode>(
         readMeetingLayoutMode,
@@ -86,6 +94,47 @@ export function MeetingRoom({ meetingId, onLeave }: MeetingRoomProps) {
         enqueue: enqueuePresenceToast,
         dismiss: dismissPresenceToast,
     } = useParticipantPresenceNotifications();
+    const {
+        toasts: joinRequestToasts,
+        enqueue: enqueueJoinRequestToast,
+        dismissByRequestId,
+    } = useJoinRequestNotifications();
+    const isHost = meeting?.hostId === currentUser.accountId;
+    const pending = usePendingJoinRequests(meetingId, {
+        enabled: Boolean(isHost),
+        onNewJoinRequest: enqueueJoinRequestToast,
+    });
+    const acceptJoinRequests = useAcceptJoinRequests();
+    const declineJoinRequests = useDeclineJoinRequests();
+    const isDecidingJoinRequest =
+        acceptJoinRequests.isPending || declineJoinRequests.isPending;
+    const refetchPending = pending.refetch;
+
+    useEffect(() => {
+        if (!isHost || !isPendingPanelOpen) return;
+        void refetchPending();
+    }, [isHost, isPendingPanelOpen, refetchPending]);
+
+    const decideJoinRequest = (
+        requestId: string,
+        decide: typeof acceptJoinRequests.mutate,
+    ) => {
+        decide(
+            { meetingId, requestIds: [requestId] },
+            { onSuccess: () => dismissByRequestId(requestId) },
+        );
+    };
+
+    const handleAcceptJoinRequest = (requestId: string) => {
+        decideJoinRequest(requestId, acceptJoinRequests.mutate);
+    };
+
+    const handleDeclineJoinRequest = (requestId: string) => {
+        decideJoinRequest(requestId, declineJoinRequests.mutate);
+    };
+
+    const pendingRequests = pending.data?.requests ?? [];
+    const pendingCount = pending.data?.total ?? pendingRequests.length;
 
     const {
         token,
@@ -230,7 +279,6 @@ export function MeetingRoom({ meetingId, onLeave }: MeetingRoomProps) {
     );
 
     const selfAccountId = liveKit.localAccountId ?? currentUser.accountId;
-    const isHost = meeting?.hostId === currentUser.accountId;
 
     const handleLeave = async () => {
         await liveKit.leave();
@@ -275,7 +323,6 @@ export function MeetingRoom({ meetingId, onLeave }: MeetingRoomProps) {
                     />
                 </div>
             )}
-            {isHost && <PendingJoinRequestsPanel meetingId={meetingId} />}
             <div className='flex flex-col gap-4 xl:flex-row'>
                 <div className='min-w-0 flex-1'>
                     <MeetingRoomShell
@@ -302,8 +349,28 @@ export function MeetingRoom({ meetingId, onLeave }: MeetingRoomProps) {
                         mediaNotice={liveKit.mediaNotice}
                         connectionState={liveKit.connectionState}
                         onOpenSettings={() => setSettingsOpen(true)}
+                        pendingJoinRequestCount={
+                            isHost ? pendingCount : undefined
+                        }
+                        isPendingPanelOpen={isPendingPanelOpen}
+                        onTogglePendingPanel={
+                            isHost
+                                ? () => setPendingPanelOpen((value) => !value)
+                                : undefined
+                        }
                     />
                 </div>
+                {isPendingPanelOpen && isHost && (
+                    <PendingJoinRequestsPanel
+                        requests={pendingRequests}
+                        total={pendingCount}
+                        isLoading={pending.isLoading}
+                        isDeciding={isDecidingJoinRequest}
+                        onAccept={handleAcceptJoinRequest}
+                        onDecline={handleDeclineJoinRequest}
+                        onClose={() => setPendingPanelOpen(false)}
+                    />
+                )}
                 {isPeoplePanelOpen && (
                     <ParticipantListPlaceholder
                         participants={
@@ -325,10 +392,29 @@ export function MeetingRoom({ meetingId, onLeave }: MeetingRoomProps) {
                 notificationsEnabled={notificationsEnabled}
                 onNotificationsEnabledChange={setNotificationsEnabled}
             />
-            <ParticipantPresenceToasts
-                toasts={presenceToasts}
-                onDismiss={dismissPresenceToast}
-            />
+            {isHost && (
+                <div className='pointer-events-none fixed right-4 bottom-4 z-50 flex w-80 flex-col gap-2'>
+                    <JoinRequestToasts
+                        toasts={joinRequestToasts}
+                        isDeciding={isDecidingJoinRequest}
+                        onAccept={handleAcceptJoinRequest}
+                        onDecline={handleDeclineJoinRequest}
+                        onOpenPanel={() => setPendingPanelOpen(true)}
+                    />
+                    <ParticipantPresenceToasts
+                        toasts={presenceToasts}
+                        onDismiss={dismissPresenceToast}
+                    />
+                </div>
+            )}
+            {!isHost && (
+                <div className='pointer-events-none fixed right-4 bottom-4 z-50 w-80'>
+                    <ParticipantPresenceToasts
+                        toasts={presenceToasts}
+                        onDismiss={dismissPresenceToast}
+                    />
+                </div>
+            )}
         </div>
     );
 }

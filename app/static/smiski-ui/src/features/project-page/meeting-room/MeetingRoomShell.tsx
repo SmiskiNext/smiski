@@ -68,6 +68,13 @@ export interface MeetingRoomShellProps {
      * section itself.
      */
     onOpenSettings?: () => void;
+    /**
+     * Host-only pending-requests toggle. Absent for non-hosts so the right
+     * footer zone stays empty.
+     */
+    pendingJoinRequestCount?: number;
+    isPendingPanelOpen?: boolean;
+    onTogglePendingPanel?: () => void;
 }
 
 function useElapsedTime(startTime?: string): string {
@@ -110,7 +117,8 @@ function ControlButton({
         | 'people'
         | 'phoneOff'
         | 'settings'
-        | 'layout';
+        | 'layout'
+        | 'userPlus';
     active?: boolean;
     danger?: boolean;
     disabled?: boolean;
@@ -185,6 +193,9 @@ export function MeetingRoomShell({
     pinnedAccountId,
     onTogglePin,
     activeSpeakerId,
+    pendingJoinRequestCount,
+    isPendingPanelOpen = false,
+    onTogglePendingPanel,
 }: MeetingRoomShellProps) {
     const canShareScreen = meeting?.settings?.allowScreenShare ?? true;
     const canUseMic = meeting?.settings?.allowMicrophone ?? true;
@@ -291,86 +302,100 @@ export function MeetingRoomShell({
                 />
             )}
             <footer className='border-t border-white/8 bg-slate-950 px-3 py-4'>
-                <div className='flex items-center justify-center gap-3 sm:gap-5'>
-                    <ControlButton
-                        label={
-                            !canUseMic && !isMicOn
-                                ? 'Microphone off'
-                                : isMicOn
-                                  ? 'Mute'
-                                  : 'Unmute'
-                        }
-                        icon={isMicOn ? 'mic' : 'micOff'}
-                        active={isMicOn}
-                        disabled={!canUseMic && !isMicOn}
-                        title={
-                            !canUseMic && !isMicOn
-                                ? 'The host has disabled the microphone for this meeting'
-                                : undefined
-                        }
-                        onClick={onToggleMic}
-                    />
-                    <ControlButton
-                        label={
-                            !canUseCamera && !isCameraOn
-                                ? 'Video off'
-                                : isCameraOn
-                                  ? 'Stop video'
-                                  : 'Start video'
-                        }
-                        icon={isCameraOn ? 'camera' : 'cameraOff'}
-                        active={isCameraOn}
-                        disabled={!canUseCamera && !isCameraOn}
-                        title={
-                            !canUseCamera && !isCameraOn
-                                ? 'The host has disabled video for this meeting'
-                                : undefined
-                        }
-                        onClick={onToggleCamera}
-                    />
-                    <ControlButton
-                        label={
-                            !canShareScreen && !isScreenSharing
-                                ? 'Screen share off'
-                                : isScreenSharing
-                                  ? 'Stop sharing'
-                                  : 'Share screen'
-                        }
-                        icon='screen'
-                        active={isScreenSharing}
-                        disabled={!canShareScreen && !isScreenSharing}
-                        title={
-                            !canShareScreen && !isScreenSharing
-                                ? 'The host has disabled screen sharing for this meeting'
-                                : undefined
-                        }
-                        onClick={onToggleScreenShare}
-                    />
-                    <MeetingLayoutMenu
-                        mode={layoutMode}
-                        onModeChange={onLayoutModeChange}
-                    />
-                    {onOpenSettings && (
+                <div className='grid grid-cols-[1fr_auto_1fr] items-center gap-3'>
+                    <div />
+                    <div className='flex items-center justify-center gap-3 sm:gap-5'>
                         <ControlButton
-                            label='Settings'
-                            icon='settings'
-                            active={false}
-                            onClick={onOpenSettings}
+                            label={
+                                !canUseMic && !isMicOn
+                                    ? 'Microphone off'
+                                    : isMicOn
+                                      ? 'Mute'
+                                      : 'Unmute'
+                            }
+                            icon={isMicOn ? 'mic' : 'micOff'}
+                            active={isMicOn}
+                            disabled={!canUseMic && !isMicOn}
+                            title={
+                                !canUseMic && !isMicOn
+                                    ? 'The host has disabled the microphone for this meeting'
+                                    : undefined
+                            }
+                            onClick={onToggleMic}
                         />
-                    )}
-                    <ControlButton
-                        label='People'
-                        icon='people'
-                        active={isPeoplePanelOpen}
-                        onClick={onTogglePeoplePanel}
-                        badge={participants.length}
-                    />
-                    <ControlButton
-                        label='Leave'
-                        icon='phoneOff'
-                        danger
-                        onClick={onLeave}
-                    />
+                        <ControlButton
+                            label={
+                                !canUseCamera && !isCameraOn
+                                    ? 'Video off'
+                                    : isCameraOn
+                                      ? 'Stop video'
+                                      : 'Start video'
+                            }
+                            icon={isCameraOn ? 'camera' : 'cameraOff'}
+                            active={isCameraOn}
+                            disabled={!canUseCamera && !isCameraOn}
+                            title={
+                                !canUseCamera && !isCameraOn
+                                    ? 'The host has disabled video for this meeting'
+                                    : undefined
+                            }
+                            onClick={onToggleCamera}
+                        />
+                        <ControlButton
+                            label={
+                                !canShareScreen && !isScreenSharing
+                                    ? 'Screen share off'
+                                    : isScreenSharing
+                                      ? 'Stop sharing'
+                                      : 'Share screen'
+                            }
+                            icon='screen'
+                            active={isScreenSharing}
+                            disabled={!canShareScreen && !isScreenSharing}
+                            title={
+                                !canShareScreen && !isScreenSharing
+                                    ? 'The host has disabled screen sharing for this meeting'
+                                    : undefined
+                            }
+                            onClick={onToggleScreenShare}
+                        />
+                        <MeetingLayoutMenu
+                            mode={layoutMode}
+                            onModeChange={onLayoutModeChange}
+                        />
+                        {onOpenSettings && (
+                            <ControlButton
+                                label='Settings'
+                                icon='settings'
+                                active={false}
+                                onClick={onOpenSettings}
+                            />
+                        )}
+                        <ControlButton
+                            label='People'
+                            icon='people'
+                            active={isPeoplePanelOpen}
+                            onClick={onTogglePeoplePanel}
+                            badge={participants.length}
+                        />
+                        <ControlButton
+                            label='Leave'
+                            icon='phoneOff'
+                            danger
+                            onClick={onLeave}
+                        />
+                    </div>
+                    <div className='flex items-center justify-end'>
+                        {onTogglePendingPanel && (
+                            <ControlButton
+                                label='Requests'
+                                icon='userPlus'
+                                active={isPendingPanelOpen}
+                                onClick={onTogglePendingPanel}
+                                badge={pendingJoinRequestCount}
+                            />
+                        )}
+                    </div>
                 </div>
                 {mediaNotice && (
                     <p className='mt-2 text-center text-[11px] font-medium text-red-300'>
