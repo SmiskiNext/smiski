@@ -6,6 +6,8 @@ export interface PendingJoinRequest {
     status: 'PENDING';
     requestedAt: string;
     expiresAt: string;
+    /** Empty when REST has no field or the SSE payload omitted it. */
+    avatarUrl?: string;
 }
 
 /** Offset-based page returned by the host-only pending join-request endpoint. */
@@ -66,10 +68,46 @@ export function upsertPendingJoinRequestPage(
             existing.requestedAt,
         ),
         expiresAt: preferPopulatedValue(request.expiresAt, existing.expiresAt),
+        avatarUrl: preferPopulatedValue(
+            request.avatarUrl ?? '',
+            existing.avatarUrl ?? '',
+        ),
     };
     const requests = [...page.requests];
     requests[existingIndex] = merged;
     return { ...page, requests };
+}
+
+/**
+ * Copies non-empty avatars from a previously cached page onto REST rows.
+ *
+ * The list endpoint does not return `avatarUrl`, so a refetch would otherwise
+ * wipe values already learned from the SSE stream.
+ */
+export function enrichPendingJoinRequestsPageAvatars(
+    page: PendingJoinRequestsPage,
+    previous: PendingJoinRequestsPage | undefined,
+): PendingJoinRequestsPage {
+    if (!previous || previous.requests.length === 0) return page;
+
+    const avatars = new Map<string, string>();
+    for (const request of previous.requests) {
+        if (request.avatarUrl) {
+            avatars.set(request.requestId, request.avatarUrl);
+        }
+    }
+    if (avatars.size === 0) return page;
+
+    return {
+        ...page,
+        requests: page.requests.map((request) => ({
+            ...request,
+            avatarUrl: preferPopulatedValue(
+                request.avatarUrl ?? '',
+                avatars.get(request.requestId) ?? '',
+            ),
+        })),
+    };
 }
 
 /** Removes terminal decisions from a cached page without waiting for REST. */

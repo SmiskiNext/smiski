@@ -13,6 +13,7 @@ export * from './EmptyState';
 export * from './ErrorState';
 export * from './InlineFeedback';
 export * from './IssuePicker';
+export * from './JoinRequestToasts';
 export * from './LoadingState';
 export * from './MeetingActionMenu';
 export * from './MeetingCard';

@@ -59,6 +59,7 @@ vi.mock('../../../components/shared', async () => {
         LoadingState,
         MeetingSettingsModal: () => null,
         ParticipantPresenceToasts: () => null,
+        JoinRequestToasts: () => null,
     };
 });
 
@@ -70,8 +71,23 @@ vi.mock('./MeetingRoomShell', async () => {
     };
 });
 
-vi.mock('./PendingJoinRequestsPanel', () => ({
-    PendingJoinRequestsPanel: () => null,
+vi.mock('../../../hooks/useJoinRequests', () => ({
+    usePendingJoinRequests: () => ({
+        data: { requests: [], total: 0, offset: 0, pageSize: 20 },
+        isLoading: false,
+        refetch: vi.fn(),
+    }),
+    useAcceptJoinRequests: () => ({ isPending: false, mutate: vi.fn() }),
+    useDeclineJoinRequests: () => ({ isPending: false, mutate: vi.fn() }),
+}));
+
+vi.mock('../../../hooks/useJoinRequestNotifications', () => ({
+    useJoinRequestNotifications: () => ({
+        toasts: [],
+        enqueue: vi.fn(),
+        dismiss: vi.fn(),
+        dismissByRequestId: vi.fn(),
+    }),
 }));
 
 import { MeetingRoom } from './MeetingRoom';

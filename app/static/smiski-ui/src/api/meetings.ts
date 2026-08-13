@@ -583,6 +583,7 @@ export async function listPendingMeetingJoinRequests(
             status: 'PENDING',
             requestedAt: request.requestedAt ?? '',
             expiresAt: request.expiresAt ?? '',
+            avatarUrl: '',
         }),
     );
     return {

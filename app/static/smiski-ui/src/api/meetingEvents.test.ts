@@ -70,6 +70,31 @@ describe('meeting event streams', () => {
                 status: 'PENDING',
                 requestedAt: '2026-08-02T10:00:00Z',
                 expiresAt: '2026-08-02T10:10:00Z',
+                avatarUrl: '',
+            }),
+        );
+    });
+
+    it('maps avatarUrl from the join-request event payload', async () => {
+        const controller = new AbortController();
+        const onJoinRequest = vi.fn(() => controller.abort());
+        fetchMock.mockResolvedValue(
+            eventResponse('join_request_created', {
+                requestId: REQUEST_ID,
+                accountId: 'account-42',
+                displayName: 'Alice',
+                avatarUrl: 'https://avatar.example/alice.png',
+            }),
+        );
+
+        await subscribeToMeetingJoinRequests(MEETING_ID, {
+            signal: controller.signal,
+            onJoinRequest,
+        });
+
+        expect(onJoinRequest).toHaveBeenCalledWith(
+            expect.objectContaining({
+                avatarUrl: 'https://avatar.example/alice.png',
             }),
         );
     });

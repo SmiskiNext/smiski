@@ -4,6 +4,7 @@ import type {
     PendingJoinRequestsPage,
 } from './joinRequest';
 import {
+    enrichPendingJoinRequestsPageAvatars,
     removePendingJoinRequestsFromPage,
     upsertPendingJoinRequestPage,
 } from './joinRequest';
@@ -45,7 +46,7 @@ describe('pending join-request cache updates', () => {
 
         expect(updated.total).toBe(1);
         expect(updated.requests).toEqual([
-            { ...existing, displayName: 'Alice Updated' },
+            { ...existing, displayName: 'Alice Updated', avatarUrl: '' },
         ]);
     });
 
@@ -55,6 +56,34 @@ describe('pending join-request cache updates', () => {
         expect(upsertPendingJoinRequestPage(offsetPage, REQUEST)).toBe(
             offsetPage,
         );
+    });
+
+    it('preserves a non-empty avatar when the incoming event omits it', () => {
+        const existing = {
+            ...REQUEST,
+            avatarUrl: 'https://avatar.example/alice.png',
+        };
+
+        const updated = upsertPendingJoinRequestPage(page([existing]), {
+            ...REQUEST,
+            avatarUrl: '',
+        });
+
+        expect(updated.requests[0]?.avatarUrl).toBe(
+            'https://avatar.example/alice.png',
+        );
+    });
+
+    it('copies cached avatars onto REST rows that lack them', () => {
+        const previous = page([
+            { ...REQUEST, avatarUrl: 'https://avatar.example/alice.png' },
+        ]);
+        const restPage = page([{ ...REQUEST, avatarUrl: '' }]);
+
+        expect(
+            enrichPendingJoinRequestsPageAvatars(restPage, previous).requests[0]
+                ?.avatarUrl,
+        ).toBe('https://avatar.example/alice.png');
     });
 
     it('removes terminal requests and updates the total', () => {

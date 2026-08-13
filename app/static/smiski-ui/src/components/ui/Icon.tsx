@@ -28,6 +28,7 @@ import {
     Sparkle,
     Square,
     Trash2,
+    UserPlus,
     Users,
     Video,
     VideoOff,
@@ -67,6 +68,7 @@ export type IconName =
     | 'spark'
     | 'stop'
     | 'trash'
+    | 'userPlus'
     | 'video'
     | 'x';
 
@@ -102,6 +104,7 @@ const icons: Record<IconName, LucideIcon> = {
     spark: Sparkle,
     stop: Square,
     trash: Trash2,
+    userPlus: UserPlus,
     video: Video,
     x: X,
 };

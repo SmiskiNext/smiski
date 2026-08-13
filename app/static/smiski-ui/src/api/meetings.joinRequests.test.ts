@@ -60,6 +60,7 @@ describe('manual-admission meeting clients', () => {
                     status: 'PENDING',
                     requestedAt: '2026-08-02T09:00:00Z',
                     expiresAt: '2026-08-02T09:05:00Z',
+                    avatarUrl: '',
                 },
             ],
             total: 4,
