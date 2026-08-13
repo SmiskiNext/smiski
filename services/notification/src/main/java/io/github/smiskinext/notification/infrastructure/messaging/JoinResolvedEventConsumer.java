@@ -47,7 +47,7 @@ public class JoinResolvedEventConsumer {
 
     @KafkaListener(
             topics = {"meet.join.approved", "meet.join.denied"},
-            containerFactory = "cloudEventKafkaListenerContainerFactory")
+            containerFactory = "joinResolvedKafkaListenerContainerFactory")
     public void onMessage(CloudEvent event) {
         try {
             JoinDecision decision = decode(event);
