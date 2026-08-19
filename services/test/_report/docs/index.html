@@ -1,0 +1,1063 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bảo vệ đồ án nhóm — Module Hội họp Trực tuyến (LiveKit)</title>
+<style>
+  :root{
+    --navy:#1F3A5F;
+    --navy-deep:#12243C;
+    --blue:#2E6FDB;
+    --blue-2:#1C4FA8;
+    --blue-soft:#EEF4FE;
+    --ink:#1C2733;
+    --muted:#5B6B7C;
+    --line:#E3EAF2;
+    --panel:#F6F9FC;
+    --ok:#1E7D46;
+    --warn:#B45309;
+    --white:#FFFFFF;
+    --shadow-sm:0 1px 2px rgba(15,27,45,.04),0 4px 14px rgba(15,27,45,.07);
+    --grad-accent:linear-gradient(135deg,#2E6FDB,#5E9BF0);
+    --grad-head:linear-gradient(135deg,#1F3A5F,#2B5691);
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    background:
+      radial-gradient(1100px 520px at 80% -12%,rgba(46,111,219,.30),transparent 60%),
+      radial-gradient(880px 520px at 8% 112%,rgba(28,79,168,.34),transparent 60%),
+      #0A111C;
+    font-family:"Segoe UI",Roboto,"Helvetica Neue",Arial,"Noto Sans",sans-serif;
+    color:var(--ink);
+    overflow:hidden;
+    display:flex;align-items:center;justify-content:center;
+    -webkit-font-smoothing:antialiased;
+    text-rendering:optimizeLegibility;
+  }
+  ::selection{background:rgba(46,111,219,.28)}
+  #stage{
+    position:relative;
+    width:1280px;height:720px;
+    background:var(--white);
+    transform-origin:center center;
+    border-radius:8px;
+    box-shadow:0 34px 90px rgba(0,0,0,.55),0 0 0 1px rgba(255,255,255,.07),0 0 70px rgba(46,111,219,.16);
+    overflow:hidden;
+  }
+  .slide{
+    position:absolute;inset:0;
+    padding:44px 64px 40px;
+    background:
+      linear-gradient(180deg,rgba(46,111,219,.05),transparent 190px),
+      var(--white);
+    opacity:0;visibility:hidden;
+    transform:translateY(16px) scale(.995);
+    transition:opacity .4s cubic-bezier(.25,.6,.3,1),transform .4s cubic-bezier(.25,.6,.3,1),visibility 0s .4s;
+    overflow:hidden;
+  }
+  .slide.active{opacity:1;visibility:visible;transform:none;transition:opacity .4s cubic-bezier(.25,.6,.3,1),transform .4s cubic-bezier(.25,.6,.3,1)}
+  .kicker{
+    display:flex;align-items:center;gap:10px;
+    font-size:14.5px;font-weight:700;letter-spacing:.10em;text-transform:uppercase;
+    color:var(--blue);margin-bottom:6px;
+  }
+  .kicker .num{
+    display:inline-flex;align-items:center;justify-content:center;
+    min-width:32px;height:32px;padding:0 7px;border-radius:9px;
+    background:var(--grad-accent);color:#fff;font-size:13.5px;letter-spacing:0;
+    box-shadow:0 3px 10px rgba(46,111,219,.35);
+  }
+  h2.title{font-size:33px;line-height:1.15;font-weight:700;color:var(--navy);margin-bottom:16px}
+  .lead{font-size:19px;color:var(--muted);line-height:1.45;margin-bottom:16px;max-width:1040px}
+  .msg{
+    margin-top:14px;padding:11px 16px;border-left:4px solid var(--blue);
+    background:linear-gradient(90deg,#E7F0FF,var(--blue-soft));
+    border-radius:0 12px 12px 0;
+    font-size:18px;font-weight:600;color:var(--navy);line-height:1.4;
+  }
+  .msg small{display:block;font-weight:500;color:var(--muted);font-size:14px;margin-top:2px}
+  .muted{color:var(--muted)}
+  .missing{color:var(--warn);font-weight:600}
+  .pass{color:var(--ok);font-weight:700}
+  .fail{color:#B3261E;font-weight:700}
+  .na{color:var(--muted)}
+  .cards{display:flex;gap:16px;margin-top:6px}
+  .card{
+    flex:1;background:#fff;border:1px solid var(--line);
+    border-radius:14px;padding:16px 18px;
+    box-shadow:var(--shadow-sm);
+  }
+  .card h3{
+    font-size:16.5px;color:var(--navy);margin-bottom:9px;font-weight:700;
+    display:flex;align-items:center;gap:9px;
+  }
+  .card h3::before{
+    content:"";flex:0 0 auto;width:8px;height:16px;border-radius:4px;
+    background:var(--grad-accent);
+  }
+  .card ul{list-style:none}
+  .card li{
+    font-size:16.5px;line-height:1.42;color:var(--ink);
+    padding-left:19px;position:relative;margin-bottom:6px;
+  }
+  .card li::before{
+    content:"";position:absolute;left:1px;top:10px;width:7px;height:7px;border-radius:50%;
+    background:var(--grad-accent);
+  }
+  .card.alt{
+    background:linear-gradient(180deg,#F2F7FF,var(--blue-soft));
+    border-color:#CFE0F8;
+  }
+  table{width:100%;border-collapse:separate;border-spacing:0;font-size:15.5px}
+  th{
+    background:var(--grad-head);color:#fff;text-align:left;
+    padding:8px 12px;font-size:14px;letter-spacing:.02em;font-weight:600;
+  }
+  th:first-child{border-radius:10px 0 0 10px}
+  th:last-child{border-radius:0 10px 10px 0}
+  td{padding:7px 10px;border-bottom:1px solid var(--line);vertical-align:top;line-height:1.35}
+  tr:nth-child(even) td{background:#FAFCFF}
+  tr:hover td{background:#F0F6FF}
+  tr:last-child td:first-child{border-radius:0 0 0 10px}
+  tr:last-child td:last-child{border-radius:0 0 10px 0}
+  td.c,th.c{text-align:center}
+  figure{margin:0}
+  .fig{
+    background:#fff;border:1px solid var(--line);border-radius:14px;
+    padding:10px;display:flex;flex-direction:column;height:100%;
+    box-shadow:var(--shadow-sm);
+  }
+  .fig .imgbox{flex:1;display:flex;align-items:center;justify-content:center;min-height:0}
+  .fig img{max-width:100%;max-height:100%;object-fit:contain;display:block;border-radius:8px}
+  .fig figcaption{
+    margin-top:8px;padding-top:8px;border-top:1px dashed var(--line);
+    font-size:13.5px;color:var(--muted);text-align:center;line-height:1.4;
+  }
+  .fig figcaption b{color:var(--navy)}
+  .chain{display:flex;flex-direction:column;gap:0;align-items:stretch}
+  .chain .step{
+    background:#fff;border:1px solid var(--line);border-left:3px solid var(--blue);
+    border-radius:8px;padding:5px 10px;font-size:15.5px;line-height:1.25;
+    box-shadow:0 1px 3px rgba(15,27,45,.04);
+  }
+  .chain .step b{color:var(--navy)}
+  .chain .arrow{text-align:center;font-size:12px;color:var(--blue);line-height:1.1}
+  .flow{display:flex;align-items:stretch;gap:14px}
+  .flow .box{
+    flex:1;border-radius:12px;padding:12px;font-size:15px;text-align:center;line-height:1.3;
+    box-shadow:var(--shadow-sm);
+  }
+  .flow .arrow{display:flex;align-items:center;color:var(--blue);font-size:20px;font-weight:700}
+  .pills{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+  .pill{
+    background:var(--panel);border:1px solid var(--line);border-radius:999px;
+    padding:5px 13px;font-size:14.5px;color:var(--navy);
+  }
+  .pill.b{background:var(--blue-soft);border-color:#CFE0F8;font-weight:600}
+  .split{display:flex;gap:22px;align-items:stretch}
+  .split .col{flex:1;min-width:0}
+  .col.w55{flex:1.35}
+  .col.w45{flex:1}
+  .col.w60{flex:1.4}
+  .hint{font-size:13.5px;color:var(--muted);line-height:1.45;margin-top:10px}
+  .hint b{color:var(--navy)}
+  .layers{display:flex;flex-direction:column;gap:10px}
+  .layer{
+    border:1px solid var(--line);border-radius:12px;padding:11px 14px;
+    background:#fff;display:flex;align-items:center;gap:14px;
+    border-left:4px solid var(--blue);box-shadow:var(--shadow-sm);
+  }
+  .layer:nth-child(2){border-left-color:#2F9E6E}
+  .layer:nth-child(3){border-left-color:#8B5CF6}
+  .layer .lname{flex:0 0 168px;font-weight:700;color:var(--navy);font-size:15.5px}
+  .layer .lname small{display:block;font-weight:500;color:var(--muted);font-size:12px}
+  .timeline{display:flex;gap:10px;align-items:stretch;margin-top:4px}
+  .tl{
+    flex:1;border-radius:14px;border:1px solid var(--line);overflow:hidden;
+    display:flex;flex-direction:column;background:#fff;box-shadow:var(--shadow-sm);
+  }
+  .tl .head{
+    background:var(--grad-head);color:#fff;padding:9px 12px;font-size:13.5px;font-weight:700;text-align:center;
+    letter-spacing:.06em;
+  }
+  .tl .body{padding:10px 12px;font-size:13.5px;line-height:1.4;flex:1;background:#fff}
+  .tl .body li{list-style:none;padding-left:15px;position:relative;margin-bottom:5px}
+  .tl .body li::before{content:"¹3";position:absolute;left:0;color:var(--blue);font-weight:700}
+  .tl-arrow{display:flex;align-items:center;color:var(--blue);font-weight:700;font-size:18px}
+  .badge{
+    display:inline-block;padding:2px 10px;border-radius:999px;
+    background:var(--blue-soft);color:var(--navy);font-size:12.5px;font-weight:600;
+    border:1px solid #CFE0F8;white-space:nowrap;
+  }
+  /* title slide */
+  .slide.title{
+    background:
+      radial-gradient(1150px 600px at 88% -12%,rgba(46,111,219,.38),transparent 55%),
+      radial-gradient(750px 520px at -8% 110%,rgba(28,79,168,.42),transparent 55%),
+      linear-gradient(135deg,#101F33 0%,#16283B 52%,#1E3B66 100%);
+    color:#fff;display:flex;flex-direction:column;padding:0;
+  }
+  .slide.title::before,.slide.title::after{content:"";position:absolute;border-radius:50%;pointer-events:none;z-index:0}
+  .slide.title::before{width:380px;height:380px;right:-170px;top:-170px;border:1px solid rgba(255,255,255,.09)}
+  .slide.title::after{width:260px;height:260px;right:-100px;top:-100px;border:1px solid rgba(255,255,255,.06)}
+  .title .band{
+    flex:0 0 auto;position:relative;z-index:1;
+    padding:44px 72px 26px;
+    border-bottom:1px solid rgba(255,255,255,.12);
+    background:linear-gradient(180deg,rgba(255,255,255,.06),transparent);
+  }
+  .title .band .inst{
+    display:inline-block;font-size:13.5px;letter-spacing:.14em;text-transform:uppercase;
+    color:#9FB8DC;font-weight:600;
+    padding:7px 16px;border-radius:999px;
+    background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.16);
+  }
+  .title .band h1{font-size:37px;line-height:1.3;font-weight:700;color:#fff;margin-top:16px}
+  .title .band h1 span{
+    background:linear-gradient(92deg,#7FB0F0,#C7DEFC);
+    -webkit-background-clip:text;background-clip:text;color:transparent;
+  }
+  .title .meta{
+    flex:1;display:flex;flex-direction:column;justify-content:center;gap:10px;
+    padding:30px 72px 42px;position:relative;z-index:1;
+  }
+  .title .row{display:flex;font-size:17.5px;line-height:1.45}
+  .title .row .k{min-width:225px;color:#9FB8DC;font-weight:600;font-size:14px;letter-spacing:.05em;text-transform:uppercase}
+  .title .row .v{color:#EAF1FB}
+  .title .row .v b{color:#fff}
+  .title .members{
+    margin-top:10px;border-top:1px solid rgba(255,255,255,.16);padding-top:14px;
+    display:flex;gap:14px;
+  }
+  .title .m{
+    flex:1;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.18);
+    border-radius:12px;padding:11px 15px;
+    box-shadow:0 8px 20px rgba(0,0,0,.18);
+  }
+  .title .m .n{font-weight:700;color:#fff;font-size:15.5px}
+  .title .m .id{color:#9FB8DC;font-size:12.5px;margin-top:2px}
+  .title .m .r{
+    display:inline-block;margin-top:7px;padding:3px 11px;border-radius:6px;
+    background:var(--grad-accent);color:#fff;font-size:12.5px;font-weight:700;
+    box-shadow:0 3px 8px rgba(46,111,219,.35);
+  }
+  .title .foot{margin-top:16px;font-size:14px;color:#8FA5C2}
+  .slide-foot{
+    position:absolute;left:64px;right:64px;bottom:16px;
+    font-size:13px;color:var(--muted);
+    display:flex;justify-content:space-between;gap:12px;
+  }
+  .slide-foot .tag{letter-spacing:.05em;text-transform:uppercase;font-weight:600;font-size:11.5px}
+  #chrome{
+    position:absolute;left:0;right:0;bottom:0;height:48px;
+    display:flex;align-items:center;justify-content:space-between;
+    padding:0 18px;z-index:50;
+    background:linear-gradient(to top,rgba(8,15,25,.62),transparent);
+    color:#fff;opacity:0;transition:opacity .25s;
+    pointer-events:none;
+  }
+  #stage:hover #chrome{opacity:1;pointer-events:auto}
+  #chrome button{
+    display:inline-flex;align-items:center;gap:7px;
+    background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.32);
+    color:#fff;border-radius:10px;min-width:84px;padding:7px 13px;
+    font-size:13.5px;cursor:pointer;font-weight:600;pointer-events:auto;
+    transition:background .18s,transform .18s;
+  }
+  #chrome button:hover{background:rgba(255,255,255,.28);transform:translateY(-1px)}
+  #chrome button svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+  #counter{font-size:13.5px;font-weight:600;letter-spacing:.06em;background:rgba(10,18,28,.45);padding:5px 13px;border-radius:9px}
+  #chrome .grp{display:flex;gap:8px}
+  #progress{
+    position:absolute;left:0;bottom:0;height:4px;width:0;z-index:51;
+    background:linear-gradient(90deg,#2E6FDB,#7FB0F0);
+    box-shadow:0 0 12px rgba(46,111,219,.7);
+    transition:width .3s ease;
+  }
+  .slide.active .rv{opacity:0;transform:translateY(12px);animation:rv .5s cubic-bezier(.22,.68,.34,1) forwards}
+  .slide.active .rv.d1{animation-delay:.08s}
+  .slide.active .rv.d2{animation-delay:.16s}
+  .slide.active .rv.d3{animation-delay:.24s}
+  @keyframes rv{to{opacity:1;transform:none}}
+</style>
+</head>
+<body>
+<div id="stage">
+
+<!-- ============ 01 · TITLE ============ -->
+<section class="slide title active" data-title="Title">
+  <div class="band">
+    <div class="inst">Học viện Công nghệ Bưu chính Viễn thông · Cơ sở TP. Hồ Chí Minh · Nhóm 5</div>
+    <h1>Thiết kế và xây dựng <span>Module Hội họp Trực tuyến</span> tích hợp vào hệ thống quản lý dự án sử dụng LiveKit</h1>
+  </div>
+  <div class="meta">
+    <div class="row"><div class="k">Giảng viên hướng dẫn</div><div class="v">ThS. Lê Hà Thanh</div></div>
+    <div class="row"><div class="k">Đơn vị thực tập</div><div class="v"><span class="missing">[CẦN BỔ SUNG]</span></div></div>
+    <div class="members">
+      <div class="m">
+        <div class="n">Cao Đăng Chiến</div>
+        <div class="id">N22DCCN010 · D22CQCNPM01-N</div>
+        <div class="r">Business Analyst</div>
+      </div>
+      <div class="m">
+        <div class="n">Phạm Phúc Duy</div>
+        <div class="id">N22DCCN015 · D22CQCNPM01-N</div>
+        <div class="r">Forge App &amp; Frontend</div>
+      </div>
+      <div class="m">
+        <div class="n">Nguyễn Ngọc Phú</div>
+        <div class="id">N22DCCN159 · D22CQCNPM02-N</div>
+        <div class="r">Backend &amp; Hạ tầng</div>
+      </div>
+    </div>
+    <div class="foot">Báo cáo thực tập tốt nghiệp đại học — TP.HCM, 08/2026</div>
+  </div>
+</section>
+
+<!-- ============ 02 · BỐI CẢNH ============ -->
+<section class="slide" data-title="Bối cảnh đề tài">
+  <div class="kicker rv"><span class="num">02</span>Business Context</div>
+  <h2 class="title rv d1">Bối cảnh và bài toán đặt ra <span style="font-size:19px;color:var(--muted);font-weight:500">(báo cáo Mở đầu · §1.1)</span></h2>
+  <div class="split">
+    <div class="col">
+      <p class="lead rv d2">Trong bối cảnh chuyển đổi số, các hệ thống quản lý công việc và dự án đóng vai trò quan trọng trong phối hợp nhóm — nhưng hội họp lại diễn ra trên nền tảng riêng, khiến thông tin cuộc họp tách khỏi ngữ cảnh công việc.</p>
+      <div class="card rv d2">
+        <h3>Thực trạng</h3>
+        <ul>
+          <li>Hệ sinh thái quản lý công việc: <b>Jira · Trello · Asana · ClickUp · Linear · GitHub Projects</b> — theo dõi task, issue, bug, requirement, tiến độ.</li>
+          <li>Hội họp thường xuyên trong Sprint: làm rõ yêu cầu, thống nhất phương án, trao đổi kỹ thuật, cập nhật tiến độ, ra quyết định.</li>
+          <li>Meeting vốn gắn với Task / Issue / Sprint — nhưng tổ chức ở <b>Google Meet · Zoom · Microsoft Teams</b>; mối liên hệ duy trì <b>thủ công</b> (chia sẻ link, ghi chú, cập nhật sau họp).</li>
+        </ul>
+      </div>
+      <div class="msg rv d3">Bài toán (§1.1): làm thế nào đưa hoạt động hội họp trực tuyến vào <b>cùng ngữ cảnh với công việc</b> — bảo đảm quản lý, theo dõi và truy vết thông tin cuộc họp trong quá trình thực hiện dự án?</div>
+    </div>
+    <div class="col">
+      <figure class="fig rv d3">
+        <div class="imgbox"><img src="../image/m%E1%BB%91i%20li%C3%AAn%20h%E1%BB%87%20.png" alt="Mối liên hệ giữa Meeting và công việc"></div>
+        <figcaption><b>Hình 2.1 (báo cáo):</b> Meeting gắn với Task / Issue / Sprint — nhưng bị quản lý tách khỏi ngữ cảnh công việc (§2.3).</figcaption>
+      </figure>
+    </div>
+  </div>
+  <div class="cards rv d3" style="margin-top:12px">
+    <div class="card">
+      <h3>Fellow — Meetings Statistics</h3>
+      <ul>
+        <li>Individual Contributors dành khoảng <b>9 giờ/tuần (20,2% workweek)</b> cho meetings.</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3>Asana — Anatomy of Work Index</h3>
+      <ul>
+        <li>Khoảng <b>60%</b> thời gian của knowledge workers dành cho <i>work about work</i> — trao đổi trạng thái, tìm kiếm thông tin, quản lý ưu tiên.</li>
+      </ul>
+    </div>
+  </div>
+  <p class="hint rv d3" style="margin-top:8px">Nguồn: Fellow (Meetings Statistics); Asana – Anatomy of Work Index.</p>
+</section>
+
+<!-- ============ 03 · AS-IS ============ -->
+<section class="slide" data-title="Hiện trạng AS-IS">
+  <div class="kicker rv"><span class="num">03</span>Current State</div>
+  <h2 class="title rv d1">Phân tích hiện trạng — AS-IS</h2>
+  <div class="split">
+    <div class="col w55">
+      <figure class="fig rv d2">
+        <div class="imgbox"><img src="../image/hi%E1%BB%87n%20tr%E1%BA%A1ng.png" alt="Hiện trạng hoạt động Sprint"></div>
+        <figcaption><b>Hình 1.1 (báo cáo):</b> thực trạng Sprint — công việc và hội họp chạy trên hai hệ thống riêng biệt.</figcaption>
+      </figure>
+    </div>
+    <div class="col w45">
+      <div class="chain rv d2">
+        <div class="step"><b>Issue phát sinh</b> trên Jira</div>
+        <div class="arrow">▼</div>
+        <div class="step">Trao đổi trên Jira</div>
+        <div class="arrow">▼</div>
+        <div class="step">Cần họp → mở <b>công cụ Meeting ngoài</b></div>
+        <div class="arrow">▼</div>
+        <div class="step">Tạo Meeting → <b>gửi link thủ công</b></div>
+        <div class="arrow">▼</div>
+        <div class="step">Tham gia → <b>quay lại Jira</b> cập nhật thủ công</div>
+      </div>
+      <p class="hint rv d3">Mối liên hệ Meeting ↔ công việc được duy trì thủ công: chia sẻ link, ghi chú, cập nhật sau họp (báo cáo §2.3–2.4).</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 04 · PAIN POINT + ROOT CAUSE ============ -->
+<section class="slide" data-title="Pain Point và Root Cause">
+  <div class="kicker rv"><span class="num">04</span>Problem Analysis</div>
+  <h2 class="title rv d1">Vấn đề và nguyên nhân gốc rễ</h2>
+  <div class="split">
+    <div class="col">
+      <div class="card alt rv d2">
+        <h3>Pain Point</h3>
+        <ul>
+          <li><b>Meeting tách khỏi Issue</b> — mất ngữ cảnh công việc <span class="muted">(NV-01)</span></li>
+          <li><b>Quy trình phân tán</b> — chuyển đổi liên tục giữa công cụ <span class="muted">(NV-03)</span></li>
+          <li><b>Khó quản lý lifecycle</b> của Meeting</li>
+          <li><b>Khó truy xuất lịch sử</b> — thời điểm, người tham gia, quyết định <span class="muted">(NV-02)</span></li>
+          <li><b>Khó kiểm soát quyền</b> theo ngữ cảnh công việc</li>
+        </ul>
+      </div>
+    </div>
+    <div class="col">
+      <div class="msg rv d2">Root Cause<br><small>Thông tin cuộc họp không trở thành một phần của vòng đời Issue; mối liên hệ phụ thuộc thao tác thủ công của người dùng.</small></div>
+      <div class="card rv d3" style="margin-top:14px">
+        <h3>Tác động (báo cáo §2)</h3>
+        <ul>
+          <li>Tăng thao tác chuyển đổi giữa các hệ thống.</li>
+          <li>Quyết định trong họp dễ thất lạc nếu không ghi nhận đúng ngữ cảnh.</li>
+          <li>Điểm cần giải quyết: <b>thu hẹp khoảng cách giữa hai luồng hoạt động</b> — không phải thay thế công cụ.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 05 · BUSINESS NEED ============ -->
+<section class="slide" data-title="Business Need">
+  <div class="kicker rv"><span class="num">05</span>Problem → Need</div>
+  <h2 class="title rv d1">Chuyển hóa vấn đề thành nhu cầu nghiệp vụ</h2>
+  <table class="rv d2">
+    <tr><th style="width:50%">Pain Point</th><th style="width:50%">Business Need</th></tr>
+    <tr><td>Mất ngữ cảnh công việc</td><td><b>Gắn Meeting với Issue</b></td></tr>
+    <tr><td>Quy trình phân tán, chuyển đổi công cụ</td><td><b>Tạo / Join Meeting ngay từ Jira</b></td></tr>
+    <tr><td>Khó quản lý vòng đời</td><td><b>Quản lý lifecycle Meeting</b> (Scheduled → Running → Completed / Canceled)</td></tr>
+    <tr><td>Khó kiểm soát quyền theo ngữ cảnh</td><td><b>Permission theo ngữ cảnh</b> (View / Edit + vai trò Host từng Meeting)</td></tr>
+    <tr><td>Khó truy xuất lịch sử</td><td><b>Meeting History theo Issue / Project</b></td></tr>
+  </table>
+  <div class="msg rv d3">Tư duy phân tích của nhóm: Business Problem → Business Need → Requirement → Solution → Technology.</div>
+</section>
+
+<!-- ============ 06 · MỤC TIÊU + PHẠM VI ============ -->
+<section class="slide" data-title="Mục tiêu và phạm vi">
+  <div class="kicker rv"><span class="num">06</span>Objective &amp; Scope</div>
+  <h2 class="title rv d1">Mục tiêu và phạm vi đề tài</h2>
+  <div class="split">
+    <div class="col w55">
+      <div class="card rv d2">
+        <h3>Objectives (báo cáo Bảng 1.1)</h3>
+        <ul>
+          <li><b>MT-01</b> Khảo sát nhu cầu hội họp trong quản lý dự án → xác định hạn chế khi Meeting tách khỏi Issue.</li>
+          <li><b>MT-02</b> Nghiên cứu công nghệ tích hợp: Jira Cloud, Forge, WebRTC, LiveKit.</li>
+          <li><b>MT-03</b> Kiến trúc tách <b>lớp nghiệp vụ Meeting</b> và <b>lớp hạ tầng truyền thông</b>, mở rộng được sang nền tảng khác.</li>
+          <li><b>MT-04</b> Module tích hợp mẫu trên Jira (Issue Panel, Project Page) + vòng đời 4 trạng thái.</li>
+          <li><b>MT-05</b> Phân quyền + kiểm thử đánh giá luồng nghiệp vụ và tích hợp Jira ↔ LiveKit.</li>
+        </ul>
+      </div>
+      <div class="cards rv d3" style="margin-top:12px">
+        <div class="card">
+          <h3>In Scope</h3>
+          <ul>
+            <li>Vòng đời Meeting gắn Issue trong Jira</li>
+            <li>Forge: Issue Panel + Project Page</li>
+            <li>Audio / Video / Screen Sharing qua LiveKit</li>
+            <li>Phân quyền View / Edit + Host</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>Out of Scope</h3>
+          <ul>
+            <li>AI Meeting Summary, Recording</li>
+            <li>Chat sync, Mobile app</li>
+            <li>Calendar integration</li>
+            <li>Multi-tenant deployment, Marketplace</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+    <div class="col w45">
+      <figure class="fig rv d2">
+        <div class="imgbox"><img src="../image/ph%E1%BA%A1m%20vi%20%C4%91%E1%BB%81%20t%C3%A0i.png" alt="Phạm vi đề tài"></div>
+        <figcaption><b>Hình 1.2 (báo cáo):</b> phạm vi đề tài — hội họp đặt trong cùng ngữ cảnh với công việc.</figcaption>
+      </figure>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 07 · STAKEHOLDER / ACTOR ============ -->
+<section class="slide" data-title="Stakeholder và Actor">
+  <div class="kicker rv"><span class="num">07</span>Stakeholder &amp; Actor</div>
+  <h2 class="title rv d1">Stakeholder và vai trò người dùng</h2>
+  <div class="split">
+    <div class="col w55">
+      <table class="rv d2">
+        <tr><th style="width:34%">Đối tượng</th><th style="width:66%">Vai trò trong hệ thống</th></tr>
+        <tr><td><b>Quản trị viên hệ thống</b></td><td>Quản trị, cấu hình nền tảng tích hợp và vận hành</td></tr>
+        <tr><td><b>Meeting Manager</b> <span class="muted">(Edit)</span></td><td>Tạo, lên lịch, bắt đầu, chỉnh sửa, hủy; xem và tham gia</td></tr>
+        <tr><td><b>Host</b></td><td>Vai trò phát sinh trong từng Meeting; <b>chỉ Host được End</b> Meeting Running</td></tr>
+        <tr><td><b>Participant</b> <span class="muted">(View)</span></td><td>Xem thông tin, lịch sử, tham gia Meeting Running; audio / video / screen share</td></tr>
+        <tr><td><b>Viewer</b></td><td>Chỉ xem thông tin và lịch sử, không thao tác quản lý</td></tr>
+      </table>
+      <p class="hint rv d3">Chức danh (PM, Scrum Master, BA, Developer…) không quyết định quyền — quyền theo <b>vai trò + ngữ cảnh từng Meeting</b> (báo cáo §1.4, §4.2.1).</p>
+    </div>
+    <div class="col w45">
+      <figure class="fig rv d3">
+        <div class="imgbox"><img src="../image/s%C6%A1%20%C4%91%E1%BB%93%20t%E1%BB%95ng%20h%E1%BB%A3p%20use%20case.png" alt="Sơ đồ Use Case tổng quát"></div>
+        <figcaption><b>Hình 4.2 (báo cáo):</b> Use Case tổng quát — Actor Meeting Manager kế thừa quyền của Participant.</figcaption>
+      </figure>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 08 · REQUIREMENT + BUSINESS RULE ============ -->
+<section class="slide" data-title="Yêu cầu và Quy tắc nghiệp vụ">
+  <div class="kicker rv"><span class="num">08</span>Requirement &amp; Business Rule</div>
+  <h2 class="title rv d1">Phân tích yêu cầu và quy tắc nghiệp vụ</h2>
+  <div class="split">
+    <div class="col">
+      <div class="card rv d2">
+        <h3>Functional Requirements (Bảng 4.1)</h3>
+        <ul>
+          <li><b>FR-01</b> Tạo &amp; bắt đầu Instant Meeting từ ngữ cảnh công việc</li>
+          <li><b>FR-02</b> Lên lịch Meeting · <b>FR-03</b> Bắt đầu Meeting đã lên lịch</li>
+          <li><b>FR-04</b> Tham gia Meeting Running → kết nối LiveKit Room</li>
+          <li><b>FR-05</b> Chỉnh sửa / hủy / kết thúc theo quyền và trạng thái</li>
+          <li><b>FR-06</b> Xem chi tiết &amp; lịch sử theo Issue / Project</li>
+          <li><b>FR-07</b> Audio, video, screen sharing · <b>FR-08</b> Tiếp nhận ngữ cảnh từ nền tảng tích hợp</li>
+        </ul>
+      </div>
+      <div class="card rv d3" style="margin-top:10px">
+        <h3>NFR (Bảng 4.2)</h3>
+        <ul>
+          <li><b>NFR-01</b> Xác thực, phân tách Tenant · <b>NFR-02</b> Kiểm soát quyền &amp; trạng thái ở backend</li>
+          <li><b>NFR-03</b> Token đúng người – đúng phòng – có thời hạn · <b>NFR-04</b> Tách nghiệp vụ khỏi truyền thông</li>
+        </ul>
+      </div>
+    </div>
+    <div class="col">
+      <div class="card alt rv d2">
+        <h3>Business Rules (Bảng 4.4)</h3>
+        <ul>
+          <li><b>BR-02</b> Một Issue có thể có nhiều Meeting Scheduled</li>
+          <li><b>BR-03</b> Meeting Scheduled không chặn tạo Instant Meeting</li>
+          <li><b>BR-04</b> Một người dùng không Host đồng thời nhiều Meeting Running</li>
+          <li><b>BR-05</b> Chỉ Scheduled được bắt đầu / chỉnh sửa / hủy</li>
+          <li><b>BR-06</b> Chỉ Running được tham gia; chỉ Host được End</li>
+          <li><b>BR-07</b> Quyền Edit không thay thế điều kiện Host khi End</li>
+          <li><b>BR-08</b> Mỗi Meeting gắn với ngữ cảnh công việc / Project</li>
+        </ul>
+      </div>
+      <p class="hint rv d3">Vòng đời: <b>Scheduled → Running → Completed</b>; <b>Scheduled → Canceled</b> — mỗi thao tác chỉ hợp lệ ở một trạng thái.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 09 · AS-IS → TO-BE ============ -->
+<section class="slide" data-title="Giải pháp TO-BE">
+  <div class="kicker rv"><span class="num">09</span>Proposed Solution</div>
+  <h2 class="title rv d1">Giải pháp đề xuất — TO-BE</h2>
+  <div class="cards" style="margin-top:8px">
+    <div class="card rv d2">
+      <h3 style="text-align:center">AS-IS</h3>
+      <div class="chain">
+        <div class="step" style="text-align:center"><b>Jira</b> — công việc</div>
+        <div class="arrow">▼</div>
+        <div class="step" style="text-align:center">Mở <b>Meeting bên ngoài</b> — mất ngữ cảnh</div>
+        <div class="arrow">▼</div>
+        <div class="step" style="text-align:center"><b>Quay lại Jira</b> — cập nhật thủ công</div>
+      </div>
+    </div>
+    <div class="card alt rv d3">
+      <h3 style="text-align:center">TO-BE</h3>
+      <div class="chain">
+        <div class="step" style="text-align:center"><b>Jira Issue</b> — ngữ cảnh công việc</div>
+        <div class="arrow">▼</div>
+        <div class="step" style="text-align:center"><b>Issue Panel</b> — Meeting gắn với Issue</div>
+        <div class="arrow">▼</div>
+        <div class="step" style="text-align:center"><b>Meeting Room</b> — thời gian thực qua <b>LiveKit</b></div>
+      </div>
+    </div>
+  </div>
+  <div class="msg rv d3">Đưa Meeting vào cùng context với Issue — hội họp trở thành một phần của vòng đời công việc.</div>
+</section>
+
+<!-- ============ 10 · GIẢI PHÁP ĐỀ XUẤT ============ -->
+<section class="slide" data-title="Giải pháp đề xuất — thành phần">
+  <div class="kicker rv"><span class="num">10</span>Solution</div>
+  <h2 class="title rv d1">Giải pháp đề xuất — nhóm xây dựng gì?</h2>
+  <div class="layers rv d2" style="margin-top:6px">
+    <div class="layer">
+      <div class="lname">Lớp tích hợp<small>gắn Meeting vào công việc</small></div>
+      <div>
+        <span class="pill b">Jira Cloud</span>
+        <span class="pill b">Forge App — Issue Panel</span>
+        <span class="pill b">Project Page</span>
+        <span class="pill">UI ReactJS</span>
+      </div>
+    </div>
+    <div class="layer">
+      <div class="lname">Lớp nghiệp vụ<small>quản lý vòng đời Meeting</small></div>
+      <div>
+        <span class="pill b">Meet Service</span>
+        <span class="pill b">Tenant Service</span>
+        <span class="pill b">Notification Service</span>
+        <span class="pill">PostgreSQL · Valkey · Kafka</span>
+      </div>
+    </div>
+    <div class="layer">
+      <div class="lname">Lớp truyền thông<small>thời gian thực</small></div>
+      <div>
+        <span class="pill b">LiveKit (SFU)</span>
+        <span class="pill">Audio · Video · Screen Sharing</span>
+        <span class="pill">Coturn — STUN/TURN</span>
+      </div>
+    </div>
+  </div>
+  <div class="msg rv d3">Nghiệp vụ Meeting và hạ tầng truyền thông <b>tách biệt</b> — có thể mở rộng sang nền tảng quản lý công việc khác bằng lớp tích hợp tương ứng (MT-03, NFR-04).</div>
+</section>
+
+<!-- ============ 11 · LÝ DO LỰA CHỌN GIẢI PHÁP ============ -->
+<section class="slide" data-title="Đánh giá và lựa chọn giải pháp">
+  <div class="kicker rv"><span class="num">11</span>Solution Evaluation</div>
+  <h2 class="title rv d1">Đánh giá và lựa chọn giải pháp</h2>
+  <table class="rv d2" style="margin-bottom:10px">
+    <tr><th style="width:34%">Tiêu chí</th><th style="width:33%" class="c">Công cụ độc lập (Zoom / Meet / Teams)</th><th style="width:33%" class="c">Module tích hợp (đề xuất)</th></tr>
+    <tr><td>Gắn với Issue</td><td class="c">Hạn chế</td><td class="c"><b>Có</b></td></tr>
+    <tr><td>Quản lý lifecycle</td><td class="c">Hạn chế</td><td class="c"><b>Có</b></td></tr>
+    <tr><td>Permission theo ngữ cảnh</td><td class="c">Hạn chế</td><td class="c"><b>Có</b></td></tr>
+    <tr><td>Join từ Jira</td><td class="c">Không</td><td class="c"><b>Có</b></td></tr>
+    <tr><td>Meeting History theo Issue</td><td class="c">Hạn chế</td><td class="c"><b>Có</b></td></tr>
+    <tr><td>Truyền thông thời gian thực (RTC)</td><td class="c">Có</td><td class="c"><b>LiveKit (SFU)</b></td></tr>
+  </table>
+  <div class="split">
+    <div class="col">
+      <p class="rv d3" style="font-size:16.5px;line-height:1.45"><b>Vì sao LiveKit / SFU?</b> Mesh không mở rộng khi đông người; MCU tốn tài nguyên và tăng độ trễ; <b>SFU</b> chuyển tiếp từng luồng — độ trễ thấp, mở rộng tốt. LiveKit cung cấp sẵn Signaling, quản lý Room, cấp Token, triển khai self-hosted (báo cáo §3.2–3.4).</p>
+    </div>
+    <div class="col">
+      <p class="rv d3" style="font-size:16.5px;line-height:1.45"><b>Giải pháp thay thế:</b> công cụ độc lập — thiếu ngữ cảnh Issue; tự triển khai WebRTC thủ công — phải tự lo Signaling, Room, STUN/TURN. Module tích hợp <b>phù hợp hơn</b> với bài toán Meeting trong ngữ cảnh Jira Issue — không tuyên bố “tốt hơn mọi công cụ”.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 12 · KIẾN TRÚC ============ -->
+<section class="slide" data-title="Kiến trúc hệ thống">
+  <div class="kicker rv"><span class="num">12</span>Architecture</div>
+  <h2 class="title rv d1">Kiến trúc hệ thống</h2>
+  <div class="pills rv d1">
+    <span class="pill b">Client — Jira Cloud · Forge App · ReactJS</span>
+    <span class="pill">Gateway — Forge Remote · Envoy</span>
+    <span class="pill b">Services — Tenant · Meet · Notification</span>
+    <span class="pill">Infra — PostgreSQL · Valkey · Kafka · LiveKit / Coturn</span>
+  </div>
+  <div class="split" style="margin-top:12px">
+    <div class="col w55">
+      <figure class="fig rv d2">
+        <div class="imgbox"><img src="../image/s%C6%A1%20%C4%91%E1%BB%93%20h%E1%BB%87%20th%E1%BB%91ng.png" alt="Sơ đồ kiến trúc tổng thể"></div>
+        <figcaption><b>Hình 4.8 (báo cáo):</b> kiến trúc tổng thể 4 lớp — tách nền tảng tích hợp, nghiệp vụ Meeting và hạ tầng truyền thông.</figcaption>
+      </figure>
+    </div>
+    <div class="col w45">
+      <figure class="fig rv d3">
+        <div class="imgbox"><img src="../image/thi%E1%BA%BFt%20k%E1%BA%BF%20meet%20service%20.png" alt="Kiến trúc Meet Service"></div>
+        <figcaption><b>Hình 4.12 (báo cáo):</b> Meet Service — service trung tâm (hexagonal + CQRS): vòng đời, phân quyền, token; LiveKit chỉ lo truyền thông.</figcaption>
+      </figure>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 13 · MÔ HÌNH HÓA ============ -->
+<section class="slide" data-title="Mô hình hóa hệ thống">
+  <div class="kicker rv"><span class="num">13</span>Modeling</div>
+  <h2 class="title rv d1">Mô hình hóa hệ thống</h2>
+  <div class="split" style="gap:14px">
+    <div class="col">
+      <figure class="fig rv d2">
+        <div class="imgbox"><img src="../image/t%C6%B0%C6%A1ng%20t%C3%A1c%20gi%E1%BB%AFa%20use%20case%20v%C3%A0%20h%E1%BB%87%20th%E1%BB%91ng.png" alt="Sơ đồ tương tác Use Case và hệ thống"></div>
+        <figcaption><b>Use Case (Hình 4.3):</b> xác định Actor và phạm vi chức năng; mọi thao tác đi qua kiểm tra <b>quyền – Tenant – trạng thái</b>.</figcaption>
+      </figure>
+    </div>
+    <div class="col">
+      <figure class="fig rv d3">
+        <div class="imgbox"><img src="../image/lu%E1%BB%93ng%20x%E1%BB%AD%20l%C3%BD%20c%E1%BB%A7a%20h%E1%BB%87%20th%E1%BB%91ng%20.png" alt="Luồng xử lý của hệ thống"></div>
+        <figcaption><b>Activity / Luồng xử lý (Hình 4.9):</b> mô tả workflow nghiệp vụ từ giao diện tích hợp đến các service.</figcaption>
+      </figure>
+    </div>
+    <div class="col w45" style="flex:1.15">
+      <div class="card rv d3" style="height:100%">
+        <h3>State — vòng đời Meeting (Bảng 4.3)</h3>
+        <div class="flow" style="margin-top:10px">
+          <div class="box" style="background:var(--blue-soft);border:1px solid #CFE0F8"><b>Scheduled</b><br><span class="muted" style="font-size:13.5px">đã lên lịch, chưa bắt đầu</span></div>
+          <div class="arrow">▶</div>
+          <div class="box" style="background:#E8F7EE;border:1px solid #BFE3CD"><b>Running</b><br><span class="muted" style="font-size:13.5px">đang diễn ra, có thể tham gia</span></div>
+          <div class="arrow">▶</div>
+          <div class="box" style="background:var(--panel);border:1px solid var(--line)"><b>Completed</b><br><span class="muted" style="font-size:13.5px">đã kết thúc</span></div>
+        </div>
+        <div class="flow" style="margin-top:8px">
+          <div style="flex:1"></div>
+          <div class="arrow">Scheduled ▶ Canceled (bị hủy trước khi bắt đầu)</div>
+          <div style="flex:1"></div>
+        </div>
+        <p class="hint" style="margin-top:10px">Mỗi trạng thái ràng buộc bởi Business Rule: chỉ Scheduled được bắt đầu / hủy (BR-05), chỉ Running được tham gia / kết thúc bởi Host (BR-06). <span class="missing">[CẦN BỔ SUNG: sơ đồ trạng thái Hình 4.1 trong báo cáo]</span></p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 14 · SEQUENCE ============ -->
+<section class="slide" data-title="Luồng nghiệp vụ tiêu biểu">
+  <div class="kicker rv"><span class="num">14</span>Business Flow</div>
+  <h2 class="title rv d1">Luồng xử lý nghiệp vụ tiêu biểu — Join Meeting</h2>
+  <div class="split">
+    <div class="col w60">
+      <figure class="fig rv d2" style="height:462px">
+        <div class="imgbox"><img src="../image/S%C6%A1%20%C4%91%E1%BB%93%20tu%E1%BA%A7n%20t%E1%BB%B1%20join%20meeting%20.png" alt="Sequence Diagram Join Meeting"></div>
+        <figcaption><b>Sequence (Hình 4.17):</b> Join Meeting và cấp LiveKit Token — tương tác giữa User, Jira, Forge, Meet Service, Authorization, LiveKit.</figcaption>
+      </figure>
+    </div>
+    <div class="col">
+      <div class="chain rv d3">
+        <div class="step"><b>User</b> — Join từ Issue Panel / Project Page</div>
+        <div class="arrow">▼</div>
+        <div class="step"><b>Forge App</b> — bổ sung ngữ cảnh Tenant, Issue, người dùng</div>
+        <div class="arrow">▼</div>
+        <div class="step"><b>Meet Service</b> — Authorization: quyền + trạng thái + sức chứa</div>
+        <div class="arrow">▼</div>
+        <div class="step"><b>LiveKit Token</b> — đúng người, đúng phòng, có thời hạn (NFR-03)</div>
+        <div class="arrow">▼</div>
+        <div class="step"><b>LiveKit</b> — Room thời gian thực (audio / video / screen share)</div>
+      </div>
+      <p class="hint rv d3">Sequence trả lời câu hỏi: <b>Join được phép khi nào và token được cấp ra sao</b> — liên kết trực tiếp với BR-06 và NFR-03.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 15 · TRIỂN KHAI ============ -->
+<section class="slide" data-title="Triển khai và vận hành">
+  <div class="kicker rv"><span class="num">15</span>Deployment &amp; Operation</div>
+  <h2 class="title rv d1">Triển khai hệ thống — Development → Deployment → Operation</h2>
+  <div class="split">
+    <div class="col w55">
+      <figure class="fig rv d2">
+        <div class="imgbox"><img src="../image/lu%E1%BB%93ng%20ki%E1%BB%83m%20th%E1%BB%AD%20.png" alt="Sơ đồ luồng hoạt động hệ thống kiểm thử"></div>
+        <figcaption><b>Hình 5.1 (báo cáo):</b> luồng hoạt động hệ thống thực nghiệm — Docker Compose, container hóa toàn bộ thành phần.</figcaption>
+      </figure>
+    </div>
+    <div class="col w45">
+      <div class="chain rv d2">
+        <div class="step"><b>Development</b> — Backend Spring Boot (Phú) · Forge + ReactJS (Duy) · tài liệu BA (Chiến)</div>
+        <div class="arrow">▼</div>
+        <div class="step"><b>Build &amp; Configuration</b> — Docker Compose: Envoy, Tenant, Meet, Notification, LiveKit, Coturn (Phú)</div>
+        <div class="arrow">▼</div>
+        <div class="step"><b>Deployment</b> — PostgreSQL · Valkey · Kafka · LiveKit Server</div>
+        <div class="arrow">▼</div>
+        <div class="step"><b>Verification</b> — Prometheus, Grafana, WebRTC Internals, Docker Stats</div>
+      </div>
+      <p class="hint rv d3">Môi trường kiểm thử là <b>test overlay</b> trên stack hiện có: thêm TURN, công cụ tạo tải, observability — không thay đổi kiến trúc nghiệp vụ (báo cáo §5.2).</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 16 · KIỂM THỬ ============ -->
+<section class="slide" data-title="Kiểm thử và đánh giá">
+  <div class="kicker rv"><span class="num">16</span>Testing &amp; Evaluation</div>
+  <h2 class="title rv d1">Kiểm thử hệ thống — kết quả của cả nhóm</h2>
+  <div class="split" style="gap:16px">
+    <div class="col" style="flex:1.2">
+      <p class="rv d2" style="font-size:16px;font-weight:600;color:var(--navy);margin-bottom:6px">Kịch bản theo Business Rule <span class="muted" style="font-weight:400">(happy path · authorization · negative · lifecycle)</span></p>
+      <table class="rv d2" style="font-size:14.5px">
+        <tr><th style="width:62%">Test</th><th style="width:20%" class="c">Expected</th><th style="width:18%" class="c">Kết quả</th></tr>
+        <tr><td>Host tạo Meeting (Instant) — FR-01</td><td class="c">Success</td><td class="c pass">Đạt</td></tr>
+        <tr><td>Participant Join Meeting Running — FR-04, BR-06</td><td class="c">Success</td><td class="c pass">Đạt</td></tr>
+        <tr><td>Thao tác quản lý khi không đủ quyền — BR-01</td><td class="c">Denied</td><td class="c pass">Đạt</td></tr>
+        <tr><td>Participant End Meeting — BR-06/07</td><td class="c">Denied</td><td class="c pass">Đạt</td></tr>
+        <tr><td>Host End Meeting — BR-06/07</td><td class="c">Success</td><td class="c pass">Đạt</td></tr>
+        <tr><td>Host đang Host 1 Meeting Running tạo Instant mới — BR-04</td><td class="c">Denied</td><td class="c pass">Đạt</td></tr>
+        <tr><td>Hủy Meeting Scheduled — BR-05</td><td class="c">Success</td><td class="c pass">Đạt</td></tr>
+      </table>
+      <p class="hint rv d3">Căn cứ báo cáo Bảng 5.10 (FR-01→08 đạt, kiểm thử qua giao diện + API). <span class="missing">[THIẾU EVIDENCE: ảnh chụp từng case chức năng]</span></p>
+    </div>
+    <div class="col">
+      <p class="rv d2" style="font-size:16px;font-weight:600;color:var(--navy);margin-bottom:6px">Kiểm thử hiệu năng TC-01…TC-05 <span class="muted" style="font-weight:400">(nhóm thiết kế + thực hiện, báo cáo §5)</span></p>
+      <div class="cards" style="margin-top:0">
+        <figure class="fig rv d3" style="height:270px">
+          <div class="imgbox"><img src="../image/TC-01%20Th%E1%BB%9Di%20gian%20thi%E1%BA%BFt%20l%E1%BA%ADp%20k%E1%BA%BFt%20n%E1%BB%91i%20(2%20ch%C3%A2n).png" alt="TC-01 Thời gian thiết lập kết nối"></div>
+          <figcaption><b>TC-01 (Hình 5.2):</b> setup 129 ms (srflx) / 118 ms (relay) — ngưỡng 3000 ms → <b class="pass">PASS</b></figcaption>
+        </figure>
+        <figure class="fig rv d3" style="height:270px">
+          <div class="imgbox"><img src="../image/TC-04%20Bi%E1%BB%83u%20%C4%91%E1%BB%93%20so%20s%C3%A1nh%20%C4%91%E1%BB%99%20tr%E1%BB%85%20theo%20variant%20.png" alt="TC-04 độ trễ theo variant"></div>
+          <figcaption><b>TC-04 (Hình 5.10):</b> 500 request, token 100%, p50 3,66–233,48 ms → <b class="pass">PASS</b></figcaption>
+        </figure>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 17 · KẾT QUẢ ============ -->
+<section class="slide" data-title="Kết quả đạt được">
+  <div class="kicker rv"><span class="num">17</span>Team Achievement</div>
+  <h2 class="title rv d1">Kết quả đạt được — thành quả của cả nhóm</h2>
+  <div class="cards">
+    <div class="card rv d2">
+      <h3>Business</h3>
+      <ul>
+        <li>Meeting gắn với Issue — hết mất ngữ cảnh</li>
+        <li>Workflow tập trung: tạo / join ngay từ Jira</li>
+        <li>Lifecycle 4 trạng thái quản lý rõ ràng</li>
+        <li>Permission theo ngữ cảnh (View / Edit + Host)</li>
+        <li>Meeting History theo Issue / Project</li>
+      </ul>
+    </div>
+    <div class="card rv d3">
+      <h3>Technical</h3>
+      <ul>
+        <li>Forge App: Issue Panel + Project Page (ReactJS)</li>
+        <li>LiveKit SFU: audio, video, screen share</li>
+        <li>Backend: Meet · Tenant · Notification (Spring Boot)</li>
+        <li>PostgreSQL · Valkey · Kafka · Envoy Gateway</li>
+        <li>Hexagonal + CQRS + Event-Driven</li>
+      </ul>
+    </div>
+    <div class="card rv d3">
+      <h3>Product &amp; Verification</h3>
+      <ul>
+        <li>Meeting Room — họp trực tuyến qua LiveKit</li>
+        <li>FR 8/8 đạt · NFR 4/4 đạt (Bảng 5.10–5.11)</li>
+        <li>TC-01/04/05 PASS; TC-02 PASS có điều kiện</li>
+        <li>7/8 mục tiêu hoàn thành; mở rộng ở mức thiết kế (Bảng 6.1)</li>
+        <li>Triển khai Docker Compose, giám sát Prometheus/Grafana</li>
+      </ul>
+    </div>
+  </div>
+  <p class="hint rv d3" style="margin-top:12px">Minh bạch về giới hạn: TC-02 packet loss P95 3,64–3,67% vượt ngưỡng trong burst 4G (PASS theo mean/server-side); TC-03 tỷ lệ rớt kết nối chưa đo được; biên Jira được mock nên độ trễ chưa phản ánh Jira thực (báo cáo §5.7).</p>
+</section>
+
+<!-- ============ 18 · PHÂN CÔNG NHÓM ============ -->
+<section class="slide" data-title="Phân công và đóng góp nhóm">
+  <div class="kicker rv"><span class="num">18</span>Team Contribution</div>
+  <h2 class="title rv d1">Phân công và đóng góp của nhóm</h2>
+  <table class="rv d2" style="font-size:14.5px">
+    <tr><th style="width:16%">Thành viên</th><th style="width:20%">Vai trò</th><th style="width:64%">Đóng góp chính <span class="muted" style="color:#CBD8EC;font-weight:400">(theo kế hoạch phân công — báo cáo)</span></th></tr>
+    <tr>
+      <td><b>Cao Đăng Chiến</b></td>
+      <td>Business Analyst</td>
+      <td>Khảo sát &amp; xác định bài toán; phân tích nghiệp vụ (AS-IS, Actor, Use Case, Business Rule, vòng đời); tài liệu BA (User Story, Acceptance Criteria); thiết kế giao diện Issue Panel; kịch bản kiểm thử chức năng + tiêu chí nghiệm thu; tổng hợp phân tích kết quả; báo cáo <span class="muted">(mục 1, 2, 3, 6, 14, 18, 19)</span></td>
+    </tr>
+    <tr>
+      <td><b>Phạm Phúc Duy</b></td>
+      <td>Forge App &amp; Frontend</td>
+      <td>Nghiên cứu Jira Forge (Issue Panel, Project Page, Custom UI); xây dựng giao diện ReactJS; tích hợp Frontend–Backend; tích hợp LiveKit Client SDK — audio/video/screen share, video grid; kiểm thử tích hợp <span class="muted">(mục 4, 7, 9, 10, 11, 15)</span></td>
+    </tr>
+    <tr>
+      <td><b>Nguyễn Ngọc Phú</b></td>
+      <td>Backend &amp; Hạ tầng</td>
+      <td>Thiết kế CSDL &amp; kiến trúc Backend; API Meeting, Participant, Permission, Room, History (Spring Boot); LiveKit Integration Service + Access Token; cấu hình PostgreSQL, Valkey, LiveKit, Docker; kiểm thử API, NAT/QoS, tải &amp; tài nguyên <span class="muted">(mục 5, 8, 9, 12, 13, 15, 16, 18)</span></td>
+    </tr>
+  </table>
+  <div class="split" style="margin-top:12px">
+    <div class="col">
+      <div class="card rv d3">
+        <h3>Quy trình nhóm</h3>
+        <ul>
+          <li>6 tuần, 21 hạng mục theo kế hoạch phân công.</li>
+          <li>Review requirement &amp; thiết kế để thống nhất Business Rule (BA ↔ Developer).</li>
+          <li>Kiểm thử toàn bộ luồng tạo / lên lịch / bắt đầu / tham gia / kết thúc / lịch sử do <b>cả nhóm</b> thực hiện (mục 17).</li>
+        </ul>
+      </div>
+    </div>
+    <div class="col">
+      <div class="card rv d3">
+        <h3>Minh bạch</h3>
+        <ul>
+          <li>Mức hoàn thành từng hạng mục ghi rõ trong kế hoạch (75–100%).</li>
+          <li>Không nhận phần việc của thành viên khác.</li>
+          <li><span class="missing">[CẦN BỔ SUNG: link task / issue / commit nếu nhóm muốn dẫn chứng]</span></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 19 · ĐÓNG GÓP BA ============ -->
+<section class="slide" data-title="Đóng góp cá nhân — BA">
+  <div class="kicker rv"><span class="num">19</span>Personal Contribution</div>
+  <h2 class="title rv d1">Vai trò và đóng góp cá nhân — Business Analyst <span style="font-size:19px;color:var(--muted);font-weight:500">(trong sản phẩm chung)</span></h2>
+  <div class="timeline">
+    <div class="tl rv d2">
+      <div class="head">RESEARCH</div>
+      <div class="body"><ul>
+        <li>Khảo sát bối cảnh hội họp trong SDLC / Scrum</li>
+        <li>Nghiên cứu giải pháp tích hợp (Jira/Forge, WebRTC, LiveKit)</li>
+        <li>Thu thập bằng chứng ngành</li>
+      </ul></div>
+    </div>
+    <div class="tl-arrow">→</div>
+    <div class="tl rv d2">
+      <div class="head">BUSINESS ANALYSIS</div>
+      <div class="body"><ul>
+        <li>Phân tích AS-IS</li>
+        <li>Xác định Pain Point, Root Cause</li>
+        <li>Chuyển hóa thành Business Need (NV-01…03)</li>
+      </ul></div>
+    </div>
+    <div class="tl-arrow">→</div>
+    <div class="tl rv d3">
+      <div class="head">REQUIREMENT</div>
+      <div class="body"><ul>
+        <li>FR-01…08, NFR-01…04</li>
+        <li>User Story + Acceptance Criteria</li>
+        <li>Phân quyền View / Edit + Host</li>
+      </ul></div>
+    </div>
+    <div class="tl-arrow">→</div>
+    <div class="tl rv d3">
+      <div class="head">BUSINESS RULE</div>
+      <div class="body"><ul>
+        <li>BR-01…08 + ràng buộc trạng thái</li>
+        <li>Thống nhất với nhóm qua review</li>
+        <li>Vòng đời Meeting 4 trạng thái</li>
+      </ul></div>
+    </div>
+    <div class="tl-arrow">→</div>
+    <div class="tl rv d3">
+      <div class="head">MODELING</div>
+      <div class="body"><ul>
+        <li>Use Case UC-01…07 + đặc tả</li>
+        <li>Sơ đồ nghiệp vụ, luồng xử lý</li>
+        <li>Thiết kế giao diện Issue Panel</li>
+      </ul></div>
+    </div>
+    <div class="tl-arrow">→</div>
+    <div class="tl rv d3">
+      <div class="head">VALIDATION</div>
+      <div class="body"><ul>
+        <li>Kịch bản kiểm thử chức năng, phân quyền</li>
+        <li>Tiêu chí nghiệm thu hệ thống</li>
+        <li>Rà soát requirement ↔ solution; phân tích kết quả TC</li>
+      </ul></div>
+    </div>
+  </div>
+  <p class="hint rv d3" style="margin-top:12px"><b>Evidence:</b> kế hoạch phân công trong báo cáo (mục 1, 2, 3, 6, 14, 18, 19 do BA đảm nhiệm); tài liệu BA: đề cương đồ án (<code>requirements/BA.md</code>), hướng dẫn bảo vệ (<code>docs/slide.md</code>), báo cáo chương 1–4.</p>
+</section>
+
+<!-- ============ 20 · KHÓ KHĂN ============ -->
+<section class="slide" data-title="Khó khăn và cách xử lý">
+  <div class="kicker rv"><span class="num">20</span>Difficulties &amp; Handling</div>
+  <h2 class="title rv d1">Khó khăn và cách nhóm xử lý</h2>
+  <table class="rv d2" style="font-size:14.5px">
+    <tr><th style="width:24%">Vấn đề</th><th style="width:22%">Nguyên nhân</th><th style="width:32%">Cách xử lý</th><th style="width:22%">Kết quả</th></tr>
+    <tr>
+      <td>Requirement chưa rõ (quyền và thao tác mâu thuẫn)</td>
+      <td>Phân tích ban đầu chưa tách bạch Permission / Ownership</td>
+      <td>Review với nhóm &amp; giảng viên; làm rõ Business Rule (BR-07)</td>
+      <td>FR / BR thống nhất, authorization rõ ràng</td>
+    </tr>
+    <tr>
+      <td>Lifecycle Meeting phức tạp</td>
+      <td>Mỗi thao tác phụ thuộc trạng thái hiện tại</td>
+      <td>Chuẩn hóa 4 trạng thái + ràng buộc (BR-05/06)</td>
+      <td>Flow nhất quán, kiểm thử theo trạng thái</td>
+    </tr>
+    <tr>
+      <td>Permission phức tạp (End = Edit + Host)</td>
+      <td>Quyền theo Scheme chưa đủ cho thao tác kết thúc</td>
+      <td>Bổ sung BR-06/07; backend kiểm tra lại mọi yêu cầu</td>
+      <td>Chỉ Host mới End được Meeting Running</td>
+    </tr>
+    <tr>
+      <td>Tích hợp RTC: NAT, firewall, ICE</td>
+      <td>Chất lượng phụ thuộc điều kiện mạng thực tế</td>
+      <td>Dựng môi trường mô phỏng NAT + TURN; kiểm thử 2 chân (TC-01)</td>
+      <td>srflx 129 ms / relay 118 ms — PASS</td>
+    </tr>
+  </table>
+  <div class="split" style="margin-top:10px">
+    <div class="col">
+      <p class="rv d3" style="font-size:15px;line-height:1.45"><b>BA (Chiến):</b> requirement chưa rõ, business rule phức tạp, lifecycle cần thống nhất — xử lý qua review &amp; chuẩn hóa rule.</p>
+    </div>
+    <div class="col">
+      <p class="rv d3" style="font-size:15px;line-height:1.45"><b>Developer (Duy, Phú):</b> tích hợp Frontend–Backend–LiveKit, xác thực &amp; token, RTC/NAT — xử lý qua môi trường mô phỏng &amp; kiểm thử tích hợp.</p>
+    </div>
+    <div class="col">
+      <p class="rv d3" style="font-size:15px;line-height:1.45"><b>Hạ tầng (Phú):</b> nhiều thành phần microservices, cấu hình Docker &amp; observability — xử lý qua container hóa + giám sát (báo cáo §6.2).</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 21 · TỔNG KẾT CLO ============ -->
+<section class="slide" data-title="Tổng kết CLO">
+  <div class="kicker rv"><span class="num">21</span>CLO Summary</div>
+  <h2 class="title rv d1">Tổng kết theo chuẩn đầu ra</h2>
+  <table class="rv d2">
+    <tr><th style="width:12%">CLO</th><th style="width:88%">Minh chứng — cấp nhóm và cá nhân</th></tr>
+    <tr><td><b>CLO1</b></td><td>Nhóm: phân công 21 hạng mục, tuân thủ tiến độ, báo cáo trung thực (ghi rõ mức hoàn thành và giới hạn). Cá nhân: ownership phần việc của mình, xử lý khó khăn có kết quả</td></tr>
+    <tr><td><b>CLO2</b></td><td>Nhóm: AS-IS → Pain Point → Root Cause → Business Need → Requirement → Solution (slide 02–11)</td></tr>
+    <tr><td><b>CLO3</b></td><td>Nhóm: phối hợp BA ↔ Developer qua review requirement / Business Rule / thiết kế; kiểm thử toàn bộ flow cả nhóm</td></tr>
+    <tr><td><b>CLO4</b></td><td>Use Case, Activity/Luồng xử lý, Sequence, State, Architecture — mỗi mô hình liên kết với requirement &amp; business rule</td></tr>
+    <tr><td><b>CLO5</b></td><td>Development (Backend, Forge, UI) → Integration → Deployment (Docker Compose) → Testing (TC-01…05) → Operation (Prometheus/Grafana)</td></tr>
+  </table>
+  <div class="msg rv d3">Từ bài toán nghiệp vụ → yêu cầu → giải pháp → thiết kế → triển khai → kiểm thử và đánh giá.<br><small>Xin cảm ơn thầy/cô đã lắng nghe — cả nhóm sẵn sàng trả lời phản biện.</small></div>
+</section>
+
+<!-- chrome -->
+<div id="progress"></div>
+<div id="chrome">
+  <div id="counter">01 / 21</div>
+  <div class="grp">
+    <button id="btnPrev" title="Previous (←)" aria-label="Previous slide">
+      <svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg> Trước</button>
+    <button id="btnNext" title="Next (→)" aria-label="Next slide">
+      <svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg> Sau</button>
+    <button id="btnFull" title="Fullscreen (F)" aria-label="Toggle fullscreen">
+      <svg viewBox="0 0 24 24"><path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M16 3h3a2 2 0 0 1 2 2v3"/><path d="M8 21H5a2 2 0 0 1-2-2v-3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/></svg> Toàn màn hình</button>
+  </div>
+</div>
+</div>
+
+<script>
+(function(){
+  var slides = Array.prototype.slice.call(document.querySelectorAll('.slide'));
+  var total = slides.length;
+  var cur = 0;
+  var counter = document.getElementById('counter');
+  var progress = document.getElementById('progress');
+
+  function go(n){
+    cur = Math.max(0, Math.min(total-1, n));
+    slides.forEach(function(s,i){ s.classList.toggle('active', i===cur); });
+    counter.textContent = String(cur+1).padStart(2,'0') + ' / ' + String(total).padStart(2,'0');
+    progress.style.width = ((cur+1)/total*100) + '%';
+  }
+  function next(){ go(cur+1); }
+  function prev(){ go(cur-1); }
+  function scale(){
+    var s = Math.min(window.innerWidth/1280, window.innerHeight/720);
+    var st = document.getElementById('stage');
+    st.style.transform = 'scale(' + s + ')';
+  }
+  document.getElementById('btnNext').addEventListener('click', next);
+  document.getElementById('btnPrev').addEventListener('click', prev);
+  document.getElementById('btnFull').addEventListener('click', function(){
+    if(document.fullscreenElement){ document.exitFullscreen(); }
+    else{ document.documentElement.requestFullscreen && document.documentElement.requestFullscreen(); }
+  });
+  document.addEventListener('keydown', function(e){
+    switch(e.key){
+      case 'ArrowRight': case 'PageDown': e.preventDefault(); next(); break;
+      case 'ArrowLeft':  case 'PageUp':   e.preventDefault(); prev(); break;
+      case 'Home': e.preventDefault(); go(0); break;
+      case 'End':  e.preventDefault(); go(total-1); break;
+      case 'f': case 'F':
+        if(!e.ctrlKey && !e.metaKey && !e.altKey){
+          if(document.fullscreenElement){ document.exitFullscreen(); }
+          else{ document.documentElement.requestFullscreen && document.documentElement.requestFullscreen(); }
+        }
+        break;
+    }
+  });
+  slides.forEach(function(s,i){
+    s.addEventListener('click', function(e){
+      var x = e.clientX / window.innerWidth;
+      if(x > 0.88){ next(); }
+      else if(x < 0.06){ prev(); }
+    });
+  });
+  window.addEventListener('resize', scale);
+  scale();
+  go(0);
+})();
+</script>
+</body>
+</html>
